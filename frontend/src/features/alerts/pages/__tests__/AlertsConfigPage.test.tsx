@@ -102,15 +102,17 @@ describe('AlertsConfigPage', () => {
     });
 
     expect(screen.getByText('Donation threshold')).toBeInTheDocument();
-    expect(screen.getByText('Donation Amount')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /review history/i })).toHaveAttribute(
-      'href',
-      '/alerts/history'
-    );
-    expect(screen.getByRole('link', { name: /view triggered alerts/i })).toHaveAttribute(
-      'href',
-      '/alerts/instances'
-    );
+    expect(screen.getByText('Donation amount')).toBeInTheDocument();
+    expect(
+      screen
+        .getAllByRole('link', { name: /alert history/i })
+        .some((link) => link.getAttribute('href') === '/alerts/history')
+    ).toBe(true);
+    expect(
+      screen
+        .getAllByRole('link', { name: /active alerts/i })
+        .some((link) => link.getAttribute('href') === '/alerts/instances')
+    ).toBe(true);
   });
 
   it('links to adjacent analytics, reporting, and branding workspaces', async () => {

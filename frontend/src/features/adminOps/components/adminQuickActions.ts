@@ -1,7 +1,4 @@
-import {
-  getAdminSettingsPath,
-  getPortalAdminPath,
-} from '../adminRoutePaths';
+import { getAdminSettingsPath, getPortalAdminPath } from '../adminRoutePaths';
 import { normalizeRoleSlug } from '../../auth/state/roleNormalization';
 
 export type AdminQuickActionId =
@@ -75,15 +72,15 @@ const actionMap: Record<AdminQuickActionId, AdminQuickAction> = {
   },
   communications: {
     id: 'communications',
-    label: 'Newsletter Campaigns',
-    description: 'Open campaign sync, audiences, and newsletter delivery tools',
+    label: 'Communications',
+    description: 'Open local email campaigns and optional Mailchimp tools',
     to: '/settings/communications',
     icon: '📧',
   },
   navigation: {
     id: 'navigation',
-    label: 'Navigation',
-    description: 'Configure menus and pinned modules',
+    label: 'My Navigation',
+    description: 'Choose your menu order and pinned modules',
     to: '/settings/navigation',
     icon: '🧭',
   },

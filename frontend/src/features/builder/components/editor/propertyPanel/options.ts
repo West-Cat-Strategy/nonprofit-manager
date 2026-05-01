@@ -9,6 +9,7 @@ export const pageTypeOptions: Array<{ value: TemplatePageType; label: string }> 
 export const collectionOptions: Array<{ value: PageCollectionType; label: string }> = [
   { value: 'events', label: 'Events' },
   { value: 'newsletters', label: 'Newsletters' },
+  { value: 'blog', label: 'Blog' },
 ];
 
 export const eventTypeOptions = [

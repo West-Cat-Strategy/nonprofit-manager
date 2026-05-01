@@ -159,28 +159,30 @@ This slice proves the current website/public-runtime contract without widening i
 
 Pair that command with `make check-links` when the same task updates website or testing docs.
 
-## Targeted Email Wave Proof
+## Targeted Local-First Communications Proof
 
-Use this narrower proof when the change is limited to the communications workspace, Mailchimp campaign authoring, the email preview formatter, or the shared sanitized preview frame:
+Use this narrower proof when the change is limited to the communications workspace, local SMTP campaign delivery, optional Mailchimp provider compatibility, the email preview formatter, or the shared sanitized preview frame:
 
 ```bash
-cd backend && npm test -- --runInBand src/__tests__/services/emailCampaignRenderer.test.ts src/__tests__/services/mailchimpService.test.ts src/__tests__/modules/mailchimp.routes.security.test.ts
+cd backend && npm test -- --runInBand src/modules/communications/__tests__/communicationsService.test.ts src/__tests__/services/newsletterProviderService.test.ts src/__tests__/services/publishing/publicWebsiteFormService.test.ts src/__tests__/services/emailCampaignRenderer.test.ts src/__tests__/services/mailchimpService.test.ts src/__tests__/modules/mailchimp.routes.security.test.ts
 cd frontend && npm test -- --run src/features/adminOps/pages/__tests__/EmailMarketingPage.test.tsx src/features/builder/pages/__tests__/TemplatePreviewPage.test.tsx
 make db-verify
 cd backend && npm run type-check
 cd frontend && npm run type-check
 ```
 
-This slice proves the current email-wave contract without widening into the host/Docker review lane:
+This slice proves the current local-first communications contract without widening into the host/Docker review lane:
 
+- `src/modules/communications/__tests__/communicationsService.test.ts`: local provider status, CRM audience preview, recipient queueing, suppression filtering, SMTP batch behavior, and provider-neutral run actions
+- `src/__tests__/services/newsletterProviderService.test.ts` and `src/__tests__/services/publishing/publicWebsiteFormService.test.ts`: public newsletter signup defaults, local CRM persistence, provider-neutral result metadata, and explicit external-provider sync behavior
 - `src/__tests__/services/emailCampaignRenderer.test.ts`: guided-builder and raw-HTML formatting, sanitization, and warning behavior
-- `src/__tests__/services/mailchimpService.test.ts`: Mailchimp campaign creation, generated content payloads, saved-audience provider targeting through run-specific static segments, campaign-run history, scheduling, and send behavior
+- `src/__tests__/services/mailchimpService.test.ts`: explicit Mailchimp campaign creation, generated content payloads, saved-audience provider targeting through run-specific static segments, campaign-run history, scheduling, and send behavior
 - `src/__tests__/modules/mailchimp.routes.security.test.ts`: admin-only protection for campaign preview and other Mailchimp routes
 - `src/features/adminOps/pages/__tests__/EmailMarketingPage.test.tsx`: communications workspace authoring, saved-audience selection, campaign-run history, and preview flow
 - `src/features/builder/pages/__tests__/TemplatePreviewPage.test.tsx`: shared sandboxed preview-frame behavior
 
 Pair that command set with `make check-links` when the same task updates email-wave or testing docs.
-Add `make lint-doc-api-versioning` when the same task changes `/api/v2` route wording, include `src/__tests__/services/taxReceiptService.test.ts` when donor-profile receipt defaults change with the email wave, and keep `make db-verify` in the slice when migrations `103_mailchimp_saved_audiences_and_campaign_runs.sql` or `107_donor_profiles.sql` change.
+Add `make lint-doc-api-versioning` when the same task changes `/api/v2` route wording, include `src/__tests__/services/taxReceiptService.test.ts` when donor-profile receipt defaults change with the email wave, and keep `make db-verify` in the slice when migrations `103_mailchimp_saved_audiences_and_campaign_runs.sql`, `107_donor_profiles.sql`, `110_communication_suppression_governance.sql`, or `111_local_first_communications.sql` change.
 
 ## Targeted Portal Hardening Proof
 

@@ -38,6 +38,17 @@ export type CaseFormAssignmentBucket = 'active' | 'completed';
 export type CaseFormActorType = 'staff' | 'portal' | 'public';
 export type CaseFormAssetKind = 'upload' | 'signature';
 export type CaseFormDeliveryTarget = 'portal' | 'email' | 'portal_and_email';
+export type CaseFormDeliveryChannel = 'portal' | 'email' | 'sms';
+export type CaseFormTemplateStatus = 'draft' | 'published' | 'archived';
+export type CaseFormAssignmentEventType =
+  | 'opened'
+  | 'submission_recorded'
+  | 'revision_requested'
+  | 'reviewed'
+  | 'closed'
+  | 'cancelled';
+
+export type CaseFormAssignmentEventMetadataValue = string | number | null;
 
 export interface CaseFormLogicRule {
   question_key: string;
@@ -111,13 +122,16 @@ export interface CaseFormAsset {
 
 export interface CaseFormDefault {
   id: string;
-  case_type_id: string;
+  case_type_id?: string | null;
   account_id?: string | null;
   title: string;
   description?: string | null;
   schema: CaseFormSchema;
   version: number;
   is_active: boolean;
+  template_status?: CaseFormTemplateStatus;
+  last_autosaved_at?: string | null;
+  saved_from_assignment_id?: string | null;
   created_at: string;
   updated_at: string;
   created_by?: string | null;
@@ -153,6 +167,22 @@ export interface CaseFormSubmission {
   response_packet_download_url?: string | null;
 }
 
+export interface CaseFormAssignmentEvent {
+  id: string;
+  assignment_id: string;
+  case_id: string;
+  contact_id: string;
+  account_id?: string | null;
+  event_type: CaseFormAssignmentEventType;
+  actor_type: CaseFormActorType;
+  actor_user_id?: string | null;
+  actor_portal_user_id?: string | null;
+  submission_id?: string | null;
+  access_token_id?: string | null;
+  metadata: Record<string, CaseFormAssignmentEventMetadataValue>;
+  created_at: string;
+}
+
 export interface CaseFormAssignment {
   id: string;
   case_id: string;
@@ -169,10 +199,13 @@ export interface CaseFormAssignment {
   last_draft_saved_at?: string | null;
   due_at?: string | null;
   recipient_email?: string | null;
+  recipient_phone?: string | null;
   delivery_target?: CaseFormDeliveryTarget | null;
+  delivery_channels?: CaseFormDeliveryChannel[];
   sent_at?: string | null;
   viewed_at?: string | null;
   submitted_at?: string | null;
+  last_structure_autosaved_at?: string | null;
   revision_requested_at?: string | null;
   revision_notes?: string | null;
   reviewed_at?: string | null;
@@ -212,6 +245,7 @@ export interface CaseFormReviewDecision {
 export interface CaseFormAssignmentDetail {
   assignment: CaseFormAssignment;
   submissions: CaseFormSubmission[];
+  evidence_events?: CaseFormAssignmentEvent[];
 }
 
 export interface CreateCaseFormDefaultDTO {
@@ -219,6 +253,9 @@ export interface CreateCaseFormDefaultDTO {
   description?: string;
   schema: CaseFormSchema;
   is_active?: boolean;
+  case_type_id?: string | null;
+  template_status?: CaseFormTemplateStatus;
+  saved_from_assignment_id?: string | null;
 }
 
 export interface UpdateCaseFormDefaultDTO {
@@ -226,6 +263,9 @@ export interface UpdateCaseFormDefaultDTO {
   description?: string | null;
   schema?: CaseFormSchema;
   is_active?: boolean;
+  case_type_id?: string | null;
+  template_status?: CaseFormTemplateStatus;
+  autosave?: boolean;
 }
 
 export interface CreateCaseFormAssignmentDTO {
@@ -235,6 +275,7 @@ export interface CreateCaseFormAssignmentDTO {
   case_type_id?: string;
   due_at?: string;
   recipient_email?: string;
+  recipient_phone?: string;
   source_default_id?: string;
 }
 
@@ -244,7 +285,9 @@ export interface UpdateCaseFormAssignmentDTO {
   schema?: CaseFormSchema;
   due_at?: string | null;
   recipient_email?: string | null;
+  recipient_phone?: string | null;
   status?: CaseFormAssignmentStatus;
+  autosave?: boolean;
 }
 
 export interface SaveCaseFormDraftDTO {
@@ -257,7 +300,9 @@ export interface SubmitCaseFormDTO {
 }
 
 export interface SendCaseFormAssignmentDTO {
-  delivery_target: CaseFormDeliveryTarget;
+  delivery_target?: CaseFormDeliveryTarget;
+  delivery_channels?: CaseFormDeliveryChannel[];
   recipient_email?: string;
+  recipient_phone?: string;
   expires_in_days?: number;
 }

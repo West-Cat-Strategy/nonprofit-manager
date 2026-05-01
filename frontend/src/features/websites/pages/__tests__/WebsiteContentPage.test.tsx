@@ -223,7 +223,10 @@ describe('WebsiteContentPage', () => {
       );
     });
 
-    fireEvent.change(screen.getByPlaceholderText('Newsletter title'), {
+    fireEvent.change(screen.getByLabelText('Content kind'), {
+      target: { value: 'blog_post' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Content title'), {
       target: { value: 'April Update' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Create entry' }));
@@ -234,12 +237,12 @@ describe('WebsiteContentPage', () => {
           type: 'websites/createEntry',
           payload: expect.objectContaining({
             siteId: 'site-1',
-            data: expect.objectContaining({ title: 'April Update', kind: 'newsletter' }),
+            data: expect.objectContaining({ title: 'April Update', kind: 'blog_post' }),
           }),
         })
       );
     });
-    expect(screen.getByText('Newsletter entry created.')).toBeInTheDocument();
+    expect(screen.getByText('Content entry created.')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Sync Mailchimp' }));
 

@@ -1,6 +1,14 @@
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  ArrowDownTrayIcon,
+  ArrowPathIcon,
+  CalendarDaysIcon,
+  ClipboardDocumentCheckIcon,
+  PencilSquareIcon,
+  PlusCircleIcon,
+} from '@heroicons/react/24/outline';
+import {
   DangerButton,
   EmptyState,
   ErrorState,
@@ -37,7 +45,10 @@ import type {
   TableColumn,
 } from '../lib/grantsPageTypes';
 
-const formatMaybeDate = (value: string | null | undefined): string => (value ? formatDateOnly(value) : '—');
+const formatMaybeDate = (value: string | null | undefined): string =>
+  value ? formatDateOnly(value) : '—';
+const softCardClass =
+  'transition duration-200 hover:-translate-y-0.5 hover:border-app-accent hover:shadow-md';
 
 const renderTable = <T,>({
   title,
@@ -56,7 +67,7 @@ const renderTable = <T,>({
   emptyLabel: string;
   actions?: ReactNode;
 }) => (
-  <SectionCard title={title} subtitle={subtitle} actions={actions}>
+  <SectionCard className={softCardClass} title={title} subtitle={subtitle} actions={actions}>
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-app-border-muted text-sm">
         <thead className="bg-app-surface-muted">
@@ -80,7 +91,7 @@ const renderTable = <T,>({
             </tr>
           ) : (
             rows.map((row) => (
-              <tr key={rowKey(row)} className="hover:bg-app-hover/30">
+              <tr key={rowKey(row)} className="transition-colors hover:bg-app-hover/30">
                 {columns.map((column) => (
                   <td
                     key={column.key}
@@ -225,18 +236,26 @@ export default function GrantsPage() {
   const actionButtons = (
     <>
       <SecondaryButton onClick={() => void handleExport('csv')} disabled={exporting}>
+        <ArrowDownTrayIcon className="h-4 w-4" aria-hidden="true" />
         {exporting ? 'Exporting...' : 'Export CSV'}
       </SecondaryButton>
       <SecondaryButton onClick={() => void handleExport('xlsx')} disabled={exporting}>
+        <ArrowDownTrayIcon className="h-4 w-4" aria-hidden="true" />
         Export Excel
       </SecondaryButton>
       <SecondaryButton onClick={() => refreshData()} disabled={loading || exporting}>
+        <ArrowPathIcon className="h-4 w-4" aria-hidden="true" />
         Refresh
       </SecondaryButton>
       <PrimaryButton
         onClick={isReadOnlyGrantsSection(activeSection) ? refreshData : handleNewRecord}
         disabled={saving || loading}
       >
+        {isReadOnlyGrantsSection(activeSection) ? (
+          <ArrowPathIcon className="h-4 w-4" aria-hidden="true" />
+        ) : (
+          <PlusCircleIcon className="h-4 w-4" aria-hidden="true" />
+        )}
         {sectionPrimaryActionLabelById(activeSection)}
       </PrimaryButton>
     </>
@@ -274,17 +293,20 @@ export default function GrantsPage() {
     <div className="space-y-6 p-4 sm:p-6">
       <PageHeader
         title="Grants"
-        description="Internal tracking for federal and provincial grants by funder, program, recipient, award, disbursement, and reporting status."
+        description="Track grant funders, programs, awards, disbursements, deadlines, and report status."
         actions={actionButtons}
       />
 
       {notice && (
-        <div className="rounded-[var(--ui-radius-sm)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <div className="rounded-[var(--ui-radius-sm)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 transition duration-200">
+          <ClipboardDocumentCheckIcon className="mr-2 inline h-4 w-4" aria-hidden="true" />
           {notice}
         </div>
       )}
 
-      {error && <ErrorState message={error} onRetry={() => refreshData()} retryLabel="Reload grants" />}
+      {error && (
+        <ErrorState message={error} onRetry={() => refreshData()} retryLabel="Reload grants" />
+      )}
       {loading && visibleRows.length === 0 ? <LoadingState label="Loading grants..." /> : null}
 
       {summaryCards.length > 0 && (
@@ -300,8 +322,13 @@ export default function GrantsPage() {
           <SectionCard title="Status Mix" subtitle="Grants and applications by current status.">
             <div className="grid gap-3 sm:grid-cols-2">
               {summary.by_status.map((item) => (
-                <div key={item.status} className="rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface-muted p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-app-text-muted">{item.status}</p>
+                <div
+                  key={item.status}
+                  className="rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface-muted p-3 transition duration-200 hover:-translate-y-0.5 hover:shadow-sm"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-wide text-app-text-muted">
+                    {item.status}
+                  </p>
                   <p className="mt-1 text-lg font-semibold text-app-text">{item.count}</p>
                   <p className="text-sm text-app-text-muted">{formatCurrency(item.amount)}</p>
                 </div>
@@ -309,11 +336,19 @@ export default function GrantsPage() {
             </div>
           </SectionCard>
 
-          <SectionCard title="Jurisdiction Mix" subtitle="Federal and provincial portfolio distribution.">
+          <SectionCard
+            title="Jurisdiction Mix"
+            subtitle="Federal and provincial portfolio distribution."
+          >
             <div className="grid gap-3 sm:grid-cols-2">
               {summary.by_jurisdiction.map((item) => (
-                <div key={item.status} className="rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface-muted p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-app-text-muted">{item.status}</p>
+                <div
+                  key={item.status}
+                  className="rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface-muted p-3 transition duration-200 hover:-translate-y-0.5 hover:shadow-sm"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-wide text-app-text-muted">
+                    {item.status}
+                  </p>
                   <p className="mt-1 text-lg font-semibold text-app-text">{item.count}</p>
                   <p className="text-sm text-app-text-muted">{formatCurrency(item.amount)}</p>
                 </div>
@@ -323,7 +358,10 @@ export default function GrantsPage() {
         </div>
       )}
 
-      <SectionCard title="Sections" subtitle="Switch between grant workspaces, reporting, and portfolio views.">
+      <SectionCard
+        title="Sections"
+        subtitle="Switch between grant lists, deadlines, activity, and portfolio views."
+      >
         <div className="flex flex-wrap gap-2">
           {SECTION_DEFINITIONS.map((definition) => {
             const isActive = definition.id === activeSection;
@@ -332,7 +370,7 @@ export default function GrantsPage() {
                 key={definition.id}
                 type="button"
                 onClick={() => navigate(definition.path)}
-                className={`rounded-[var(--ui-radius-sm)] border px-3 py-2 text-sm font-semibold transition ${
+                className={`rounded-[var(--ui-radius-sm)] border px-3 py-2 text-sm font-semibold transition duration-150 hover:-translate-y-0.5 ${
                   isActive
                     ? 'border-app-accent bg-app-accent-soft text-app-accent-text'
                     : 'border-app-border bg-app-surface text-app-text hover:bg-app-hover'
@@ -395,7 +433,11 @@ export default function GrantsPage() {
             onChange={(event) => updateFilter('funderFilter', event.target.value)}
           >
             <option value="">All funders</option>
-            {toOptions(lookups.funders, (item) => item.id, (item) => item.name).map((option) => (
+            {toOptions(
+              lookups.funders,
+              (item) => item.id,
+              (item) => item.name
+            ).map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -407,7 +449,11 @@ export default function GrantsPage() {
             onChange={(event) => updateFilter('programFilter', event.target.value)}
           >
             <option value="">All programs</option>
-            {toOptions(lookups.programs, (item) => item.id, (item) => `${item.name}${item.funder_name ? ` • ${item.funder_name}` : ''}`).map((option) => (
+            {toOptions(
+              lookups.programs,
+              (item) => item.id,
+              (item) => `${item.name}${item.funder_name ? ` • ${item.funder_name}` : ''}`
+            ).map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -419,7 +465,11 @@ export default function GrantsPage() {
             onChange={(event) => updateFilter('recipientFilter', event.target.value)}
           >
             <option value="">All recipients</option>
-            {toOptions(lookups.recipients, (item) => item.id, (item) => item.name).map((option) => (
+            {toOptions(
+              lookups.recipients,
+              (item) => item.id,
+              (item) => item.name
+            ).map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -431,7 +481,11 @@ export default function GrantsPage() {
             onChange={(event) => updateFilter('fundedProgramFilter', event.target.value)}
           >
             <option value="">All funded programs</option>
-            {toOptions(lookups.fundedPrograms, (item) => item.id, (item) => item.name).map((option) => (
+            {toOptions(
+              lookups.fundedPrograms,
+              (item) => item.id,
+              (item) => item.name
+            ).map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -481,12 +535,19 @@ export default function GrantsPage() {
       </SectionCard>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(360px,1fr)]">
-        {renderSectionTable(activeSection, rows, sectionColumns, pagination, currentPaginationText, {
-          onPageChange: setPage,
-          onRefresh: refreshData,
-          loading,
-          saving,
-        })}
+        {renderSectionTable(
+          activeSection,
+          rows,
+          sectionColumns,
+          pagination,
+          currentPaginationText,
+          {
+            onPageChange: setPage,
+            onRefresh: refreshData,
+            loading,
+            saving,
+          }
+        )}
         {activeSectionIsReadOnly ? (
           <SectionCard
             title={`${sectionLabelById(activeSection)} overview`}
@@ -495,12 +556,27 @@ export default function GrantsPage() {
             {summary ? (
               <div className="space-y-3">
                 <p className="text-sm text-app-text-muted">
-                  Upcoming reports: {summary.upcoming_reports} • Upcoming disbursements: {summary.upcoming_disbursements}
+                  Upcoming reports: {summary.upcoming_reports} • Upcoming disbursements:{' '}
+                  {summary.upcoming_disbursements}
                 </p>
-                <p className="text-sm text-app-text-muted">Overdue reports: {summary.overdue_reports}</p>
+                <p className="text-sm text-app-text-muted">
+                  Overdue reports: {summary.overdue_reports}
+                </p>
                 <div className="flex flex-wrap gap-2">
-                  <SecondaryButton onClick={() => navigate('/grants/reports')}>Open reports</SecondaryButton>
-                  <SecondaryButton onClick={() => navigate('/grants/awards')}>Open awards</SecondaryButton>
+                  <SecondaryButton
+                    leadingIcon={<CalendarDaysIcon className="h-4 w-4" aria-hidden="true" />}
+                    onClick={() => navigate('/grants/reports')}
+                  >
+                    Open reports
+                  </SecondaryButton>
+                  <SecondaryButton
+                    leadingIcon={
+                      <ClipboardDocumentCheckIcon className="h-4 w-4" aria-hidden="true" />
+                    }
+                    onClick={() => navigate('/grants/awards')}
+                  >
+                    Open awards
+                  </SecondaryButton>
                 </div>
               </div>
             ) : (
@@ -509,8 +585,12 @@ export default function GrantsPage() {
           </SectionCard>
         ) : (
           <SectionCard
-            title={selectedId ? `Edit ${sectionLabelById(activeSection)}` : `Create ${sectionLabelById(activeSection)}`}
-            subtitle="Save changes directly from this internal staff-only workspace."
+            title={
+              selectedId
+                ? `Edit ${sectionLabelById(activeSection)}`
+                : `Create ${sectionLabelById(activeSection)}`
+            }
+            subtitle="Save grant details here so deadlines, awards, and reports stay current."
           >
             <form className="space-y-4" onSubmit={(event) => void handleSubmit(event)}>
               <div className="grid gap-4 md:grid-cols-2">
@@ -527,6 +607,7 @@ export default function GrantsPage() {
 
               <div className="flex flex-wrap gap-2">
                 <PrimaryButton type="submit" disabled={saving}>
+                  <PencilSquareIcon className="h-4 w-4" aria-hidden="true" />
                   {saving ? 'Saving...' : selectedId ? 'Save changes' : 'Create record'}
                 </PrimaryButton>
                 {selectedId && (
@@ -534,7 +615,11 @@ export default function GrantsPage() {
                     <SecondaryButton type="button" onClick={handleNewRecord}>
                       New record
                     </SecondaryButton>
-                    <DangerButton type="button" onClick={() => void handleDeleteRecord()} disabled={saving}>
+                    <DangerButton
+                      type="button"
+                      onClick={() => void handleDeleteRecord()}
+                      disabled={saving}
+                    >
                       Delete
                     </DangerButton>
                   </>
@@ -561,7 +646,10 @@ export default function GrantsPage() {
 
       {summary && (
         <div className="grid gap-4 xl:grid-cols-2">
-          <SectionCard title="Upcoming items" subtitle="Deadlines and due dates pulled from the grant calendar.">
+          <SectionCard
+            title="Upcoming items"
+            subtitle="Deadlines and due dates pulled from the grant calendar."
+          >
             <div className="space-y-3">
               {summary.upcoming_items.length === 0 ? (
                 <EmptyState
@@ -572,17 +660,23 @@ export default function GrantsPage() {
                 summary.upcoming_items.slice(0, 6).map((item) => (
                   <div
                     key={`${item.item_type}-${item.id}`}
-                    className="rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface-muted p-3"
+                    className="rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface-muted p-3 transition duration-200 hover:-translate-y-0.5 hover:shadow-sm"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <p className="font-semibold text-app-text">{item.grant_number}</p>
                         <p className="text-sm text-app-text-muted">{item.grant_title}</p>
-                        <p className="text-xs uppercase tracking-wide text-app-text-subtle">{item.item_type}</p>
+                        <p className="text-xs uppercase tracking-wide text-app-text-subtle">
+                          {item.item_type}
+                        </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-semibold text-app-text">{formatDateSmart(item.due_at)}</p>
-                        <p className="text-xs text-app-text-muted">{formatMaybeDate(item.due_at)}</p>
+                        <p className="text-sm font-semibold text-app-text">
+                          {formatDateSmart(item.due_at)}
+                        </p>
+                        <p className="text-xs text-app-text-muted">
+                          {formatMaybeDate(item.due_at)}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -591,7 +685,10 @@ export default function GrantsPage() {
             </div>
           </SectionCard>
 
-          <SectionCard title="Recent activity" subtitle="Latest audit entries across the grants workspace.">
+          <SectionCard
+            title="Recent activity"
+            subtitle="Latest audit entries across the grants workspace."
+          >
             <div className="space-y-3">
               {summary.recent_activity.length === 0 ? (
                 <EmptyState
@@ -602,13 +699,15 @@ export default function GrantsPage() {
                 summary.recent_activity.slice(0, 6).map((item) => (
                   <div
                     key={item.id}
-                    className="rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface-muted p-3"
+                    className="rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface-muted p-3 transition duration-200 hover:-translate-y-0.5 hover:shadow-sm"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <p className="font-semibold text-app-text">{item.action}</p>
                         <p className="text-sm text-app-text-muted">{item.entity_type}</p>
-                        <p className="text-sm text-app-text-muted">{item.notes ?? 'No notes provided.'}</p>
+                        <p className="text-sm text-app-text-muted">
+                          {item.notes ?? 'No notes provided.'}
+                        </p>
                       </div>
                       <p className="text-xs text-app-text-muted">{formatDate(item.created_at)}</p>
                     </div>
@@ -648,7 +747,10 @@ function renderSectionTable(
     emptyLabel: 'No records match the current filters.',
     actions: pagination ? (
       <div className="flex flex-wrap gap-2">
-        <SecondaryButton onClick={controls.onRefresh} disabled={controls.loading || controls.saving}>
+        <SecondaryButton
+          onClick={controls.onRefresh}
+          disabled={controls.loading || controls.saving}
+        >
           Refresh
         </SecondaryButton>
         <SecondaryButton
@@ -658,7 +760,9 @@ function renderSectionTable(
           Previous
         </SecondaryButton>
         <SecondaryButton
-          onClick={() => controls.onPageChange(Math.min(pagination.total_pages, pagination.page + 1))}
+          onClick={() =>
+            controls.onPageChange(Math.min(pagination.total_pages, pagination.page + 1))
+          }
           disabled={pagination.page >= pagination.total_pages}
         >
           Next

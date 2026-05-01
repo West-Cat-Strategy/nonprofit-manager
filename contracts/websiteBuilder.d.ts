@@ -15,10 +15,28 @@ export type TemplateStatus = 'draft' | 'published' | 'archived';
 export type SiteKind = 'organization' | 'campaign';
 export type MigrationStatus = 'complete' | 'needs_assignment';
 export type TemplatePageType = 'static' | 'collectionIndex' | 'collectionDetail';
-export type PageCollectionType = 'events' | 'newsletters';
-export type WebsiteEntryKind = 'newsletter';
+export type PageCollectionType = 'events' | 'newsletters' | 'blog';
+export type WebsiteEntryKind = 'newsletter' | 'blog_post' | 'campaign_update';
 export type WebsiteEntrySource = 'native' | 'mailchimp';
 export type WebsiteEntryStatus = 'draft' | 'published' | 'archived';
+export type PublicActionType =
+  | 'event_signup'
+  | 'self_referral'
+  | 'petition_signature'
+  | 'donation_checkout'
+  | 'donation_pledge'
+  | 'support_letter_request'
+  | 'newsletter_signup'
+  | 'volunteer_interest'
+  | 'contact';
+export type PublicActionStatus = 'draft' | 'published' | 'closed' | 'archived';
+export type PublicActionReviewStatus =
+  | 'new'
+  | 'duplicate'
+  | 'needs_review'
+  | 'accepted'
+  | 'rejected'
+  | 'fulfilled';
 export type PaymentProvider = 'stripe' | 'paypal' | 'square';
 export type RegistrationStatusValue =
   | 'registered'
@@ -55,6 +73,9 @@ export type ComponentType =
   | 'newsletter-archive'
   | 'volunteer-interest-form'
   | 'referral-form'
+  | 'petition-form'
+  | 'donation-pledge-form'
+  | 'support-letter-request'
   | 'countdown'
   | 'stats'
   | 'team'
@@ -458,6 +479,48 @@ export interface ReferralFormComponent extends BaseComponentProps {
   defaultTags?: string[];
 }
 
+export interface PetitionFormComponent extends BaseComponentProps {
+  type: 'petition-form';
+  actionSlug?: string;
+  heading?: string;
+  description?: string;
+  petitionStatement?: string;
+  submitText?: string;
+  successMessage?: string;
+  includePhone?: boolean;
+  showSignatureCount?: boolean;
+  defaultTags?: string[];
+}
+
+export interface DonationPledgeFormComponent extends BaseComponentProps {
+  type: 'donation-pledge-form';
+  actionSlug?: string;
+  heading?: string;
+  description?: string;
+  submitText?: string;
+  successMessage?: string;
+  suggestedAmounts?: number[];
+  allowCustomAmount?: boolean;
+  currency?: string;
+  campaignId?: string;
+  pledgeSchedule?: 'one_time' | 'monthly' | 'quarterly' | 'annual';
+  defaultTags?: string[];
+}
+
+export interface SupportLetterRequestComponent extends BaseComponentProps {
+  type: 'support-letter-request';
+  actionSlug?: string;
+  heading?: string;
+  description?: string;
+  submitText?: string;
+  successMessage?: string;
+  templateVersion?: string;
+  letterTitle?: string;
+  letterTemplate?: string;
+  includePhone?: boolean;
+  defaultTags?: string[];
+}
+
 export interface CountdownComponent extends BaseComponentProps {
   type: 'countdown';
   targetDate: string;
@@ -542,6 +605,9 @@ export type PageComponent =
   | NewsletterArchiveComponent
   | VolunteerInterestFormComponent
   | ReferralFormComponent
+  | PetitionFormComponent
+  | DonationPledgeFormComponent
+  | SupportLetterRequestComponent
   | CountdownComponent
   | StatsComponent
   | TeamComponent
@@ -817,6 +883,100 @@ export interface UpdateWebsiteEntryRequest {
   seo?: WebsiteEntrySEO;
   metadata?: Record<string, unknown>;
   publishedAt?: string;
+}
+
+export interface PublicAction {
+  id: string;
+  organizationId: string;
+  siteId: string;
+  pageId?: string | null;
+  componentId?: string | null;
+  actionType: PublicActionType;
+  status: PublicActionStatus;
+  slug: string;
+  title: string;
+  description?: string | null;
+  settings: Record<string, unknown>;
+  confirmationMessage?: string | null;
+  publishedAt?: string | null;
+  closedAt?: string | null;
+  submissionCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PublicActionSubmission {
+  id: string;
+  organizationId: string;
+  siteId: string;
+  actionId: string;
+  actionType: PublicActionType;
+  reviewStatus: PublicActionReviewStatus;
+  contactId?: string | null;
+  sourceEntityType?: string | null;
+  sourceEntityId?: string | null;
+  duplicateOfSubmissionId?: string | null;
+  consent: Record<string, unknown>;
+  payloadRedacted: Record<string, unknown>;
+  generatedArtifact: Record<string, unknown>;
+  pagePath?: string | null;
+  visitorId?: string | null;
+  sessionId?: string | null;
+  referrer?: string | null;
+  submittedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatePublicActionRequest {
+  actionType: PublicActionType;
+  status?: PublicActionStatus;
+  slug?: string;
+  title: string;
+  description?: string;
+  pageId?: string | null;
+  componentId?: string | null;
+  settings?: Record<string, unknown>;
+  confirmationMessage?: string | null;
+  publishedAt?: string | null;
+  closedAt?: string | null;
+}
+
+export interface UpdatePublicActionRequest {
+  status?: PublicActionStatus;
+  slug?: string;
+  title?: string;
+  description?: string | null;
+  pageId?: string | null;
+  componentId?: string | null;
+  settings?: Record<string, unknown>;
+  confirmationMessage?: string | null;
+  publishedAt?: string | null;
+  closedAt?: string | null;
+}
+
+export interface PublicActionSubmissionRequest {
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  phone?: string;
+  amount?: number | string;
+  message?: string;
+  consent?: boolean | string;
+  visitorId?: string;
+  sessionId?: string;
+  [key: string]: unknown;
+}
+
+export interface PublicActionSubmissionResult {
+  actionType: PublicActionType;
+  message: string;
+  submissionId: string;
+  contactId?: string;
+  pledgeId?: string;
+  supportLetterId?: string;
+  reviewStatus: PublicActionReviewStatus;
+  idempotentReplay?: boolean;
 }
 
 export interface TemplateState {

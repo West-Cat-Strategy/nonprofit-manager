@@ -1,8 +1,9 @@
 # Quick Reference Docs
 
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-05-01
 
 Use this directory for compact current-reference material, not for historical implementation snapshots.
+For contributor workflow, start with [../../CONTRIBUTING.md](../../CONTRIBUTING.md); for the organization-facing product overview, use [../../README.md](../../README.md).
 
 ## Current Reference Docs
 

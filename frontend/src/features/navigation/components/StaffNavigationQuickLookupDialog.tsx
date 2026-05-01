@@ -209,7 +209,7 @@ export default function StaffNavigationQuickLookupDialog({
       <div
         id="navigation-quick-lookup-dialog"
         ref={dialogRef}
-        className="app-popup-surface-translucent mt-16 w-full max-w-2xl rounded-lg shadow-xl"
+        className="app-popup-surface-translucent mt-16 w-full max-w-2xl rounded-lg shadow-xl transition-all duration-150"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -252,7 +252,10 @@ export default function StaffNavigationQuickLookupDialog({
 
         <div className="p-4">
           <div className="relative">
-            <label htmlFor={inputId} className="mb-2 block text-sm font-medium text-app-text-heading">
+            <label
+              htmlFor={inputId}
+              className="mb-2 block text-sm font-medium text-app-text-heading"
+            >
               Search people
             </label>
             <input
@@ -307,7 +310,7 @@ export default function StaffNavigationQuickLookupDialog({
                         onClick={onClose}
                         onMouseEnter={() => setActiveResultIndex(index)}
                         onFocus={() => setActiveResultIndex(index)}
-                        className={`block px-4 py-3 ${
+                        className={`block px-4 py-3 transition-colors ${
                           isActive
                             ? 'bg-app-accent-soft text-app-text-heading'
                             : 'hover:bg-app-hover'
@@ -331,7 +334,7 @@ export default function StaffNavigationQuickLookupDialog({
             <Link
               to="/contacts"
               onClick={onClose}
-              className="rounded-lg border border-app-border px-4 py-2 text-sm text-app-text hover:bg-app-hover"
+              className="rounded-lg border border-app-border px-4 py-2 text-sm text-app-text transition-colors hover:bg-app-hover"
             >
               View All People
             </Link>

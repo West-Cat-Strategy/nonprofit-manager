@@ -18,6 +18,10 @@ import type {
   WebsiteNewsletterListPreset,
   WebsiteNewsletterSettings,
   WebsiteOverviewSummary,
+  WebsitePublicAction,
+  WebsitePublicActionCreateRequest,
+  WebsitePublicActionSubmission,
+  WebsitePublicActionUpdateRequest,
   WebsiteSearchParams,
   WebsiteSitesResponse,
   WebsiteRollbackResult,
@@ -25,7 +29,11 @@ import type {
   WebsiteStripeSettings,
   UpdateWebsiteSiteRequest,
 } from '../types/contracts';
-import type { WebsiteEntry, WebsiteEntryListResult } from '../../../types/websiteBuilder';
+import type {
+  WebsiteEntry,
+  WebsiteEntryKind,
+  WebsiteEntryListResult,
+} from '../../../types/websiteBuilder';
 
 const buildQuery = (params: Record<string, string | number | undefined>): string => {
   const searchParams = new URLSearchParams();
@@ -58,6 +66,44 @@ export class WebsitesApiClient {
 
   getForms(siteId: string): Promise<WebsiteFormDefinition[]> {
     return api.get<WebsiteFormDefinition[]>(`/sites/${siteId}/forms`).then((response) => response.data);
+  }
+
+  listPublicActions(siteId: string): Promise<WebsitePublicAction[]> {
+    return api
+      .get<WebsitePublicAction[]>(`/sites/${siteId}/actions`)
+      .then((response) => response.data);
+  }
+
+  createPublicAction(
+    siteId: string,
+    payload: WebsitePublicActionCreateRequest
+  ): Promise<WebsitePublicAction> {
+    return api
+      .post<WebsitePublicAction>(`/sites/${siteId}/actions`, payload)
+      .then((response) => response.data);
+  }
+
+  updatePublicAction(
+    siteId: string,
+    actionId: string,
+    payload: WebsitePublicActionUpdateRequest
+  ): Promise<WebsitePublicAction> {
+    return api
+      .put<WebsitePublicAction>(`/sites/${siteId}/actions/${actionId}`, payload)
+      .then((response) => response.data);
+  }
+
+  listPublicActionSubmissions(
+    siteId: string,
+    actionId: string
+  ): Promise<WebsitePublicActionSubmission[]> {
+    return api
+      .get<WebsitePublicActionSubmission[]>(`/sites/${siteId}/actions/${actionId}/submissions`)
+      .then((response) => response.data);
+  }
+
+  getPublicActionSubmissionsExportUrl(siteId: string, actionId: string): string {
+    return `/api/v2/sites/${encodeURIComponent(siteId)}/actions/${encodeURIComponent(actionId)}/export`;
   }
 
   updateForm(
@@ -188,10 +234,15 @@ export class WebsitesApiClient {
       .then((response) => response.data);
   }
 
-  listEntries(siteId: string, source?: 'native' | 'mailchimp', status?: string): Promise<WebsiteEntryListResult> {
+  listEntries(
+    siteId: string,
+    source?: 'native' | 'mailchimp',
+    status?: string,
+    kind?: WebsiteEntryKind
+  ): Promise<WebsiteEntryListResult> {
     return api
       .get<WebsiteEntryListResult>(
-        `/sites/${siteId}/entries${buildQuery({ source, status })}`
+        `/sites/${siteId}/entries${buildQuery({ source, status, kind })}`
       )
       .then((response) => response.data);
   }

@@ -132,6 +132,7 @@ jest.mock('@services/newsletterProviderService', () => ({
   __esModule: true,
   default: {
     resolveNewsletterProvider: jest.fn(),
+    resolveNewsletterDestination: jest.fn(),
     syncNewsletterContact: jest.fn(),
   },
 }));
@@ -142,9 +143,12 @@ jest.mock('@services/publishing/publicSubmissionService', () => ({
     markAccepted: jest.fn(),
     markRejected: jest.fn(),
   },
-  PublicSubmissionConflictError: class PublicSubmissionConflictError extends Error { },
+  PublicSubmissionConflictError: class PublicSubmissionConflictError extends Error {},
   PublicSubmissionReplayError: class PublicSubmissionReplayError extends Error {
-    constructor(message: string, public readonly idempotentReplay: boolean = false) {
+    constructor(
+      message: string,
+      public readonly idempotentReplay: boolean = false
+    ) {
       super(message);
     }
   },
@@ -214,6 +218,7 @@ const mailchimpModule = jest.requireMock('@services/mailchimpService') as {
 const newsletterProviderModule = jest.requireMock('@services/newsletterProviderService') as {
   default: {
     resolveNewsletterProvider: jest.Mock;
+    resolveNewsletterDestination: jest.Mock;
     syncNewsletterContact: jest.Mock;
   };
 };
@@ -338,6 +343,7 @@ describe('PublicWebsiteFormService', () => {
     mailchimpModule.__mocks.addOrUpdateMember.mockReset();
     mailchimpModule.__mocks.isMailchimpConfigured.mockReset();
     newsletterProviderModule.default.resolveNewsletterProvider.mockReset();
+    newsletterProviderModule.default.resolveNewsletterDestination.mockReset();
     newsletterProviderModule.default.syncNewsletterContact.mockReset();
     publicSubmissionModule.__mocks.beginSubmission.mockReset();
     publicSubmissionModule.__mocks.markAccepted.mockReset();
@@ -345,10 +351,88 @@ describe('PublicWebsiteFormService', () => {
     activityEventsModule.__mocks.recordEvent.mockReset();
     paymentProviderModule.isProviderConfigured.mockReturnValue(false);
     mailchimpModule.__mocks.isMailchimpConfigured.mockReturnValue(false);
-    publicSubmissionModule.__mocks.beginSubmission.mockResolvedValue({ submissionId: 'submission-1' });
+    publicSubmissionModule.__mocks.beginSubmission.mockResolvedValue({
+      submissionId: 'submission-1',
+    });
     publicSubmissionModule.__mocks.markAccepted.mockResolvedValue(undefined);
     publicSubmissionModule.__mocks.markRejected.mockResolvedValue(undefined);
     activityEventsModule.__mocks.recordEvent.mockResolvedValue(undefined);
+  });
+
+  it('stores newsletter signups as CRM contacts by default without provider sync', async () => {
+    const site = {
+      ...baseSite,
+      publishedContent: {
+        ...baseSite.publishedContent,
+        pages: [
+          {
+            ...baseSite.publishedContent.pages[0],
+            sections: [
+              {
+                id: 'section-1',
+                name: 'Forms',
+                components: [
+                  {
+                    id: 'newsletter-1',
+                    type: 'newsletter-signup',
+                    defaultTags: ['website'],
+                    successMessage: 'You are in.',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    servicesModule.__mocks.createContact.mockResolvedValue({ contact_id: 'contact-1' });
+    newsletterProviderModule.default.resolveNewsletterDestination.mockReturnValue({
+      provider: 'local_email',
+      audienceId: null,
+      shouldSync: false,
+      tags: ['website', 'newsletter'],
+    });
+
+    const result = await service.submitForm(site as never, 'newsletter-1', {
+      first_name: 'Ada',
+      last_name: 'Lovelace',
+      email: 'Ada@example.com',
+    });
+
+    expect(servicesModule.__mocks.createContact).toHaveBeenCalledWith(
+      expect.objectContaining({
+        account_id: 'org-1',
+        email: 'ada@example.com',
+        tags: ['website', 'newsletter'],
+      }),
+      'owner-1'
+    );
+    expect(newsletterProviderModule.default.resolveNewsletterDestination).toHaveBeenCalledWith(
+      expect.objectContaining({
+        newsletter: expect.any(Object),
+      }),
+      {
+        audienceMode: 'crm',
+        mailchimpListId: undefined,
+        mauticSegmentId: undefined,
+        defaultTags: ['website', 'newsletter'],
+      }
+    );
+    expect(newsletterProviderModule.default.syncNewsletterContact).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      formType: 'newsletter-signup',
+      message: 'You are in.',
+      contactId: 'contact-1',
+      mailchimpSynced: false,
+      newsletterSynced: false,
+      newsletterProvider: 'local_email',
+      providerSync: {
+        attempted: false,
+        provider: 'local_email',
+        success: false,
+      },
+    });
   });
 
   it('syncs newsletter signups through Mautic when the provider is set to Mautic', async () => {
@@ -382,6 +466,12 @@ describe('PublicWebsiteFormService', () => {
 
     servicesModule.__mocks.createContact.mockResolvedValue({ contact_id: 'contact-1' });
     newsletterProviderModule.default.resolveNewsletterProvider.mockReturnValue('mautic');
+    newsletterProviderModule.default.resolveNewsletterDestination.mockReturnValue({
+      provider: 'mautic',
+      audienceId: 'seg-42',
+      shouldSync: true,
+      tags: ['website', 'newsletter'],
+    });
     newsletterProviderModule.default.syncNewsletterContact.mockResolvedValue({
       contactId: 'contact-1',
       email: 'ada@example.com',
@@ -403,6 +493,7 @@ describe('PublicWebsiteFormService', () => {
         contactId: 'contact-1',
         listId: 'seg-42',
         tags: ['website', 'newsletter'],
+        provider: 'mautic',
       }
     );
     expect(result).toEqual({
@@ -411,6 +502,12 @@ describe('PublicWebsiteFormService', () => {
       contactId: 'contact-1',
       mailchimpSynced: false,
       newsletterSynced: true,
+      newsletterProvider: 'mautic',
+      providerSync: {
+        attempted: true,
+        provider: 'mautic',
+        success: true,
+      },
     });
   });
 

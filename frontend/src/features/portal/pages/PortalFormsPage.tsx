@@ -1,4 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ArrowDownTrayIcon,
+  ClipboardDocumentCheckIcon,
+  DocumentCheckIcon,
+  DocumentTextIcon,
+} from '@heroicons/react/24/outline';
 import PortalPageState from '../../../components/portal/PortalPageState';
 import PortalPageShell from '../../../components/portal/PortalPageShell';
 import PortalListCard from '../../../components/portal/PortalListCard';
@@ -46,6 +52,8 @@ const formatAssignmentTimeline = (
   }
   return `Updated ${new Date(assignment.updated_at).toLocaleString()}`;
 };
+const formActionClass =
+  'inline-flex items-center gap-1.5 rounded border border-app-input-border px-2 py-1 text-xs transition-colors duration-150 hover:border-app-accent hover:bg-app-surface-muted';
 
 export default function PortalForms() {
   const { showSuccess, showError } = useToast();
@@ -59,6 +67,7 @@ export default function PortalForms() {
   const [filter, setFilter] = useState<CaseFormAssignmentBucket>('active');
   const formsRequestIdRef = useRef(0);
   const detailRequestIdRef = useRef(0);
+  const draftSnapshotRef = useRef('');
 
   const loadForms = useCallback(
     async (bucket: CaseFormAssignmentBucket): Promise<void> => {
@@ -111,6 +120,7 @@ export default function PortalForms() {
         setError(null);
         setDetail(nextDetail);
         setDraftAnswers(nextDetail.assignment.current_draft_answers || {});
+        draftSnapshotRef.current = JSON.stringify(nextDetail.assignment.current_draft_answers || {});
       } catch (error) {
         if (requestId !== detailRequestIdRef.current) {
           return;
@@ -137,6 +147,7 @@ export default function PortalForms() {
     detailRequestIdRef.current += 1;
     setDetail(null);
     setDraftAnswers({});
+    draftSnapshotRef.current = '';
   }, [loadDetail, selectedAssignmentId]);
 
   const assets = useMemo(() => {
@@ -155,6 +166,36 @@ export default function PortalForms() {
     RECEIPT_FORM_STATUSES.has(detail.assignment.status as CaseFormAssignment['status']);
   const isSubmittedAwaitingReview = detail?.assignment.status === 'submitted';
   const isRevisionRequested = detail?.assignment.status === 'revision_requested';
+
+  useEffect(() => {
+    if (!detail || isLocked || saving) return;
+    const snapshot = JSON.stringify(draftAnswers);
+    if (snapshot === draftSnapshotRef.current) return;
+
+    const timeout = window.setTimeout(() => {
+      void portalCaseFormsApiClient
+        .saveDraft(detail.assignment.id, { answers: draftAnswers })
+        .then((assignment) => {
+          draftSnapshotRef.current = snapshot;
+          setDetail((current) =>
+            current
+              ? {
+                  ...current,
+                  assignment: {
+                    ...current.assignment,
+                    ...assignment,
+                  },
+                }
+              : current
+          );
+        })
+        .catch(() => {
+          // Manual Save Draft remains available when background autosave cannot complete.
+        });
+    }, 1200);
+
+    return () => window.clearTimeout(timeout);
+  }, [detail, draftAnswers, isLocked, saving]);
 
   const handleUploadAsset = async (
     question: CaseFormQuestion,
@@ -192,6 +233,7 @@ export default function PortalForms() {
       const assignment = await portalCaseFormsApiClient.saveDraft(detail.assignment.id, {
         answers: draftAnswers,
       });
+      draftSnapshotRef.current = JSON.stringify(draftAnswers);
       setDetail((current) =>
         current
           ? {
@@ -220,6 +262,7 @@ export default function PortalForms() {
         client_submission_id: crypto.randomUUID(),
       });
       setDetail(nextDetail);
+      draftSnapshotRef.current = JSON.stringify(nextDetail.assignment.current_draft_answers || draftAnswers);
       setForms((current) =>
         current.map((item) => (item.id === nextDetail.assignment.id ? { ...item, ...nextDetail.assignment } : item))
       );
@@ -243,6 +286,7 @@ export default function PortalForms() {
         loadingLabel="Loading forms..."
         emptyTitle="No forms available."
         emptyDescription="Forms appear here when staff assign them to your case."
+        emptyIcon={<DocumentTextIcon className="h-5 w-5" aria-hidden="true" />}
         onRetry={() => {
           void loadForms(filter);
         }}
@@ -277,6 +321,7 @@ export default function PortalForms() {
                 {forms.map((form) => (
                   <li key={form.id}>
                     <PortalListCard
+                      icon={<ClipboardDocumentCheckIcon className="h-5 w-5" aria-hidden="true" />}
                       title={form.title}
                       subtitle={formatAssignmentCaseContext(form) || formatAssignmentStatus(form.status)}
                       meta={formatAssignmentTimeline(form)}
@@ -296,8 +341,9 @@ export default function PortalForms() {
                         <button
                           type="button"
                           onClick={() => setSelectedAssignmentId(form.id)}
-                          className="rounded border border-app-input-border px-2 py-1 text-xs"
+                          className={formActionClass}
                         >
+                          <DocumentTextIcon className="h-4 w-4" aria-hidden="true" />
                           Open
                         </button>
                       }
@@ -356,7 +402,7 @@ export default function PortalForms() {
                     <p className="mt-1 text-app-text-muted">
                       {isSubmittedAwaitingReview
                         ? 'You can still update this form and resubmit it until staff finish reviewing the submission.'
-                        : 'This form is now read-only. Review your responses below or download the response packet for your records.'}
+                        : 'This form is now read-only. Review your responses below or download your submitted answers for your records.'}
                     </p>
                   </div>
                 )}
@@ -392,16 +438,18 @@ export default function PortalForms() {
                       type="button"
                       onClick={() => void handleSaveDraft()}
                       disabled={saving}
-                      className="rounded border border-app-border px-4 py-2 text-sm font-semibold"
+                      className="inline-flex items-center gap-1.5 rounded border border-app-border px-4 py-2 text-sm font-semibold transition-colors duration-150 hover:border-app-accent hover:bg-app-surface-muted"
                     >
+                      <DocumentTextIcon className="h-4 w-4" aria-hidden="true" />
                       Save Draft
                     </button>
                     <button
                       type="button"
                       onClick={() => void handleSubmit()}
                       disabled={saving}
-                      className="rounded border border-app-text bg-app-text px-4 py-2 text-sm font-semibold text-white"
+                      className="inline-flex items-center gap-1.5 rounded border border-app-text bg-app-text px-4 py-2 text-sm font-semibold text-white transition-[box-shadow,transform] duration-150 hover:-translate-y-0.5 hover:shadow-sm"
                     >
+                      <DocumentCheckIcon className="h-4 w-4" aria-hidden="true" />
                       {isSubmittedAwaitingReview || isRevisionRequested ? 'Resubmit Form' : 'Submit Form'}
                     </button>
                   </div>
@@ -412,9 +460,10 @@ export default function PortalForms() {
                     href={portalCaseFormsApiClient.getResponsePacketDownloadUrl(detail.assignment.id)}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex rounded border border-app-border px-3 py-2 text-sm font-semibold"
+                    className="inline-flex items-center gap-1.5 rounded border border-app-border px-3 py-2 text-sm font-semibold transition-colors duration-150 hover:border-app-accent hover:bg-app-surface-muted"
                   >
-                    Download Response Packet
+                    <ArrowDownTrayIcon className="h-4 w-4" aria-hidden="true" />
+                    Download submitted answers
                   </a>
                 )}
 
@@ -441,9 +490,10 @@ export default function PortalForms() {
                             href={submission.response_packet_download_url}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-xs font-semibold uppercase underline"
+                            className="inline-flex items-center gap-1 text-xs font-semibold uppercase underline"
                           >
-                            Packet
+                            <ArrowDownTrayIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                            Receipt
                           </a>
                         )}
                       </div>

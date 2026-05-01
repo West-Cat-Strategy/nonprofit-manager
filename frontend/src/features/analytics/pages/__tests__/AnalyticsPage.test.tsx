@@ -6,7 +6,11 @@ import Analytics from '../AnalyticsPage';
 import { renderWithProviders, createTestStore } from '../../../../test/testUtils';
 import api from '../../../../services/api';
 import { vi } from 'vitest';
-import type { AnalyticsSummary, DonationTrendPoint, VolunteerHoursTrendPoint } from '../../../../types/analytics';
+import type {
+  AnalyticsSummary,
+  DonationTrendPoint,
+  VolunteerHoursTrendPoint,
+} from '../../../../types/analytics';
 import * as exportUtils from '../../../../utils/exportUtils';
 
 vi.mock('../../../../services/api');
@@ -76,7 +80,13 @@ const mockVolunteerTrends: VolunteerHoursTrendPoint[] = [
 const renderAnalytics = ({ route = '/analytics' }: { route?: string } = {}) => {
   const store = createTestStore({
     auth: {
-      user: { id: '1', email: 'test@example.com', firstName: 'Test', lastName: 'User', role: 'user' },
+      user: {
+        id: '1',
+        email: 'test@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+        role: 'user',
+      },
       token: 'test-token',
       isAuthenticated: true,
       loading: false,
@@ -99,12 +109,14 @@ const createDeferred = () => {
   };
 };
 
-const setupMocks = (options: {
-  summary?: AnalyticsSummary | null;
-  donationTrends?: DonationTrendPoint[];
-  volunteerTrends?: VolunteerHoursTrendPoint[];
-  shouldFail?: boolean;
-} = {}) => {
+const setupMocks = (
+  options: {
+    summary?: AnalyticsSummary | null;
+    donationTrends?: DonationTrendPoint[];
+    volunteerTrends?: VolunteerHoursTrendPoint[];
+    shouldFail?: boolean;
+  } = {}
+) => {
   const {
     summary = mockSummary,
     donationTrends = mockDonationTrends,
@@ -150,7 +162,7 @@ describe('Analytics page', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Analytics & Reports')).toBeInTheDocument();
-      expect(screen.getByText('← Back')).toBeInTheDocument();
+      expect(screen.getByText('Back')).toBeInTheDocument();
     });
   });
 
@@ -158,9 +170,11 @@ describe('Analytics page', () => {
     setupMocks();
     renderAnalytics();
 
-    const relatedWorkspacesSection = screen.getByRole('heading', {
-      name: /related workspaces/i,
-    }).closest('section');
+    const relatedWorkspacesSection = screen
+      .getByRole('heading', {
+        name: /related workspaces/i,
+      })
+      .closest('section');
 
     expect(relatedWorkspacesSection).not.toBeNull();
 
@@ -373,7 +387,7 @@ describe('Analytics page', () => {
     await waitFor(() => {
       expect(screen.getByLabelText('Start Date')).toBeInTheDocument();
       expect(screen.getByLabelText('End Date')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Apply Filters' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Apply filters' })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Clear' })).toBeInTheDocument();
     });
   });
@@ -467,7 +481,7 @@ describe('Analytics page', () => {
 
     expect(getAnalyticsRequests('/v2/analytics/summary')).toHaveLength(initialSummaryRequestCount);
 
-    await user.click(screen.getByRole('button', { name: 'Apply Filters' }));
+    await user.click(screen.getByRole('button', { name: 'Apply filters' }));
 
     await waitFor(() => {
       expect(getAnalyticsRequests('/v2/analytics/summary')).toHaveLength(
@@ -504,31 +518,25 @@ describe('Analytics page', () => {
     expect(screen.getByText('PDF')).toBeInTheDocument();
   });
 
-  it(
-    'shows summary PDF button loading state while export is generating',
-    async () => {
-      const user = userEvent.setup();
-      const deferred = createDeferred();
-      mockExportAnalyticsSummaryToPDF.mockReturnValueOnce(deferred.promise);
+  it('shows summary PDF button loading state while export is generating', async () => {
+    const user = userEvent.setup();
+    const deferred = createDeferred();
+    mockExportAnalyticsSummaryToPDF.mockReturnValueOnce(deferred.promise);
 
-      setupMocks();
-      renderAnalytics();
+    setupMocks();
+    renderAnalytics();
 
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: 'PDF' })).toBeInTheDocument();
-      });
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'PDF' })).toBeInTheDocument();
+    });
 
-      await user.click(screen.getByRole('button', { name: 'PDF' }));
-      expect(screen.getByRole('button', { name: 'Generating PDF...' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'PDF' }));
+    expect(screen.getByRole('button', { name: 'Generating PDF...' })).toBeDisabled();
 
-      deferred.resolve();
-      await waitFor(() =>
-        expect(screen.getByRole('button', { name: 'PDF' })).toBeEnabled()
-      );
-      expect(mockExportAnalyticsSummaryToPDF).toHaveBeenCalled();
-    },
-    15000
-  );
+    deferred.resolve();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'PDF' })).toBeEnabled());
+    expect(mockExportAnalyticsSummaryToPDF).toHaveBeenCalled();
+  }, 15000);
 
   it('shows donation trend PDF loading state while export is generating', async () => {
     const user = userEvent.setup();
@@ -581,15 +589,15 @@ describe('Analytics page', () => {
     renderAnalytics();
 
     await waitFor(() => {
-      expect(screen.getByText('Events module')).toBeInTheDocument();
+      expect(screen.getByText('Events calendar')).toBeInTheDocument();
     });
 
-    expect(screen.getByRole('link', { name: '← Back' })).toHaveAttribute('href', '/dashboard');
-    expect(screen.getByRole('link', { name: 'Events module' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Back' })).toHaveAttribute('href', '/dashboard');
+    expect(screen.getByRole('link', { name: 'Events calendar' })).toHaveAttribute(
       'href',
       '/events'
     );
-    expect(screen.getByRole('link', { name: 'Donations module' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Donations list' })).toHaveAttribute(
       'href',
       '/donations'
     );

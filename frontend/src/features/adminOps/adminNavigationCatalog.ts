@@ -24,12 +24,7 @@ export type AdminSettingsSection =
   | 'audit_logs'
   | 'other';
 
-export type PortalAdminPanel =
-  | 'access'
-  | 'users'
-  | 'conversations'
-  | 'appointments'
-  | 'slots';
+export type PortalAdminPanel = 'access' | 'users' | 'conversations' | 'appointments' | 'slots';
 
 export type AdminSettingsSectionLevel = 'basic' | 'advanced';
 export type AdminNavigationMode = 'settings' | 'portal';
@@ -305,11 +300,11 @@ export const adminWorkspaceDefinitions = [
   {
     routeId: 'navigation-settings',
     path: '/settings/navigation',
-    title: 'Navigation',
-    description: 'Control menu order, pinned shortcuts, and workspace navigation preferences.',
+    title: 'My Navigation',
+    description: 'Choose your staff menu order, pinned shortcuts, and visible workspace modules.',
     icon: '🧭',
     surface: 'workspace',
-    navigation: [{ mode: 'settings', order: 130, label: 'Navigation' }],
+    navigation: [{ mode: 'settings', order: 130, label: 'My Navigation' }],
   },
   {
     routeId: 'backup-settings',
@@ -323,15 +318,15 @@ export const adminWorkspaceDefinitions = [
   {
     routeId: 'communications',
     path: '/settings/communications',
-    title: 'Newsletter Campaigns',
-    description: 'Manage Mailchimp audience sync, newsletters, and campaign delivery tools.',
+    title: 'Communications',
+    description: 'Manage local email campaigns, audiences, and optional Mailchimp sync.',
     icon: '📣',
     surface: 'workspace',
     navigation: [
       {
         mode: 'settings',
         order: 150,
-        label: 'Newsletter Campaigns',
+        label: 'Communications',
         matchPrefixes: ['/settings/email-marketing'],
       },
     ],
@@ -414,8 +409,7 @@ export const adminRouteDefinitions = [
   ...adminWorkspaceDefinitions,
 ] as const satisfies readonly AdminRouteDefinition[];
 
-export type AdminSettingsSectionDefinitionEntry =
-  (typeof adminSettingsSectionDefinitions)[number];
+export type AdminSettingsSectionDefinitionEntry = (typeof adminSettingsSectionDefinitions)[number];
 export type AdminWorkspaceDefinitionEntry = (typeof adminWorkspaceDefinitions)[number];
 export type AdminRouteDefinitionEntry = (typeof adminRouteDefinitions)[number];
 
@@ -449,23 +443,17 @@ type PortalAdminDefinitionMap = {
 export const adminSettingsSectionDefinitionById = new Map<
   AdminSettingsSection,
   AdminSettingsSectionDefinitionEntry
->(
-  adminSettingsSectionDefinitions.map((definition) => [definition.id, definition] as const)
-);
+>(adminSettingsSectionDefinitions.map((definition) => [definition.id, definition] as const));
 
 export const adminSettingsSectionDefinitionByRouteId = new Map<
   AdminSettingsSectionRouteId,
   AdminSettingsSectionDefinitionEntry
->(
-  adminSettingsSectionDefinitions.map((definition) => [definition.routeId, definition] as const)
-);
+>(adminSettingsSectionDefinitions.map((definition) => [definition.routeId, definition] as const));
 
 export const adminWorkspaceDefinitionByRouteId = new Map<
   AdminWorkspaceRouteId,
   AdminWorkspaceDefinitionEntry
->(
-  adminWorkspaceDefinitions.map((definition) => [definition.routeId, definition] as const)
-);
+>(adminWorkspaceDefinitions.map((definition) => [definition.routeId, definition] as const));
 
 export const adminRouteDefinitionByRouteId = new Map<AdminRouteId, AdminRouteDefinitionEntry>(
   adminRouteDefinitions.map((definition) => [definition.routeId, definition] as const)
@@ -474,15 +462,16 @@ export const adminRouteDefinitionByRouteId = new Map<AdminRouteId, AdminRouteDef
 export const portalAdminDefinitionByPanel = new Map(
   adminWorkspaceDefinitions
     .filter(
-      (definition): definition is Extract<AdminWorkspaceDefinitionEntry, { panel: PortalAdminPanel }> =>
+      (
+        definition
+      ): definition is Extract<AdminWorkspaceDefinitionEntry, { panel: PortalAdminPanel }> =>
         'panel' in definition && typeof definition.panel === 'string'
     )
     .map((definition) => [definition.panel, definition] as const)
 );
 
-export const adminSettingsSections: readonly AdminSettingsSection[] = adminSettingsSectionDefinitions.map(
-  (definition) => definition.id
-);
+export const adminSettingsSections: readonly AdminSettingsSection[] =
+  adminSettingsSectionDefinitions.map((definition) => definition.id);
 
 export const getAdminSettingsSectionDefinition = <Section extends AdminSettingsSection>(
   section: Section

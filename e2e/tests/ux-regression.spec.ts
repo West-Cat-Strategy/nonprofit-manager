@@ -518,7 +518,7 @@ test.describe("UI/UX regression flows", () => {
     const searchButton = authenticatedPage.locator(
       'button[aria-label="Search"]',
     );
-    const alertsLink = authenticatedPage.locator('a[aria-label="Alerts"]');
+    const alertsLink = authenticatedPage.getByRole("link", { name: /alert rules/i }).first();
 
     await authenticatedPage.setViewportSize({ width: 900, height: 900 });
     await authenticatedPage.goto("/dashboard");
@@ -709,7 +709,7 @@ test.describe("UI/UX regression flows", () => {
       authenticatedPage.getByRole("button", { name: /^search$/i }),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole("link", { name: /^alerts$/i }).first(),
+      authenticatedPage.getByRole("link", { name: /alert rules/i }).first(),
     ).toBeVisible();
 
     await authenticatedPage.getByRole("button", { name: /main menu/i }).click();
@@ -954,7 +954,7 @@ test.describe("UI/UX regression flows", () => {
       page,
       runtimeIssues,
       "/portal",
-      /your case workspace/i,
+      /your portal home/i,
     );
 
     await navigateWithRuntimeRecovery(
@@ -1068,7 +1068,7 @@ test.describe("UI/UX regression flows", () => {
       },
       {
         path: "/settings/email-marketing",
-        heading: /newsletter campaigns|email marketing/i,
+        heading: /communications|newsletter campaigns|email marketing/i,
         action: /new campaign|admin\.mailchimp\.com/i,
       },
       {

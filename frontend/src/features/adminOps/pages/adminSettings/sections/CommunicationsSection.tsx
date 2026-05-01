@@ -10,8 +10,8 @@ export default function CommunicationsSection() {
             <h2 className="text-lg font-semibold text-app-text">Email Delivery</h2>
             <p className="max-w-3xl text-sm text-app-text-muted">
               Manage transactional email delivery here and keep a clear path to the separate
-              newsletter workspace. The same email settings panel below powers the admin hub and
-              the standalone workspace entry points.
+              newsletter workspace. The same email settings panel below powers the admin hub and the
+              standalone workspace entry points.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -19,7 +19,7 @@ export default function CommunicationsSection() {
               to="/settings/communications"
               className="rounded-md border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text transition-colors hover:bg-app-surface-muted"
             >
-              Open Newsletter Campaigns
+              Open Communications
             </Link>
             <Link
               to="/websites"

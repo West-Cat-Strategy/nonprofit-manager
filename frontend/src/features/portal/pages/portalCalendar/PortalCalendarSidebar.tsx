@@ -57,7 +57,7 @@ export default function PortalCalendarSidebar({ controller }: Props) {
                 key={entry.id}
                 type="button"
                 onClick={() => controller.handleSelectEntry(entry)}
-                className={`w-full rounded-lg border px-3 py-2 text-left ${
+                className={`w-full rounded-lg border px-3 py-2 text-left transition-[border-color,background-color,transform] duration-150 hover:-translate-y-0.5 ${
                   controller.selectedEntryId === entry.id
                     ? 'border-app-accent bg-app-accent-soft/30'
                     : 'border-app-border bg-app-surface-muted'
@@ -176,7 +176,7 @@ export default function PortalCalendarSidebar({ controller }: Props) {
                   </p>
                 )}
                 <p className="text-sm text-app-text-muted">
-                  {selectedSlot.available_count} slot
+                  {selectedSlot.available_count} time
                   {selectedSlot.available_count === 1 ? '' : 's'} available
                 </p>
                 <button
@@ -187,11 +187,11 @@ export default function PortalCalendarSidebar({ controller }: Props) {
                     selectedSlot.status !== 'open' ||
                     selectedSlot.available_count <= 0
                   }
-                  className="rounded-md bg-app-accent px-3 py-2 text-sm text-[var(--app-accent-foreground)] disabled:opacity-60"
+                  className="rounded-md bg-app-accent px-3 py-2 text-sm text-[var(--app-accent-foreground)] transition-[box-shadow,transform] duration-150 hover:-translate-y-0.5 hover:shadow-sm disabled:opacity-60"
                 >
                   {controller.savingEntryId === controller.selectedEntry.id
                     ? 'Saving...'
-                    : 'Book slot'}
+                    : 'Book time'}
                 </button>
               </>
             )}
@@ -228,7 +228,7 @@ export default function PortalCalendarSidebar({ controller }: Props) {
           </div>
         ) : (
           <div className="text-sm text-app-text-muted">
-            Select an event, appointment, or open slot to view details and actions.
+            Select an event, appointment, or available time to view details and actions.
           </div>
         )}
       </section>
@@ -237,7 +237,7 @@ export default function PortalCalendarSidebar({ controller }: Props) {
         <div className="mb-3">
           <h2 className="text-lg font-semibold text-app-text">Request Appointment</h2>
           <p className="text-sm text-app-text-muted">
-            Submit a manual request when none of the open slots work for you.
+            Send an appointment request when none of the available times work for you.
           </p>
         </div>
 

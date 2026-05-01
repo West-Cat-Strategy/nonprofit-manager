@@ -235,6 +235,84 @@ export interface UpdateContactNoteDTO {
   outcomes_mode?: OutcomeUpdateMode;
 }
 
+export type ContactSuppressionChannel = 'email' | 'phone' | 'sms' | 'voicemail' | 'mail' | 'all';
+
+export type ContactSuppressionReason =
+  | 'staff_dnc'
+  | 'client_request'
+  | 'caregiver_request'
+  | 'legal_hold'
+  | 'unsubscribed'
+  | 'cleaned'
+  | 'mailchimp_unsubscribe'
+  | 'mailchimp_cleaned'
+  | 'no_solicitations'
+  | 'invalid_contact'
+  | 'other';
+
+export type ContactSuppressionSource = 'staff' | 'mailchimp_webhook' | 'import' | 'system';
+
+export interface ContactSuppressionEvidence {
+  id: string;
+  contact_id: string;
+  account_id: string | null;
+  channel: ContactSuppressionChannel;
+  reason: ContactSuppressionReason;
+  source: ContactSuppressionSource;
+  source_label: string | null;
+  provider: string | null;
+  provider_list_id: string | null;
+  provider_event_id: string | null;
+  provider_event_type: string | null;
+  provider_reason: string | null;
+  evidence: Record<string, unknown>;
+  notes: string | null;
+  is_active: boolean;
+  starts_at: Date | null;
+  expires_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
+  created_by: string | null;
+  resolved_at: Date | null;
+  resolved_by: string | null;
+  resolved_note: string | null;
+}
+
+export interface ContactSuppressionEvidenceResult {
+  items: ContactSuppressionEvidence[];
+  total: number;
+  fatiguePolicy: CommunicationFatiguePolicy | null;
+}
+
+export interface CommunicationFatiguePolicy {
+  id: string;
+  account_id: string | null;
+  channel: ContactSuppressionChannel;
+  max_messages: number;
+  window_days: number;
+  enforcement: 'advisory' | 'block';
+  is_active: boolean;
+  created_at: Date;
+  updated_at: Date;
+  created_by: string | null;
+  updated_by: string | null;
+}
+
+export interface CreateContactSuppressionEvidenceDTO {
+  channel: ContactSuppressionChannel;
+  reason: ContactSuppressionReason;
+  source: ContactSuppressionSource;
+  evidence: string;
+  notes?: string | null;
+  starts_at?: string | null;
+  expires_at?: string | null;
+}
+
+export interface UpdateContactSuppressionEvidenceDTO {
+  is_active?: boolean;
+  resolved_note?: string | null;
+}
+
 // ============================================================================
 // Contact Types
 // ============================================================================

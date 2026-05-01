@@ -5,6 +5,14 @@
 
 import { Link } from 'react-router-dom';
 import {
+  ArrowDownTrayIcon,
+  ArrowLeftIcon,
+  BellAlertIcon,
+  ChartBarIcon,
+  ClipboardDocumentListIcon,
+  PaintBrushIcon,
+} from '@heroicons/react/24/outline';
+import {
   EmptyState,
   ErrorState,
   FormField,
@@ -45,31 +53,35 @@ const getProgressWidthClass = (value: number): string => {
 };
 
 const analyticsActionLinkClass =
-  'inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-2 text-sm font-semibold text-[var(--app-text)] shadow-sm transition hover:bg-[var(--app-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-2';
+  'inline-flex items-center justify-center gap-2 rounded-[var(--ui-radius-sm)] border border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-2 text-sm font-semibold text-[var(--app-text)] shadow-sm transition duration-150 hover:-translate-y-0.5 hover:bg-[var(--app-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-2';
 const relatedWorkspaceLinkClass =
-  'flex h-full flex-col rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface px-4 py-4 text-left shadow-sm transition hover:bg-app-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-2';
+  'group flex h-full flex-col rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface px-4 py-4 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-app-accent hover:bg-app-hover hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-2';
 const analyticsInlineLinkClass = 'font-semibold text-app-accent hover:underline';
 
 const relatedWorkspaceLinks = [
   {
     to: '/reports',
     label: 'Reports Home',
-    description: 'Re-enter the reports workspace without rebuilding the route from scratch.',
+    description: 'Open saved reports, templates, and custom reporting paths.',
+    Icon: ClipboardDocumentListIcon,
   },
   {
     to: '/reports/builder',
     label: 'Report Builder',
     description: 'Move from charts into a custom report definition when you need deeper slicing.',
+    Icon: ChartBarIcon,
   },
   {
     to: '/alerts',
     label: 'Alerts',
     description: 'Review threshold rules and incident handling alongside the analytics signal.',
+    Icon: BellAlertIcon,
   },
   {
     to: '/settings/admin/branding',
     label: 'Branding',
-    description: 'Check the shared application chrome that frames reports, alerts, and analytics.',
+    description: 'Check the shared look and feel around reports, alerts, and analytics.',
+    Icon: PaintBrushIcon,
   },
 ];
 
@@ -115,14 +127,19 @@ export default function Analytics() {
           actions={
             <>
               <Link className={analyticsActionLinkClass} to="/dashboard">
-                ← Back
+                <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" />
+                Back
               </Link>
               {summary && (
                 <>
-                  <SecondaryButton onClick={() => exportAnalyticsSummaryToCSV(summary)}>
+                  <SecondaryButton
+                    leadingIcon={<ArrowDownTrayIcon className="h-4 w-4" aria-hidden="true" />}
+                    onClick={() => exportAnalyticsSummaryToCSV(summary)}
+                  >
                     CSV
                   </SecondaryButton>
                   <SecondaryButton
+                    leadingIcon={<ArrowDownTrayIcon className="h-4 w-4" aria-hidden="true" />}
                     onClick={() => void handleExportSummaryPdf()}
                     disabled={summaryPdfExporting}
                   >
@@ -136,19 +153,33 @@ export default function Analytics() {
 
         <SectionCard
           title="Related workspaces"
-          subtitle="Keep the analytics, reporting, alerts, and branding seams easy to navigate during browser review."
+          subtitle="Move from insight to the next staff action without losing context."
         >
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {relatedWorkspaceLinks.map((link) => (
-              <Link key={link.to} to={link.to} className={relatedWorkspaceLinkClass}>
-                <span className="text-sm font-semibold text-app-text-heading">{link.label}</span>
-                <span className="mt-2 text-sm leading-6 text-app-text-muted">{link.description}</span>
-              </Link>
-            ))}
+            {relatedWorkspaceLinks.map((link) => {
+              const LinkIcon = link.Icon;
+              return (
+                <Link key={link.to} to={link.to} className={relatedWorkspaceLinkClass}>
+                  <span className="inline-flex items-center gap-2 text-sm font-semibold text-app-text-heading">
+                    <LinkIcon
+                      className="h-4 w-4 text-app-accent transition-transform group-hover:scale-110"
+                      aria-hidden="true"
+                    />
+                    {link.label}
+                  </span>
+                  <span className="mt-2 text-sm leading-6 text-app-text-muted">
+                    {link.description}
+                  </span>
+                </Link>
+              );
+            })}
           </div>
         </SectionCard>
 
-        <SectionCard title="Date Filters" subtitle="Apply a reporting period to all analytics modules.">
+        <SectionCard
+          title="Date filters"
+          subtitle="Apply one reporting period to every analytics section."
+        >
           <div className="flex flex-wrap items-end gap-3">
             <div>
               <FormField
@@ -172,7 +203,7 @@ export default function Analytics() {
                 }
               />
             </div>
-            <PrimaryButton onClick={handleApplyFilters}>Apply Filters</PrimaryButton>
+            <PrimaryButton onClick={handleApplyFilters}>Apply filters</PrimaryButton>
             <SecondaryButton onClick={handleClearFilters}>Clear</SecondaryButton>
           </div>
         </SectionCard>
@@ -196,11 +227,7 @@ export default function Analytics() {
         )}
 
         {!summaryLoading && error && (
-          <ErrorState
-            message={error}
-            onRetry={refreshAnalytics}
-            retryLabel="Retry analytics"
-          />
+          <ErrorState message={error} onRetry={refreshAnalytics} retryLabel="Retry analytics" />
         )}
 
         {!summaryLoading && !error && summary && (
@@ -255,8 +282,14 @@ export default function Analytics() {
                     type="button"
                     onClick={() =>
                       exportConstituentOverviewToCSV({
-                        accounts: { total: summary.total_accounts, active: summary.active_accounts },
-                        contacts: { total: summary.total_contacts, active: summary.active_contacts },
+                        accounts: {
+                          total: summary.total_accounts,
+                          active: summary.active_accounts,
+                        },
+                        contacts: {
+                          total: summary.total_contacts,
+                          active: summary.active_contacts,
+                        },
                         volunteers: summary.total_volunteers,
                         volunteerHours: summary.total_volunteer_hours_ytd,
                       })
@@ -301,19 +334,31 @@ export default function Analytics() {
               actions={
                 <div className="flex gap-2">
                   <SecondaryButton
-                    className={comparisonPeriod === 'month' ? 'border-app-accent bg-app-accent-soft text-app-accent-text' : ''}
+                    className={
+                      comparisonPeriod === 'month'
+                        ? 'border-app-accent bg-app-accent-soft text-app-accent-text'
+                        : ''
+                    }
                     onClick={() => handleComparisonChange('month')}
                   >
                     Month
                   </SecondaryButton>
                   <SecondaryButton
-                    className={comparisonPeriod === 'quarter' ? 'border-app-accent bg-app-accent-soft text-app-accent-text' : ''}
+                    className={
+                      comparisonPeriod === 'quarter'
+                        ? 'border-app-accent bg-app-accent-soft text-app-accent-text'
+                        : ''
+                    }
                     onClick={() => handleComparisonChange('quarter')}
                   >
                     Quarter
                   </SecondaryButton>
                   <SecondaryButton
-                    className={comparisonPeriod === 'year' ? 'border-app-accent bg-app-accent-soft text-app-accent-text' : ''}
+                    className={
+                      comparisonPeriod === 'year'
+                        ? 'border-app-accent bg-app-accent-soft text-app-accent-text'
+                        : ''
+                    }
                     onClick={() => handleComparisonChange('year')}
                   >
                     Year
@@ -322,7 +367,10 @@ export default function Analytics() {
               }
             >
               {comparativeLoading ? (
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3" aria-busy="true">
+                <div
+                  className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
+                  aria-busy="true"
+                >
                   {Array.from({ length: 6 }).map((_, index) => (
                     <div
                       key={`comparison-skeleton-${index}`}
@@ -379,11 +427,15 @@ export default function Analytics() {
               <SectionCard title="Accounts">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-2xl font-semibold text-app-text-heading">{summary.total_accounts}</p>
+                    <p className="text-2xl font-semibold text-app-text-heading">
+                      {summary.total_accounts}
+                    </p>
                     <p className="text-sm text-app-text-muted">Total</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-semibold text-app-accent">{summary.active_accounts}</p>
+                    <p className="text-2xl font-semibold text-app-accent">
+                      {summary.active_accounts}
+                    </p>
                     <p className="text-sm text-app-text-muted">Active</p>
                   </div>
                 </div>
@@ -406,127 +458,136 @@ export default function Analytics() {
               </SectionCard>
 
               <SectionCard title="Contacts">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-2xl font-semibold text-app-text-heading">{summary.total_contacts}</p>
-                  <p className="text-sm text-app-text-muted">Total</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-2xl font-semibold text-app-text-heading">
+                      {summary.total_contacts}
+                    </p>
+                    <p className="text-sm text-app-text-muted">Total</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-semibold text-app-accent">
+                      {summary.active_contacts}
+                    </p>
+                    <p className="text-sm text-app-text-muted">Active</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-2xl font-semibold text-app-accent">{summary.active_contacts}</p>
-                  <p className="text-sm text-app-text-muted">Active</p>
-                </div>
-              </div>
-              <div className="mt-4">
-                <div className="h-2 rounded-full bg-app-surface-muted">
-                  <div
-                    className={`h-2 rounded-full bg-app-accent transition-all ${getProgressWidthClass(
-                      summary.total_contacts > 0
-                        ? (summary.active_contacts / summary.total_contacts) * 100
-                        : 0
-                    )}`}
-                  />
-                </div>
-                <p className="mt-1 text-xs text-app-text-muted">
-                  {summary.total_contacts > 0
-                    ? `${((summary.active_contacts / summary.total_contacts) * 100).toFixed(1)}% active`
-                    : 'No contacts'}
-                </p>
-              </div>
-            </SectionCard>
-
-            <SectionCard title="Volunteers">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-2xl font-semibold text-app-text-heading">{summary.total_volunteers}</p>
-                  <p className="text-sm text-app-text-muted">Registered</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-2xl font-semibold text-app-accent">
-                    {formatNumber(summary.total_volunteer_hours_ytd)}
+                <div className="mt-4">
+                  <div className="h-2 rounded-full bg-app-surface-muted">
+                    <div
+                      className={`h-2 rounded-full bg-app-accent transition-all ${getProgressWidthClass(
+                        summary.total_contacts > 0
+                          ? (summary.active_contacts / summary.total_contacts) * 100
+                          : 0
+                      )}`}
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-app-text-muted">
+                    {summary.total_contacts > 0
+                      ? `${((summary.active_contacts / summary.total_contacts) * 100).toFixed(1)}% active`
+                      : 'No contacts'}
                   </p>
-                  <p className="text-sm text-app-text-muted">Hours YTD</p>
                 </div>
-              </div>
-              <p className="mt-4 text-xs text-app-text-muted">
-                Avg{' '}
-                {summary.total_volunteers > 0
-                  ? (summary.total_volunteer_hours_ytd / summary.total_volunteers).toFixed(1)
-                  : 0}{' '}
-                hours per volunteer
-              </p>
-            </SectionCard>
-          </div>
+              </SectionCard>
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <SectionCard title="Events Summary">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between border-b border-app-border-muted pb-3">
-                  <span className="text-app-text-muted">Total Events (YTD)</span>
-                  <span className="text-xl font-semibold text-app-text">{summary.total_events_ytd}</span>
+              <SectionCard title="Volunteers">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-2xl font-semibold text-app-text-heading">
+                      {summary.total_volunteers}
+                    </p>
+                    <p className="text-sm text-app-text-muted">Registered</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-semibold text-app-accent">
+                      {formatNumber(summary.total_volunteer_hours_ytd)}
+                    </p>
+                    <p className="text-sm text-app-text-muted">Hours YTD</p>
+                  </div>
                 </div>
-                <p className="text-sm text-app-text-muted">
-                  View event details in the{' '}
-                  <Link className={analyticsInlineLinkClass} to="/events">
-                    Events module
-                  </Link>
+                <p className="mt-4 text-xs text-app-text-muted">
+                  Avg{' '}
+                  {summary.total_volunteers > 0
+                    ? (summary.total_volunteer_hours_ytd / summary.total_volunteers).toFixed(1)
+                    : 0}{' '}
+                  hours per volunteer
                 </p>
-                {summary.total_events_ytd === 0 && (
-                  <p className="text-sm text-app-text-muted">
-                    No events in this range. Try creating an event or clearing date filters.
-                  </p>
-                )}
-              </div>
-            </SectionCard>
-
-            <SectionCard title="Donations Summary">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between border-b border-app-border-muted pb-3">
-                  <span className="text-app-text-muted">Total Amount (YTD)</span>
-                  <span className="text-xl font-semibold text-app-accent">
-                    {formatCurrency(summary.total_donations_ytd)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between border-b border-app-border-muted pb-3">
-                  <span className="text-app-text-muted">Number of Donations</span>
-                  <span className="font-medium text-app-text">{summary.donation_count_ytd}</span>
-                </div>
-                <div className="flex items-center justify-between border-b border-app-border-muted pb-3">
-                  <span className="text-app-text-muted">Average Donation</span>
-                  <span className="font-medium text-app-text">
-                    {formatCurrency(summary.average_donation_ytd)}
-                  </span>
-                </div>
-                <p className="text-sm text-app-text-muted">
-                  View donation details in the{' '}
-                  <Link className={analyticsInlineLinkClass} to="/donations">
-                    Donations module
-                  </Link>
-                </p>
-                {summary.donation_count_ytd === 0 && (
-                  <p className="text-sm text-app-text-muted">
-                    No donations in this range. Try recording a donation or widening the date range.
-                  </p>
-                )}
-              </div>
-            </SectionCard>
-          </div>
-        </>
-      )}
-
-      {!summaryLoading && !error && !summary && (
-        <EmptyState
-          title="No analytics data available"
-          description="No data is available for the current filters."
-          action={
-            <div className="flex flex-wrap gap-2">
-              <PrimaryButton onClick={handleClearFilters}>Clear Filters</PrimaryButton>
-              <Link className={analyticsActionLinkClass} to="/donations/new">
-                Add Donation
-              </Link>
+              </SectionCard>
             </div>
-          }
-        />
-      )}
+
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <SectionCard title="Events Summary">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between border-b border-app-border-muted pb-3">
+                    <span className="text-app-text-muted">Total Events (YTD)</span>
+                    <span className="text-xl font-semibold text-app-text">
+                      {summary.total_events_ytd}
+                    </span>
+                  </div>
+                  <p className="text-sm text-app-text-muted">
+                    View event details in the{' '}
+                    <Link className={analyticsInlineLinkClass} to="/events">
+                      Events calendar
+                    </Link>
+                  </p>
+                  {summary.total_events_ytd === 0 && (
+                    <p className="text-sm text-app-text-muted">
+                      No events in this range. Try creating an event or clearing date filters.
+                    </p>
+                  )}
+                </div>
+              </SectionCard>
+
+              <SectionCard title="Donations Summary">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between border-b border-app-border-muted pb-3">
+                    <span className="text-app-text-muted">Total Amount (YTD)</span>
+                    <span className="text-xl font-semibold text-app-accent">
+                      {formatCurrency(summary.total_donations_ytd)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between border-b border-app-border-muted pb-3">
+                    <span className="text-app-text-muted">Number of Donations</span>
+                    <span className="font-medium text-app-text">{summary.donation_count_ytd}</span>
+                  </div>
+                  <div className="flex items-center justify-between border-b border-app-border-muted pb-3">
+                    <span className="text-app-text-muted">Average Donation</span>
+                    <span className="font-medium text-app-text">
+                      {formatCurrency(summary.average_donation_ytd)}
+                    </span>
+                  </div>
+                  <p className="text-sm text-app-text-muted">
+                    View donation details in the{' '}
+                    <Link className={analyticsInlineLinkClass} to="/donations">
+                      Donations list
+                    </Link>
+                  </p>
+                  {summary.donation_count_ytd === 0 && (
+                    <p className="text-sm text-app-text-muted">
+                      No donations in this range. Try recording a donation or widening the date
+                      range.
+                    </p>
+                  )}
+                </div>
+              </SectionCard>
+            </div>
+          </>
+        )}
+
+        {!summaryLoading && !error && !summary && (
+          <EmptyState
+            title="No analytics data available"
+            description="No data is available for the current filters."
+            action={
+              <div className="flex flex-wrap gap-2">
+                <PrimaryButton onClick={handleClearFilters}>Clear Filters</PrimaryButton>
+                <Link className={analyticsActionLinkClass} to="/donations/new">
+                  Add Donation
+                </Link>
+              </div>
+            }
+          />
+        )}
       </div>
     </NeoBrutalistLayout>
   );

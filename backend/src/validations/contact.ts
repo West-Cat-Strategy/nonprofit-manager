@@ -6,7 +6,13 @@
 import { z } from 'zod';
 import { interactionOutcomeImpactItemSchema } from './outcomeImpact';
 import { CONTACT_ROLE_FILTER_VALUES } from '@app-types/contact';
-import { emailSchema, optionalNullablePhnSchema, optionalPhnSchema, phoneSchema, uuidSchema } from './shared';
+import {
+  emailSchema,
+  optionalNullablePhnSchema,
+  optionalPhnSchema,
+  phoneSchema,
+  uuidSchema,
+} from './shared';
 
 const booleanQuerySchema = z.preprocess((value) => {
   if (value === undefined) {
@@ -226,6 +232,70 @@ export const donorProfileSchema = z
   .strict();
 
 export type DonorProfileInput = z.infer<typeof donorProfileSchema>;
+
+export const contactSuppressionChannelSchema = z.enum([
+  'email',
+  'sms',
+  'phone',
+  'voicemail',
+  'mail',
+  'all',
+]);
+
+export const staffContactSuppressionReasonSchema = z.enum([
+  'staff_dnc',
+  'client_request',
+  'caregiver_request',
+  'legal_hold',
+  'no_solicitations',
+  'invalid_contact',
+  'other',
+]);
+
+const optionalIsoDateTimeSchema = z
+  .string()
+  .datetime({ offset: true })
+  .nullable()
+  .optional();
+
+export const upsertStaffContactSuppressionSchema = z
+  .object({
+    channel: contactSuppressionChannelSchema,
+    reason: staffContactSuppressionReasonSchema.default('staff_dnc').optional(),
+    evidence_summary: z
+      .string()
+      .trim()
+      .max(2000)
+      .nullable()
+      .optional(),
+    source_reference: z
+      .string()
+      .trim()
+      .max(255)
+      .nullable()
+      .optional(),
+    starts_at: optionalIsoDateTimeSchema,
+    expires_at: optionalIsoDateTimeSchema,
+    metadata: z.record(z.string(), z.unknown()).optional(),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (!value.starts_at || !value.expires_at) {
+      return;
+    }
+
+    if (Date.parse(value.expires_at) <= Date.parse(value.starts_at)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['expires_at'],
+        message: 'expires_at must be after starts_at',
+      });
+    }
+  });
+
+export type UpsertStaffContactSuppressionInput = z.infer<
+  typeof upsertStaffContactSuppressionSchema
+>;
 
 // Bulk update contacts
 export const bulkUpdateContactsSchema = z.object({

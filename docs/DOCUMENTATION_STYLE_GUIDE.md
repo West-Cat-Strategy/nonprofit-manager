@@ -1,16 +1,17 @@
 # Documentation Style Guide
 
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-05-01
 
 Use this guide when creating or updating documentation in nonprofit-manager.
 
 ## Source Of Truth Model
 
-- [../README.md](../README.md) is the product overview and contributor handoff.
+- [../README.md](../README.md) is the organization-facing adoption overview and product entry point.
 - [../CONTRIBUTING.md](../CONTRIBUTING.md) is the contributor entry point, workflow, and validation guide.
 - [development/GETTING_STARTED.md](development/GETTING_STARTED.md) is the setup and runtime guide.
 - [README.md](README.md) inside `docs/` is the documentation catalog.
 - [phases/planning-and-progress.md](phases/planning-and-progress.md) is the live workboard and status log.
+- Section indexes such as [features/README.md](features/README.md), [product/README.md](product/README.md), [ui/README.md](ui/README.md), and [quick-reference/README.md](quick-reference/README.md) should stay concise and navigational.
 - [../scripts/README.md](../scripts/README.md) is the root helper-script index.
 - Service READMEs such as [../backend/README.md](../backend/README.md) and [../frontend/README.md](../frontend/README.md) should explain their own surfaces, but should not replace [../CONTRIBUTING.md](../CONTRIBUTING.md) as the contributor start path.
 - `docs/testing/TESTING.md` is the active test-command map; narrower testing docs should say when they are historical or narrowly scoped.
@@ -104,7 +105,7 @@ Examples:
 - Use ISO dates in active docs when practical: `2026-03-11`.
 - Use exact dates instead of relative wording when status matters.
 - Keep workboard changes in [phases/planning-and-progress.md](phases/planning-and-progress.md), not in scattered status notes across active docs.
-- Label historical or narrow-scope docs in `docs/README.md` rather than overloading contributor entry docs with caveats.
+- Label historical or narrow-scope docs in `docs/README.md` and the relevant section index rather than overloading contributor entry docs with caveats.
 
 ## Maintenance Checklist
 

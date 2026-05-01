@@ -1,6 +1,6 @@
 # Agent Instructions For Nonprofit Manager
 
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-04-30
 
 Use this file for repo-specific coding-agent guardrails. It is not the setup guide or the full docs catalog.
 
@@ -46,7 +46,7 @@ Use this file for repo-specific coding-agent guardrails. It is not the setup gui
 
 - [../../CONTRIBUTING.md](../../CONTRIBUTING.md) owns contributor workflow and handoff.
 - [GETTING_STARTED.md](GETTING_STARTED.md) owns runtime setup, ports, and local env guidance.
-- [../../README.md](../../README.md) owns the product overview and contributor handoff.
+- [../../README.md](../../README.md) owns the organization-facing adoption overview and product entry point.
 - [../README.md](../README.md) is the documentation catalog.
 - [../testing/TESTING.md](../testing/TESTING.md) is the validation command map.
 - [../validation/README.md](../validation/README.md) owns navigation for validation references, audit snapshots, and remediation trackers.

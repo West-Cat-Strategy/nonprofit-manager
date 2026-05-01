@@ -5,10 +5,10 @@
 ## Workspace Integrity
 
 1. `git status --short --ignored=matching -- reference-repos`
-Reason: confirm `reference-repos/README.md` and `reference-repos/manifest.lock.json` are the only tracked files in the workspace root while clone directories remain ignored.
+Reason: confirm `reference-repos/README.md` and `reference-repos/manifest.lock.json` are the only tracked files in the workspace root while clone compatibility symlinks remain ignored.
 
 2. `for repo in nm--civicrm-core nm--civicrm-docker nm--openpetra nm--erpnext nm--suitecrm nm--openspp2 nm--sahana-eden; do git -C "reference-repos/external/$repo" rev-parse HEAD; done`
-Reason: verify the full clone set exists locally and matches the pinned commits in `reference-repos/manifest.lock.json`.
+Reason: verify the full clone set exists through compatibility symlinks and matches the pinned commits in `reference-repos/manifest.lock.json`.
 
 ## Runtime Evidence
 

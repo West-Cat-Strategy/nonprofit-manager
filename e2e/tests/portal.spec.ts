@@ -16,7 +16,7 @@ test.describe('Donor Portal', () => {
 
         await page.goto('/portal');
         await expect(page).toHaveURL(/\/portal(?:\?|$)/);
-        await expect(page.getByRole('heading', { name: /your case workspace/i }).first()).toBeVisible({
+        await expect(page.getByRole('heading', { name: /your portal home/i }).first()).toBeVisible({
             timeout: 30000,
         });
     });

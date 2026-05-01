@@ -35,7 +35,8 @@ const FORM_SURFACE_META: Record<WebsiteManagedFormType, FormSurfaceMeta> = {
   },
   'newsletter-signup': {
     label: 'Newsletter signup',
-    description: 'Subscriber capture and supporter updates route through the active newsletter provider.',
+    description:
+      'Subscriber capture and supporter updates route through the active newsletter provider.',
     dependencyLabel: 'Newsletter provider',
     dependencyKey: 'newsletter',
   },
@@ -141,13 +142,13 @@ const getMetadataRecords = (form: WebsiteFormDefinition): FormMetadataRecord[] =
     getNestedRecord(sourceConfig, 'verification'),
   ];
 
-  return [formRecord, ...candidates.filter((candidate): candidate is FormMetadataRecord => Boolean(candidate))];
+  return [
+    formRecord,
+    ...candidates.filter((candidate): candidate is FormMetadataRecord => Boolean(candidate)),
+  ];
 };
 
-const pickStringCandidate = (
-  records: FormMetadataRecord[],
-  keys: string[]
-): string | null => {
+const pickStringCandidate = (records: FormMetadataRecord[], keys: string[]): string | null => {
   for (const record of records) {
     for (const key of keys) {
       const value = record[key];
@@ -159,10 +160,7 @@ const pickStringCandidate = (
   return null;
 };
 
-const pickBooleanCandidate = (
-  records: FormMetadataRecord[],
-  keys: string[]
-): boolean | null => {
+const pickBooleanCandidate = (records: FormMetadataRecord[], keys: string[]): boolean | null => {
   for (const record of records) {
     for (const key of keys) {
       const value = record[key];
@@ -449,7 +447,7 @@ const buildNextAction = (
       title: newsletterMissing ? 'Choose a newsletter audience' : 'Connect the missing integration',
       detail: newsletterMissing
         ? 'Open the Newsletters workspace to pick the audience or list that should receive signup traffic.'
-        : 'One or more public CTAs still need their connected service before launch.',
+        : 'One or more public forms still need their connected service before launch.',
       href: newsletterMissing ? newslettersHref : integrationsHref,
       tone: 'warning',
     };
@@ -484,10 +482,10 @@ export const getFormDependencyState = (
   const detail =
     meta.dependencyKey === 'newsletter'
       ? ready
-        ? `Newsletter audience "${integrations.newsletter.selectedAudienceName || integrations.newsletter.selectedAudienceId}" is active for this CTA.`
-        : 'Choose an active newsletter audience in the Newsletters workspace before this CTA can send subscribers anywhere.'
+        ? `Newsletter audience "${integrations.newsletter.selectedAudienceName || integrations.newsletter.selectedAudienceId}" is active for this form.`
+        : 'Choose an active newsletter audience in the Newsletters workspace before this form can send subscribers anywhere.'
       : ready
-        ? `${meta.dependencyLabel} is connected for this CTA.`
+        ? `${meta.dependencyLabel} is connected for this form.`
         : `${meta.dependencyLabel} is not configured yet.`;
 
   return {
@@ -591,9 +589,9 @@ export const deriveWebsiteManagedFormVerification = (
           form.componentId
         )}/submit`
       : null);
-  const submissionMethod =
-    (pickStringCandidate(metadataRecords, ['submissionMethod', 'submitMethod', 'method']) || 'POST')
-      .toUpperCase();
+  const submissionMethod = (
+    pickStringCandidate(metadataRecords, ['submissionMethod', 'submitMethod', 'method']) || 'POST'
+  ).toUpperCase();
 
   const hasPreview = Boolean(previewPageUrl);
   const hasLive = Boolean(livePageUrl);
@@ -621,19 +619,19 @@ export const deriveWebsiteManagedFormVerification = (
 
   const publishStateDetail = isEventRegistration
     ? publishState === 'live-preview'
-      ? 'This event-registration CTA is available on live event detail pages and can still be checked through preview.'
+      ? 'This event registration form is available on live event detail pages and can still be checked through preview.'
       : publishState === 'live'
-        ? 'This event-registration CTA is available on live event detail pages.'
+        ? 'This event registration form is available on live event detail pages.'
         : publishState === 'preview'
-          ? 'This event-registration CTA is available in preview before the next live publish.'
-          : 'Publish a preview or live version to expose this event-registration CTA.'
+          ? 'This event registration form is available in preview before the next live publish.'
+          : 'Publish a preview or live version to expose this event registration form.'
     : publishState === 'live-preview'
-      ? 'This managed CTA is available on the live site and can still be verified through preview.'
+      ? 'This managed form is available on the live site and can still be verified through preview.'
       : publishState === 'live'
-        ? 'This managed CTA is currently exposed on the live public site.'
+        ? 'This managed form is currently available on the live public site.'
         : publishState === 'preview'
-          ? 'This managed CTA is available in preview before the next live publish.'
-          : 'Publish a preview or live version to expose this CTA on the public surface.';
+          ? 'This managed form is available in preview before the next live publish.'
+          : 'Publish a preview or live version to expose this form on the public page.';
 
   const launchStateLabel = launchReady
     ? hasLiveSurface
@@ -650,15 +648,15 @@ export const deriveWebsiteManagedFormVerification = (
   const launchStateDetail = launchReady
     ? hasLiveSurface
       ? isEventRegistration
-        ? 'Open a live event detail page, submit the registration CTA, and confirm the public event registration workflow end to end.'
+        ? 'Open a live event detail page, submit the registration form, and confirm the public event registration workflow end to end.'
         : 'Open the live page or preview page, submit the form, and confirm the public workflow end to end.'
       : 'Use the preview page to test the managed form before the next live publish.'
     : !dependency.ready
       ? dependency.detail
       : !hasPreview && !hasLiveSurface
-        ? 'Publish a preview or live version so the focus CTA can be opened from the public surface.'
+        ? 'Publish a preview or live version so the focus form can be opened from the public page.'
         : !hasSubmission
-          ? 'The managed public submission endpoint is not available yet for this CTA.'
+          ? 'The managed public submission endpoint is not available yet for this form.'
           : 'Review the preview/live page and submission path before continuing.';
 
   return {
@@ -800,7 +798,7 @@ export const deriveWebsiteManagementSnapshot = (
   if (!forms.length) {
     attentionItems.push({
       id: 'forms',
-      title: 'No public CTA forms are connected',
+      title: 'No public forms are connected',
       detail: 'Connect at least one contact, newsletter, referral, or donation form before launch.',
       severity: 'warning',
       href: formsHref,
@@ -812,7 +810,8 @@ export const deriveWebsiteManagementSnapshot = (
     attentionItems.push({
       id: 'newsletter',
       title: 'Newsletter audience needs attention',
-      detail: 'Newsletter capture will stay local until an active audience is selected in Newsletters.',
+      detail:
+        'Newsletter capture will stay local until an active audience is selected in Newsletters.',
       severity: 'critical',
       href: newslettersHref,
       actionLabel: 'Open newsletters',
@@ -845,7 +844,8 @@ export const deriveWebsiteManagementSnapshot = (
     attentionItems.push({
       id: 'content',
       title: 'No newsletter content is published yet',
-      detail: 'Add a newsletter post or import the archive so the public site has a content stream.',
+      detail:
+        'Add a newsletter post or import the archive so the public site has a content stream.',
       severity: 'info',
       href: contentHref,
       actionLabel: 'Open content',
@@ -854,9 +854,9 @@ export const deriveWebsiteManagementSnapshot = (
 
   const integrationsReady =
     newsletterForms.every(
-      () => integrations.newsletter.configured && Boolean(integrations.newsletter.selectedAudienceId)
-    ) &&
-    donationForms.every(() => integrations.stripe.configured);
+      () =>
+        integrations.newsletter.configured && Boolean(integrations.newsletter.selectedAudienceId)
+    ) && donationForms.every(() => integrations.stripe.configured);
   const publishReady = !overview.site.blocked && draftRoutes.length > 0;
   const snapshotWithoutNextAction: Omit<WebsiteManagementSnapshot, 'nextAction'> = {
     status: overview.site.blocked

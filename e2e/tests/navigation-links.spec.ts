@@ -10,16 +10,16 @@ authTest.describe('Staff navigation click-through audit', () => {
   authTest('utility links and alerts workspace routes stay canonical', async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/dashboard', { waitUntil: 'domcontentloaded' });
 
-    await authenticatedPage.getByRole('link', { name: /alerts/i }).first().click();
+    await authenticatedPage.getByRole('link', { name: /alert rules/i }).first().click();
     await expect(authenticatedPage).toHaveURL(/\/alerts$/);
 
-    await authenticatedPage.getByRole('link', { name: /view triggered alerts/i }).click();
+    await authenticatedPage.getByRole('link', { name: /active alerts/i }).first().click();
     await expect(authenticatedPage).toHaveURL(/\/alerts\/instances$/);
 
-    await authenticatedPage.getByRole('link', { name: /review history/i }).first().click();
+    await authenticatedPage.getByRole('link', { name: /alert history/i }).first().click();
     await expect(authenticatedPage).toHaveURL(/\/alerts\/history$/);
 
-    await authenticatedPage.getByRole('link', { name: /edit alert rules/i }).click();
+    await authenticatedPage.getByRole('link', { name: /alert rules/i }).first().click();
     await expect(authenticatedPage).toHaveURL(/\/alerts$/);
   });
 
@@ -63,7 +63,7 @@ base.describe('Portal navigation click-through audit', () => {
 
   base('sidebar links stay within the portal shell', async ({ page }) => {
     await page.goto('/portal', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('heading', { name: /your case workspace/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /your portal home/i })).toBeVisible();
 
     const linkChecks: Array<{ label: RegExp; url: RegExp }> = [
       { label: /^view shared cases$/i, url: /\/portal\/cases$/ },

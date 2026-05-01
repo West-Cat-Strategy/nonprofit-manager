@@ -89,8 +89,8 @@ export default function NavigationSettings() {
 
   return (
     <AdminWorkspaceShell
-      title="Navigation"
-      description="Control menu order, pinned shortcuts, and workspace visibility from the shared admin tools surface."
+      title="My Navigation"
+      description="Choose your staff menu order, pinned shortcuts, and visible workspace modules."
       currentPath={location.pathname}
     >
       <AdminQuickActionsBar role="admin" />
@@ -98,9 +98,9 @@ export default function NavigationSettings() {
         <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-app-text-heading">Navigation Menu Items</h2>
+              <h2 className="text-lg font-semibold text-app-text-heading">My navigation menu</h2>
               <p className="text-sm text-app-text-muted mt-1">
-                {enabledCount} of {allItems.length} modules enabled · Pinned {pinnedCount}/
+                {enabledCount} of {allItems.length} items visible · Pinned {pinnedCount}/
                 {maxPinnedItems}
               </p>
             </div>
@@ -270,15 +270,15 @@ export default function NavigationSettings() {
                           ? 'Enable this module before pinning'
                           : pinLimitReached
                             ? `Maximum of ${maxPinnedItems} pinned items reached`
-                          : item.pinned
-                            ? 'Unpin from quick access'
-                            : 'Pin for quick access'
+                            : item.pinned
+                              ? 'Unpin from quick access'
+                              : 'Pin for quick access'
                     }
                   >
                     {item.pinned ? 'Unpin' : 'Pin'}
                   </button>
 
-                    {item.isCore ? (
+                  {item.isCore ? (
                     <span className="text-sm text-app-text-subtle">Always visible</span>
                   ) : (
                     <label className="relative inline-flex items-center cursor-pointer">
@@ -323,15 +323,18 @@ export default function NavigationSettings() {
             <div className="text-sm text-app-text-muted">
               <p className="font-medium text-app-text-label">How navigation works:</p>
               <ul className="mt-1 list-disc list-inside space-y-1">
-                <li>Dashboard is always first and cannot be moved</li>
+                <li>Workbench is always first and cannot be moved</li>
                 <li>
-                  Pin up to {maxPinnedItems} enabled modules for instant access in the workspace
-                  header and mobile menu
+                  Pin up to {maxPinnedItems} visible items for quick access in the workspace header
+                  and mobile menu
                 </li>
-                <li>Drag items or use arrows to reorder non-dashboard modules</li>
-                <li>The first 4 enabled, unpinned items appear in the main navigation bar</li>
-                <li>Additional enabled, unpinned items appear under the &quot;More&quot; menu</li>
-                <li>Modules disabled by an organization admin stay locked until the workspace setting changes</li>
+                <li>Drag items or use arrows to reorder everything below Workbench</li>
+                <li>The first 4 visible, unpinned items appear in the main navigation bar</li>
+                <li>Additional visible, unpinned items appear under the &quot;More&quot; menu</li>
+                <li>
+                  Modules disabled by an organization admin stay locked until the workspace setting
+                  changes
+                </li>
               </ul>
             </div>
           </div>
@@ -340,7 +343,7 @@ export default function NavigationSettings() {
 
       <div className="mt-6 bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
         <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted">
-          <h2 className="text-lg font-semibold text-app-text-heading">Related Admin Workspaces</h2>
+          <h2 className="text-lg font-semibold text-app-text-heading">Related admin tools</h2>
         </div>
         <ul className="divide-y divide-app-border">
           {isAdmin && (

@@ -4,8 +4,11 @@ import CaseFormsPanel from '../CaseFormsPanel';
 import { renderWithProviders } from '../../../../test/testUtils';
 
 const listRecommendedDefaultsMock = vi.fn();
+const listTemplatesMock = vi.fn();
 const listAssignmentsMock = vi.fn();
 const getAssignmentMock = vi.fn();
+const updateAssignmentMock = vi.fn();
+const saveDraftMock = vi.fn();
 const sendMock = vi.fn();
 const reviewMock = vi.fn();
 const showSuccessMock = vi.fn();
@@ -13,15 +16,18 @@ const showErrorMock = vi.fn();
 
 vi.mock('../../api/caseFormsApiClient', () => ({
   staffCaseFormsApiClient: {
+    listTemplates: (...args: unknown[]) => listTemplatesMock(...args),
     listRecommendedDefaults: (...args: unknown[]) => listRecommendedDefaultsMock(...args),
     listAssignments: (...args: unknown[]) => listAssignmentsMock(...args),
     getAssignment: (...args: unknown[]) => getAssignmentMock(...args),
     send: (...args: unknown[]) => sendMock(...args),
     createAssignment: vi.fn(),
+    createTemplate: vi.fn(),
+    saveAssignmentAsTemplate: vi.fn(),
     instantiateDefault: vi.fn(),
-    updateAssignment: vi.fn(),
+    updateAssignment: (...args: unknown[]) => updateAssignmentMock(...args),
     uploadAsset: vi.fn(),
-    saveDraft: vi.fn(),
+    saveDraft: (...args: unknown[]) => saveDraftMock(...args),
     submit: vi.fn(),
     review: (...args: unknown[]) => reviewMock(...args),
     getResponsePacketDownloadUrl: vi.fn(() => '/api/v2/cases/case-1/forms/assignment-1/response-packet'),
@@ -90,12 +96,15 @@ const assignmentDetail = {
 describe('CaseFormsPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    listTemplatesMock.mockResolvedValue([]);
     listRecommendedDefaultsMock.mockResolvedValue([]);
     listAssignmentsMock.mockResolvedValue([assignment]);
     getAssignmentMock.mockResolvedValue(assignmentDetail);
+    updateAssignmentMock.mockResolvedValue(assignment);
+    saveDraftMock.mockResolvedValue(assignment);
   });
 
-  it('shows delivery controls and disables sending when the case is not client-viewable', async () => {
+  it('shows open-form channel controls without blocking direct email when the case is not client-viewable', async () => {
     renderWithProviders(
       <CaseFormsPanel
         caseId="case-1"
@@ -105,19 +114,20 @@ describe('CaseFormsPanel', () => {
     );
 
     expect(await screen.findByText('Assignment Actions')).toBeInTheDocument();
-    expect(screen.getByText('Delivery Target')).toBeInTheDocument();
+    expect(screen.getByText('Open Form Channels')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'This case is not shared with the client yet. Turn on client visibility before delivering forms by portal or email.'
+        'Portal delivery needs a client-visible case or an active portal account. Email and SMS links can still be sent directly.'
       )
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /send by email/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /open form: email/i })).toBeEnabled();
   });
 
-  it('sends the selected delivery target and hides stale secure links after a portal-only send', async () => {
+  it('sends selected delivery channels and hides stale secure links after a portal-only send', async () => {
     sendMock.mockResolvedValue({
       ...assignment,
       delivery_target: 'portal',
+      delivery_channels: ['portal'],
       access_link_url: null,
     });
 
@@ -134,20 +144,18 @@ describe('CaseFormsPanel', () => {
     });
     expect(await screen.findByRole('button', { name: /copy link/i })).toBeInTheDocument();
 
-    const deliveryTargetSelect = screen.getByRole('combobox', { name: /delivery target/i });
-    fireEvent.change(deliveryTargetSelect, {
-      target: { value: 'portal' },
-    });
-    expect((deliveryTargetSelect as HTMLSelectElement).value).toBe('portal');
+    fireEvent.click(screen.getByLabelText(/^portal$/i));
+    fireEvent.click(screen.getByLabelText(/^email$/i));
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /send/i }));
+      fireEvent.click(screen.getByRole('button', { name: /open form: portal/i }));
     });
 
     await waitFor(() => {
       expect(sendMock).toHaveBeenCalledWith('case-1', 'assignment-1', {
-        delivery_target: 'portal',
+        delivery_channels: ['portal'],
         recipient_email: undefined,
+        recipient_phone: undefined,
         expires_in_days: undefined,
       });
     });

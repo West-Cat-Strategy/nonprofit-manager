@@ -230,4 +230,99 @@ describe('PublicSiteRenderer', () => {
     expect(html).toContain('Reserve a seat');
     expect(html).not.toContain('/api/v2/public/forms/site-1/event-registration-block/submit');
   });
+
+  it('renders public action blocks against the shared public action endpoint', async () => {
+    const page: PublishedPage = {
+      id: 'page-petition',
+      slug: 'petition',
+      name: 'Petition',
+      isHomepage: false,
+      pageType: 'static',
+      routePattern: '/petition',
+      seo: {
+        title: 'Add your name',
+        description: 'Support the campaign.',
+      },
+      sections: [
+        {
+          id: 'petition-section',
+          name: 'Petition form',
+          components: [
+            {
+              id: 'petition-block',
+              type: 'petition-form',
+              actionSlug: 'save-the-library',
+              petitionStatement: 'Keep the public library open.',
+              submitText: 'Add my name',
+              includePhone: true,
+            },
+          ],
+        },
+      ],
+    } as PublishedPage;
+    const site = buildSite(page);
+    const renderer = new PublicSiteRenderer(
+      { listPublicEventsByOwner: jest.fn() } as never,
+      { listPublicNewsletters: jest.fn() } as never,
+      new PublicSiteRouteResolver()
+    );
+
+    const html = await renderer.renderPage(site, page, { kind: 'static' });
+
+    expect(html).toContain(
+      'action="/api/v2/public/actions/site-1/save-the-library/submissions"'
+    );
+    expect(html).toContain('name="consent"');
+    expect(html).toContain('Keep the public library open.');
+    expect(html).not.toContain('/api/v2/public/forms/site-1/petition-block/submit');
+  });
+
+  it('renders blog archive fallback cards and blog detail metadata', async () => {
+    const page: PublishedPage = {
+      id: 'page-blog',
+      slug: 'blog',
+      name: 'Blog',
+      isHomepage: false,
+      pageType: 'collectionIndex',
+      collection: 'blog',
+      routePattern: '/blog',
+      seo: {
+        title: 'Blog',
+        description: 'Campaign stories.',
+      },
+      sections: [],
+    } as PublishedPage;
+    const site = buildSite(page);
+    const renderer = new PublicSiteRenderer(
+      { listPublicEventsByOwner: jest.fn() } as never,
+      { listPublicNewsletters: jest.fn() } as never,
+      new PublicSiteRouteResolver()
+    );
+
+    const html = await renderer.renderPage(site, page, {
+      kind: 'blogIndex',
+      detailPathPattern: '/blog/:slug',
+      items: [
+        {
+          id: 'entry-1',
+          organizationId: 'org-1',
+          siteId: 'site-1',
+          kind: 'blog_post',
+          source: 'native',
+          status: 'published',
+          slug: 'organizing-update',
+          title: 'Organizing Update',
+          excerpt: 'What happened this week.',
+          seo: {},
+          publishedAt: '2026-05-01T00:00:00.000Z',
+          createdAt: '2026-05-01T00:00:00.000Z',
+          updatedAt: '2026-05-01T00:00:00.000Z',
+        },
+      ],
+    });
+
+    expect(html).toContain('/blog/organizing-update');
+    expect(html).toContain('Organizing Update');
+    expect(html).toContain('What happened this week.');
+  });
 });

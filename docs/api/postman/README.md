@@ -1,10 +1,10 @@
 # Postman Collection Guide
 
-**Last Updated:** 2026-04-25
+**Last Updated:** 2026-05-01
 
 ## Overview
 
-This directory contains Postman collection and environment files for testing the Nonprofit Manager API.
+This directory contains Postman collection and environment files for testing common Nonprofit Manager API workflows. It is a workflow aid, not the canonical endpoint inventory; use [../README.md](../README.md) and [../openapi.yaml](../openapi.yaml) for the broader API map.
 
 ## Files
 
@@ -88,8 +88,13 @@ This allows you to:
 2. **Mailchimp > Get Mailchimp Status** - Verify Mailchimp configured
 3. **Mailchimp > Get Mailchimp Lists** - Get audiences, saves first list ID
 4. **Mailchimp > Get List Segments** - Get segments for audience
-5. **Mailchimp > Create Campaign** - Create campaign, saves campaign ID
-6. **Mailchimp > Send Campaign** - Send the campaign (use with caution!)
+5. **Mailchimp > Get List Tags** - Get tags for audience
+6. **Mailchimp > Update Member Tags** - API-only tag management for a member
+7. **Mailchimp > Test Campaign Draft** - Sends a real provider test email from the current camelCase request body, saves provider campaign ID
+8. **Mailchimp > Create Campaign** - Create campaign with the current camelCase request body, saves campaign ID
+9. **Mailchimp > Send Campaign** - Send the campaign (use with caution!)
+
+Mailchimp tag and segment management is currently documented as staff/admin API-only. Use the Postman collection or direct `/api/v2/mailchimp/*` calls for these endpoints unless a later frontend lane adds dedicated staff UI controls.
 
 #### Refund Flow
 

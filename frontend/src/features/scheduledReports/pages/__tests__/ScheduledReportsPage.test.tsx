@@ -81,9 +81,7 @@ const savedReports: SavedReportListItem[] = [
   },
 ];
 
-const makeScheduledReport = (
-  overrides: Partial<ScheduledReport> = {}
-): ScheduledReport => ({
+const makeScheduledReport = (overrides: Partial<ScheduledReport> = {}): ScheduledReport => ({
   id: 'schedule-1',
   organization_id: 'org-1',
   saved_report_id: 'saved-report-1',
@@ -167,6 +165,7 @@ const buildControllerState = () => ({
   loadAllScheduledData: loadAllScheduledDataMock,
   loading: false,
   openEditDialog: openEditDialogMock,
+  reports: [makeScheduledReport()],
   runsByReportId: {} as Record<string, ScheduledReportRun[]>,
   savedReports,
   searchQuery: '',
@@ -176,7 +175,7 @@ const buildControllerState = () => ({
   setStatusFilter: setStatusFilterMock,
   showCreate: false,
   sortedReports: [makeScheduledReport()],
-  statusFilter: 'all' as const,
+  statusFilter: 'all' as 'all' | 'active' | 'paused' | 'attention',
 });
 
 type ScheduledReportsControllerState = ReturnType<typeof buildControllerState>;
@@ -227,17 +226,26 @@ describe('ScheduledReportsPage', () => {
 
   it('delegates filter and row actions to the controller', async () => {
     const user = userEvent.setup();
-    controllerStateRef.current.sortedReports = [
+    const pausedReport = makeScheduledReport({
+      id: 'schedule-2',
+      name: 'Paused Outcomes Digest',
+      is_active: false,
+      frequency: 'monthly',
+      day_of_week: null,
+      day_of_month: 10,
+      last_error: 'SMTP delivery failed',
+      last_run_at: '2026-03-02T12:00:00.000Z',
+    });
+    controllerStateRef.current.reports = [
+      pausedReport,
+      makeScheduledReport(),
       makeScheduledReport({
-        id: 'schedule-2',
-        name: 'Paused Outcomes Digest',
-        is_active: false,
-        frequency: 'monthly',
-        day_of_week: null,
-        day_of_month: 10,
-        last_error: 'SMTP delivery failed',
+        id: 'schedule-running',
+        name: 'Running Digest',
+        processing_started_at: '2026-03-04T12:00:00.000Z',
       }),
     ];
+    controllerStateRef.current.sortedReports = [pausedReport];
 
     renderWithProviders(<ScheduledReportsPage />, {
       preloadedState: buildAuthState([
@@ -248,8 +256,14 @@ describe('ScheduledReportsPage', () => {
       ]),
     });
 
+    expect(screen.getByText(/total schedules/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/needs attention/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/last run:/i)).toBeInTheDocument();
+    expect(screen.getByText(/smtp delivery failed/i)).toBeInTheDocument();
+
     await user.type(screen.getByLabelText(/search schedules/i), 'paused');
     await user.selectOptions(screen.getByLabelText(/status/i), 'paused');
+    await user.selectOptions(screen.getByLabelText(/status/i), 'attention');
     await user.click(screen.getAllByRole('button', { name: /resume/i })[0]);
     await user.click(screen.getAllByRole('button', { name: /^run now$/i })[0]);
     await user.click(screen.getAllByRole('button', { name: /edit/i })[0]);
@@ -258,11 +272,10 @@ describe('ScheduledReportsPage', () => {
 
     expect(setSearchQueryMock).toHaveBeenCalled();
     expect(setStatusFilterMock).toHaveBeenCalledWith('paused');
+    expect(setStatusFilterMock).toHaveBeenCalledWith('attention');
     expect(handleToggleScheduledReportMock).toHaveBeenCalledWith('schedule-2');
     expect(handleRunNowMock).toHaveBeenCalledWith('schedule-2');
-    expect(openEditDialogMock).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'schedule-2' })
-    );
+    expect(openEditDialogMock).toHaveBeenCalledWith(expect.objectContaining({ id: 'schedule-2' }));
     expect(handleOpenHistoryMock).toHaveBeenCalledWith('schedule-2');
     expect(handleDeleteMock).toHaveBeenCalledWith('schedule-2');
   });

@@ -1,8 +1,8 @@
 # API Integration Guide
 
-**Nonprofit Manager - Payment Reconciliation & Integration APIs**
+**Nonprofit Manager - Payment, Email, And Provider Integration APIs**
 **Version:** 1.0
-**Last Updated:** 2026-04-18
+**Last Updated:** 2026-05-01
 
 ---
 
@@ -12,18 +12,19 @@
 2. [Authentication](#authentication)
 3. [Payment Reconciliation API](#payment-reconciliation-api)
 4. [Stripe Integration](#stripe-integration)
-5. [Mailchimp Integration](#mailchimp-integration)
-6. [Webhook System](#webhook-system)
-7. [Error Handling](#error-handling)
-8. [Rate Limiting](#rate-limiting)
-9. [Best Practices](#best-practices)
-10. [Examples](#examples)
+5. [Communications API](#communications-api)
+6. [Mailchimp Integration](#mailchimp-integration)
+7. [Webhook System](#webhook-system)
+8. [Error Handling](#error-handling)
+9. [Rate Limiting](#rate-limiting)
+10. [Best Practices](#best-practices)
+11. [Examples](#examples)
 
 ---
 
 ## Overview
 
-The Nonprofit Manager API provides comprehensive endpoints for managing payment reconciliation, Stripe integration, Mailchimp campaigns, and webhook notifications. This guide covers integration patterns, authentication, and best practices for all API endpoints.
+The Nonprofit Manager API provides endpoints for payment reconciliation, Stripe integration, local-first communications, optional Mailchimp provider operations, newsletter-provider configuration, and webhook notifications. This guide covers active integration patterns and request shapes; use [README.md](README.md) and [openapi.yaml](openapi.yaml) for the broader API map.
 
 Examples in this guide focus on the payload inside the canonical success envelope. Live JSON responses from `/api` routes return `{ "success": true, "data": ... }` on success and `{ "success": false, "error": ... }` on failure unless an endpoint explicitly documents an exception.
 
@@ -387,20 +388,164 @@ Automatically verified using `STRIPE_WEBHOOK_SECRET`.
 
 ---
 
+## Communications API
+
+The primary staff campaign and newsletter workflow is local-first. `/api/v2/communications/*` exposes provider-neutral status, CRM audience, preview, test-send, campaign-run, and send-action endpoints. Local Email is the default provider and uses the app's SMTP settings plus queued recipient delivery rows. Mailchimp remains optional and is used only when staff explicitly choose `provider: "mailchimp"` and the provider is configured.
+
+### Status And Provider Readiness
+
+**GET** `/api/v2/communications/status`
+
+Returns local SMTP readiness first, optional Mailchimp readiness second, and `defaultProvider: "local_email"`.
+
+### Audiences
+
+**GET** `/api/v2/communications/audiences?scope=provider`
+
+Returns the synthetic local CRM email audience plus configured Mailchimp audiences when Mailchimp is available.
+
+**GET** `/api/v2/communications/audiences?scope=saved`
+
+Lists active saved CRM audiences. Saved audiences are local targeting snapshots and can carry `filters.provider` and `filters.listId` metadata for provider-specific workflows.
+
+**POST** `/api/v2/communications/audiences`
+
+Creates a saved CRM audience from selected contacts.
+
+```json
+{
+  "name": "Spring appeal donors",
+  "description": "Selected from the communications workspace",
+  "filters": {
+    "source": "communications_selected_contacts",
+    "contactIds": ["uuid1", "uuid2"],
+    "provider": "local_email",
+    "listId": "local_email:crm"
+  }
+}
+```
+
+**PATCH** `/api/v2/communications/audiences/:audienceId/archive`
+
+Archives an active saved audience.
+
+**POST** `/api/v2/communications/audiences/preview`
+
+Previews eligible local recipients after saved-audience, prior-run, `contacts.do_not_email`, and suppression-evidence filtering.
+
+```json
+{
+  "includeAudienceId": "saved-audience-uuid",
+  "exclusionAudienceIds": ["suppression-audience-uuid"],
+  "priorRunSuppressionIds": ["campaign-run-uuid"]
+}
+```
+
+### Campaigns And Runs
+
+**POST** `/api/v2/communications/campaigns/preview`
+
+Renders campaign content using the shared email campaign renderer without creating a provider campaign.
+
+**POST** `/api/v2/communications/campaigns/test-send`
+
+Sends test messages through local SMTP by default. When `provider` is `"mailchimp"`, the request delegates to the Mailchimp adapter.
+
+**POST** `/api/v2/communications/campaigns`
+
+Creates a local campaign run by default, snapshots rendered content, and queues recipient-level delivery rows. Use `provider: "mailchimp"` only when staff explicitly select Mailchimp.
+
+```json
+{
+  "provider": "local_email",
+  "title": "Annual Fund Update",
+  "subject": "Thank you for your support!",
+  "fromName": "Nonprofit Name",
+  "replyTo": "info@nonprofit.org",
+  "includeAudienceId": "saved-audience-uuid",
+  "builderContent": {
+    "blocks": []
+  }
+}
+```
+
+**GET** `/api/v2/communications/campaigns`
+
+Returns optional provider campaign summaries for compatibility with the communications workspace. Local campaign history is represented by campaign runs.
+
+**GET** `/api/v2/communications/campaign-runs`
+
+Lists local campaign-run records across `local_email` and explicit Mailchimp runs.
+
+**POST** `/api/v2/communications/campaign-runs/:runId/send`
+
+Sends a draft, scheduled, or failed local run in controlled SMTP batches. Recipient delivery rows move through `queued`, `sending`, `sent`, `failed`, or `suppressed`.
+
+**POST** `/api/v2/communications/campaign-runs/:runId/status`
+
+Refreshes status for explicit Mailchimp runs and returns local run status for local-email runs.
+
 ## Mailchimp Integration
+
+Mailchimp routes remain available as explicit provider-management and compatibility surfaces. The main staff workflow should use `/api/v2/communications/*` unless it is managing Mailchimp-specific lists, tags, segments, provider campaigns, reports, or webhooks.
 
 ### Sync Contacts
 
-**POST** `/api/v2/mailchimp/sync`
+**POST** `/api/v2/mailchimp/sync/bulk`
 
-Syncs contact data to Mailchimp audience.
+Syncs selected CRM contacts to a Mailchimp audience.
 
 **Request:**
 ```json
 {
-  "contact_ids": ["uuid1", "uuid2"],
-  "audience_id": "mailchimp_audience_id",
+  "contactIds": ["uuid1", "uuid2"],
+  "listId": "mailchimp_audience_id",
   "tags": ["donor", "2026-campaign"]
+}
+```
+
+### Tag And Segment Management
+
+These endpoints are staff/admin API-only in the current product surface. The communications settings UI can read Mailchimp audiences for campaign targeting, but direct tag and segment management remains available through `/api/v2/mailchimp/*` rather than a dedicated staff screen.
+
+**GET** `/api/v2/mailchimp/lists/:listId/tags`
+
+Returns Mailchimp tags for the audience.
+
+**POST** `/api/v2/mailchimp/members/tags`
+
+Adds or removes tags for a list member.
+
+**Request:**
+```json
+{
+  "listId": "mailchimp_audience_id",
+  "email": "member@example.org",
+  "tagsToAdd": ["newsletter"],
+  "tagsToRemove": ["inactive"]
+}
+```
+
+**GET** `/api/v2/mailchimp/lists/:listId/segments`
+
+Returns Mailchimp segments for the audience.
+
+**POST** `/api/v2/mailchimp/lists/:listId/segments`
+
+Creates a Mailchimp segment for the audience.
+
+**Request:**
+```json
+{
+  "name": "Example donor segment",
+  "matchType": "all",
+  "conditions": [
+    {
+      "field": "EMAIL",
+      "op": "contains",
+      "value": "@example.org"
+    }
+  ]
 }
 ```
 
@@ -408,17 +553,111 @@ Syncs contact data to Mailchimp audience.
 
 **POST** `/api/v2/mailchimp/campaigns`
 
+Creates a Mailchimp-backed campaign from the staff communications workspace. The stable create/preview contract accepts camelCase fields; test recipients are sent through Mailchimp's campaign test-send action before the local run is finalized.
+
 **Request:**
 ```json
 {
-  "type": "regular",
   "subject": "Thank you for your support!",
-  "from_name": "Nonprofit Name",
-  "reply_to": "info@nonprofit.org",
-  "audience_id": "audience_id",
-  "content": "<html>...</html>"
+  "title": "Annual Fund Update",
+  "fromName": "Nonprofit Name",
+  "replyTo": "info@nonprofit.org",
+  "listId": "mailchimp_audience_id",
+  "htmlContent": "<html>...</html>",
+  "plainTextContent": "Thank you for your support!"
 }
 ```
+
+Optional campaign targeting fields include `segmentId`, `includeAudienceId`, `exclusionAudienceIds`, `priorRunSuppressionIds`, `suppressionSnapshot`, `testRecipients`, and `audienceSnapshot`.
+
+### Campaign Preflight And Actions
+
+**POST** `/api/v2/mailchimp/campaigns/test-send`
+
+Creates a Mailchimp draft from the supplied campaign content, sets the provider content, and sends a real test email to `testRecipients` before staff save, schedule, or send the campaign.
+
+**Request:**
+```json
+{
+  "subject": "Thank you for your support!",
+  "title": "Annual Fund Update",
+  "fromName": "Nonprofit Name",
+  "replyTo": "info@nonprofit.org",
+  "listId": "mailchimp_audience_id",
+  "htmlContent": "<html>...</html>",
+  "plainTextContent": "Thank you for your support!",
+  "testRecipients": ["proof@example.org"]
+}
+```
+
+**POST** `/api/v2/mailchimp/campaigns/:campaignId/test-send`
+
+Sends a real Mailchimp test email for an existing provider campaign ID.
+
+**Request:**
+```json
+{
+  "testRecipients": ["proof@example.org"],
+  "sendType": "html"
+}
+```
+
+**GET** `/api/v2/mailchimp/campaign-runs`
+
+Lists local Mailchimp campaign-run records.
+
+**POST** `/api/v2/mailchimp/campaign-runs/:runId/send`
+
+Sends a draft, scheduled, or failed campaign run by local run ID after requester-scope checks.
+
+**POST** `/api/v2/mailchimp/campaign-runs/:runId/status`
+
+Refreshes local campaign-run status and stores Mailchimp reporting metrics in
+`counts.providerReportSummary`. The summary may include `emailsSent`, open and
+click rates, unsubscribes, bounces, abuse reports, and `lastReportedAt`. This
+is provider reporting only; typed appeals, donation attribution, and ROI remain
+outside the current contract.
+
+**POST** `/api/v2/mailchimp/campaign-runs/:runId/cancel`
+
+Returns an explicit unsupported action response; Mailchimp cancellation is not implemented in the current backend contract.
+
+**POST** `/api/v2/mailchimp/campaign-runs/:runId/reschedule`
+
+Returns an explicit unsupported action response; Mailchimp rescheduling is not implemented in the current backend contract.
+
+### Contact Suppression Governance
+
+Mailchimp unsubscribe and cleaned-contact webhooks keep `contacts.do_not_email`
+in sync and add contact-level suppression evidence. Staff can review and record
+suppression evidence on the contact record without replacing the existing
+contact preference flags.
+
+**GET** `/api/v2/contacts/:id/suppressions`
+
+Lists suppression evidence for a contact, including channel, reason, source,
+provider metadata, active/resolved state, and any active fatigue-policy summary.
+
+**POST** `/api/v2/contacts/:id/suppressions/staff-dnc`
+
+Records staff-owned do-not-contact evidence for a contact.
+
+**Request:**
+```json
+{
+  "channel": "email",
+  "reason": "staff_dnc",
+  "evidence_summary": "Client requested no campaign emails",
+  "source_reference": "Phone call on 2026-05-01"
+}
+```
+
+**PATCH** `/api/v2/contacts/:id/suppressions/:suppressionId`
+
+Resolves or reactivates an evidence row. Resolving a row does not erase the
+history. Active email/all suppression evidence keeps the contact preference flag
+synchronized without treating the ledger as a destructive replacement for
+existing contact preferences.
 
 ## Mautic Integration
 

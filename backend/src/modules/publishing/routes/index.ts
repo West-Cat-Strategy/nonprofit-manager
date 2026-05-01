@@ -31,6 +31,11 @@ const siteIdParamsSchema = z.object({
   siteId: uuidSchema,
 });
 
+const sitePublicActionParamsSchema = z.object({
+  siteId: uuidSchema,
+  actionId: uuidSchema,
+});
+
 const siteVersionParamsSchema = z.object({
   siteId: uuidSchema,
   version: z.string().min(1),
@@ -262,7 +267,7 @@ const updateSiteFacebookSettingsSchema = z
 
 const websiteEntryStatusSchema = z.enum(['draft', 'published', 'archived']);
 const websiteEntrySourceSchema = z.enum(['native', 'mailchimp']);
-const websiteEntryKindSchema = z.enum(['newsletter']);
+const websiteEntryKindSchema = z.enum(['newsletter', 'blog_post', 'campaign_update']);
 const websiteEntrySlugSchema = z
   .string()
   .trim()
@@ -280,6 +285,7 @@ const websiteEntrySeoSchema = z
 
 const websiteEntriesQuerySchema = z
   .object({
+    kind: websiteEntryKindSchema.optional(),
     status: websiteEntryStatusSchema.optional(),
     source: websiteEntrySourceSchema.optional(),
   })
@@ -320,6 +326,41 @@ const syncMailchimpEntriesSchema = z
     listId: z.string().trim().min(1).max(255).optional(),
   })
   .strict();
+
+const publicActionTypeSchema = z.enum([
+  'event_signup',
+  'self_referral',
+  'petition_signature',
+  'donation_checkout',
+  'donation_pledge',
+  'support_letter_request',
+  'newsletter_signup',
+  'volunteer_interest',
+  'contact',
+]);
+const publicActionStatusSchema = z.enum(['draft', 'published', 'closed', 'archived']);
+const publicActionSlugSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(160)
+  .regex(/^[a-z0-9-]+$/i, 'Invalid public action slug');
+const createPublicActionSchema = z
+  .object({
+    actionType: publicActionTypeSchema,
+    status: publicActionStatusSchema.optional(),
+    slug: publicActionSlugSchema.optional(),
+    title: z.string().trim().min(1).max(255),
+    description: z.string().trim().max(5000).optional(),
+    pageId: z.union([uuidSchema, z.null()]).optional(),
+    componentId: z.union([z.string().trim().min(1).max(120), z.null()]).optional(),
+    settings: z.record(z.string(), z.unknown()).optional(),
+    confirmationMessage: z.union([z.string().trim().max(1000), z.null()]).optional(),
+    publishedAt: z.union([z.string().datetime(), z.null()]).optional(),
+    closedAt: z.union([z.string().datetime(), z.null()]).optional(),
+  })
+  .strict();
+const updatePublicActionSchema = createPublicActionSchema.omit({ actionType: true }).partial().strict();
 
 // ==================== Protected Routes (require auth) ====================
 
@@ -371,6 +412,43 @@ router.put(
   validateParams(siteFormParamsSchema),
   validateBody(formOperationalSettingsSchema),
   publishingController.updateSiteForm
+);
+
+router.get(
+  '/:siteId/actions',
+  ...withOrganizationContext,
+  validateParams(siteIdParamsSchema),
+  publishingController.listSitePublicActions
+);
+
+router.post(
+  '/:siteId/actions',
+  ...withOrganizationContext,
+  validateParams(siteIdParamsSchema),
+  validateBody(createPublicActionSchema),
+  publishingController.createSitePublicAction
+);
+
+router.put(
+  '/:siteId/actions/:actionId',
+  ...withOrganizationContext,
+  validateParams(sitePublicActionParamsSchema),
+  validateBody(updatePublicActionSchema),
+  publishingController.updateSitePublicAction
+);
+
+router.get(
+  '/:siteId/actions/:actionId/submissions',
+  ...withOrganizationContext,
+  validateParams(sitePublicActionParamsSchema),
+  publishingController.listSitePublicActionSubmissions
+);
+
+router.get(
+  '/:siteId/actions/:actionId/export',
+  ...withOrganizationContext,
+  validateParams(sitePublicActionParamsSchema),
+  publishingController.exportSitePublicActionSubmissions
 );
 
 router.get(

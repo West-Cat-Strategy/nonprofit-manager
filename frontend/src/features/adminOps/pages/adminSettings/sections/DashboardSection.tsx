@@ -43,9 +43,9 @@ export default function DashboardSection({
               One workspace for organization settings and adjacent admin tools
             </h2>
             <p className="max-w-3xl text-sm text-app-text-muted">
-              Use the hub for core organization controls, then jump into specialist workspaces
-              like API & Webhooks, Newsletter Campaigns, Portal Ops, Navigation, and Backup
-              without losing the shared admin context.
+              Use the hub for core organization controls, then jump into specialist workspaces like
+              API & Webhooks, Communications, Portal Ops, Navigation, and Backup without losing the
+              shared admin context.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">

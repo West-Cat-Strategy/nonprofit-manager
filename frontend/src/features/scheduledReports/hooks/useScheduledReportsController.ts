@@ -4,6 +4,7 @@ import { scheduledReportsApiClient } from '../api/scheduledReportsApiClient';
 import { savedReportsApiClient } from '../../savedReports/api/savedReportsApiClient';
 import { reportsApiClient } from '../../reports/api/reportsApiClient';
 import { triggerFileDownload } from '../../../services/fileDownload';
+import { scheduledReportNeedsAttention } from '../utils/scheduledReportHealth';
 import type {
   ScheduledReport,
   ScheduledReportFormat,
@@ -37,7 +38,9 @@ export function useScheduledReportsController() {
   const [form, setForm] = useState(defaultForm);
   const [editTarget, setEditTarget] = useState<ScheduledReport | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused' | 'attention'>(
+    'all'
+  );
   const [historyReportId, setHistoryReportId] = useState<string | null>(null);
   const [downloadingExportJobId, setDownloadingExportJobId] = useState<string | null>(null);
 
@@ -92,7 +95,11 @@ export function useScheduledReportsController() {
     const filtered = reports.filter((report) => {
       const matchesStatus =
         statusFilter === 'all' ||
-        (statusFilter === 'active' ? report.is_active : !report.is_active);
+        (statusFilter === 'attention'
+          ? scheduledReportNeedsAttention(report)
+          : statusFilter === 'active'
+            ? report.is_active
+            : !report.is_active);
 
       if (!matchesStatus) {
         return false;
@@ -109,8 +116,7 @@ export function useScheduledReportsController() {
     });
 
     return filtered.sort(
-      (left, right) =>
-        new Date(left.next_run_at).getTime() - new Date(right.next_run_at).getTime()
+      (left, right) => new Date(left.next_run_at).getTime() - new Date(right.next_run_at).getTime()
     );
   }, [reports, searchQuery, statusFilter]);
 
@@ -243,9 +249,7 @@ export function useScheduledReportsController() {
       console.error('Failed to download scheduled report artifact', downloadError);
       window.alert('Failed to download scheduled report artifact');
     } finally {
-      setDownloadingExportJobId((current) =>
-        current === run.reportExportJobId ? null : current
-      );
+      setDownloadingExportJobId((current) => (current === run.reportExportJobId ? null : current));
     }
   };
 

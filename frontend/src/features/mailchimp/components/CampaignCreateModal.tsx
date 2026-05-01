@@ -3,7 +3,10 @@ import EmailCampaignBuilder from '../../builder/components/EmailCampaignBuilder'
 import { createDefaultEmailBuilderContent } from '../../builder/components/emailCampaignBuilderDefaults';
 import type {
   CampaignRun,
+  CampaignTestSendResponse,
+  CommunicationProvider,
   CreateCampaignRequest,
+  CampaignTestSendRequest,
   MailchimpCampaignPreview,
   MailchimpList,
   MailchimpSegment,
@@ -16,22 +19,32 @@ export function CampaignCreateModal({
   segments,
   savedAudiences,
   campaignRuns,
+  provider,
+  isDeliveryReady,
+  deliveryReadinessMessage,
   isCreatingCampaign,
   isSendingCampaign,
+  isTestingCampaign,
   onClose,
   onListChange,
   onPreview,
+  onTestSend,
   onSubmit,
 }: {
   lists: MailchimpList[];
   segments: MailchimpSegment[];
   savedAudiences: SavedAudience[];
   campaignRuns: CampaignRun[];
+  provider: CommunicationProvider;
+  isDeliveryReady: boolean;
+  deliveryReadinessMessage?: string;
   isCreatingCampaign: boolean;
   isSendingCampaign: boolean;
+  isTestingCampaign: boolean;
   onClose: () => void;
   onListChange: (listId: string) => void;
   onPreview: (data: CreateCampaignRequest) => Promise<MailchimpCampaignPreview>;
+  onTestSend: (data: CampaignTestSendRequest) => Promise<CampaignTestSendResponse>;
   onSubmit: (data: CreateCampaignRequest, sendNow: boolean) => Promise<void> | void;
 }) {
   type TargetingMode = 'all' | 'provider_segment' | 'saved_audience';
@@ -63,11 +76,16 @@ export function CampaignCreateModal({
   const [targetingMode, setTargetingMode] = useState<TargetingMode>('all');
   const [compositionMode, setCompositionMode] = useState<'builder' | 'html'>('builder');
   const [previewResult, setPreviewResult] = useState<MailchimpCampaignPreview | null>(null);
+  const [testSendResult, setTestSendResult] = useState<CampaignTestSendResponse | null>(null);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [submitIntent, setSubmitIntent] = useState<SubmitIntent | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const isCampaignSubmitPending = isCreatingCampaign || isSendingCampaign;
-  const isCampaignActionPending = isPreviewing || isCampaignSubmitPending;
+  const isCampaignActionPending = isPreviewing || isTestingCampaign || isCampaignSubmitPending;
+  const isLocalDeliveryBlocked = provider === 'local_email' && !isDeliveryReady;
+  const localDeliveryBlockedMessage =
+    deliveryReadinessMessage ||
+    'Configure SMTP before sending local campaign tests or live sends.';
 
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -134,6 +152,23 @@ export function CampaignCreateModal({
       ),
     [campaignRuns, formData.listId]
   );
+  const selectedExclusionAudiences = (formData.exclusionAudienceIds || [])
+    .map((audienceId) => savedAudiencesForList.find((audience) => audience.id === audienceId))
+    .filter((audience): audience is SavedAudience => Boolean(audience));
+  const cleanedTestRecipients = (formData.testRecipients || [])
+    .map((recipient) => recipient.trim())
+    .filter(Boolean);
+  const selectedList = lists.find((list) => list.id === formData.listId);
+  const preflightAudienceLabel =
+    targetingMode === 'saved_audience'
+      ? selectedIncludeAudience
+        ? `${selectedIncludeAudience.name} (${selectedIncludeAudience.sourceCount.toLocaleString()} contacts)`
+        : 'Saved audience not selected'
+      : targetingMode === 'provider_segment'
+        ? segments.find((segment) => segment.id === formData.segmentId)?.name || 'Provider segment not selected'
+        : selectedList
+          ? `${provider === 'local_email' ? 'All eligible CRM contacts' : 'All subscribers'} in ${selectedList.name}`
+          : 'Delivery audience not selected';
 
   const hasBuilderContent = (data: CreateCampaignRequest): boolean =>
     Boolean(
@@ -160,6 +195,7 @@ export function CampaignCreateModal({
     const audienceSnapshot = {
       ...(formData.audienceSnapshot || {}),
       listId: formData.listId,
+      provider,
       targetingMode:
         targetingMode === 'saved_audience'
           ? 'saved_audience'
@@ -172,6 +208,7 @@ export function CampaignCreateModal({
     if (compositionMode === 'builder') {
       return {
         ...formData,
+        provider,
         htmlContent: undefined,
         plainTextContent: undefined,
         builderContent: formData.builderContent,
@@ -183,6 +220,7 @@ export function CampaignCreateModal({
 
     return {
       ...formData,
+      provider,
       builderContent: undefined,
       htmlContent: formData.htmlContent?.trim() || undefined,
       plainTextContent: formData.plainTextContent?.trim() || undefined,
@@ -194,8 +232,9 @@ export function CampaignCreateModal({
 
   const validateForm = (shouldSendNow: boolean): boolean => {
     const newErrors: Record<string, string> = {};
+    const isScheduledDelivery = !shouldSendNow && Boolean(formData.sendTime);
 
-    if (!formData.listId) newErrors.listId = 'Please select an audience';
+    if (!formData.listId) newErrors.listId = 'Please select a delivery audience';
     if (!formData.title.trim()) newErrors.title = 'Campaign title is required';
     if (!formData.subject.trim()) newErrors.subject = 'Subject line is required';
     if (!formData.fromName.trim()) newErrors.fromName = 'From name is required';
@@ -220,7 +259,13 @@ export function CampaignCreateModal({
       }
     }
 
-    if (targetingMode === 'provider_segment' && !formData.segmentId) {
+    if (isLocalDeliveryBlocked && (shouldSendNow || isScheduledDelivery)) {
+      newErrors.delivery = localDeliveryBlockedMessage;
+    }
+
+    if (targetingMode === 'provider_segment' && provider !== 'mailchimp') {
+      newErrors.targeting = 'Provider segments are available only when Mailchimp is selected.';
+    } else if (targetingMode === 'provider_segment' && !formData.segmentId) {
       newErrors.targeting = 'Choose a provider segment or use all subscribers.';
     }
 
@@ -269,6 +314,55 @@ export function CampaignCreateModal({
       }));
     } finally {
       setIsPreviewing(false);
+    }
+  };
+
+  const handleTestSend = async () => {
+    if (isCampaignActionPending) {
+      return;
+    }
+
+    if (isLocalDeliveryBlocked) {
+      setErrors((prev) => ({
+        ...prev,
+        delivery: localDeliveryBlockedMessage,
+      }));
+      return;
+    }
+
+    if (!validateForm(false)) {
+      return;
+    }
+
+    const request = buildRequest(false);
+    const recipients = (request.testRecipients || [])
+      .map((recipient) => recipient.trim())
+      .filter(Boolean);
+
+    if (recipients.length === 0) {
+      setErrors((prev) => ({
+        ...prev,
+        testRecipients: 'Add at least one test recipient before sending a test email.',
+      }));
+      return;
+    }
+
+    try {
+      setErrors((prev) => ({ ...prev, testRecipients: '' }));
+      const result = await onTestSend({
+        ...request,
+        provider,
+        testRecipients: recipients,
+      });
+      setTestSendResult(result);
+    } catch (error) {
+      setErrors((prev) => ({
+        ...prev,
+        testRecipients:
+          typeof error === 'string'
+            ? error
+            : 'Failed to send the campaign test email.',
+      }));
     }
   };
 
@@ -330,7 +424,11 @@ export function CampaignCreateModal({
             >
               {lists.map((list) => (
                 <option key={list.id} value={list.id}>
-                  {list.name} ({list.memberCount.toLocaleString()} subscribers)
+                  {list.name} ({list.memberCount.toLocaleString()}{' '}
+                  {provider === 'local_email' || list.provider === 'local_email'
+                    ? 'eligible contacts'
+                    : 'subscribers'}
+                  )
                 </option>
               ))}
             </select>
@@ -343,8 +441,10 @@ export function CampaignCreateModal({
             </label>
             <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
               {[
-                ['all', 'All subscribers'],
-                ['provider_segment', 'Provider segment'],
+                ['all', provider === 'local_email' ? 'All eligible contacts' : 'All subscribers'],
+                ...(provider === 'mailchimp'
+                  ? ([['provider_segment', 'Provider segment']] as [string, string][])
+                  : []),
                 ['saved_audience', 'Saved audience'],
               ].map(([mode, label]) => (
                 <button
@@ -523,15 +623,16 @@ export function CampaignCreateModal({
                 </div>
                 {selectedIncludeAudience ? (
                   <p className="text-xs text-app-text-muted md:col-span-3">
-                    Delivery will sync {selectedIncludeAudience.sourceCount.toLocaleString()}{' '}
-                    selected contacts into a run-specific Mailchimp segment.
+                    Delivery will queue {selectedIncludeAudience.sourceCount.toLocaleString()}{' '}
+                    selected CRM contact{selectedIncludeAudience.sourceCount === 1 ? '' : 's'}
+                    {provider === 'mailchimp' ? ' into a run-specific Mailchimp segment.' : '.'}
                   </p>
                 ) : null}
               </div>
             )}
             {targetingMode === 'saved_audience' && savedAudiencesForList.length === 0 ? (
               <p className="mt-3 text-xs text-app-text-muted">
-                No saved audiences are tied to this provider audience yet.
+                No saved CRM audiences are tied to this delivery audience yet.
               </p>
             ) : null}
             {errors.targeting && <p className="mt-2 text-sm text-app-accent">{errors.targeting}</p>}
@@ -731,8 +832,67 @@ export function CampaignCreateModal({
               placeholder="board@example.org, staff@example.org"
             />
             <p className="mt-1 text-xs text-app-text-muted">
-              Stored with the local campaign run snapshot for proof and follow-up.
+              Use Send Test Email for delivered provider proof before saving or sending.
             </p>
+            {errors.testRecipients && (
+              <p className="mt-1 text-sm text-app-accent">{errors.testRecipients}</p>
+            )}
+            {testSendResult ? (
+              <p className="mt-1 text-xs text-app-accent-text">
+                Test email {testSendResult.delivered ? 'sent' : 'requested'} for{' '}
+                {testSendResult.recipients.join(', ')}.
+              </p>
+            ) : null}
+          </div>
+
+          <div className="rounded-lg border border-app-border bg-app-surface-muted p-4">
+            <h4 className="text-sm font-medium text-app-text-heading">Preflight Review</h4>
+            <dl className="mt-3 grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
+              <div>
+              <dt className="text-app-text-subtle">Delivery audience</dt>
+                <dd className="font-medium text-app-text">{selectedList?.name || 'Not selected'}</dd>
+              </div>
+              <div>
+                <dt className="text-app-text-subtle">Targeting</dt>
+                <dd className="font-medium text-app-text">{preflightAudienceLabel}</dd>
+              </div>
+              <div>
+                <dt className="text-app-text-subtle">Suppressions</dt>
+                <dd className="font-medium text-app-text">
+                  {selectedExclusionAudiences.length + (formData.priorRunSuppressionIds?.length || 0)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-app-text-subtle">Delivery readiness</dt>
+                <dd className="font-medium text-app-text">
+                  {provider === 'local_email'
+                    ? isDeliveryReady
+                      ? 'SMTP ready'
+                      : 'SMTP setup required'
+                    : 'Provider ready'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-app-text-subtle">Test recipients</dt>
+                <dd className="font-medium text-app-text">
+                  {cleanedTestRecipients.length > 0 ? cleanedTestRecipients.join(', ') : 'None'}
+                </dd>
+              </div>
+            </dl>
+            {isLocalDeliveryBlocked ? (
+              <p className="mt-3 text-xs text-app-accent">
+                {localDeliveryBlockedMessage} Preview and draft saving remain available.
+              </p>
+            ) : null}
+            {errors.delivery ? (
+              <p className="mt-2 text-sm text-app-accent">{errors.delivery}</p>
+            ) : null}
+            {selectedIncludeAudience ? (
+              <p className="mt-3 text-xs text-app-text-muted">
+                Saved-audience count proof: {selectedIncludeAudience.sourceCount.toLocaleString()}{' '}
+                CRM contact{selectedIncludeAudience.sourceCount === 1 ? '' : 's'} before suppression.
+              </p>
+            ) : null}
           </div>
         </form>
 
@@ -756,8 +916,24 @@ export function CampaignCreateModal({
             </button>
             <button
               type="button"
+              onClick={handleTestSend}
+              disabled={isCampaignActionPending || isLocalDeliveryBlocked}
+              title={isLocalDeliveryBlocked ? localDeliveryBlockedMessage : undefined}
+              className="px-4 py-2 text-app-text bg-app-surface border border-app-input-border rounded-lg hover:bg-app-surface-muted transition-colors disabled:opacity-60"
+            >
+              {isTestingCampaign ? 'Sending Test...' : 'Send Test Email'}
+            </button>
+            <button
+              type="button"
               onClick={(e) => handleSubmit(e, false)}
-              disabled={isCampaignActionPending}
+              disabled={
+                isCampaignActionPending || (Boolean(formData.sendTime) && isLocalDeliveryBlocked)
+              }
+              title={
+                Boolean(formData.sendTime) && isLocalDeliveryBlocked
+                  ? localDeliveryBlockedMessage
+                  : undefined
+              }
               className="px-4 py-2 text-app-accent bg-app-accent-soft border border-app-accent rounded-lg hover:bg-app-accent-soft transition-colors disabled:cursor-not-allowed disabled:opacity-60"
             >
               {submitIntent === 'draft_or_schedule' && isCampaignSubmitPending
@@ -771,7 +947,8 @@ export function CampaignCreateModal({
             <button
               type="button"
               onClick={(e) => handleSubmit(e, true)}
-              disabled={isCampaignActionPending}
+              disabled={isCampaignActionPending || isLocalDeliveryBlocked}
+              title={isLocalDeliveryBlocked ? localDeliveryBlockedMessage : undefined}
               className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover transition-colors disabled:cursor-not-allowed disabled:opacity-60"
             >
               {submitIntent === 'send_now' && isCampaignSubmitPending ? 'Sending...' : 'Send Now'}

@@ -123,6 +123,7 @@ vi.mock('../../components/ContactTags', () => ({ default: () => <div>Tags</div> 
 vi.mock('../../components/ContactTasksPanel', () => ({ default: () => <div>Tasks Panel</div> }));
 vi.mock('../../components/ContactActivityPanel', () => ({ default: () => <div>Activity Panel</div> }));
 vi.mock('../../components/ContactCommunicationsPanel', () => ({ default: () => <div>Communications Panel</div> }));
+vi.mock('../../components/ContactSuppressionPanel', () => ({ default: () => <div>Suppression Panel</div> }));
 vi.mock('../../components/ContactFollowUpsPanel', () => ({ default: () => <div>Follow-ups Panel</div> }));
 vi.mock('../../components/ContactDocumentsPanel', () => ({ default: () => <div>Documents Panel</div> }));
 vi.mock('../../components/ContactPaymentsPanel', () => ({ default: () => <div>Payments Panel</div> }));

@@ -1,4 +1,12 @@
 import { useNavigate } from 'react-router-dom';
+import {
+  ArrowDownTrayIcon,
+  ArrowPathIcon,
+  ChartBarIcon,
+  ClipboardDocumentListIcon,
+  DocumentChartBarIcon,
+  TableCellsIcon,
+} from '@heroicons/react/24/outline';
 import FieldSelector from '../../../components/FieldSelector';
 import FilterBuilder from '../../../components/FilterBuilder';
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
@@ -17,11 +25,7 @@ import {
 import { useAppSelector } from '../../../store/hooks';
 import { getReportAccess } from '../../auth/state/reportAccess';
 import useReportBuilderController from '../hooks/useReportBuilderController';
-import type {
-  AggregateFunction,
-  ReportEntity,
-  ReportExportJob,
-} from '../../../types/report';
+import type { AggregateFunction, ReportEntity, ReportExportJob } from '../../../types/report';
 
 const ENTITIES: { value: ReportEntity; label: string }[] = [
   { value: 'accounts', label: 'Accounts' },
@@ -45,6 +49,8 @@ const statusStyles: Record<ReportExportJob['status'], string> = {
   completed: 'bg-emerald-100 text-emerald-800',
   failed: 'bg-rose-100 text-rose-800',
 };
+const builderCardClass =
+  'transition duration-200 hover:-translate-y-0.5 hover:border-app-border hover:shadow-md';
 
 function ReportBuilder() {
   const navigate = useNavigate();
@@ -103,26 +109,43 @@ function ReportBuilder() {
       <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
         <PageHeader
           title="Report Builder"
-          description="Create custom reports by selecting entities, fields, filters, and exports."
+          description="Build a report by choosing the records, columns, filters, and export format you need."
           actions={
             <>
-              <SecondaryButton onClick={() => navigate('/reports/templates')}>KPI Templates</SecondaryButton>
-              <SecondaryButton onClick={() => navigate('/reports/outcomes')}>Outcomes Report</SecondaryButton>
-              <SecondaryButton onClick={() => navigate('/reports/workflow-coverage')}>
+              <SecondaryButton
+                leadingIcon={<ClipboardDocumentListIcon className="h-4 w-4" aria-hidden="true" />}
+                onClick={() => navigate('/reports/templates')}
+              >
+                KPI Templates
+              </SecondaryButton>
+              <SecondaryButton
+                leadingIcon={<DocumentChartBarIcon className="h-4 w-4" aria-hidden="true" />}
+                onClick={() => navigate('/reports/outcomes')}
+              >
+                Outcomes Report
+              </SecondaryButton>
+              <SecondaryButton
+                leadingIcon={<ChartBarIcon className="h-4 w-4" aria-hidden="true" />}
+                onClick={() => navigate('/reports/workflow-coverage')}
+              >
                 Workflow Coverage
               </SecondaryButton>
             </>
           }
         />
 
-        <SectionCard title="1. Select Entity" subtitle="Choose the source dataset for this report.">
+        <SectionCard
+          className={builderCardClass}
+          title="1. Choose records"
+          subtitle="Pick the area this report should read from."
+        >
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
             {ENTITIES.map((entry) => (
               <button
                 key={entry.value}
                 type="button"
                 onClick={() => handleEntityChange(entry.value)}
-                className={`rounded-[var(--ui-radius-sm)] border px-3 py-2 text-sm font-semibold ${
+                className={`rounded-[var(--ui-radius-sm)] border px-3 py-2 text-sm font-semibold transition duration-150 hover:-translate-y-0.5 ${
                   entity === entry.value
                     ? 'border-app-accent bg-app-accent-soft text-app-accent-text'
                     : 'border-app-border bg-app-surface text-app-text hover:bg-app-hover'
@@ -134,7 +157,7 @@ function ReportBuilder() {
           </div>
         </SectionCard>
 
-        <SectionCard title="2. Select Fields">
+        <SectionCard className={builderCardClass} title="2. Choose columns">
           <FieldSelector
             availableFields={availableFields}
             fieldsLoading={fieldsLoading}
@@ -143,7 +166,7 @@ function ReportBuilder() {
           />
         </SectionCard>
 
-        <SectionCard title="3. Group By (Optional)">
+        <SectionCard className={builderCardClass} title="3. Group rows (optional)">
           <div className="flex flex-wrap gap-2">
             {availableFields
               .filter((field) => field.type === 'string' || field.type === 'date')
@@ -160,7 +183,7 @@ function ReportBuilder() {
                         setGroupBy([...groupBy, field.field]);
                       }
                     }}
-                    className={`rounded-[var(--ui-radius-sm)] border px-3 py-2 text-xs font-semibold uppercase tracking-wide ${
+                    className={`rounded-[var(--ui-radius-sm)] border px-3 py-2 text-xs font-semibold uppercase tracking-wide transition duration-150 hover:-translate-y-0.5 ${
                       isActive
                         ? 'border-app-accent bg-app-accent-soft text-app-accent-text'
                         : 'border-app-border bg-app-surface text-app-text'
@@ -173,7 +196,7 @@ function ReportBuilder() {
           </div>
         </SectionCard>
 
-        <SectionCard title="4. Aggregations (Optional)">
+        <SectionCard className={builderCardClass} title="4. Add totals (optional)">
           <div className="space-y-4">
             {availableFields
               .filter((field) => ['number', 'currency'].includes(field.type))
@@ -199,10 +222,13 @@ function ReportBuilder() {
                                 )
                               );
                             } else {
-                              setAggregations([...aggregations, { field: field.field, function: func }]);
+                              setAggregations([
+                                ...aggregations,
+                                { field: field.field, function: func },
+                              ]);
                             }
                           }}
-                          className={`rounded-[var(--ui-radius-sm)] border px-3 py-1 text-xs font-semibold uppercase ${
+                          className={`rounded-[var(--ui-radius-sm)] border px-3 py-1 text-xs font-semibold uppercase transition duration-150 hover:-translate-y-0.5 ${
                             isActive
                               ? 'border-app-accent bg-app-accent-soft text-app-accent-text'
                               : 'border-app-border bg-app-surface text-app-text'
@@ -218,11 +244,15 @@ function ReportBuilder() {
           </div>
         </SectionCard>
 
-        <SectionCard title="5. Add Filters (Optional)">
-          <FilterBuilder availableFields={availableFields} filters={filters} onChange={setFilters} />
+        <SectionCard className={builderCardClass} title="5. Add filters (optional)">
+          <FilterBuilder
+            availableFields={availableFields}
+            filters={filters}
+            onChange={setFilters}
+          />
         </SectionCard>
 
-        <SectionCard title="6. Add Sorting (Optional)">
+        <SectionCard className={builderCardClass} title="6. Sort results (optional)">
           <SortBuilder
             entity={entity}
             selectedFields={allOutputFields}
@@ -231,7 +261,7 @@ function ReportBuilder() {
           />
         </SectionCard>
 
-        <SectionCard title="7. Row Limit">
+        <SectionCard className={builderCardClass} title="7. Limit rows">
           <div className="max-w-xs">
             <FormField
               type="number"
@@ -244,11 +274,12 @@ function ReportBuilder() {
           </div>
         </SectionCard>
 
-        <SectionCard title="8. Generate & Export">
+        <SectionCard className={builderCardClass} title="8. Run and export">
           <div className="flex flex-wrap gap-2">
             {canManageReports && (
               <>
                 <PrimaryButton
+                  leadingIcon={<ArrowPathIcon className="h-4 w-4" aria-hidden="true" />}
                   onClick={() => void handleGenerateReport()}
                   disabled={loading || (selectedFields.length === 0 && aggregations.length === 0)}
                 >
@@ -256,6 +287,7 @@ function ReportBuilder() {
                 </PrimaryButton>
 
                 <SecondaryButton
+                  leadingIcon={<ClipboardDocumentListIcon className="h-4 w-4" aria-hidden="true" />}
                   onClick={() => setShowSaveDialog(true)}
                   disabled={selectedFields.length === 0 && aggregations.length === 0}
                 >
@@ -266,14 +298,28 @@ function ReportBuilder() {
 
             {canExportReports && reportRows.length > 0 && (
               <>
-                <SecondaryButton onClick={() => void handleStartExport('csv')}>
+                <SecondaryButton
+                  leadingIcon={<ArrowDownTrayIcon className="h-4 w-4" aria-hidden="true" />}
+                  onClick={() => void handleStartExport('csv')}
+                >
                   Export CSV
                 </SecondaryButton>
-                <SecondaryButton onClick={() => void handleStartExport('xlsx')}>
+                <SecondaryButton
+                  leadingIcon={<TableCellsIcon className="h-4 w-4" aria-hidden="true" />}
+                  onClick={() => void handleStartExport('xlsx')}
+                >
                   Export Excel
                 </SecondaryButton>
-                <SecondaryButton onClick={() => void handleExportPDF()}>Export PDF</SecondaryButton>
-                <SecondaryButton onClick={() => setShowChart((value) => !value)}>
+                <SecondaryButton
+                  leadingIcon={<DocumentChartBarIcon className="h-4 w-4" aria-hidden="true" />}
+                  onClick={() => void handleExportPDF()}
+                >
+                  Export PDF
+                </SecondaryButton>
+                <SecondaryButton
+                  leadingIcon={<ChartBarIcon className="h-4 w-4" aria-hidden="true" />}
+                  onClick={() => setShowChart((value) => !value)}
+                >
                   {showChart ? 'Hide Chart' : 'Show Chart'}
                 </SecondaryButton>
               </>
@@ -379,13 +425,14 @@ function ReportBuilder() {
                 onChange={(event) => setYAxisField(event.target.value)}
               >
                 <option value="">Select Field</option>
-                {[...selectedFields, ...aggregations.map((item) => item.alias || `${item.function}_${item.field}`)].map(
-                  (field) => (
-                    <option key={field} value={field}>
-                      {field.replace(/_/g, ' ').toUpperCase()}
-                    </option>
-                  )
-                )}
+                {[
+                  ...selectedFields,
+                  ...aggregations.map((item) => item.alias || `${item.function}_${item.field}`),
+                ].map((field) => (
+                  <option key={field} value={field}>
+                    {field.replace(/_/g, ' ').toUpperCase()}
+                  </option>
+                ))}
               </SelectField>
             </div>
 
@@ -404,7 +451,10 @@ function ReportBuilder() {
         )}
 
         {reportRows.length > 0 && (
-          <SectionCard title="Data Preview" subtitle={`Showing ${Math.min(reportRows.length, 50)} of ${reportRows.length} rows`}>
+          <SectionCard
+            title="Data Preview"
+            subtitle={`Showing ${Math.min(reportRows.length, 50)} of ${reportRows.length} rows`}
+          >
             <div className="overflow-x-auto rounded-[var(--ui-radius-sm)] border border-app-border-muted">
               <table className="min-w-full divide-y divide-app-border-muted bg-app-surface text-sm">
                 <thead className="bg-app-surface-muted">
@@ -424,7 +474,9 @@ function ReportBuilder() {
                     <tr key={index}>
                       {allOutputFields.map((field) => (
                         <td key={field} className="px-4 py-3 text-app-text">
-                          {row[field] !== null && row[field] !== undefined ? String(row[field]) : '-'}
+                          {row[field] !== null && row[field] !== undefined
+                            ? String(row[field])
+                            : '-'}
                         </td>
                       ))}
                     </tr>
@@ -473,11 +525,7 @@ function ReportBuilder() {
               </div>
 
               <div className="mt-5 flex justify-end gap-2">
-                <SecondaryButton
-                  onClick={resetSaveDialog}
-                >
-                  Cancel
-                </SecondaryButton>
+                <SecondaryButton onClick={resetSaveDialog}>Cancel</SecondaryButton>
                 <PrimaryButton onClick={() => void handleSaveReport()}>Save</PrimaryButton>
               </div>
             </div>

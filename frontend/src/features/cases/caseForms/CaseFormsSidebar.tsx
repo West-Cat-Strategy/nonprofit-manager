@@ -6,7 +6,9 @@ interface CaseFormsSidebarProps {
   creating: boolean;
   recommendedDefaults: CaseFormDefault[];
   selectedAssignmentId: string | null;
+  templateLibrary: CaseFormDefault[];
   onCreateBlankForm: () => void;
+  onCreateTemplateDraft: () => void;
   onInstantiateDefault: (formDefault: CaseFormDefault) => void;
   onSelectAssignment: (assignmentId: string) => void;
 }
@@ -16,12 +18,59 @@ export function CaseFormsSidebar({
   creating,
   recommendedDefaults,
   selectedAssignmentId,
+  templateLibrary,
   onCreateBlankForm,
+  onCreateTemplateDraft,
   onInstantiateDefault,
   onSelectAssignment,
 }: CaseFormsSidebarProps) {
   return (
     <div className="grid gap-6 lg:grid-cols-[1.05fr_1.35fr]">
+      <BrutalCard color="white" className="p-5 space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-black uppercase">Template Library</h3>
+            <p className="text-sm text-black/70">
+              Published templates are contact-free starting points for case-owned form copies.
+            </p>
+          </div>
+          <BrutalButton onClick={onCreateTemplateDraft} disabled={creating} size="sm" variant="secondary">
+            Draft Template
+          </BrutalButton>
+        </div>
+
+        <div className="space-y-3">
+          {templateLibrary.length === 0 && (
+            <div className="rounded border-2 border-dashed border-black p-4 text-sm font-semibold text-black/65">
+              No published templates are available yet.
+            </div>
+          )}
+          {templateLibrary.map((formDefault) => (
+            <div key={formDefault.id} className="rounded border-2 border-black bg-app-surface p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-black uppercase">{formDefault.title}</p>
+                  {formDefault.description && (
+                    <p className="mt-1 text-sm text-black/70">{formDefault.description}</p>
+                  )}
+                  <p className="mt-2 text-xs font-semibold uppercase text-black/60">
+                    {formDefault.template_status || 'published'} • v{formDefault.version} •{' '}
+                    {formDefault.schema.sections.length} sections
+                  </p>
+                </div>
+                <BrutalButton
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => onInstantiateDefault(formDefault)}
+                >
+                  Use
+                </BrutalButton>
+              </div>
+            </div>
+          ))}
+        </div>
+      </BrutalCard>
+
       <BrutalCard color="white" className="p-5 space-y-4">
         <div className="flex items-center justify-between gap-3">
           <div>

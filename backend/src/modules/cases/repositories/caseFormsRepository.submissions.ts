@@ -223,6 +223,8 @@ export async function createAccessToken(
     caseId: string;
     contactId: string;
     recipientEmail?: string | null;
+    recipientPhone?: string | null;
+    deliveryChannel?: 'email' | 'sms' | null;
     tokenHash: string;
     expiresAt: string | Date;
     userId?: string | null;
@@ -234,17 +236,21 @@ export async function createAccessToken(
        case_id,
        contact_id,
        recipient_email,
+       recipient_phone,
+       delivery_channel,
        token_hash,
        expires_at,
        created_by
      )
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
      RETURNING id`,
     [
       input.assignmentId,
       input.caseId,
       input.contactId,
       input.recipientEmail || null,
+      input.recipientPhone || null,
+      input.deliveryChannel || null,
       input.tokenHash,
       input.expiresAt,
       input.userId || null,
@@ -338,6 +344,8 @@ export async function getAccessTokenByHash(
     case_id: String(tokenRow.case_id),
     contact_id: String(tokenRow.contact_id),
     recipient_email: (tokenRow.recipient_email as string | null | undefined) ?? null,
+    recipient_phone: (tokenRow.recipient_phone as string | null | undefined) ?? null,
+    delivery_channel: (tokenRow.delivery_channel as 'email' | 'sms' | null | undefined) ?? null,
     token_hash: String(tokenRow.token_hash),
     expires_at: tokenRow.expires_at as Date | string,
     revoked_at: (tokenRow.revoked_at as Date | string | null | undefined) ?? null,

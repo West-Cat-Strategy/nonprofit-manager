@@ -1,6 +1,6 @@
 # Planning & Progress
 
-**Last Updated:** 2026-04-30
+**Last Updated:** 2026-05-01
 
 ## At a Glance
 
@@ -10,10 +10,10 @@
 
 | Snapshot | Value |
 |---|---|
-| Active rows | 1 |
+| Active rows | 4 |
 | In Progress | 0 |
 | Blocked | 0 |
-| Review | 1 |
+| Review | 4 |
 | Ready | 0 |
 | Phase 4 carry-over rows | 0 |
 | Recent thread follow-through rows | 0 |
@@ -39,24 +39,39 @@ Maintenance rules:
 
 | Status | ID | Task | Immediate Next Move |
 |---|---|---|---|
-| _None_ | _None_ | _None_ | No row is currently signed out as in progress. |
 
 ### Review Queue
 
 | Status | ID | Task | Immediate Next Move |
 |---|---|---|---|
-| Review | P5-T6 | Follow-on backlog: workflow/customization, memberships/appeals, finance/program ops | Keep this row live as the Phase 5 backlog scope-control gate. Use [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md) and [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md) to reject unscoped implementation; future typed appeals, restrictions, donation batches, memberships, finance breadth, service-site routing, closure continuity, and generic workflow tooling require separate signed-out rows before runtime work starts. |
+| Review | P5-T40 | UI/UX plain-language cleanup for eligible non-case/non-people pages | Review the implemented cleanup and proof in [../validation/P5-T40_UI_UX_PLAIN_LANGUAGE_AUDIT_2026-05-01.md](../validation/P5-T40_UI_UX_PLAIN_LANGUAGE_AUDIT_2026-05-01.md): alerts/notifications scoping and plain copy, portal client wording, admin/settings vocabulary, staff-page simplification, meaningful iconography, subtle animation, route smoke, type-checks, targeted alert tests, and the green Mobile Chrome `Alert rules` E2E selector follow-up. Cases and people/contact/account implementation surfaces remained out of scope. |
+| Review | P5-T6 | Follow-on backlog: workflow/customization, memberships/appeals, finance/program ops | Keep this row live as the Phase 5 backlog scope-control gate. Use [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md), [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md), and [../development/reference-patterns/P5-T6-reference-repo-consolidation-2026-05-01.md](../development/reference-patterns/P5-T6-reference-repo-consolidation-2026-05-01.md) to reject unscoped implementation; future typed appeals, restrictions, donation batches, memberships, finance breadth, service-site routing, closure continuity, and generic workflow tooling require separate signed-out rows before runtime work starts. |
+| Review | P5-T41 | Case-form template builder, autosave, and SMS/portal/email opening workflow | Implementation is landed with proof in [../validation/P5-T41_CASE_FORM_TEMPLATE_BUILDER_PROOF_2026-05-01.md](../validation/P5-T41_CASE_FORM_TEMPLATE_BUILDER_PROOF_2026-05-01.md). Review the case-form template APIs, migration `114`, staff template/open-form UI, portal/public autosave, Twilio/SMTP delivery behavior, provider-failure retry safety proof, and the remaining frontend builder type-check blocker note before signoff. |
+| Review | P5-T42 | Website public-action expansion | Implementation is landed with proof in [../validation/P5-T42_WEBSITE_PUBLIC_ACTION_EXPANSION_PROOF_2026-05-01.md](../validation/P5-T42_WEBSITE_PUBLIC_ACTION_EXPANSION_PROOF_2026-05-01.md). Review migration `115`, public action APIs, blog/campaign content entries, petition/pledge/support-letter submission behavior, staff forms-console action panel, public runtime action blocks, standalone public-site route parity, focused tests, Docker smoke proof, and the noted follow-on approval-count polish. |
 
 ### Ready Queue
 
 | Status | ID | Task | Immediate Next Move |
 |---|---|---|---|
-| _None_ | _None_ | _None_ | No row is currently ready for pickup. |
+| _None_ | _None_ | _None_ | No row is currently ready without an active owner. |
+
+### Blocked Queue
+
+| Status | ID | Task | Immediate Next Move |
+|---|---|---|---|
+| _None_ | _None_ | _None_ | No row is currently blocked. |
 
 ### Ready Next
 
 - Proof-complete and already archived rows have been removed from the live board: `P5-T2A`, `P5-T2B`, `P5-T2C`, `P5-T2D`, `P5-T3`, `P5-T4`, `P5-T5`, `P5-T6A`, `P5-T6B`, `P5-T6C`, `P5-T6C1`, `P5-T6D`, `P5-T7`, `P5-T8`, `P5-T9`, `P5-T10`, and `P5-T11`.
-- `P5-T6` remains live as a scope-control gate for later Phase 5 backlog work. Use [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md) to keep `borrow now`, `queue for P5-T6`, and `reject` decisions explicit; typed appeals, restrictions, donation batches, memberships, finance breadth, service-site routing, closure continuity, and generic workflow tooling require separate signed-out runtime rows.
+- `P5-T6` remains live as a scope-control gate for later Phase 5 backlog work. Use [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md) and [../development/reference-patterns/P5-T6-reference-repo-consolidation-2026-05-01.md](../development/reference-patterns/P5-T6-reference-repo-consolidation-2026-05-01.md) to keep `borrow now`, `queue for P5-T6`, and `reject` decisions explicit; typed appeals, restrictions, donation batches, memberships, finance breadth, service-site routing, closure continuity, and generic workflow tooling require separate signed-out runtime rows.
+- `P5-T37`, `P5-T38`, and `P5-T39` are signed off and archived in [archive/P5_REFERENCE_IMPROVEMENTS_CLOSEOUT_2026-05-01.md](archive/P5_REFERENCE_IMPROVEMENTS_CLOSEOUT_2026-05-01.md), with proof in [../validation/P5-T37_T39_REFERENCE_IMPROVEMENTS_PROOF_2026-05-01.md](../validation/P5-T37_T39_REFERENCE_IMPROVEMENTS_PROOF_2026-05-01.md). They added local campaign queue controls, staff-only case-form evidence events, scheduled-report health, and audit-log health polish without widening into deferred `P5-T6` backlog scope.
+- `P5-T40` is in review after the focused UI/UX plain-language cleanup across eligible non-case/non-people pages. Review [../validation/P5-T40_UI_UX_PLAIN_LANGUAGE_AUDIT_2026-05-01.md](../validation/P5-T40_UI_UX_PLAIN_LANGUAGE_AUDIT_2026-05-01.md) for the implemented alerts/notifications, portal, admin/settings, staff insights/program-page, iconography, motion, and validation proof; do not widen into cases or people/contact/account implementation surfaces during signoff.
+- `P5-T41` is in review with proof in [../validation/P5-T41_CASE_FORM_TEMPLATE_BUILDER_PROOF_2026-05-01.md](../validation/P5-T41_CASE_FORM_TEMPLATE_BUILDER_PROOF_2026-05-01.md). Review the existing-module implementation, migration `114`, reference-only OSS provenance, and the unrelated backend publishing/frontend builder type-check blockers before signoff.
+- `P5-T42` is in review with proof in [../validation/P5-T42_WEBSITE_PUBLIC_ACTION_EXPANSION_PROOF_2026-05-01.md](../validation/P5-T42_WEBSITE_PUBLIC_ACTION_EXPANSION_PROOF_2026-05-01.md). Review the public-action foundation on the existing website builder/runtime seams, migration `115`, content-entry generalization, builder action blocks, staff forms-console action panel, public submission behavior, and the documented follow-on E2E/approval-count polish before signoff.
+- `P5-T26` through `P5-T32` are signed off and archived in [archive/P5_NEWSLETTER_EMAIL_OPERABILITY_CLOSEOUT_2026-05-01.md](archive/P5_NEWSLETTER_EMAIL_OPERABILITY_CLOSEOUT_2026-05-01.md), with proof in [../validation/P5-T26_T32_NEWSLETTER_EMAIL_OPERABILITY_PROOF_2026-05-01.md](../validation/P5-T26_T32_NEWSLETTER_EMAIL_OPERABILITY_PROOF_2026-05-01.md). They did not reopen archived `P5-T3`.
+- `P5-T33` and `P5-T34` are signed off and archived in [archive/P5_CAMPAIGN_REPORTING_SUPPRESSION_CLOSEOUT_2026-05-01.md](archive/P5_CAMPAIGN_REPORTING_SUPPRESSION_CLOSEOUT_2026-05-01.md), with proof in [../validation/P5-T33_T34_CAMPAIGN_REPORTING_SUPPRESSION_PROOF_2026-05-01.md](../validation/P5-T33_T34_CAMPAIGN_REPORTING_SUPPRESSION_PROOF_2026-05-01.md). They added provider reporting metrics and suppression governance without reopening typed appeals, ROI attribution, or automation-canvas scope.
+- `P5-T36` is signed off and archived in [archive/P5_COMMUNICATIONS_LOCAL_FIRST_CLOSEOUT_2026-05-01.md](archive/P5_COMMUNICATIONS_LOCAL_FIRST_CLOSEOUT_2026-05-01.md), with proof in [../validation/P5-T36_COMMUNICATIONS_LOCAL_FIRST_PROOF_2026-05-01.md](../validation/P5-T36_COMMUNICATIONS_LOCAL_FIRST_PROOF_2026-05-01.md). It made local SMTP-backed queued delivery primary, kept Mailchimp explicit and optional, added provider-neutral communications APIs, preserved Mailchimp compatibility routes, and did not widen into typed appeals, ROI attribution, workflow automation canvas, or unrelated `P5-T6` backlog runtime work.
 - `P5-T12`, `P5-T13`, `P5-T14`, `P5-T15`, and `P5-T17` are archived in [archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md](archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md). Their proof lives in [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md), [../validation/P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md](../validation/P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md), [../validation/P5-T15_CASE_HANDOFF_PACKET_PROOF_2026-04-28.md](../validation/P5-T15_CASE_HANDOFF_PACKET_PROOF_2026-04-28.md), and [../validation/P5-T17_GITHUB_BUILD_ARTIFACTS_PROOF_2026-04-27.md](../validation/P5-T17_GITHUB_BUILD_ARTIFACTS_PROOF_2026-04-27.md).
 - `P5-T18`, `P5-T19`, `P5-T20`, `P5-T21`, `P5-T22`, `P5-T23`, `P5-T24`, and `P5-T25` are signed off and archived in [archive/P5_REVIEW_QUEUE_CLOSEOUT_2026-04-30.md](archive/P5_REVIEW_QUEUE_CLOSEOUT_2026-04-30.md).
 
@@ -67,16 +82,237 @@ Maintenance rules:
 - `P5-T5`, `P5-T6C1`, `P5-T6D`, and `P5-T7` are signed off and archived in [archive/P5_RUNTIME_REVIEW_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_RUNTIME_REVIEW_CLOSEOUT_BATCH_2026-04-25.md). Durable proof notes now live under [../validation/README.md](../validation/README.md), and the API-key/webhooks boundary seam passed targeted backend tests, module-boundary policy, canonical-import policy, and backend type-check.
 - `P5-T3` is signed off and archived in [archive/P5-T3_EMAIL_HARDENING_CLOSEOUT_2026-04-25.md](archive/P5-T3_EMAIL_HARDENING_CLOSEOUT_2026-04-25.md). The narrowed Mailchimp route validation, optional webhook secret, and PII-safe webhook logging proof lives in [../validation/P5-T3_EMAIL_HARDENING_PROOF_2026-04-25.md](../validation/P5-T3_EMAIL_HARDENING_PROOF_2026-04-25.md).
 - `P5-T9`, `P5-T10`, and `P5-T11` are signed off and archived in [archive/P5_REVIEW_CLEANUP_PLANNING_CLOSEOUT_2026-04-25.md](archive/P5_REVIEW_CLEANUP_PLANNING_CLOSEOUT_2026-04-25.md); their cleanup implementation rows are signed off separately.
-- `P5-T6` remains in `Review` as the Phase 5 backlog scope-control gate. Keep `borrow now`, `queue for P5-T6`, and `reject` decisions explicit while typed appeals, restrictions, donation batches, memberships, finance breadth, service-site routing, closure continuity, and generic workflow tooling wait for separately scoped rows.
+- `P5-T6` remains in `Review` as the Phase 5 backlog scope-control gate. Keep `borrow now`, `queue for P5-T6`, and `reject` decisions explicit while typed appeals, restrictions, donation batches, memberships, finance breadth, service-site routing, closure continuity, and generic workflow tooling wait for separately scoped rows; the May 1 reference consolidation adds local communications, evidence, volunteer dispatch, workqueue, and finance-governance candidates without authorizing runtime work.
 - `P5-T9A`, `P5-T9B`, `P5-T9C`, `P5-T10A`, and `P5-T11A` are signed off and archived in [archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md](archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md), with proof in [../validation/P5_CLEANUP_WAVE_PROOF_2026-04-25.md](../validation/P5_CLEANUP_WAVE_PROOF_2026-04-25.md).
 - `P5-T12`, `P5-T13`, `P5-T14`, `P5-T15`, and `P5-T17` are signed off and archived in [archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md](archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md).
-- `P5-T18`, `P5-T19`, `P5-T20`, `P5-T21`, `P5-T22`, `P5-T23`, `P5-T24`, and `P5-T25` are signed off and archived in [archive/P5_REVIEW_QUEUE_CLOSEOUT_2026-04-30.md](archive/P5_REVIEW_QUEUE_CLOSEOUT_2026-04-30.md). `P5-T6` remains the only live row.
-- The current hardening and reassessment migrations `103` through `109` cover saved audiences/campaign runs, public-intake resolution audit, queue view definitions, portal escalations, donor profiles, case reassessment cycles, and case-form revision requests; keep `make db-verify` in the validation path whenever those contracts or manifest/initdb parity change.
+- `P5-T18`, `P5-T19`, `P5-T20`, `P5-T21`, `P5-T22`, `P5-T23`, `P5-T24`, and `P5-T25` are signed off and archived in [archive/P5_REVIEW_QUEUE_CLOSEOUT_2026-04-30.md](archive/P5_REVIEW_QUEUE_CLOSEOUT_2026-04-30.md).
+- `P5-T26` through `P5-T32` are signed off and archived in [archive/P5_NEWSLETTER_EMAIL_OPERABILITY_CLOSEOUT_2026-05-01.md](archive/P5_NEWSLETTER_EMAIL_OPERABILITY_CLOSEOUT_2026-05-01.md). `P5-T33` and `P5-T34` are signed off and archived in [archive/P5_CAMPAIGN_REPORTING_SUPPRESSION_CLOSEOUT_2026-05-01.md](archive/P5_CAMPAIGN_REPORTING_SUPPRESSION_CLOSEOUT_2026-05-01.md). `P5-T6` remains live.
+- The current hardening and reassessment migrations `103` through `110` cover saved audiences/campaign runs, public-intake resolution audit, queue view definitions, portal escalations, donor profiles, case reassessment cycles, case-form revision requests, and communication suppression governance; keep `make db-verify` in the validation path whenever those contracts or manifest/initdb parity change.
+- `P5-T36` is signed off and archived in [archive/P5_COMMUNICATIONS_LOCAL_FIRST_CLOSEOUT_2026-05-01.md](archive/P5_COMMUNICATIONS_LOCAL_FIRST_CLOSEOUT_2026-05-01.md). `P5-T6` remains the only live row.
+- `P5-T37`, `P5-T38`, and `P5-T39` are signed off and archived in [archive/P5_REFERENCE_IMPROVEMENTS_CLOSEOUT_2026-05-01.md](archive/P5_REFERENCE_IMPROVEMENTS_CLOSEOUT_2026-05-01.md). `P5-T6` remains in review as the scope-control gate and is not an implementation row.
 
 ## Coordination
 
 - Update this file before editing tracked work.
 - Keep one active task per agent by default unless a coordinated exception is documented here.
+- Coordinated exception, 2026-05-01: `P5-T40` is split across backend alert scope, alerts/notifications UI, portal UI, admin/settings UI, staff-page UI, and lead-owned docs/validation while cases and people/contact/account implementation surfaces stay out of scope.
+  Lead: Codex
+  Backend lane: `alerts-scope-contract`
+  Frontend lanes: `alerts-notifications-ui`, `portal-client-ui`, `admin-settings-ui`, `staff-page-ui`
+  Other lanes: `lead-docs-validation`
+  Integration owner: Codex
+- Lane: `alerts-scope-contract`
+  Goal: scope alert instance list, acknowledge, and resolve operations to alert rules owned by the current user before personal queue copy is used.
+  Owned paths: `backend/src/modules/alerts/**`, focused backend alert tests
+  Forbidden shared paths: portal UI, admin/settings UI, staff-page UI, docs except lead integration
+  Expected tests: focused alerts usecase/repository or integration tests plus backend type-check if practical
+  Docs ownership: lead
+- Lane: `alerts-notifications-ui`
+  Goal: standardize alert terminology, add clear action/status iconography, subtle feedback animation, pending/error feedback, and channel setup copy.
+  Owned paths: `frontend/src/features/alerts/**`, `frontend/src/routes/routeCatalog/staffInsightsRoutes.ts`, focused alert UI tests
+  Forbidden shared paths: backend alert code, portal UI, admin/settings UI, broad staff pages, docs
+  Expected tests: focused alert page/slice tests plus route UX smoke if labels change
+  Docs ownership: lead
+- Lane: `portal-client-ui`
+  Goal: simplify portal copy, add client-appropriate iconography and subtle transitions, improve empty-state timing, and preserve all client functionality.
+  Owned paths: `frontend/src/features/portal/pages/**` except portal case/people/public-case-form pages, `frontend/src/components/portal/**`, portal route catalog only if needed
+  Forbidden shared paths: `frontend/src/features/cases/**`, `frontend/src/features/people/**`, contact/account implementation pages, alerts/admin/staff lanes, docs
+  Expected tests: focused portal page/list/access tests plus route UX smoke if labels change
+  Docs ownership: lead
+- Lane: `admin-settings-ui`
+  Goal: clarify Admin Hub/Admin Tools/Communications/Email Delivery/Mailchimp vocabulary, improve API/Webhooks dialog accessibility, notification preference labels, and status iconography.
+  Owned paths: `frontend/src/features/adminOps/**`, `frontend/src/features/webhooks/**`, `frontend/src/features/navigation/**`, `frontend/src/features/workspaceModules/**`
+  Forbidden shared paths: cases, people/contact/account implementation pages, alerts/portal/staff lanes, docs
+  Expected tests: focused admin/webhooks/nav tests plus frontend type-check if practical
+  Docs ownership: lead
+- Lane: `staff-page-ui`
+  Goal: remove internal copy and add meaningful icons, subtle motion, clearer status signals, and low-risk progressive disclosure across eligible staff pages.
+  Owned paths: `frontend/src/features/reports/**`, `frontend/src/features/grants/**`, `frontend/src/features/websites/**`, `frontend/src/features/finance/**`, `frontend/src/features/analytics/**`, `frontend/src/features/tasks/**`, `frontend/src/features/volunteers/**`, `frontend/src/features/meetings/**`, `frontend/src/features/teamChat/**`
+  Forbidden shared paths: cases, people/contact/account implementation pages, alerts/portal/admin lanes, docs
+  Expected tests: focused page tests for touched surfaces plus frontend type-check if practical
+  Docs ownership: lead
+- Lane: `lead-docs-validation`
+  Goal: keep the workboard/audit note current, integrate non-overlapping changes, run final focused validation, and record blockers honestly.
+  Owned paths: `docs/phases/planning-and-progress.md`, `docs/validation/**`, final validation notes
+  Forbidden shared paths: worker-owned runtime code except integration conflict resolution after handoff
+  Expected tests: focused worker-reported tests, backend/frontend type-checks where practical, route/catalog smoke checks, and `git diff --check`
+  Docs ownership: lead
+- Coordinated exception, 2026-05-01: `P5-T37`, `P5-T38`, and `P5-T39` are split across communications, case-form evidence, and frontend health lanes while the live workboard, shared migration ordering, `database/migrations/manifest.tsv`, `database/initdb/000_init.sql`, docs/proof notes, and final validation stay lead-owned.
+  Lead: Codex
+  Backend lanes: `communications-queue-controls`, `case-form-evidence-events`
+  Frontend lanes: `communications-run-drilldown`, `audit-report-health-ui`
+  Other lanes: `lead-migrations-docs-validation`
+  Integration owner: Codex
+- Lane: `communications-queue-controls`
+  Goal: make local campaign-run sending reentrant for `draft`, `scheduled`, and `sending`; add recipient drilldown data; add local-only cancel/reschedule; preserve Mailchimp unsupported-provider behavior.
+  Owned paths: `backend/src/modules/communications/**`, `backend/src/types/communications.ts`, focused communications backend tests, `frontend/src/features/mailchimp/**`, `frontend/src/types/mailchimp.ts`, focused communications frontend tests
+  Forbidden shared paths: database manifest/initdb, case-form code, audit/scheduled-report UI, docs/proof files
+  Expected tests: focused communications service tests, route validation policy, v2 ownership policy, `cd backend && npm run type-check`, focused `EmailMarketingPage` tests, and `cd frontend && npm run type-check`
+  Handoff notes: summarize local recipient status behavior, cancel/reschedule limits, Mailchimp compatibility, and deferred consent/automation scope.
+  Docs ownership: lead
+  Disposition: `Signed off; archived in P5_REFERENCE_IMPROVEMENTS_CLOSEOUT_2026-05-01.md`
+- Lane: `case-form-evidence-events`
+  Goal: add append-only staff-only case-form assignment evidence events for submissions, revision requests, reviewed, closed, and cancelled decisions.
+  Owned paths: `backend/src/modules/cases/repositories/caseFormsRepository*.ts`, `backend/src/modules/cases/usecases/caseForms.usecase*.ts`, case-form backend tests, `backend/src/types/caseForms.ts`, `frontend/src/types/caseForms.ts`, `frontend/src/features/cases/caseForms/**`, focused case-form frontend tests
+  Forbidden shared paths: database manifest/initdb, communications code, audit/scheduled-report UI, docs/proof files
+  Expected tests: focused case-form backend repository/usecase tests, `cd backend && npm run type-check`, focused case-form frontend tests, and `cd frontend && npm run type-check`
+  Handoff notes: confirm idempotent submission replay does not duplicate events, evidence stays staff-only, metadata avoids answer/file payloads, and portal/public responses do not expose evidence events.
+  Docs ownership: lead
+  Disposition: `Signed off; archived in P5_REFERENCE_IMPROVEMENTS_CLOSEOUT_2026-05-01.md`
+- Lane: `audit-report-health-ui`
+  Goal: add scheduled-report health summaries and audit-log health context from existing data without scheduler, retention, backend, schema, API, or reporting-domain changes.
+  Owned paths: `frontend/src/features/scheduledReports/**`, `frontend/src/features/adminOps/pages/adminSettings/sections/AuditLogsSection.tsx`, focused scheduled-report and audit-log frontend tests
+  Forbidden shared paths: backend code, database files, communications code, case-form code, docs/proof files
+  Expected tests: focused scheduled-report page tests, direct audit-log section test, and `cd frontend && npm run type-check`
+  Handoff notes: summarize failed/stale/due schedule rules, read-only behavior, audit warning/empty/error states, and rejected finance/governance scope.
+  Docs ownership: lead
+  Disposition: `Signed off; archived in P5_REFERENCE_IMPROVEMENTS_CLOSEOUT_2026-05-01.md`
+- Lane: `lead-migrations-docs-validation`
+  Goal: assign and reconcile migration numbers, update manifest/initdb for schema lanes, add proof notes, keep reference consolidation docs linked, and run final validation.
+  Owned paths: `database/migrations/112_local_campaign_run_controls.sql`, `database/migrations/113_case_form_assignment_events.sql`, `database/migrations/manifest.tsv`, `database/initdb/000_init.sql`, `docs/phases/planning-and-progress.md`, `docs/validation/**`, docs indexes as needed
+  Forbidden shared paths: worker-owned runtime code except integration conflict resolution after handoff
+  Expected tests: `make db-verify`, docs checks, policy checks, focused worker-reported tests, backend/frontend type-checks, and `git diff --check`
+  Handoff notes: record pass/fail commands and keep `P5-T6` in review as the scope-control gate.
+  Docs ownership: lead
+  Disposition: `Signed off; archived in P5_REFERENCE_IMPROVEMENTS_CLOSEOUT_2026-05-01.md`
+- Coordinated exception, 2026-05-01: `P5-T36` is split across backend/database, frontend, Mailchimp compatibility, and lead-owned docs/validation lanes while shared workboard, route registration, migration ordering, API shape, and final validation stay lead-owned.
+  Lead: Codex
+  Backend lanes: `local-communications-api`, `local-delivery-queue`
+  Frontend lanes: `communications-local-first-ui`
+  Other lanes: `mailchimp-secondary-provider`, `docs-validation-closeout`
+  Integration owner: Codex
+- Lane: `local-communications-api`
+  Goal: add provider-neutral `/api/v2/communications/*` status, audience, preview, campaign, test-send, run-list, and run-send APIs backed by local campaign records and existing email rendering.
+  Owned paths: `backend/src/modules/communications/**`, `backend/src/types/communications.ts`, focused communications API tests
+  Forbidden shared paths: Mailchimp adapter internals except typed compatibility imports, contact suppression schema, frontend code, `docs/phases/planning-and-progress.md`
+  Expected tests: focused communications backend tests, route validation policy, module ownership policy, and `cd backend && npm run type-check`
+  Handoff notes: summarize route contracts, response envelopes, local default provider behavior, and compatibility boundaries.
+  Docs ownership: lead
+  Disposition: `Signed off; archived in P5_COMMUNICATIONS_LOCAL_FIRST_CLOSEOUT_2026-05-01.md`
+- Lane: `local-delivery-queue`
+  Goal: add migration-backed local campaign recipient delivery rows, queued SMTP batch sending, local audience/suppression resolution, and newsletter signup local-provider defaults.
+  Owned paths: `database/migrations/111_local_first_communications.sql`, `database/migrations/manifest.tsv`, `database/initdb/000_init.sql`, `backend/src/modules/communications/**`, `backend/src/services/newsletterProviderService.ts`, `backend/src/services/publishing/publicWebsiteFormService.ts`, focused delivery/newsletter tests
+  Forbidden shared paths: frontend code, Mailchimp UI, docs closeout files
+  Expected tests: `make db-verify`, focused backend communications/newsletter tests, and `cd backend && npm run type-check`
+  Handoff notes: summarize recipient statuses, SMTP batching limits, suppression handling, and public signup provider result shape.
+  Docs ownership: lead
+  Disposition: `Signed off; archived in P5_COMMUNICATIONS_LOCAL_FIRST_CLOSEOUT_2026-05-01.md`
+- Lane: `communications-local-first-ui`
+  Goal: make `/settings/communications` usable without Mailchimp, default campaign creation to Local Email, show SMTP readiness first, and expose Mailchimp only as an explicit secondary provider.
+  Owned paths: `frontend/src/features/mailchimp/**`, `frontend/src/types/mailchimp.ts`, focused communications tests
+  Forbidden shared paths: backend code, migrations, route catalogs unless required for existing route labels, `docs/phases/planning-and-progress.md`
+  Expected tests: focused `EmailMarketingPage` tests, route catalog drift if route labels change, and `cd frontend && npm run type-check`
+  Handoff notes: summarize visible workflow changes, unconfigured-Mailchimp behavior, and unsupported states.
+  Docs ownership: lead
+  Disposition: `Signed off; archived in P5_COMMUNICATIONS_LOCAL_FIRST_CLOSEOUT_2026-05-01.md`
+- Lane: `mailchimp-secondary-provider`
+  Goal: preserve existing `/api/v2/mailchimp/*` behavior while routing new default communications workflow through local provider contracts and keeping Mailchimp selected only when explicit.
+  Owned paths: `backend/src/modules/mailchimp/**`, `backend/src/types/mailchimp.ts`, focused Mailchimp compatibility tests
+  Forbidden shared paths: local recipient-delivery migration, frontend code, docs closeout files
+  Expected tests: focused Mailchimp service and route-security tests plus `cd backend && npm run type-check`
+  Handoff notes: confirm Mailchimp routes remain adapter-specific and no automatic mirroring was added.
+  Docs ownership: lead
+  Disposition: `Signed off; archived in P5_COMMUNICATIONS_LOCAL_FIRST_CLOSEOUT_2026-05-01.md`
+- Lane: `docs-validation-closeout`
+  Goal: update API/testing/docs references, add proof notes, and reconcile this workboard after implementation validation.
+  Owned paths: `docs/api/**`, `docs/testing/**`, `docs/validation/**`, `docs/phases/planning-and-progress.md`, archive indexes as needed
+  Forbidden shared paths: runtime code, migrations
+  Expected tests: `make check-links`, `make lint-doc-api-versioning`, focused backend/frontend/db checks reported by implementation lanes
+  Handoff notes: record pass/fail commands and scope boundaries for `P5-T36`, including Mailchimp optional-provider behavior.
+  Docs ownership: lead
+  Disposition: `Signed off; archived in P5_COMMUNICATIONS_LOCAL_FIRST_CLOSEOUT_2026-05-01.md`
+- Coordinated exception, 2026-05-01: `P5-T33` and `P5-T34` are split across backend/integration, database/contact-policy, frontend, and lead-owned docs/validation lanes while shared workboard, migration ordering, API scope, and final validation stay lead-owned.
+  Lead: Codex
+  Backend lanes: `campaign-reporting-metrics`, `suppression-webhook-evidence`
+  Frontend lanes: `campaign-metrics-ui`, `contact-suppression-ui`
+  Other lanes: `suppression-governance-schema`, `docs-validation-closeout`
+  Integration owner: Codex
+- Lane: `campaign-reporting-metrics`
+  Goal: hydrate local campaign-run records with provider summary metrics while preserving the existing Mailchimp campaign-run contract.
+  Owned paths: `backend/src/modules/mailchimp/**`, `backend/src/types/mailchimp.ts`, focused Mailchimp tests
+  Forbidden shared paths: migrations, contact suppression API, frontend code, `docs/phases/planning-and-progress.md`
+  Expected tests: focused Mailchimp service and route-security tests plus `cd backend && npm run type-check`
+  Handoff notes: summarize normalized provider metrics and confirm no typed appeal/ROI implementation was added.
+  Docs ownership: lead
+  Disposition: `Signed off; archived in P5_CAMPAIGN_REPORTING_SUPPRESSION_CLOSEOUT_2026-05-01.md`
+- Lane: `suppression-governance-schema`
+  Goal: add migration-backed channel/reason DNC evidence and fatigue policy tables plus contact-module service/API coverage.
+  Owned paths: `database/migrations/110_communication_suppression_governance.sql`, `database/migrations/manifest.tsv`, `database/initdb/000_init.sql`, `backend/src/modules/contacts/**`, `backend/src/types/contact.ts`, `backend/src/validations/contact.ts`, focused contact suppression tests
+  Forbidden shared paths: Mailchimp campaign-run metrics UI, newsletter provider code, broad delivery automation, `docs/phases/planning-and-progress.md`
+  Expected tests: `make db-verify`, focused contact suppression backend tests, and `cd backend && npm run type-check`
+  Handoff notes: summarize table contract, reason/source taxonomy, and fatigue-policy limits.
+  Docs ownership: lead
+  Disposition: `Signed off; archived in P5_CAMPAIGN_REPORTING_SUPPRESSION_CLOSEOUT_2026-05-01.md`
+- Lane: `suppression-webhook-evidence`
+  Goal: have Mailchimp unsubscribe/cleaned webhook back-sync write contact suppression evidence while preserving `contacts.do_not_email`.
+  Owned paths: `backend/src/modules/mailchimp/**`, focused Mailchimp tests
+  Forbidden shared paths: contact route registration outside the API needed by the schema lane, migrations, frontend code, `docs/phases/planning-and-progress.md`
+  Expected tests: focused Mailchimp webhook tests plus `cd backend && npm run type-check`
+  Handoff notes: summarize provider evidence created and compatibility behavior preserved.
+  Docs ownership: lead
+  Disposition: `Signed off; archived in P5_CAMPAIGN_REPORTING_SUPPRESSION_CLOSEOUT_2026-05-01.md`
+- Lane: `campaign-metrics-ui`
+  Goal: show campaign-run provider metrics in the communications workspace with provider-summary wording.
+  Owned paths: `frontend/src/features/mailchimp/**`, `frontend/src/types/mailchimp.ts`, focused communications tests
+  Forbidden shared paths: backend code, migrations, contact suppression UI, `docs/phases/planning-and-progress.md`
+  Expected tests: focused `EmailMarketingPage` tests plus `cd frontend && npm run type-check`
+  Handoff notes: summarize visible metrics and no appeal/ROI parity claims.
+  Docs ownership: lead
+  Disposition: `Signed off; archived in P5_CAMPAIGN_REPORTING_SUPPRESSION_CLOSEOUT_2026-05-01.md`
+- Lane: `contact-suppression-ui`
+  Goal: show and manage contact suppression ledger entries near existing contact communications and donor preference surfaces.
+  Owned paths: `frontend/src/features/contacts/**`, `frontend/src/types/contact.ts`, focused contact UI tests
+  Forbidden shared paths: Mailchimp campaign UI, backend code, migrations, route catalogs unless strictly required, `docs/phases/planning-and-progress.md`
+  Expected tests: focused contact suppression UI tests plus `cd frontend && npm run type-check`
+  Handoff notes: summarize staff workflow and unsupported automation/fatigue behavior.
+  Docs ownership: lead
+  Disposition: `Signed off; archived in P5_CAMPAIGN_REPORTING_SUPPRESSION_CLOSEOUT_2026-05-01.md`
+- Lane: `docs-validation-closeout`
+  Goal: add proof notes and reconcile the live board after implementation validation.
+  Owned paths: `docs/validation/**`, `docs/phases/planning-and-progress.md`, docs indexes if needed
+  Forbidden shared paths: runtime code, migrations
+  Expected tests: `make check-links`, focused backend/frontend/db checks reported by implementation lanes
+  Handoff notes: record pass/fail commands and scope boundaries for `P5-T33`, `P5-T34`, and `P5-T6`.
+  Docs ownership: lead
+  Disposition: `Signed off; archived in P5_CAMPAIGN_REPORTING_SUPPRESSION_CLOSEOUT_2026-05-01.md`
+- Coordinated exception, 2026-05-01: `P5-T26` through `P5-T32` are split across reference/docs, backend, frontend, and docs/verification lanes while shared workboard, reference manifest, route contracts, migration ordering, and final validation stay lead-owned.
+  Lead: Codex
+  Backend lanes: `email-campaign-operability`
+  Frontend lanes: `communications-ui-operability`
+  Other lanes: `newsletter-reference-docs`, `email-docs-verification`
+  Integration owner: Codex
+- Lane: `newsletter-reference-docs`
+  Goal: refresh newsletter-specific reference repos and docs without copying GPL/AGPL source into the product.
+  Owned paths: `reference-repos/manifest.lock.json`, `docs/development/reference-patterns/**`
+  Forbidden shared paths: runtime code, migrations, `docs/phases/planning-and-progress.md`
+  Expected tests: `make check-links`
+  Handoff notes: summarize pinned commits, licenses, reuse classes, and any direct-copy prohibition.
+  Docs ownership: lead
+  Disposition: `Signed off; archived in P5_NEWSLETTER_EMAIL_OPERABILITY_CLOSEOUT_2026-05-01.md`
+- Lane: `email-campaign-operability`
+  Goal: implement backend support for real campaign test-send, scope-aware campaign-run actions, Mailchimp webhook back-sync, and website newsletter provider wiring.
+  Owned paths: `backend/src/modules/mailchimp/**`, `backend/src/services/newsletterProviderService.ts`, `backend/src/services/mauticService.ts`, `backend/src/services/publishing/**`, focused backend tests
+  Forbidden shared paths: frontend code, shared auth/permission helpers unless strictly required, `docs/phases/planning-and-progress.md`
+  Expected tests: focused Mailchimp, newsletter-provider, and public-website signup tests plus `cd backend && npm run type-check`
+  Handoff notes: summarize API contracts, webhook contact updates, run-action scope checks, and any provider limitation.
+  Docs ownership: lead
+  Disposition: `Signed off; archived in P5_NEWSLETTER_EMAIL_OPERABILITY_CLOSEOUT_2026-05-01.md`
+- Lane: `communications-ui-operability`
+  Goal: implement the staff-facing searchable audience selector, campaign preflight/test-send UI, campaign-run action affordances, discoverability label polish, and tag/segment reachability.
+  Owned paths: `frontend/src/features/mailchimp/**`, `frontend/src/types/mailchimp.ts`, focused communications-route tests
+  Forbidden shared paths: backend code, migrations, `docs/phases/planning-and-progress.md`
+  Expected tests: focused `EmailMarketingPage`/route tests plus `cd frontend && npm run type-check`
+  Handoff notes: summarize changed staff workflow, unsupported states, and any API dependency.
+  Docs ownership: lead
+  Disposition: `Signed off; archived in P5_NEWSLETTER_EMAIL_OPERABILITY_CLOSEOUT_2026-05-01.md`
+- Lane: `email-docs-verification`
+  Goal: refresh Mailchimp/API docs to current route contracts and run focused verification after implementation lanes land.
+  Owned paths: `docs/api/**`, `docs/testing/**`, validation notes as needed
+  Forbidden shared paths: runtime code, migrations, `docs/phases/planning-and-progress.md`
+  Expected tests: `make check-links`, `make lint-doc-api-versioning`, focused backend/frontend checks reported by implementation lanes
+  Handoff notes: summarize docs changed and final pass/fail validation evidence.
+  Docs ownership: lead
+  Disposition: `Signed off; archived in P5_NEWSLETTER_EMAIL_OPERABILITY_CLOSEOUT_2026-05-01.md`
 - Coordinated exception, 2026-04-30: `P5-T23` is split across read-only discovery lanes plus lead-owned implementation while shared workboard and validation seams stay lead-owned.
   Lead: Codex
   Backend lanes: `backend-unused-file-prune`
@@ -536,4 +772,4 @@ No live Phase 4 carry-over rows remain. Proof for the retired rows now lives in 
 
 | ID | Task | Status | Owner | Next Step / Blocker | Evidence |
 |---|---|---|---|---|---|
-| P5-T6 | Follow-on backlog: workflow/customization, memberships/appeals, finance/program ops | Review | Codex | Keep live as the Phase 5 backlog scope-control gate: use the capability packet and backlog synthesis to reject unscoped implementation, and require separate signed-out rows for typed appeals, restrictions, donation batches, memberships, finance breadth, service-site routing, closure continuity, or generic workflow tooling. | [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md), [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md), [archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md), [archive/P5_RUNTIME_REVIEW_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_RUNTIME_REVIEW_CLOSEOUT_BATCH_2026-04-25.md) |
+| P5-T6 | Follow-on backlog: workflow/customization, memberships/appeals, finance/program ops | Review | Codex | Keep live as the Phase 5 backlog scope-control gate: use the capability packet, backlog synthesis, and May 1 reference consolidation to reject unscoped implementation, and require separate signed-out rows for typed appeals, restrictions, donation batches, memberships, finance breadth, service-site routing, closure continuity, local communications follow-through, or generic workflow tooling. | [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md), [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md), [../development/reference-patterns/P5-T6-reference-repo-consolidation-2026-05-01.md](../development/reference-patterns/P5-T6-reference-repo-consolidation-2026-05-01.md), [archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md), [archive/P5_RUNTIME_REVIEW_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_RUNTIME_REVIEW_CLOSEOUT_BATCH_2026-04-25.md) |

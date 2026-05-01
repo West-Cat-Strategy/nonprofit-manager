@@ -207,6 +207,29 @@ export interface CampaignRun {
   updatedAt: Date;
 }
 
+export interface MailchimpCampaignProviderMetrics {
+  lastReportedAt: string;
+  refreshedAt: string;
+  emailsSent?: number;
+  opens?: number;
+  uniqueOpens?: number;
+  openRate?: number;
+  clicks?: number;
+  uniqueClicks?: number;
+  clickRate?: number;
+  unsubscribes?: number;
+  abuseReports?: number;
+  forwards?: number;
+  bounces?: {
+    hard?: number;
+    soft?: number;
+    syntax?: number;
+    total?: number;
+  };
+  lastOpenAt?: string;
+  lastClickAt?: string;
+}
+
 export interface MailchimpCampaignTargetingCounts {
   includeSourceCount?: number;
   suppressionSourceCount?: number;

@@ -25,7 +25,7 @@ vi.mock('../../../../components/neo-brutalist/NeoBrutalistLayout', () => ({
 }));
 
 describe('ReportsHomePage', () => {
-  it('renders the persona workflow cards with deep links into existing reports routes', () => {
+  it('renders report workflow cards with deep links into existing reports routes', () => {
     renderWithProviders(<ReportsHomePage />, {
       preloadedState: buildAuthState([
         'report:view',
@@ -68,10 +68,7 @@ describe('ReportsHomePage', () => {
       within(fundraisingCard as HTMLElement).getByRole('link', {
         name: /fundraising templates/i,
       })
-    ).toHaveAttribute(
-      'href',
-      '/reports/templates?category=fundraising&tag=fundraising-cadence'
-    );
+    ).toHaveAttribute('href', '/reports/templates?category=fundraising&tag=fundraising-cadence');
   });
 
   it('keeps management-only actions hidden when the user only has scheduled report access', () => {
@@ -79,18 +76,13 @@ describe('ReportsHomePage', () => {
       preloadedState: buildAuthState(['scheduled_report:view']),
     });
 
-    expect(
-      screen.getByRole('link', { name: /scheduled reports/i })
-    ).toHaveAttribute('href', '/reports/scheduled');
-    expect(
-      screen.queryByRole('link', { name: /board pack templates/i })
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', { name: /fundraising templates/i })
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', { name: /workflow coverage/i })
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /scheduled reports/i })).toHaveAttribute(
+      'href',
+      '/reports/scheduled'
+    );
+    expect(screen.queryByRole('link', { name: /board pack templates/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /fundraising templates/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /workflow coverage/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /saved reports/i })).not.toBeInTheDocument();
   });
 
@@ -115,14 +107,8 @@ describe('ReportsHomePage', () => {
     expect(
       within(adminCard as HTMLElement).getByRole('link', { name: /^scheduled reports$/i })
     ).toHaveAttribute('href', '/reports/scheduled');
-    expect(
-      screen.queryByRole('link', { name: /board pack templates/i })
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', { name: /open builder/i })
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', { name: /fundraising templates/i })
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /board pack templates/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /open builder/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /fundraising templates/i })).not.toBeInTheDocument();
   });
 });

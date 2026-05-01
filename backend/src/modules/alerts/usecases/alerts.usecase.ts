@@ -86,16 +86,16 @@ export class AlertsUseCase {
     };
   }
 
-  async getAlertInstances(filters?: AlertInstanceFiltersInput): Promise<AlertInstance[]> {
-    return this.repository.getAlertInstances(this.normalizeInstanceFilters(filters));
+  async getAlertInstances(userId: string, filters?: AlertInstanceFiltersInput): Promise<AlertInstance[]> {
+    return this.repository.getAlertInstances(this.normalizeInstanceFilters(userId, filters));
   }
 
   acknowledgeAlert(id: string, userId: string) {
     return this.repository.acknowledgeAlert(id, userId);
   }
 
-  resolveAlert(id: string) {
-    return this.repository.resolveAlert(id);
+  resolveAlert(id: string, userId: string) {
+    return this.repository.resolveAlert(id, userId);
   }
 
   async getAlertStats(userId: string): Promise<AlertStats> {
@@ -127,9 +127,12 @@ export class AlertsUseCase {
     };
   }
 
-  private normalizeInstanceFilters(filters?: AlertInstanceFiltersInput): AlertInstanceFilters {
+  private normalizeInstanceFilters(
+    userId: string,
+    filters?: AlertInstanceFiltersInput
+  ): AlertInstanceFilters {
     if (!filters) {
-      return {};
+      return { userId };
     }
 
     const parsedLimit =
@@ -138,6 +141,7 @@ export class AlertsUseCase {
         : Number.parseInt(String(filters.limit ?? ''), 10);
 
     return {
+      userId,
       status: filters.status,
       severity: filters.severity,
       limit: Number.isFinite(parsedLimit) ? parsedLimit : undefined,

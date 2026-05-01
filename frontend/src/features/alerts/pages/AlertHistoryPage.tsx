@@ -1,5 +1,11 @@
 import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  BellAlertIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  ExclamationCircleIcon,
+} from '@heroicons/react/24/outline';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchAlertInstances, fetchAlertStats } from '../state';
 import type { AlertInstance, AlertSeverity } from '../types';
@@ -61,6 +67,14 @@ const averageResolutionMinutes = (instances: AlertInstance[]): number | null => 
   }
 
   return resolvedDurations.reduce((sum, value) => sum + value, 0) / resolvedDurations.length;
+};
+
+const getAlertInstanceStatus = (row: AlertInstance): string => {
+  if (row.status === 'resolved') {
+    return 'Resolved';
+  }
+
+  return row.acknowledged_at ? 'Reviewed' : 'Needs review';
 };
 
 export default function AlertHistoryPage() {
@@ -133,15 +147,17 @@ export default function AlertHistoryPage() {
     <div className="flex flex-wrap gap-2">
       <Link
         to="/alerts/instances"
-        className="inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-border px-4 py-2 text-sm font-semibold text-app-text transition-colors hover:bg-app-hover"
+        className="inline-flex items-center justify-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border px-4 py-2 text-sm font-semibold text-app-text transition-colors hover:bg-app-hover"
       >
-        View live queue
+        <BellAlertIcon className="h-4 w-4" aria-hidden="true" />
+        Active alerts
       </Link>
       <Link
         to="/alerts"
-        className="inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-accent bg-app-accent px-4 py-2 text-sm font-semibold text-[var(--app-accent-foreground)] transition-colors hover:bg-app-accent-hover hover:border-app-accent-hover"
+        className="inline-flex items-center justify-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-accent bg-app-accent px-4 py-2 text-sm font-semibold text-[var(--app-accent-foreground)] transition-all duration-150 hover:-translate-y-0.5 hover:bg-app-accent-hover hover:border-app-accent-hover"
       >
-        Edit alert rules
+        <ClockIcon className="h-4 w-4" aria-hidden="true" />
+        Alert rules
       </Link>
     </div>
   );
@@ -161,7 +177,9 @@ export default function AlertHistoryPage() {
       key: 'severity',
       label: 'Severity',
       render: (row: AlertHistoryRow) => (
-        <span className={`rounded px-2 py-1 text-xs font-medium ${getAlertSeverityClasses(row.severity)}`}>
+        <span
+          className={`rounded px-2 py-1 text-xs font-medium capitalize ${getAlertSeverityClasses(row.severity)}`}
+        >
           {row.severity}
         </span>
       ),
@@ -178,13 +196,13 @@ export default function AlertHistoryPage() {
     },
     {
       key: 'lastTriggered',
-      label: 'Last Triggered',
+      label: 'Last triggered',
       render: (row: AlertHistoryRow) =>
         row.lastTriggered ? formatTimestamp(row.lastTriggered) : 'No activity',
     },
     {
       key: 'averageResolutionLabel',
-      label: 'Avg. Resolution',
+      label: 'Avg. resolution',
       render: (row: AlertHistoryRow) => row.averageResolutionLabel,
     },
   ];
@@ -205,13 +223,18 @@ export default function AlertHistoryPage() {
       label: 'Status',
       render: (row: AlertInstance) => (
         <span
-          className={`rounded px-2 py-1 text-xs font-medium ${
+          className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium ${
             row.status === 'resolved'
               ? 'bg-app-surface-muted text-app-text-muted'
               : 'bg-app-accent-soft text-app-accent-text'
           }`}
         >
-          {row.status}
+          {row.status === 'resolved' ? (
+            <CheckCircleIcon className="h-3.5 w-3.5" aria-hidden="true" />
+          ) : (
+            <ExclamationCircleIcon className="h-3.5 w-3.5" aria-hidden="true" />
+          )}
+          {getAlertInstanceStatus(row)}
         </span>
       ),
     },
@@ -225,8 +248,8 @@ export default function AlertHistoryPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Alert History"
-        description="Review repeat incidents, monitor resolution time, and decide which alert rules need tuning."
+        title="Alert history"
+        description="Review past alert activity, watch for noisy rules, and decide which alert rules need tuning."
         actions={actions}
       />
 
@@ -234,10 +257,10 @@ export default function AlertHistoryPage() {
       <AlertSummaryCards stats={stats} />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Tracked Rules" value={historyRows.length} />
-        <StatCard label="Logged Instances" value={instances.length} />
-        <StatCard label="Open Incidents" value={openIncidentCount} />
-        <StatCard label="Average Resolution" value={averageResolutionAcrossAll} />
+        <StatCard label="Alert rules" value={historyRows.length} />
+        <StatCard label="Logged alerts" value={instances.length} />
+        <StatCard label="Active alerts" value={openIncidentCount} />
+        <StatCard label="Average resolution" value={averageResolutionAcrossAll} />
       </div>
 
       {error ? (

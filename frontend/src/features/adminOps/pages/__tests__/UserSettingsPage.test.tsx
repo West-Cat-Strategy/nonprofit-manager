@@ -6,7 +6,10 @@ import { createTestStore, renderWithProviders } from '../../../../test/testUtils
 import UserSettingsPage from '../UserSettingsPage';
 import LoopApiService from '../../../../services/LoopApiService';
 import api from '../../../../services/api';
-import { clearStaffBootstrapSnapshot, getStaffBootstrapSnapshot } from '../../../../services/bootstrap/staffBootstrap';
+import {
+  clearStaffBootstrapSnapshot,
+  getStaffBootstrapSnapshot,
+} from '../../../../services/bootstrap/staffBootstrap';
 
 vi.mock('../../../../services/LoopApiService', () => ({
   default: {
@@ -151,13 +154,13 @@ describe('UserSettingsPage', () => {
     const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
     expect(fileInput).toBeTruthy();
 
-    await user.upload(
-      fileInput,
-      new File(['avatar'], 'avatar.png', { type: 'image/png' })
-    );
+    await user.upload(fileInput, new File(['avatar'], 'avatar.png', { type: 'image/png' }));
 
     await waitFor(() => {
-      expect(screen.getByAltText('Profile')).toHaveAttribute('src', 'data:image/jpeg;base64,resized-preview');
+      expect(screen.getByAltText('Profile')).toHaveAttribute(
+        'src',
+        'data:image/jpeg;base64,resized-preview'
+      );
     });
 
     await user.click(screen.getByRole('button', { name: /save all changes/i }));
@@ -275,5 +278,16 @@ describe('UserSettingsPage', () => {
     await waitFor(() => {
       expect(mockedLoopApiService.updateUserProfile).toHaveBeenCalled();
     });
+  });
+
+  it('shows plain-language notification preference labels', async () => {
+    renderWithProviders(<UserSettingsPage />, {
+      route: '/settings/user',
+    });
+
+    expect(await screen.findByText(/email updates/i)).toBeInTheDocument();
+    expect(screen.getByText(/task reminders/i)).toBeInTheDocument();
+    expect(screen.getByText(/product and marketing emails/i)).toBeInTheDocument();
+    expect(screen.queryByText(/emailNotifications/)).not.toBeInTheDocument();
   });
 });

@@ -218,8 +218,8 @@ const PagePropertyEditor: React.FC<PagePropertyEditorProps> = ({
         </div>
 
         <div className="rounded-2xl border border-app-border bg-app-surface-muted p-3 text-xs text-app-text-muted">
-          Collection pages reuse the builder layout and render live events or newsletters at publish
-          time.
+          Collection pages reuse the builder layout and render live events, newsletters, or blog
+          entries at publish time.
         </div>
       </div>
     </div>

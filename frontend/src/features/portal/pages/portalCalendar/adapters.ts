@@ -37,7 +37,7 @@ export const toIsoFromLocal = (value: string): string | null => {
 export const entryKindLabel: Record<PortalCalendarEntryMeta['kind'], string> = {
   event: 'Event',
   appointment: 'Appointment',
-  slot: 'Open Slot',
+  slot: 'Available Time',
 };
 
 export const normalizeEventEntry = (
@@ -71,7 +71,7 @@ export const normalizeSlotEntry = (
 ): BookingCalendarEntry<PortalCalendarEntryMeta> => ({
   id: `slot:${slot.id}`,
   kind: 'slot',
-  title: slot.title || 'Appointment slot',
+  title: slot.title || 'Appointment time',
   start: slot.start_time,
   end: slot.end_time,
   status: slot.status,

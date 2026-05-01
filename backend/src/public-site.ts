@@ -26,7 +26,12 @@ import { validateProductionSecurityConfig } from './config/productionSecurityCon
 import healthRoutes, { setHealthCheckPool } from '@routes/health';
 import pool from './config/database';
 import { publicEventsV2Routes } from '@modules/events';
-import { publicPublishingV2Routes, publicWebsiteFormsV2Routes } from '@modules/publishing';
+import {
+  publicContentEntriesV2Routes,
+  publicPublishingV2Routes,
+  publicWebsiteActionsV2Routes,
+  publicWebsiteFormsV2Routes,
+} from '@modules/publishing';
 import { renderPublishedWebsite } from '@modules/publishing/controllers';
 import { recordAnalytics } from '@modules/publishing/controllers/publishingController';
 
@@ -177,7 +182,9 @@ const analyticsTrackSchema = z.object({
 
 app.use('/api/v2/public/events', publicEventsV2Routes);
 app.use('/api/v2/public/newsletters', publicPublishingV2Routes);
+app.use('/api/v2/public/content', publicContentEntriesV2Routes);
 app.use('/api/v2/public/forms', publicWebsiteFormsV2Routes);
+app.use('/api/v2/public/actions', publicWebsiteActionsV2Routes);
 app.post(
   '/api/v2/sites/:siteId/track',
   validateParams(siteIdParamsSchema),

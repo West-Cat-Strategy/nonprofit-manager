@@ -1,6 +1,6 @@
 # Documentation Home
 
-**Last Updated:** 2026-04-25
+**Last Updated:** 2026-05-01
 
 Welcome to the Nonprofit Manager documentation hub. Use this file to find the live contributor workflow, runtime docs, feature inventory, tracked persona canon, and historical archives without mixing current planning with older closeout material. Tracked `*.example` env files are templates; copied live `.env*` and deploy override files stay local-only and ignored. Inside `.codex`, only the three canonical persona and benchmark `references/**` trees are versioned.
 
@@ -27,11 +27,12 @@ If the task is tracked or resumed, open [**Planning and Progress**](phases/plann
 
 | Topic | Primary Doc | Notes |
 |---|---|---|
-| Product overview | [../README.md](../README.md) | User-facing overview plus contributor handoff |
+| Product overview | [../README.md](../README.md) | Organization-facing adoption overview and product entry point |
 | Contributor workflow | [../CONTRIBUTING.md](../CONTRIBUTING.md) | Start here before any edits |
 | Live tracked work | [phases/planning-and-progress.md](phases/planning-and-progress.md) | Current source of truth for row-level status |
 | Current phase roadmap | [phases/PHASE_5_DEVELOPMENT_PLAN.md](phases/PHASE_5_DEVELOPMENT_PLAN.md) | Phase 5 goals, sequence, gaps, and exit criteria |
 | Refactoring plans and handoffs | [refactoring/README.md](refactoring/README.md) | Durable broad-refactor planning and evidence notes |
+| Backend refactoring history | [backend/BACKEND_SERVICE_REFACTORING_GUIDE.md](backend/BACKEND_SERVICE_REFACTORING_GUIDE.md) | Historical/planning reference; current backend ownership stays in backend and development docs |
 | Historical phase material | [phases/archive/README.md](phases/archive/README.md) | Use for provenance, not current status |
 | Runtime setup and ports | [development/GETTING_STARTED.md](development/GETTING_STARTED.md) | Docker, direct app, public-site, worker, and Playwright runtime contracts |
 | Validation and testing | [testing/TESTING.md](testing/TESTING.md) | Active test-command selection map |
@@ -39,6 +40,7 @@ If the task is tracked or resumed, open [**Planning and Progress**](phases/plann
 | Validation and audit artifacts | [validation/README.md](validation/README.md) | Audit snapshots, remediation trackers, and validation references |
 | Persona and benchmark detail | [../.codex/skills/nonprofit-manager-persona-analysis/references/source-map.md](../.codex/skills/nonprofit-manager-persona-analysis/references/source-map.md) | Canonical detailed layer for persona analysis, persona validation, and benchmark synthesis |
 | Retained reference patterns | [development/reference-patterns/README.md](development/reference-patterns/README.md) | Preserved adoption specs, pattern catalogs, and check matrices |
+| Reference repo workspace | [reference-repos.md](reference-repos.md) | Central clone store, compatibility aliases, manifest ownership, and reuse guardrails |
 | Helper scripts | [../scripts/README.md](../scripts/README.md) | Repo-local command and policy-script index |
 | Database contract | [../database/README.md](../database/README.md) | Schema, seeds, manifest, and migration-contract orientation |
 | Shared contracts | [../contracts/README.md](../contracts/README.md) | Shared type-only package used across app surfaces |
@@ -65,7 +67,9 @@ If the task is tracked or resumed, open [**Planning and Progress**](phases/plann
 - [Backend Module Ownership Map](development/BACKEND_MODULE_OWNERSHIP_MAP.md)
 - [Compatibility Shim Deprecation Ledger](development/COMPATIBILITY_SHIM_DEPRECATION_LEDGER.md)
 - [Retained Reference Patterns](development/reference-patterns/README.md)
+- [Reference Repo Workspace](reference-repos.md)
 - [Refactoring Notes](refactoring/README.md)
+- [Backend Service Refactoring Guide](backend/BACKEND_SERVICE_REFACTORING_GUIDE.md)
 - [Agent Terminology](../agents.md)
 - [Quick Command Reference](quick-reference/QUICK_REFERENCE.md)
 
@@ -124,8 +128,14 @@ If the task is tracked or resumed, open [**Planning and Progress**](phases/plann
 - [P5-T6C Service-Delivery Workflow Depth Brief](phases/P5-T6C_SERVICE_DELIVERY_WORKFLOW_DEPTH_BRIEF_2026-04-24.md)
 - [Phase Archive Index](phases/archive/README.md)
 - [Development Archive Index](development/archive/README.md)
+- [Feature Archive Index](features/archive/README.md)
 - [Performance Archive Index](performance/archive/README.md)
+- [Product Archive Index](product/archive/README.md)
+- [Quick Reference Archive Index](quick-reference/archive/README.md)
 - [Security Archive Index](security/archive/README.md)
+- [Testing Archive Index](testing/archive/README.md)
+- [UI Archive Index](ui/archive/README.md)
+- [Validation Archive Index](validation/archive/README.md)
 - [Documentation Style Guide](DOCUMENTATION_STYLE_GUIDE.md)
 - [Help Center Archive Note](archive/help-center/README.md)
 
@@ -134,5 +144,6 @@ If the task is tracked or resumed, open [**Planning and Progress**](phases/plann
 - Need setup help fast? Open [development/GETTING_STARTED.md](development/GETTING_STARTED.md).
 - Need the current workboard? Open [phases/planning-and-progress.md](phases/planning-and-progress.md).
 - Need the Phase 5 roadmap? Open [phases/PHASE_5_DEVELOPMENT_PLAN.md](phases/PHASE_5_DEVELOPMENT_PLAN.md).
+- Need reference repo locations or reuse rules? Open [reference-repos.md](reference-repos.md).
 - Need archive history? Open [phases/archive/README.md](phases/archive/README.md).
 - Need helper-script or workspace-package orientation? Open [../scripts/README.md](../scripts/README.md), [../database/README.md](../database/README.md), or [../contracts/README.md](../contracts/README.md).

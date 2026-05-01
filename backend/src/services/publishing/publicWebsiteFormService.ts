@@ -6,7 +6,10 @@ import { AvailabilityStatus } from '@app-types/volunteer';
 import type { Activity } from '@app-types/activity';
 import type { RecurringDonationPlanStatus } from '@app-types/recurringDonation';
 import type { PaymentProvider } from '@app-types/payment';
-import { activityEventService, type CreateActivityEventInput } from '@services/activityEventService';
+import {
+  activityEventService,
+  type CreateActivityEventInput,
+} from '@services/activityEventService';
 import { recordPublicIntakeResolutionBestEffort } from '@services/publicIntakeResolutionService';
 import newsletterProviderService from '@services/newsletterProviderService';
 import { paymentProviderService } from '@services/paymentProviderService';
@@ -16,10 +19,7 @@ import {
   PublicSubmissionReplayError,
   publicSubmissionService,
 } from './publicSubmissionService';
-import {
-  mergeManagedComponentConfig,
-  WebsiteSiteSettingsService,
-} from './siteSettingsService';
+import { mergeManagedComponentConfig, WebsiteSiteSettingsService } from './siteSettingsService';
 import {
   appendUniqueTags,
   findPublishedComponentById,
@@ -96,6 +96,12 @@ export interface PublicWebsiteFormResult {
   paymentIntent?: Awaited<ReturnType<typeof paymentProviderService.createPaymentIntent>>;
   mailchimpSynced?: boolean;
   newsletterSynced?: boolean;
+  newsletterProvider?: string;
+  providerSync?: {
+    provider: string;
+    attempted: boolean;
+    success: boolean;
+  };
   idempotentReplay?: boolean;
 }
 
@@ -188,7 +194,13 @@ export class PublicWebsiteFormService {
              tags = $4,
              updated_at = CURRENT_TIMESTAMP
          WHERE id = $5`,
-        [site.organizationId, identity.phone || null, identity.message || null, nextTags, existing.id]
+        [
+          site.organizationId,
+          identity.phone || null,
+          identity.message || null,
+          nextTags,
+          existing.id,
+        ]
       );
       return { contactId: existing.id, created: false };
     }
@@ -267,8 +279,7 @@ export class PublicWebsiteFormService {
       result: {
         formType: component.type,
         message:
-          (component.successMessage as string | undefined) ||
-          'Your message has been recorded.',
+          (component.successMessage as string | undefined) || 'Your message has been recorded.',
         contactId,
       },
       resultEntityType: 'contact',
@@ -280,7 +291,8 @@ export class PublicWebsiteFormService {
         type: 'public_form_submission',
         title: 'Public contact form submitted',
         description: `${identity.firstName} ${identity.lastName}`.trim(),
-        userName: identity.email || identity.phone || `${identity.firstName} ${identity.lastName}`.trim(),
+        userName:
+          identity.email || identity.phone || `${identity.firstName} ${identity.lastName}`.trim(),
         entityType: 'contact',
         entityId: contactId,
         metadata: {
@@ -302,22 +314,31 @@ export class PublicWebsiteFormService {
     ]);
     const { contactId, created } = await this.ensureContact(site, identity, defaultTags);
     const settings = await this.siteSettings.getSettingsForSite(site);
-    const audienceMode =
-      (component.audienceMode as 'crm' | 'mailchimp' | 'mautic' | 'both' | undefined) ||
-      'crm';
-    const provider = newsletterProviderService.resolveNewsletterProvider(settings);
-    const audienceId =
-      provider === 'mailchimp'
-        ? (component.mailchimpListId as string | undefined)
-        : (component.mauticSegmentId as string | undefined);
+    const destination = newsletterProviderService.resolveNewsletterDestination(settings, {
+      audienceMode:
+        (component.audienceMode as
+          | 'crm'
+          | 'local_email'
+          | 'mailchimp'
+          | 'mautic'
+          | 'both'
+          | undefined) || 'crm',
+      mailchimpListId: component.mailchimpListId as string | undefined,
+      mauticSegmentId: component.mauticSegmentId as string | undefined,
+      defaultTags,
+    });
+    const provider = destination.provider;
     let mailchimpSynced = false;
     let newsletterSynced = false;
+    let providerSyncAttempted = false;
 
-    if (audienceMode !== 'crm' && audienceId) {
+    if (destination.shouldSync && destination.audienceId) {
+      providerSyncAttempted = true;
       const syncResult = await newsletterProviderService.syncNewsletterContact(settings, {
         contactId,
-        listId: String(audienceId),
-        tags: defaultTags,
+        listId: destination.audienceId,
+        tags: destination.tags,
+        provider,
       });
       newsletterSynced = Boolean(syncResult.success);
       mailchimpSynced = provider === 'mailchimp' && Boolean(syncResult.success);
@@ -326,12 +347,18 @@ export class PublicWebsiteFormService {
     return {
       result: {
         formType: component.type,
-          message:
+        message:
           (component.successMessage as string | undefined) ||
           'You have been added to the newsletter list.',
         contactId,
         mailchimpSynced,
         newsletterSynced,
+        newsletterProvider: provider,
+        providerSync: {
+          provider,
+          attempted: providerSyncAttempted,
+          success: newsletterSynced,
+        },
       },
       resultEntityType: 'contact',
       resultEntityId: contactId,
@@ -374,7 +401,9 @@ export class PublicWebsiteFormService {
       [contactId]
     );
 
-    const skills = splitDelimitedList(typeof payload.message === 'string' ? payload.message : undefined);
+    const skills = splitDelimitedList(
+      typeof payload.message === 'string' ? payload.message : undefined
+    );
     const volunteerRecord =
       volunteer.rows[0] ||
       (await services.volunteer.createVolunteer(
@@ -417,8 +446,7 @@ export class PublicWebsiteFormService {
         relatedEntityType: volunteerId ? 'contact' : undefined,
         relatedEntityId: volunteerId ? contactId : undefined,
         metadata: {
-          availability:
-            typeof payload.availability === 'string' ? payload.availability : undefined,
+          availability: typeof payload.availability === 'string' ? payload.availability : undefined,
           skills,
         },
       },
@@ -490,7 +518,8 @@ export class PublicWebsiteFormService {
         type: 'public_form_submission',
         title: 'Public referral submitted',
         description: `${identity.firstName} ${identity.lastName}`.trim(),
-        userName: identity.email || identity.phone || `${identity.firstName} ${identity.lastName}`.trim(),
+        userName:
+          identity.email || identity.phone || `${identity.firstName} ${identity.lastName}`.trim(),
         entityType: 'case',
         entityId: caseRecord.id,
         relatedEntityType: 'contact',
@@ -680,8 +709,7 @@ export class PublicWebsiteFormService {
       result: {
         formType: component.type,
         message:
-          (component.successMessage as string | undefined) ||
-          'Your donation has been recorded.',
+          (component.successMessage as string | undefined) || 'Your donation has been recorded.',
         contactId,
         donationId: donation.donation_id,
         paymentIntent,
@@ -764,10 +792,17 @@ export class PublicWebsiteFormService {
         'newsletter-signup': () => this.handleNewsletterSignup(site, component, identity),
         'volunteer-interest-form': () =>
           this.handleVolunteerInterest(site, component, identity, publicPayload),
-        'referral-form': () =>
-          this.handleReferralForm(site, component, identity, publicPayload),
+        'referral-form': () => this.handleReferralForm(site, component, identity, publicPayload),
         'donation-form': () =>
-          this.handleDonationForm(site, component, settings, identity, publicPayload, formKey, context),
+          this.handleDonationForm(
+            site,
+            component,
+            settings,
+            identity,
+            publicPayload,
+            formKey,
+            context
+          ),
       };
 
       const outcome = await submitters[formType]();
@@ -835,14 +870,16 @@ export class PublicWebsiteFormService {
       const message = error instanceof Error ? error.message : 'Public form submission failed';
 
       if (submissionId) {
-        await publicSubmissionService.markRejected({
-          submissionId,
-          errorMessage: message,
-          auditMetadata: this.buildAuditMetadata(context, {
-            formType,
-            status: 'rejected',
-          }),
-        }).catch(() => undefined);
+        await publicSubmissionService
+          .markRejected({
+            submissionId,
+            errorMessage: message,
+            auditMetadata: this.buildAuditMetadata(context, {
+              formType,
+              status: 'rejected',
+            }),
+          })
+          .catch(() => undefined);
       }
 
       throw error;

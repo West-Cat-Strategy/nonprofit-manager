@@ -93,12 +93,12 @@ describe('TeamMessengerPage', () => {
     vi.clearAllMocks();
   });
 
-  it('renders Team Messenger copy distinct from case and portal chat surfaces', () => {
+  it('renders Team Messenger copy for teammate threads', () => {
     renderWithProviders(<TeamMessengerPage />);
 
     expect(screen.getByRole('heading', { name: 'Team Messenger' })).toBeInTheDocument();
     expect(
-      screen.getByText(/kept distinct from Case Chat and Portal Conversations/i)
+      screen.getByText(/without mixing those notes into client conversations/i)
     ).toBeInTheDocument();
     expect(setSelectedRoomId).toHaveBeenCalledWith('room-1');
   });

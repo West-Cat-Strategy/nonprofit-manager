@@ -145,14 +145,17 @@ const SECTION_ADAPTERS: Record<GrantsSectionId, GrantsSectionAdapter> = {
     id: 'funded-programs',
     label: 'Funded Programs',
     path: '/grants/funded-programs',
-    description: 'Track the internal programs and initiatives funded by grants.',
+    description: 'Track the programs and initiatives funded by grants.',
     primaryActionLabel: 'New funded program',
     createBlankFormValues: BLANK_FORM_VALUES_BY_SECTION['funded-programs'],
     recordToFormValues: RECORD_TO_FORM_VALUES_BY_SECTION['funded-programs'],
     loadRows: (query) => toListRows(grantsApiClient.listFundedPrograms(query)),
     saveRecord: async ({ selectedId, formValues }) => {
       if (selectedId) {
-        await grantsApiClient.updateFundedProgram(selectedId, buildFundedProgramPayload(formValues));
+        await grantsApiClient.updateFundedProgram(
+          selectedId,
+          buildFundedProgramPayload(formValues)
+        );
         return 'Funded program updated.';
       }
 
@@ -329,7 +332,8 @@ export const sectionPrimaryActionLabelById = (sectionId: GrantsSectionId): strin
   SECTION_ADAPTERS[sectionId]?.primaryActionLabel ?? 'New record';
 
 export const getSectionFromPath = (pathname: string): GrantsSectionId => {
-  const normalizedPath = pathname.endsWith('/') && pathname !== '/' ? pathname.slice(0, -1) : pathname;
+  const normalizedPath =
+    pathname.endsWith('/') && pathname !== '/' ? pathname.slice(0, -1) : pathname;
   const match = SECTION_DEFINITIONS.find((definition) => normalizedPath === definition.path);
   return match?.id ?? 'funders';
 };

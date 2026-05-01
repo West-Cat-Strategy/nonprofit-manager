@@ -47,6 +47,8 @@ export const caseFormAssignmentStatusBucketSchema: z.ZodType<CaseFormAssignmentS
 
 export const caseFormAssetKindSchema = z.enum(['upload', 'signature']);
 export const caseFormDeliveryTargetSchema = z.enum(['portal', 'email', 'portal_and_email']);
+export const caseFormDeliveryChannelSchema = z.enum(['portal', 'email', 'sms']);
+export const caseFormTemplateStatusSchema = z.enum(['draft', 'published', 'archived']);
 
 export const caseFormLogicRuleSchema = z
   .object({
@@ -120,6 +122,9 @@ export const createCaseFormDefaultSchema = z
     description: z.string().trim().max(2000).optional(),
     schema: caseFormSchemaSchema,
     is_active: optionalStrictBooleanSchema,
+    case_type_id: uuidSchema.nullable().optional(),
+    template_status: caseFormTemplateStatusSchema.optional(),
+    saved_from_assignment_id: uuidSchema.nullable().optional(),
   })
   .strict();
 
@@ -129,6 +134,9 @@ export const updateCaseFormDefaultSchema = z
     description: z.string().trim().max(2000).nullable().optional(),
     schema: caseFormSchemaSchema.optional(),
     is_active: optionalStrictBooleanSchema,
+    case_type_id: uuidSchema.nullable().optional(),
+    template_status: caseFormTemplateStatusSchema.optional(),
+    autosave: optionalStrictBooleanSchema,
   })
   .strict()
   .refine((payload) => Object.values(payload).some((value) => value !== undefined), {
@@ -143,6 +151,7 @@ export const createCaseFormAssignmentSchema = z
     case_type_id: uuidSchema.optional(),
     due_at: isoDateTimeSchema.optional(),
     recipient_email: z.string().trim().email().optional(),
+    recipient_phone: z.string().trim().min(7).max(50).optional(),
     source_default_id: uuidSchema.optional(),
   })
   .strict();
@@ -154,7 +163,9 @@ export const updateCaseFormAssignmentSchema = z
     schema: caseFormSchemaSchema.optional(),
     due_at: isoDateTimeSchema.nullable().optional(),
     recipient_email: z.string().trim().email().nullable().optional(),
+    recipient_phone: z.string().trim().min(7).max(50).nullable().optional(),
     status: caseFormAssignmentStatusSchema.optional(),
+    autosave: optionalStrictBooleanSchema,
   })
   .strict()
   .refine((payload) => Object.values(payload).some((value) => value !== undefined), {
@@ -176,11 +187,17 @@ export const caseFormSubmitSchema = z
 
 export const caseFormSendSchema = z
   .object({
-    delivery_target: caseFormDeliveryTargetSchema,
+    delivery_target: caseFormDeliveryTargetSchema.optional(),
+    delivery_channels: z.array(caseFormDeliveryChannelSchema).min(1).max(3).optional(),
     recipient_email: z.string().trim().email().optional(),
+    recipient_phone: z.string().trim().min(7).max(50).optional(),
     expires_in_days: z.coerce.number().int().min(1).max(30).optional(),
   })
-  .strict();
+  .strict()
+  .refine((payload) => payload.delivery_target !== undefined || payload.delivery_channels !== undefined, {
+    message: 'At least one delivery channel is required',
+    path: ['delivery_channels'],
+  });
 
 export const caseFormReviewDecisionSchema = z
   .object({
@@ -214,6 +231,13 @@ export const caseFormCaseTypeParamsSchema = z
 export const caseFormDefaultParamsSchema = z
   .object({
     defaultId: uuidSchema,
+  })
+  .strict();
+
+export const caseFormTemplateListQuerySchema = z
+  .object({
+    status: caseFormTemplateStatusSchema.optional(),
+    case_type_id: uuidSchema.optional(),
   })
   .strict();
 

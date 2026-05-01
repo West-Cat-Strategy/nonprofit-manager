@@ -1,6 +1,7 @@
 import type {
   CaseFormAsset,
   CaseFormAssignment,
+  CaseFormAssignmentEvent,
   CaseFormDeliveryTarget,
   CaseFormAssignmentStatus,
   CaseFormLogicRule,
@@ -26,6 +27,7 @@ export interface ScopedPublicActor {
 export interface AssignmentDetailResult {
   assignment: CaseFormAssignment;
   submissions: CaseFormSubmission[];
+  evidence_events?: CaseFormAssignmentEvent[];
 }
 
 export interface DownloadableFile {

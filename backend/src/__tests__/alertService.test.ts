@@ -273,12 +273,12 @@ describe('AlertsUseCase', () => {
 
       mockPool.query.mockResolvedValue({ rows: [mockResolved] } as any);
 
-      const result = await alertService.resolveAlert('123');
+      const result = await alertService.resolveAlert('123', 'user-1');
 
       expect(result).toEqual(mockResolved);
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining("status = 'resolved'"),
-        ['123']
+        ['123', 'user-1']
       );
     });
   });

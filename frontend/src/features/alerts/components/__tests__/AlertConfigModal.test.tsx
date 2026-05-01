@@ -31,17 +31,11 @@ describe('AlertConfigModal', () => {
   it('validates required fields before submitting', async () => {
     const user = userEvent.setup();
 
-    render(
-      <AlertConfigModal
-        config={null}
-        onClose={vi.fn()}
-        onSuccess={vi.fn()}
-      />
-    );
+    render(<AlertConfigModal config={null} onClose={vi.fn()} onSuccess={vi.fn()} />);
 
     await user.click(screen.getByRole('button', { name: /create alert/i }));
 
-    expect(screen.getByText('Alert name is required')).toBeInTheDocument();
+    expect(screen.getByText('Alert rule name is required')).toBeInTheDocument();
     expect(dispatchMock).not.toHaveBeenCalled();
   });
 
@@ -49,15 +43,9 @@ describe('AlertConfigModal', () => {
     const user = userEvent.setup();
     const onSuccess = vi.fn();
 
-    render(
-      <AlertConfigModal
-        config={null}
-        onClose={vi.fn()}
-        onSuccess={onSuccess}
-      />
-    );
+    render(<AlertConfigModal config={null} onClose={vi.fn()} onSuccess={onSuccess} />);
 
-    await user.type(screen.getByLabelText(/alert name/i), 'Important alert');
+    await user.type(screen.getByLabelText(/alert rule name/i), 'Important alert');
     await user.clear(screen.getByLabelText(/threshold/i));
     await user.type(screen.getByLabelText(/threshold/i), '10');
     await user.click(screen.getByRole('button', { name: /create alert/i }));
@@ -89,15 +77,9 @@ describe('AlertConfigModal', () => {
       }),
     });
 
-    render(
-      <AlertConfigModal
-        config={null}
-        onClose={vi.fn()}
-        onSuccess={vi.fn()}
-      />
-    );
+    render(<AlertConfigModal config={null} onClose={vi.fn()} onSuccess={vi.fn()} />);
 
-    await user.type(screen.getByLabelText(/alert name/i), 'Threshold alert');
+    await user.type(screen.getByLabelText(/alert rule name/i), 'Threshold alert');
     await user.clear(screen.getByLabelText(/threshold/i));
     await user.type(screen.getByLabelText(/threshold/i), '10');
     await user.click(screen.getByRole('button', { name: /test alert/i }));

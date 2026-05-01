@@ -38,8 +38,8 @@ test.describe('Team Messenger', () => {
 
     await expectCriticalSection(authenticatedPage, [
       'h1:has-text("Team Messenger")',
-      'text=Portal Conversations',
-      'text=Case Chat',
+      'text=Conversations',
+      'text=No team conversations yet.',
     ]);
 
     await expect(authenticatedPage.getByRole('button', { name: 'Create group chat' })).toBeVisible();

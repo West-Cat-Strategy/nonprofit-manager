@@ -21,6 +21,13 @@ const thunkMocks = vi.hoisted(() => {
   };
 });
 
+const apiMocks = vi.hoisted(() => ({
+  listPublicActions: vi.fn(),
+  createPublicAction: vi.fn(),
+  updatePublicAction: vi.fn(),
+  listPublicActionSubmissions: vi.fn(),
+}));
+
 const overview = {
   site: {
     id: 'site-1',
@@ -146,10 +153,93 @@ vi.mock('../../state', async () => {
   };
 });
 
+vi.mock('../../api/websitesApiClient', () => ({
+  websitesApiClient: apiMocks,
+}));
+
 describe('WebsiteFormsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     currentState = buildState();
+    apiMocks.listPublicActions.mockResolvedValue([
+      {
+        id: 'action-1',
+        organizationId: 'org-1',
+        siteId: 'site-1',
+        actionType: 'petition_signature',
+        status: 'published',
+        slug: 'save-the-library',
+        title: 'Save the Library',
+        description: null,
+        settings: {},
+        confirmationMessage: null,
+        publishedAt: '2026-05-01T00:00:00.000Z',
+        closedAt: null,
+        submissionCount: 2,
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:00:00.000Z',
+      },
+    ]);
+    apiMocks.listPublicActionSubmissions.mockResolvedValue([
+      {
+        id: 'submission-1',
+        organizationId: 'org-1',
+        siteId: 'site-1',
+        actionId: 'action-1',
+        actionType: 'petition_signature',
+        reviewStatus: 'new',
+        contactId: 'contact-1',
+        sourceEntityType: 'contact',
+        sourceEntityId: 'contact-1',
+        duplicateOfSubmissionId: null,
+        consent: {},
+        payloadRedacted: {},
+        generatedArtifact: {},
+        pagePath: '/petition',
+        visitorId: null,
+        sessionId: null,
+        referrer: null,
+        submittedAt: '2026-05-01T00:00:00.000Z',
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:00:00.000Z',
+      },
+    ]);
+    apiMocks.createPublicAction.mockResolvedValue({
+      id: 'action-2',
+      organizationId: 'org-1',
+      siteId: 'site-1',
+      actionType: 'donation_pledge',
+      status: 'draft',
+      slug: 'spring-pledge',
+      title: 'Spring Pledge',
+      description: null,
+      settings: {},
+      confirmationMessage: null,
+      publishedAt: null,
+      closedAt: null,
+      submissionCount: 0,
+      createdAt: '2026-05-01T00:00:00.000Z',
+      updatedAt: '2026-05-01T00:00:00.000Z',
+    });
+    apiMocks.updatePublicAction.mockImplementation((_siteId, _actionId, payload) =>
+      Promise.resolve({
+        id: 'action-1',
+        organizationId: 'org-1',
+        siteId: 'site-1',
+        actionType: 'petition_signature',
+        status: payload.status,
+        slug: 'save-the-library',
+        title: 'Save the Library',
+        description: null,
+        settings: {},
+        confirmationMessage: null,
+        publishedAt: '2026-05-01T00:00:00.000Z',
+        closedAt: null,
+        submissionCount: 2,
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:00:00.000Z',
+      })
+    );
     dispatchMock.mockImplementation((action: { type?: string }) =>
       Promise.resolve({ type: `${action.type}/fulfilled`, payload: action })
     );
@@ -164,17 +254,23 @@ describe('WebsiteFormsPage', () => {
       );
     });
 
-    expect(screen.getByText('Connected CTAs')).toBeInTheDocument();
+    expect(screen.getByText('Connected forms')).toBeInTheDocument();
+    expect(await screen.findByText('Public actions')).toBeInTheDocument();
+    expect(screen.getByText('Save the Library')).toBeInTheDocument();
     expect(screen.getByText('Managed form launch verification')).toBeInTheDocument();
-    expect(screen.getByText(/Public CTA: Contact \/ referral/i)).toBeInTheDocument();
+    expect(screen.getByText(/Public form: Contact \/ referral/i)).toBeInTheDocument();
     const homeSection = screen.getByRole('heading', { name: 'Home' }).closest('section');
     expect(homeSection).not.toBeNull();
-    const contactCard = within(homeSection as HTMLElement).getByText('Contact form').closest('article');
+    const contactCard = within(homeSection as HTMLElement)
+      .getByText('Contact form')
+      .closest('article');
     expect(contactCard).not.toBeNull();
     fireEvent.change(within(contactCard as HTMLElement).getByPlaceholderText('Success message'), {
       target: { value: 'Thanks for reaching out.' },
     });
-    fireEvent.click(within(contactCard as HTMLElement).getByRole('button', { name: 'Save form settings' }));
+    fireEvent.click(
+      within(contactCard as HTMLElement).getByRole('button', { name: 'Save form settings' })
+    );
 
     await waitFor(() => {
       expect(dispatchMock).toHaveBeenCalledWith(
@@ -211,9 +307,12 @@ describe('WebsiteFormsPage', () => {
     });
     const donationCard = screen.getByText('Donation form').closest('article');
     expect(donationCard).not.toBeNull();
-    fireEvent.change(within(donationCard as HTMLElement).getByPlaceholderText('Currency (CAD, USD)'), {
-      target: { value: 'usd' },
-    });
+    fireEvent.change(
+      within(donationCard as HTMLElement).getByPlaceholderText('Currency (CAD, USD)'),
+      {
+        target: { value: 'usd' },
+      }
+    );
     fireEvent.click(
       within(donationCard as HTMLElement).getByRole('button', { name: 'Save form settings' })
     );
@@ -235,6 +334,33 @@ describe('WebsiteFormsPage', () => {
         })
       );
     });
+  });
+
+  it('creates public action rows from the forms workspace', async () => {
+    renderPage();
+
+    await screen.findByText('Save the Library');
+    fireEvent.change(screen.getByLabelText('Public action type'), {
+      target: { value: 'donation_pledge' },
+    });
+    fireEvent.change(screen.getByLabelText('Public action title'), {
+      target: { value: 'Spring Pledge' },
+    });
+    fireEvent.change(screen.getByLabelText('Public action slug'), {
+      target: { value: 'spring-pledge' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Create public action' }));
+
+    await waitFor(() => {
+      expect(apiMocks.createPublicAction).toHaveBeenCalledWith('site-1', {
+        actionType: 'donation_pledge',
+        status: 'draft',
+        title: 'Spring Pledge',
+        slug: 'spring-pledge',
+        description: undefined,
+      });
+    });
+    expect(screen.getByText('Public action created.')).toBeInTheDocument();
   });
 });
 

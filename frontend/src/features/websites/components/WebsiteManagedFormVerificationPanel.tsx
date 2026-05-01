@@ -31,9 +31,14 @@ const buildPublishClasses = (
   return 'bg-amber-100 text-amber-800';
 };
 
-const WebsiteManagedFormVerificationPanel: React.FC<
-  WebsiteManagedFormVerificationPanelProps
-> = ({ siteId, summary, title, description, emptyTitle, emptyMessage }) => {
+const WebsiteManagedFormVerificationPanel: React.FC<WebsiteManagedFormVerificationPanelProps> = ({
+  siteId,
+  summary,
+  title,
+  description,
+  emptyTitle,
+  emptyMessage,
+}) => {
   if (!summary) {
     return (
       <section className="rounded-3xl border border-app-border bg-app-surface p-5">
@@ -68,7 +73,7 @@ const WebsiteManagedFormVerificationPanel: React.FC<
           </div>
           <div className="mt-4 flex flex-wrap gap-2 text-xs">
             <span className="rounded-full bg-app-surface-muted px-3 py-1 font-medium text-app-text-muted">
-              Focus CTA: {summary.surfaceMeta.label}
+              Focus form: {summary.surfaceMeta.label}
             </span>
             <span
               className={`rounded-full px-3 py-1 font-medium ${buildLaunchClasses(
@@ -109,7 +114,7 @@ const WebsiteManagedFormVerificationPanel: React.FC<
           <WebsiteConsoleUrlAction
             href={summary.livePageUrl}
             className={actionClasses}
-            disabledTitle="Live page is unavailable until this CTA is published."
+            disabledTitle="Live page is unavailable until this form is published."
           >
             Open live page
           </WebsiteConsoleUrlAction>

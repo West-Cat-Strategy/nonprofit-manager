@@ -1,8 +1,4 @@
-import {
-  FormField,
-  SectionCard,
-  SelectField,
-} from '../../../../components/ui';
+import { FormField, SectionCard, SelectField } from '../../../../components/ui';
 import type { OutcomesReportFilters } from '../../../../types/outcomes';
 import type { OutcomesReportFilterChange } from '../../hooks/useOutcomesReportController';
 import { interactionTypeOptions } from '../../utils/outcomesReport';
@@ -19,7 +15,7 @@ export default function OutcomesReportFiltersCard({
   return (
     <SectionCard
       title="Filters"
-      subtitle="Adjust date range, segmentation, source scope, and reporting options."
+      subtitle="Choose the date range, source, and staff view for this outcomes report."
     >
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3 lg:grid-cols-7">
         <FormField
@@ -57,7 +53,7 @@ export default function OutcomesReportFiltersCard({
         </SelectField>
         <FormField
           type="text"
-          label="Staff ID"
+          label="Staff member"
           value={filters.staffId || ''}
           onChange={(event) => onFilterChange('staffId', event.target.value || undefined)}
           placeholder="Optional"
@@ -87,7 +83,7 @@ export default function OutcomesReportFiltersCard({
               onFilterChange('includeNonReportable', event.target.checked || undefined)
             }
           />
-          Include Non-Reportable
+          Include private notes
         </label>
       </div>
     </SectionCard>

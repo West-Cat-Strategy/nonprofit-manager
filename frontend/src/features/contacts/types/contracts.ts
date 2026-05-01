@@ -2,6 +2,8 @@ import type {
   Contact,
   ContactCommunicationFilters,
   ContactCommunicationsResult,
+  ContactSuppressionEvidence,
+  ContactSuppressionEvidenceResult,
   ContactDocument,
   ContactEmailAddress,
   ContactNote,
@@ -18,12 +20,14 @@ import type {
   CreateContactNoteDTO,
   CreateContactRelationshipDTO,
   CreateContactPhoneDTO,
+  CreateContactSuppressionEvidenceDTO,
   UpdateDonorProfileDTO,
   UpdateContactDocumentDTO,
   UpdateContactEmailDTO,
   UpdateContactNoteDTO,
   UpdateContactRelationshipDTO,
   UpdateContactPhoneDTO,
+  UpdateContactSuppressionEvidenceDTO,
 } from '../../../types/contact';
 
 export type { Contact } from '../../../types/contact';
@@ -99,6 +103,16 @@ export interface ContactsApiClientPort {
     };
   }): Promise<{ updated: number; contact_ids: string[] }>;
   listCommunications(contactId: string, query?: ContactCommunicationQuery): Promise<ContactCommunicationsResult>;
+  listSuppressions(contactId: string): Promise<ContactSuppressionEvidenceResult>;
+  createSuppression(
+    contactId: string,
+    payload: CreateContactSuppressionEvidenceDTO
+  ): Promise<ContactSuppressionEvidence>;
+  updateSuppression(
+    contactId: string,
+    suppressionId: string,
+    payload: UpdateContactSuppressionEvidenceDTO
+  ): Promise<ContactSuppressionEvidence>;
   listNotes(contactId: string): Promise<{ notes: ContactNote[]; total: number }>;
   listNoteTimeline(contactId: string): Promise<ContactNotesTimelineResponse>;
   getNote(noteId: string): Promise<ContactNote>;

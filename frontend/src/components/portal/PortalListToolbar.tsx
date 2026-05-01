@@ -1,3 +1,4 @@
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import type { PortalSortOrder } from '../../features/portal/types/contracts';
 
 interface SortOption<TSort extends string> {
@@ -31,19 +32,25 @@ export default function PortalListToolbar<TSort extends string>({
   totalCount,
 }: PortalListToolbarProps<TSort>) {
   return (
-    <section className="rounded-[var(--ui-radius-md)] border border-app-border-muted bg-app-surface-muted p-3">
+    <section className="rounded-[var(--ui-radius-md)] border border-app-border-muted bg-app-surface-muted p-3 transition-colors duration-150">
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-[220px] flex-1">
           <label htmlFor="portal-list-search" className="text-xs font-semibold uppercase tracking-wide text-app-text-label">
             Search
           </label>
-          <input
-            id="portal-list-search"
-            value={searchValue}
-            onChange={(event) => onSearchChange(event.target.value)}
-            placeholder={searchPlaceholder}
-            className="mt-1 w-full rounded-[var(--ui-radius-sm)] border border-app-input-border bg-app-input-bg px-3 py-2 text-sm text-app-text focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
-          />
+          <div className="relative mt-1">
+            <MagnifyingGlassIcon
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-app-text-muted"
+              aria-hidden="true"
+            />
+            <input
+              id="portal-list-search"
+              value={searchValue}
+              onChange={(event) => onSearchChange(event.target.value)}
+              placeholder={searchPlaceholder}
+              className="w-full rounded-[var(--ui-radius-sm)] border border-app-input-border bg-app-input-bg px-3 py-2 pl-9 text-sm text-app-text transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
+            />
+          </div>
         </div>
         <div className="min-w-[170px]">
           <label htmlFor="portal-list-sort" className="text-xs font-semibold uppercase tracking-wide text-app-text-label">
@@ -53,7 +60,7 @@ export default function PortalListToolbar<TSort extends string>({
             id="portal-list-sort"
             value={sortValue}
             onChange={(event) => onSortChange(event.target.value as TSort)}
-            className="mt-1 w-full rounded-[var(--ui-radius-sm)] border border-app-input-border bg-app-input-bg px-3 py-2 text-sm text-app-text focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
+            className="mt-1 w-full rounded-[var(--ui-radius-sm)] border border-app-input-border bg-app-input-bg px-3 py-2 text-sm text-app-text transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
           >
             {sortOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -70,7 +77,7 @@ export default function PortalListToolbar<TSort extends string>({
             id="portal-list-order"
             value={orderValue}
             onChange={(event) => onOrderChange(event.target.value as PortalSortOrder)}
-            className="mt-1 w-full rounded-[var(--ui-radius-sm)] border border-app-input-border bg-app-input-bg px-3 py-2 text-sm text-app-text focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
+            className="mt-1 w-full rounded-[var(--ui-radius-sm)] border border-app-input-border bg-app-input-bg px-3 py-2 text-sm text-app-text transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
           >
             <option value="asc">Ascending</option>
             <option value="desc">Descending</option>

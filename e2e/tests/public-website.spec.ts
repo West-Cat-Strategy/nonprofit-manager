@@ -466,7 +466,9 @@ test.describe('Public website starter', () => {
       await eventRegistrationForm.getByRole('button', { name: /^register$/i }).click();
 
       const eventSubmitResponse = await eventSubmitResponsePromise;
-      const eventSubmitBodyText = await eventSubmitResponse.text();
+      const eventSubmitBodyText = eventSubmitResponse.ok()
+        ? ''
+        : await eventSubmitResponse.text().catch(() => '<unreadable response body>');
       expect(
         eventSubmitResponse.ok(),
         `Public event registration failed (${eventSubmitResponse.status()}): ${eventSubmitBodyText}`

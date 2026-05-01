@@ -6,9 +6,9 @@
 
 1. This wave is named `P5-T6-reference-expansion-2026-04`.
 2. This wave does not revise the locked `P5-T6-oss-benchmark` cohort or its existing `PAT-01` through `PAT-15` decisions.
-3. Upstream clones live under `reference-repos/external/nm--<slug>/` and remain ignored local-only reference material.
+3. Upstream clones live centrally under `/Users/bryan/projects/reference-repos/repos/`; ignored `reference-repos/external/nm--<slug>/` symlinks preserve the original review paths.
 4. The tracked source of clone truth is `reference-repos/manifest.lock.json`.
-5. The primary tracked research artifact is [improvement-opportunities.md](improvement-opportunities.md).
+5. The primary tracked research artifact is [improvement-opportunities.md](improvement-opportunities.md), with the May 1 cross-lane consolidation in [../P5-T6-reference-repo-consolidation-2026-05-01.md](../P5-T6-reference-repo-consolidation-2026-05-01.md).
 6. Runtime implementation is not authorized by this wave. Any accepted pattern still needs a future scoped workboard row before code changes.
 7. Default reuse class is `architecture_only`; no direct source copying is authorized.
 
@@ -36,6 +36,14 @@ The second-pass subagent review merged three reference lanes into one ranked opp
 - Finance, events, payments, and governance: OpenPetra, ERPNext, pretix, and Open Collective reinforce later typed fund designations, donation batches, event order/check-in state, finance exports, and transparent reporting without promoting them to current runtime work.
 
 This synthesis does not promote queued work into implementation. It keeps the current runtime pickup limited to active `P5-T3` and `P5-T5` seams while using the larger reference set to sharpen future `P5-T6B`, `P5-T6C`, and finance/event rows.
+
+## May 1 Consolidation
+
+The May 1 read-only subagent review reconciles the reference expansion with the signed-off local-first communications, suppression governance, and newsletter operability work. The consolidation keeps runtime interfaces frozen and adds a clearer candidate split:
+
+- `borrow now, with separate runtime signoff`: local campaign delivery drain, local unsubscribe/List-Unsubscribe, recipient drilldown, double opt-in, campaign lifecycle actions, case-form evidence packets, reassessment due cues, portal workqueue polish, volunteer dispatch cockpit, and audit/report health polish.
+- `queue for P5-T6`: typed fund designations, donation batches, memberships, typed appeals, dynamic CRM segments, referral/transfer status, service-site routing, closure-readiness packets, event order/check-in/payment snapshots, document retention, and finance snapshots.
+- `reject`: marketing automation canvases, GL/fiscal-host parity, generic workflow studios, offline sync transplants, and direct source copying from restricted-license or `reference_only` repos.
 
 ## Second-Pass Queue Additions
 

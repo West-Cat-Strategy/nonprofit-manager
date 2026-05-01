@@ -113,6 +113,7 @@ export interface AlertStats {
 }
 
 export interface AlertInstanceFilters {
+  userId: string;
   status?: string;
   severity?: string;
   limit?: number;
@@ -142,8 +143,8 @@ export interface AlertsRepositoryPort {
   deleteAlert(id: string, userId: string): Promise<boolean>;
   toggleAlert(id: string, userId: string): Promise<AlertConfig | null>;
   getCurrentMetricValue(metricType: AlertMetricType, filters: Record<string, unknown>): Promise<number>;
-  getAlertInstances(filters?: AlertInstanceFilters): Promise<AlertInstance[]>;
+  getAlertInstances(filters: AlertInstanceFilters): Promise<AlertInstance[]>;
   acknowledgeAlert(id: string, userId: string): Promise<AlertInstance | null>;
-  resolveAlert(id: string): Promise<AlertInstance | null>;
+  resolveAlert(id: string, userId: string): Promise<AlertInstance | null>;
   getAlertStatsSnapshot(userId: string): Promise<AlertStatsSnapshot>;
 }

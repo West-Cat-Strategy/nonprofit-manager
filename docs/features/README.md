@@ -1,8 +1,9 @@
 # Feature Docs
 
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-05-01
 
 Use this index to find current feature reference docs first. Use [FEATURE_MATRIX.md](FEATURE_MATRIX.md) for the route-first capability map, then use the narrower docs below when you need domain-specific behavior or contracts.
+For product positioning, start with [../../README.md](../../README.md); for contributor workflow, use [../../CONTRIBUTING.md](../../CONTRIBUTING.md).
 
 ## Current Reference Docs
 

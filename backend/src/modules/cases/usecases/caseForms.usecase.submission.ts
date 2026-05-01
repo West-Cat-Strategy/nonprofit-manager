@@ -107,6 +107,7 @@ export const completeSubmission = async (
   detailOptions: {
     responsePacketDownloadUrl?: string | null;
     buildAssetDownloadUrl?: ((assetId: string) => string) | null;
+    includeEvidenceEvents?: boolean;
   } = {}
 ): Promise<AssignmentDetailResult> => {
   if (TERMINAL_ASSIGNMENT_STATUSES.has(assignment.status) && assignment.status !== 'submitted') {
@@ -217,6 +218,29 @@ export const completeSubmission = async (
       responsePacketFilePath: artifactDraft.packetUpload.filePath,
       responsePacketCaseDocumentId,
       responsePacketContactDocumentId,
+    });
+
+    await repository.createAssignmentEvent(client, {
+      assignmentId: assignment.id,
+      caseId: assignment.case_id,
+      contactId: assignment.contact_id,
+      accountId: assignment.account_id || null,
+      eventType: 'submission_recorded',
+      actorType: actor.actorType,
+      actorUserId: actor.userId || null,
+      actorPortalUserId: actor.portalUserId || null,
+      submissionId: submission.id,
+      accessTokenId: actor.accessTokenId || null,
+      metadata: {
+        submission_id: submission.id,
+        submission_number: nextSubmissionNumber,
+        client_submission_id: replayId,
+        selected_asset_count: selectedAssets.length,
+        mapped_field_count: audit.filter((item) => item.applied).length,
+        skipped_mapping_count: audit.filter((item) => !item.applied).length,
+        response_packet_case_document_id: responsePacketCaseDocumentId,
+        response_packet_contact_document_id: responsePacketContactDocumentId,
+      },
     });
 
     await repository.linkAssetsToSubmission(

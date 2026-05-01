@@ -1,4 +1,5 @@
 import type { UserProfile, UserProfileFallback } from './types';
+import type { NotificationSettings } from './types';
 
 export const pronounOptions = [
   { value: '', label: 'Prefer not to say' },
@@ -9,6 +10,16 @@ export const pronounOptions = [
   { value: 'she/they', label: 'She/They' },
   { value: 'custom', label: 'Custom (specify below)' },
 ];
+
+export const notificationPreferenceLabels: Record<keyof NotificationSettings, string> = {
+  emailNotifications: 'Email updates',
+  taskReminders: 'Task reminders',
+  eventReminders: 'Event reminders',
+  donationAlerts: 'Donation alerts',
+  caseUpdates: 'Case updates',
+  weeklyDigest: 'Weekly digest',
+  marketingEmails: 'Product and marketing emails',
+};
 
 export const MAX_IMAGE_DIMENSION = 400;
 export const MAX_FILE_SIZE = 20 * 1024 * 1024;

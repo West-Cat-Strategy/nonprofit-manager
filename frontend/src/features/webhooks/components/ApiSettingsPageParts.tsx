@@ -1,39 +1,87 @@
-import { useState } from 'react';
-import type {
-  ApiKey,
-  WebhookDelivery,
-  WebhookEndpoint,
-} from '../../../types/webhook';
+import { useEffect, useId, useState } from 'react';
+import {
+  ArrowPathIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  ClipboardDocumentIcon,
+  EyeIcon,
+  EyeSlashIcon,
+  KeyIcon,
+  NoSymbolIcon,
+  ShieldCheckIcon,
+  XCircleIcon,
+} from '@heroicons/react/24/outline';
+import type { ApiKey, WebhookDelivery, WebhookEndpoint } from '../../../types/webhook';
 
 export function StatusBadge({ status }: { status: string }) {
-  const colors: Record<string, string> = {
-    active: 'bg-app-accent-soft text-app-accent-text',
-    success: 'bg-app-accent-soft text-app-accent-text',
-    revoked: 'bg-app-accent-soft text-app-accent-text',
-    failed: 'bg-app-accent-soft text-app-accent-text',
-    expired: 'bg-app-surface-muted text-app-text',
-    pending: 'bg-app-accent-soft text-app-accent-text',
-    retrying: 'bg-app-accent-soft text-app-accent-text',
+  const normalizedStatus = status.toLowerCase();
+  const config: Record<
+    string,
+    {
+      label: string;
+      className: string;
+      icon: typeof CheckCircleIcon;
+    }
+  > = {
+    active: {
+      label: 'Active',
+      className: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+      icon: CheckCircleIcon,
+    },
+    success: {
+      label: 'Delivered',
+      className: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+      icon: CheckCircleIcon,
+    },
+    inactive: {
+      label: 'Paused',
+      className: 'border-app-border bg-app-surface-muted text-app-text-muted',
+      icon: NoSymbolIcon,
+    },
+    revoked: {
+      label: 'Revoked',
+      className: 'border-app-border bg-app-surface-muted text-app-text-muted',
+      icon: NoSymbolIcon,
+    },
+    failed: {
+      label: 'Failed',
+      className: 'border-rose-200 bg-rose-50 text-rose-700',
+      icon: XCircleIcon,
+    },
+    expired: {
+      label: 'Expired',
+      className: 'border-amber-200 bg-amber-50 text-amber-800',
+      icon: ClockIcon,
+    },
+    pending: {
+      label: 'Pending',
+      className: 'border-amber-200 bg-amber-50 text-amber-800',
+      icon: ClockIcon,
+    },
+    retrying: {
+      label: 'Retrying',
+      className: 'border-sky-200 bg-sky-50 text-sky-700',
+      icon: ArrowPathIcon,
+    },
   };
+  const statusConfig = config[normalizedStatus] ?? {
+    label: status || 'Unknown',
+    className: 'border-app-border bg-app-surface-muted text-app-text',
+    icon: ClockIcon,
+  };
+  const StatusIcon = statusConfig.icon;
 
   return (
     <span
-      className={`px-2 py-1 text-xs font-medium rounded-full ${
-        colors[status] || 'bg-app-surface-muted text-app-text'
-      }`}
+      className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs font-medium ${statusConfig.className}`}
     >
-      {status}
+      <StatusIcon className="h-3.5 w-3.5" aria-hidden="true" />
+      {statusConfig.label}
     </span>
   );
 }
 
-function SecretDisplay({
-  secret,
-  onRegenerate,
-}: {
-  secret: string;
-  onRegenerate: () => void;
-}) {
+function SecretDisplay({ secret, onRegenerate }: { secret: string; onRegenerate: () => void }) {
   const [isVisible, setIsVisible] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -49,24 +97,37 @@ function SecretDisplay({
         {isVisible ? secret : '••••••••••••••••••••••••'}
       </code>
       <button
+        type="button"
         onClick={() => setIsVisible(!isVisible)}
-        className="px-3 py-2 text-app-text-muted hover:text-app-text"
+        className="inline-flex items-center gap-1 rounded-md px-3 py-2 text-app-text-muted transition-colors hover:bg-app-surface-muted hover:text-app-text"
         title={isVisible ? 'Hide' : 'Show'}
+        aria-label={isVisible ? 'Hide webhook signing secret' : 'Show webhook signing secret'}
       >
+        {isVisible ? (
+          <EyeSlashIcon className="h-4 w-4" aria-hidden="true" />
+        ) : (
+          <EyeIcon className="h-4 w-4" aria-hidden="true" />
+        )}
         {isVisible ? 'Hide' : 'Show'}
       </button>
       <button
+        type="button"
         onClick={handleCopy}
-        className="px-3 py-2 text-app-accent hover:text-app-accent-hover"
+        className="inline-flex items-center gap-1 rounded-md px-3 py-2 text-app-accent transition-colors hover:bg-app-accent-soft hover:text-app-accent-hover"
         title="Copy"
+        aria-label="Copy webhook signing secret"
       >
+        <ClipboardDocumentIcon className="h-4 w-4" aria-hidden="true" />
         {copied ? 'Copied!' : 'Copy'}
       </button>
       <button
+        type="button"
         onClick={onRegenerate}
-        className="px-3 py-2 text-app-accent hover:text-app-accent-text"
+        className="inline-flex items-center gap-1 rounded-md px-3 py-2 text-app-accent transition-colors hover:bg-app-accent-soft hover:text-app-accent-text"
         title="Regenerate"
+        aria-label="Regenerate webhook signing secret"
       >
+        <ArrowPathIcon className="h-4 w-4" aria-hidden="true" />
         Regenerate
       </button>
     </div>
@@ -89,7 +150,7 @@ export function WebhookEndpointCard({
   onRegenerateSecret: () => void;
 }) {
   return (
-    <div className="bg-app-surface rounded-lg border border-app-border p-6 space-y-4">
+    <div className="space-y-4 rounded-lg border border-app-border bg-app-surface p-6 transition-all duration-150 hover:border-app-accent hover:shadow-sm">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-2">
@@ -102,20 +163,26 @@ export function WebhookEndpointCard({
         </div>
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={onTest}
-            className="px-3 py-1.5 text-sm text-app-accent hover:bg-app-accent-soft rounded"
+            className="rounded px-3 py-1.5 text-sm text-app-accent transition-colors hover:bg-app-accent-soft"
+            aria-label={`Send test delivery to ${endpoint.url}`}
           >
             Test
           </button>
           <button
+            type="button"
             onClick={onEdit}
-            className="px-3 py-1.5 text-sm text-app-text-muted hover:bg-app-surface-muted rounded"
+            className="rounded px-3 py-1.5 text-sm text-app-text-muted transition-colors hover:bg-app-surface-muted"
+            aria-label={`${endpoint.isActive ? 'Pause' : 'Resume'} webhook endpoint ${endpoint.url}`}
           >
-            Edit
+            {endpoint.isActive ? 'Pause' : 'Resume'}
           </button>
           <button
+            type="button"
             onClick={onDelete}
-            className="px-3 py-1.5 text-sm text-app-accent hover:bg-app-accent-soft rounded"
+            className="rounded px-3 py-1.5 text-sm text-app-accent transition-colors hover:bg-app-accent-soft"
+            aria-label={`Delete webhook endpoint ${endpoint.url}`}
           >
             Delete
           </button>
@@ -153,6 +220,7 @@ export function WebhookEndpointCard({
           )}
         </div>
         <button
+          type="button"
           onClick={onViewDeliveries}
           className="text-sm text-app-accent hover:underline"
         >
@@ -169,15 +237,13 @@ export function WebhookEndpointCard({
             <div className="text-xs text-app-text-muted">Total</div>
           </div>
           <div>
-            <div className="text-2xl font-semibold text-app-accent">
+            <div className="text-2xl font-semibold text-emerald-700">
               {endpoint.successfulDeliveries}
             </div>
             <div className="text-xs text-app-text-muted">Successful</div>
           </div>
           <div>
-            <div className="text-2xl font-semibold text-app-accent">
-              {endpoint.failedDeliveries}
-            </div>
+            <div className="text-2xl font-semibold text-rose-700">{endpoint.failedDeliveries}</div>
             <div className="text-xs text-app-text-muted">Failed</div>
           </div>
         </div>
@@ -196,7 +262,7 @@ export function ApiKeyCard({
   onDelete: () => void;
 }) {
   return (
-    <div className="bg-app-surface rounded-lg border border-app-border p-6 space-y-4">
+    <div className="space-y-4 rounded-lg border border-app-border bg-app-surface p-6 transition-all duration-150 hover:border-app-accent hover:shadow-sm">
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">
@@ -208,15 +274,19 @@ export function ApiKeyCard({
         <div className="flex items-center gap-2">
           {apiKey.status === 'active' && (
             <button
+              type="button"
               onClick={onRevoke}
-              className="px-3 py-1.5 text-sm text-app-accent hover:bg-app-accent-soft rounded"
+              className="rounded px-3 py-1.5 text-sm text-app-accent transition-colors hover:bg-app-accent-soft"
+              aria-label={`Revoke API key ${apiKey.name}`}
             >
               Revoke
             </button>
           )}
           <button
+            type="button"
             onClick={onDelete}
-            className="px-3 py-1.5 text-sm text-app-accent hover:bg-app-accent-soft rounded"
+            className="rounded px-3 py-1.5 text-sm text-app-accent transition-colors hover:bg-app-accent-soft"
+            aria-label={`Delete API key ${apiKey.name}`}
           >
             Delete
           </button>
@@ -255,9 +325,7 @@ export function ApiKeyCard({
             <div className="text-xs text-app-text-muted">Total Requests</div>
           </div>
           <div>
-            <div className="text-2xl font-semibold text-app-accent">
-              {apiKey.requestsThisMonth}
-            </div>
+            <div className="text-2xl font-semibold text-app-accent">{apiKey.requestsThisMonth}</div>
             <div className="text-xs text-app-text-muted">This Month</div>
           </div>
           <div>
@@ -279,12 +347,41 @@ export function DeliveryHistoryModal({
   deliveries: WebhookDelivery[];
   onClose: () => void;
 }) {
+  const titleId = useId();
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 app-popup-backdrop flex items-center justify-center z-50">
-      <div className="bg-app-surface rounded-lg shadow-xl w-full max-w-4xl max-h-[80vh] overflow-hidden">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center app-popup-backdrop"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-4xl max-h-[80vh] overflow-hidden rounded-lg bg-app-surface shadow-xl transition-all duration-150"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className="flex items-center justify-between p-4 border-b border-app-border">
-          <h3 className="text-lg font-semibold">Delivery History</h3>
-          <button onClick={onClose} className="text-app-text-muted hover:text-app-text-muted">
+          <h3 id={titleId} className="text-lg font-semibold">
+            Delivery History
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded px-2 py-1 text-app-text-muted transition-colors hover:bg-app-surface-muted hover:text-app-text"
+            aria-label="Close delivery history"
+          >
             Close
           </button>
         </div>
@@ -322,9 +419,7 @@ export function DeliveryHistoryModal({
                     <td className="px-4 py-3 text-sm text-app-text-muted">
                       {delivery.responseStatus || '-'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-app-text-muted">
-                      {delivery.attempts}
-                    </td>
+                    <td className="px-4 py-3 text-sm text-app-text-muted">{delivery.attempts}</td>
                     <td className="px-4 py-3 text-sm text-app-text-muted">
                       {new Date(delivery.createdAt).toLocaleString()}
                     </td>
@@ -347,28 +442,42 @@ export function NewApiKeyModal({
   onClose: () => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const titleId = useId();
+  const descriptionId = useId();
 
   const handleCopy = () => {
     navigator.clipboard.writeText(apiKey.key);
     setCopied(true);
   };
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 app-popup-backdrop flex items-center justify-center z-50">
-      <div className="bg-app-surface rounded-lg shadow-xl w-full max-w-lg p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center app-popup-backdrop">
+      <div
+        className="w-full max-w-lg rounded-lg bg-app-surface p-6 shadow-xl transition-all duration-150"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+      >
         <div className="text-center mb-6">
           <div className="mx-auto w-12 h-12 bg-app-accent-soft rounded-full flex items-center justify-center mb-4">
-            <svg className="w-6 h-6 text-app-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
+            <ShieldCheckIcon className="w-6 h-6 text-app-accent" aria-hidden="true" />
           </div>
-          <h3 className="text-lg font-semibold text-app-text-heading">API Key Created</h3>
-          <p className="mt-2 text-sm text-app-text-muted">
+          <h3 id={titleId} className="text-lg font-semibold text-app-text-heading">
+            API Key Created
+          </h3>
+          <p id={descriptionId} className="mt-2 text-sm text-app-text-muted">
             Copy your API key now. You won't be able to see it again!
           </p>
         </div>
@@ -382,13 +491,16 @@ export function NewApiKeyModal({
               {apiKey.key}
             </code>
             <button
+              type="button"
               onClick={handleCopy}
-              className={`px-4 py-2 rounded font-medium ${
+              className={`inline-flex items-center gap-2 rounded px-4 py-2 font-medium transition-colors ${
                 copied
                   ? 'bg-app-accent text-[var(--app-accent-foreground)]'
                   : 'bg-app-accent text-[var(--app-accent-foreground)] hover:bg-app-accent-hover'
               }`}
+              aria-label={`Copy API key for ${apiKey.name}`}
             >
+              <KeyIcon className="h-4 w-4" aria-hidden="true" />
               {copied ? 'Copied!' : 'Copy'}
             </button>
           </div>
@@ -401,8 +513,9 @@ export function NewApiKeyModal({
         </div>
 
         <button
+          type="button"
           onClick={onClose}
-          className="w-full px-4 py-2 bg-app-surface-muted text-app-text-muted rounded-lg font-medium hover:bg-app-surface-muted"
+          className="w-full rounded-lg bg-app-surface-muted px-4 py-2 font-medium text-app-text-muted transition-colors hover:bg-app-hover hover:text-app-text"
         >
           Done
         </button>

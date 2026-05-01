@@ -1,10 +1,10 @@
 # Nonprofit Manager - Quick Reference
 
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-05-01
 
 Compact command map for day-to-day work in the nonprofit-manager repo.
 
-Use [README.md](README.md) for the quick-reference index, [archive/README.md](archive/README.md) for historical quick-reference notes, [../../README.md](../../README.md) for the onboarding path, and [../README.md](../README.md) for the broader documentation catalog.
+Use [README.md](README.md) for the quick-reference index, [archive/README.md](archive/README.md) for historical quick-reference notes, [../../README.md](../../README.md) for the organization-facing overview, [../../CONTRIBUTING.md](../../CONTRIBUTING.md) for contributor workflow, and [../README.md](../README.md) for the broader documentation catalog.
 
 ## Project Structure
 
@@ -125,7 +125,7 @@ make db-verify
 
 ## Key References
 
-- [README.md](../../README.md) - Contributor start page
+- [README.md](../../README.md) - Organization-facing product overview
 - [CONTRIBUTING.md](../../CONTRIBUTING.md) - Contributor workflow and validation
 - [docs/development/GETTING_STARTED.md](../development/GETTING_STARTED.md) - Setup and runtime choices
 - [docs/development/CONVENTIONS.md](../development/CONVENTIONS.md) - Code and workflow conventions

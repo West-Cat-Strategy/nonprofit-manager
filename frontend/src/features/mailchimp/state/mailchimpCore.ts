@@ -15,16 +15,44 @@ import type {
   MailchimpSegment,
   SavedAudience,
   CampaignRun,
+  CampaignRunRecipientList,
+  CampaignRunRecipientStatus,
   CreateSavedAudienceRequest,
   SyncContactRequest,
   BulkSyncRequest,
   BulkSyncResponse,
   SyncResult,
   CreateCampaignRequest,
+  CampaignTestSendRequest,
+  CampaignTestSendResponse,
+  CampaignRunActionResponse,
   MailchimpCampaignPreview,
 } from '../../../types/mailchimp';
 
 const getErrorMessage = (error: unknown, fallbackMessage: string) => formatApiErrorMessageWith(fallbackMessage)(error);
+const COMMUNICATIONS_BASE = '/communications';
+
+const unwrapData = <T>(payload: unknown): T => {
+  if (
+    typeof payload === 'object' &&
+    payload !== null &&
+    'success' in payload &&
+    'data' in payload
+  ) {
+    return (payload as { data: T }).data;
+  }
+
+  return payload as T;
+};
+
+const unwrapArray = <T>(payload: unknown): T[] => {
+  const data = unwrapData<unknown>(payload);
+  return Array.isArray(data) ? (data as T[]) : [];
+};
+
+const unwrapCampaignRunAction = (payload: unknown): CampaignRunActionResponse => {
+  return unwrapData<CampaignRunActionResponse>(payload);
+};
 
 const initialState: MailchimpState = {
   status: null,
@@ -48,8 +76,15 @@ const initialState: MailchimpState = {
   savedAudienceCreateError: null,
   isLoadingCampaignRuns: false,
   campaignRunsError: null,
+  campaignRunActionMessage: null,
+  campaignRunActionError: null,
+  campaignRunRecipients: {},
+  campaignRunRecipientsStatus: {},
+  isLoadingCampaignRunRecipients: {},
+  campaignRunRecipientsError: {},
   isCreatingCampaign: false,
   isSendingCampaign: false,
+  isTestingCampaign: false,
   error: null,
 };
 
@@ -60,8 +95,8 @@ export const fetchMailchimpStatus = createAsyncThunk<MailchimpStatus>(
   'mailchimp/fetchStatus',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get('/mailchimp/status');
-      return response.data;
+      const response = await api.get(`${COMMUNICATIONS_BASE}/status`);
+      return unwrapData<MailchimpStatus>(response.data);
     } catch (error) {
       const message = getErrorMessage(error, 'Network error');
       return rejectWithValue(message);
@@ -76,8 +111,8 @@ export const fetchMailchimpLists = createAsyncThunk<MailchimpList[]>(
   'mailchimp/fetchLists',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get('/mailchimp/lists');
-      return response.data;
+      const response = await api.get(`${COMMUNICATIONS_BASE}/audiences?scope=provider`);
+      return unwrapArray<MailchimpList>(response.data);
     } catch (error) {
       const message = getErrorMessage(error, 'Failed to fetch lists');
       return rejectWithValue(message);
@@ -92,8 +127,8 @@ export const fetchMailchimpList = createAsyncThunk<MailchimpList, string>(
   'mailchimp/fetchList',
   async (listId, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/mailchimp/lists/${listId}`);
-      return response.data;
+      const response = await api.get(`${COMMUNICATIONS_BASE}/audiences/${listId}`);
+      return unwrapData<MailchimpList>(response.data);
     } catch (error) {
       const message = getErrorMessage(error, 'List not found');
       return rejectWithValue(message);
@@ -140,9 +175,11 @@ export const fetchCampaigns = createAsyncThunk<MailchimpCampaign[], string | und
   'mailchimp/fetchCampaigns',
   async (listId, { rejectWithValue }) => {
     try {
-      const url = listId ? `/mailchimp/campaigns?listId=${listId}` : '/mailchimp/campaigns';
+      const url = listId
+        ? `${COMMUNICATIONS_BASE}/campaigns?audienceId=${encodeURIComponent(listId)}`
+        : `${COMMUNICATIONS_BASE}/campaigns`;
       const response = await api.get(url);
-      return response.data;
+      return unwrapArray<MailchimpCampaign>(response.data);
     } catch (error) {
       const message = getErrorMessage(error, 'Failed to fetch campaigns');
       return rejectWithValue(message);
@@ -154,8 +191,8 @@ export const fetchSavedAudiences = createAsyncThunk<SavedAudience[]>(
   'mailchimp/fetchSavedAudiences',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get('/mailchimp/audiences');
-      return response.data;
+      const response = await api.get(`${COMMUNICATIONS_BASE}/audiences?scope=saved`);
+      return unwrapArray<SavedAudience>(response.data);
     } catch (error) {
       const message = getErrorMessage(error, 'Failed to fetch saved audiences');
       return rejectWithValue(message);
@@ -167,8 +204,8 @@ export const createSavedAudience = createAsyncThunk<SavedAudience, CreateSavedAu
   'mailchimp/createSavedAudience',
   async (data, { rejectWithValue }) => {
     try {
-      const response = await api.post('/mailchimp/audiences', data);
-      return response.data;
+      const response = await api.post(`${COMMUNICATIONS_BASE}/audiences`, data);
+      return unwrapData<SavedAudience>(response.data);
     } catch (error) {
       const message = getErrorMessage(error, 'Failed to create saved audience');
       return rejectWithValue(message);
@@ -180,8 +217,8 @@ export const archiveSavedAudience = createAsyncThunk<SavedAudience, string>(
   'mailchimp/archiveSavedAudience',
   async (audienceId, { rejectWithValue }) => {
     try {
-      const response = await api.patch(`/mailchimp/audiences/${audienceId}/archive`);
-      return response.data;
+      const response = await api.patch(`${COMMUNICATIONS_BASE}/audiences/${audienceId}/archive`);
+      return unwrapData<SavedAudience>(response.data);
     } catch (error) {
       const message = getErrorMessage(error, 'Failed to archive saved audience');
       return rejectWithValue(message);
@@ -193,10 +230,33 @@ export const fetchCampaignRuns = createAsyncThunk<CampaignRun[]>(
   'mailchimp/fetchCampaignRuns',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get('/mailchimp/campaign-runs');
-      return response.data;
+      const response = await api.get(`${COMMUNICATIONS_BASE}/campaign-runs`);
+      return unwrapArray<CampaignRun>(response.data);
     } catch (error) {
       const message = getErrorMessage(error, 'Failed to fetch campaign run history');
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const fetchCampaignRunRecipients = createAsyncThunk<
+  CampaignRunRecipientList,
+  { runId: string; status?: CampaignRunRecipientStatus | 'all'; limit?: number }
+>(
+  'mailchimp/fetchCampaignRunRecipients',
+  async ({ runId, status = 'all', limit = 8 }, { rejectWithValue }) => {
+    try {
+      const params = new URLSearchParams();
+      params.set('limit', String(limit));
+      if (status !== 'all') {
+        params.set('status', status);
+      }
+      const response = await api.get(
+        `${COMMUNICATIONS_BASE}/campaign-runs/${runId}/recipients?${params.toString()}`
+      );
+      return unwrapData<CampaignRunRecipientList>(response.data);
+    } catch (error) {
+      const message = getErrorMessage(error, 'Failed to fetch campaign run recipients');
       return rejectWithValue(message);
     }
   }
@@ -241,8 +301,8 @@ export const createCampaign = createAsyncThunk<MailchimpCampaign, CreateCampaign
   'mailchimp/createCampaign',
   async (data, { rejectWithValue }) => {
     try {
-      const response = await api.post('/mailchimp/campaigns', data);
-      return response.data;
+      const response = await api.post(`${COMMUNICATIONS_BASE}/campaigns`, data);
+      return unwrapData<MailchimpCampaign>(response.data);
     } catch (error) {
       const message = getErrorMessage(error, 'Failed to create campaign');
       return rejectWithValue(message);
@@ -257,10 +317,23 @@ export const previewCampaign = createAsyncThunk<MailchimpCampaignPreview, Create
   'mailchimp/previewCampaign',
   async (data, { rejectWithValue }) => {
     try {
-      const response = await api.post('/mailchimp/campaigns/preview', data);
-      return response.data;
+      const response = await api.post(`${COMMUNICATIONS_BASE}/campaigns/preview`, data);
+      return unwrapData<MailchimpCampaignPreview>(response.data);
     } catch (error) {
       const message = getErrorMessage(error, 'Failed to preview campaign');
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const sendCampaignTest = createAsyncThunk<CampaignTestSendResponse, CampaignTestSendRequest>(
+  'mailchimp/sendCampaignTest',
+  async (data, { rejectWithValue }) => {
+    try {
+      const response = await api.post(`${COMMUNICATIONS_BASE}/campaigns/test-send`, data);
+      return unwrapData<CampaignTestSendResponse>(response.data);
+    } catch (error) {
+      const message = getErrorMessage(error, 'Failed to send campaign test email');
       return rejectWithValue(message);
     }
   }
@@ -273,9 +346,66 @@ export const sendCampaign = createAsyncThunk<void, string>(
   'mailchimp/sendCampaign',
   async (campaignId, { rejectWithValue }) => {
     try {
-      await api.post(`/mailchimp/campaigns/${campaignId}/send`);
+      await api.post(`${COMMUNICATIONS_BASE}/campaign-runs/${campaignId}/send`);
     } catch (error) {
       const message = getErrorMessage(error, 'Failed to send campaign');
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const sendCampaignRun = createAsyncThunk<CampaignRunActionResponse, string>(
+  'mailchimp/sendCampaignRun',
+  async (runId, { rejectWithValue }) => {
+    try {
+      const response = await api.post(`${COMMUNICATIONS_BASE}/campaign-runs/${runId}/send`);
+      return unwrapCampaignRunAction(response.data);
+    } catch (error) {
+      const message = getErrorMessage(error, 'Failed to send campaign run');
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const refreshCampaignRunStatus = createAsyncThunk<CampaignRunActionResponse, string>(
+  'mailchimp/refreshCampaignRunStatus',
+  async (runId, { rejectWithValue }) => {
+    try {
+      const response = await api.post(`${COMMUNICATIONS_BASE}/campaign-runs/${runId}/status`);
+      return unwrapCampaignRunAction(response.data);
+    } catch (error) {
+      const message = getErrorMessage(error, 'Failed to refresh campaign run status');
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const cancelCampaignRun = createAsyncThunk<CampaignRunActionResponse, string>(
+  'mailchimp/cancelCampaignRun',
+  async (runId, { rejectWithValue }) => {
+    try {
+      const response = await api.post(`${COMMUNICATIONS_BASE}/campaign-runs/${runId}/cancel`);
+      return unwrapCampaignRunAction(response.data);
+    } catch (error) {
+      const message = getErrorMessage(error, 'Failed to cancel campaign run');
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const rescheduleCampaignRun = createAsyncThunk<
+  CampaignRunActionResponse,
+  { runId: string; sendTime: string }
+>(
+  'mailchimp/rescheduleCampaignRun',
+  async ({ runId, sendTime }, { rejectWithValue }) => {
+    try {
+      const response = await api.post(`${COMMUNICATIONS_BASE}/campaign-runs/${runId}/reschedule`, {
+        sendTime,
+      });
+      return unwrapCampaignRunAction(response.data);
+    } catch (error) {
+      const message = getErrorMessage(error, 'Failed to reschedule campaign run');
       return rejectWithValue(message);
     }
   }
@@ -291,6 +421,8 @@ const mailchimpSlice = createSlice({
       state.savedAudienceLoadError = null;
       state.savedAudienceCreateError = null;
       state.campaignRunsError = null;
+      state.campaignRunActionError = null;
+      state.campaignRunRecipientsError = {};
     },
     clearSyncResult: (state) => {
       state.syncResult = null;
@@ -449,6 +581,7 @@ const mailchimpSlice = createSlice({
       .addCase(fetchCampaignRuns.pending, (state) => {
         state.isLoadingCampaignRuns = true;
         state.campaignRunsError = null;
+        state.campaignRunActionError = null;
       })
       .addCase(fetchCampaignRuns.fulfilled, (state, action) => {
         state.isLoadingCampaignRuns = false;
@@ -457,6 +590,20 @@ const mailchimpSlice = createSlice({
       .addCase(fetchCampaignRuns.rejected, (state, action) => {
         state.isLoadingCampaignRuns = false;
         state.campaignRunsError = action.payload as string;
+      })
+      .addCase(fetchCampaignRunRecipients.pending, (state, action) => {
+        state.isLoadingCampaignRunRecipients[action.meta.arg.runId] = true;
+        state.campaignRunRecipientsError[action.meta.arg.runId] = null;
+        state.campaignRunRecipientsStatus[action.meta.arg.runId] = action.meta.arg.status ?? 'all';
+      })
+      .addCase(fetchCampaignRunRecipients.fulfilled, (state, action) => {
+        state.isLoadingCampaignRunRecipients[action.payload.runId] = false;
+        state.campaignRunRecipients[action.payload.runId] = action.payload.recipients;
+        state.campaignRunRecipientsStatus[action.payload.runId] = action.payload.status ?? 'all';
+      })
+      .addCase(fetchCampaignRunRecipients.rejected, (state, action) => {
+        state.isLoadingCampaignRunRecipients[action.meta.arg.runId] = false;
+        state.campaignRunRecipientsError[action.meta.arg.runId] = action.payload as string;
       });
 
     // Sync contact
@@ -517,6 +664,17 @@ const mailchimpSlice = createSlice({
 
     // Send campaign
     builder
+      .addCase(sendCampaignTest.pending, (state) => {
+        state.isTestingCampaign = true;
+        state.error = null;
+      })
+      .addCase(sendCampaignTest.fulfilled, (state) => {
+        state.isTestingCampaign = false;
+      })
+      .addCase(sendCampaignTest.rejected, (state, action) => {
+        state.isTestingCampaign = false;
+        state.error = action.payload as string;
+      })
       .addCase(sendCampaign.pending, (state) => {
         state.isLoading = true;
         state.isSendingCampaign = true;
@@ -530,6 +688,58 @@ const mailchimpSlice = createSlice({
         state.isLoading = false;
         state.isSendingCampaign = false;
         state.error = action.payload as string;
+      })
+      .addCase(sendCampaignRun.pending, (state) => {
+        state.campaignRunActionMessage = null;
+        state.campaignRunActionError = null;
+      })
+      .addCase(sendCampaignRun.fulfilled, (state, action) => {
+        state.campaignRuns = state.campaignRuns.map((run) =>
+          run.id === action.payload.run.id ? action.payload.run : run
+        );
+        state.campaignRunActionMessage = action.payload.message;
+      })
+      .addCase(sendCampaignRun.rejected, (state, action) => {
+        state.campaignRunActionError = action.payload as string;
+      })
+      .addCase(refreshCampaignRunStatus.pending, (state) => {
+        state.campaignRunActionMessage = null;
+        state.campaignRunActionError = null;
+      })
+      .addCase(refreshCampaignRunStatus.fulfilled, (state, action) => {
+        state.campaignRuns = state.campaignRuns.map((run) =>
+          run.id === action.payload.run.id ? action.payload.run : run
+        );
+        state.campaignRunActionMessage = action.payload.message;
+      })
+      .addCase(refreshCampaignRunStatus.rejected, (state, action) => {
+        state.campaignRunActionError = action.payload as string;
+      })
+      .addCase(cancelCampaignRun.pending, (state) => {
+        state.campaignRunActionMessage = null;
+        state.campaignRunActionError = null;
+      })
+      .addCase(cancelCampaignRun.fulfilled, (state, action) => {
+        state.campaignRuns = state.campaignRuns.map((run) =>
+          run.id === action.payload.run.id ? action.payload.run : run
+        );
+        state.campaignRunActionMessage = action.payload.message;
+      })
+      .addCase(cancelCampaignRun.rejected, (state, action) => {
+        state.campaignRunActionError = action.payload as string;
+      })
+      .addCase(rescheduleCampaignRun.pending, (state) => {
+        state.campaignRunActionMessage = null;
+        state.campaignRunActionError = null;
+      })
+      .addCase(rescheduleCampaignRun.fulfilled, (state, action) => {
+        state.campaignRuns = state.campaignRuns.map((run) =>
+          run.id === action.payload.run.id ? action.payload.run : run
+        );
+        state.campaignRunActionMessage = action.payload.message;
+      })
+      .addCase(rescheduleCampaignRun.rejected, (state, action) => {
+        state.campaignRunActionError = action.payload as string;
       });
   },
 });

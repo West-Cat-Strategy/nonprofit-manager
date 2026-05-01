@@ -89,6 +89,7 @@ const normalizeMailchimpSettings = (value: unknown): WebsiteMailchimpSettings =>
     audienceId: config.audienceId === null ? null : cleanString(config.audienceId),
     audienceMode:
       config.audienceMode === 'crm' ||
+      config.audienceMode === 'local_email' ||
       config.audienceMode === 'mailchimp' ||
       config.audienceMode === 'mautic' ||
       config.audienceMode === 'both'
@@ -99,19 +100,19 @@ const normalizeMailchimpSettings = (value: unknown): WebsiteMailchimpSettings =>
   };
 };
 
-const normalizeNewsletterListPreset = (
-  value: unknown
-): WebsiteNewsletterListPreset | undefined => {
+const normalizeNewsletterListPreset = (value: unknown): WebsiteNewsletterListPreset | undefined => {
   const config = asObject(value);
   const id = cleanString(config.id);
   const name = cleanString(config.name);
   const provider =
-    config.provider === 'mailchimp' || config.provider === 'mautic'
+    config.provider === 'local_email' ||
+    config.provider === 'mailchimp' ||
+    config.provider === 'mautic'
       ? config.provider
       : undefined;
   const audienceId = cleanString(config.audienceId);
 
-  if (!id || !name || !provider || !audienceId) {
+  if (!id || !name || !provider || (provider !== 'local_email' && !audienceId)) {
     return undefined;
   }
 
@@ -119,9 +120,8 @@ const normalizeNewsletterListPreset = (
     id,
     name,
     provider,
-    audienceId,
-    audienceName:
-      config.audienceName === null ? null : cleanString(config.audienceName),
+    audienceId: provider === 'local_email' ? (audienceId ?? null) : audienceId,
+    audienceName: config.audienceName === null ? null : cleanString(config.audienceName),
     notes: config.notes === null ? null : cleanString(config.notes),
     defaultTags: cleanStringArray(config.defaultTags),
     syncEnabled: cleanBoolean(config.syncEnabled),
@@ -130,9 +130,7 @@ const normalizeNewsletterListPreset = (
   };
 };
 
-const normalizeNewsletterSettingsPatch = (
-  value: unknown
-): Partial<WebsiteNewsletterSettings> => {
+const normalizeNewsletterSettingsPatch = (value: unknown): Partial<WebsiteNewsletterSettings> => {
   const config = asObject(value);
   const presets = Array.isArray(config.listPresets)
     ? config.listPresets
@@ -142,7 +140,9 @@ const normalizeNewsletterSettingsPatch = (
 
   return {
     provider:
-      config.provider === 'mailchimp' || config.provider === 'mautic'
+      config.provider === 'local_email' ||
+      config.provider === 'mailchimp' ||
+      config.provider === 'mautic'
         ? config.provider
         : undefined,
     selectedAudienceId:
@@ -177,20 +177,22 @@ const normalizeNewsletterSettings = (
   const normalized = normalizeNewsletterSettingsPatch(config);
   const provider =
     normalized.provider ||
-    (mailchimpConfig.audienceId || mailchimpConfig.defaultTags?.length || mailchimpConfig.syncEnabled
+    (mailchimpConfig.audienceId ||
+    mailchimpConfig.defaultTags?.length ||
+    mailchimpConfig.syncEnabled
       ? 'mailchimp'
       : undefined) ||
     (mauticConfig.baseUrl || mauticConfig.segmentId || mauticConfig.username
       ? 'mautic'
       : undefined) ||
-    'mautic';
+    'local_email';
   const selectedAudienceId =
     normalized.selectedAudienceId !== undefined
       ? normalized.selectedAudienceId
       : provider === 'mailchimp'
-        ? mailchimpConfig.audienceId ?? null
+        ? (mailchimpConfig.audienceId ?? null)
         : provider === 'mautic'
-          ? mauticConfig.segmentId ?? null
+          ? (mauticConfig.segmentId ?? null)
           : null;
 
   return {
@@ -201,8 +203,7 @@ const normalizeNewsletterSettings = (
     selectedPresetId:
       normalized.selectedPresetId !== undefined ? normalized.selectedPresetId : null,
     listPresets: normalized.listPresets || [],
-    lastRefreshedAt:
-      normalized.lastRefreshedAt !== undefined ? normalized.lastRefreshedAt : null,
+    lastRefreshedAt: normalized.lastRefreshedAt !== undefined ? normalized.lastRefreshedAt : null,
   };
 };
 
@@ -244,12 +245,11 @@ const normalizeOperationalConfig = (value: unknown): WebsiteFormOperationalConfi
     accountId: config.accountId === null ? null : cleanString(config.accountId),
     campaignId: config.campaignId === null ? null : cleanString(config.campaignId),
     provider: normalizePaymentProvider(config.provider),
-    mailchimpListId:
-      config.mailchimpListId === null ? null : cleanString(config.mailchimpListId),
-    mauticSegmentId:
-      config.mauticSegmentId === null ? null : cleanString(config.mauticSegmentId),
+    mailchimpListId: config.mailchimpListId === null ? null : cleanString(config.mailchimpListId),
+    mauticSegmentId: config.mauticSegmentId === null ? null : cleanString(config.mauticSegmentId),
     audienceMode:
       config.audienceMode === 'crm' ||
+      config.audienceMode === 'local_email' ||
       config.audienceMode === 'mailchimp' ||
       config.audienceMode === 'mautic' ||
       config.audienceMode === 'both'
@@ -273,20 +273,16 @@ const normalizeOperationalConfig = (value: unknown): WebsiteFormOperationalConfi
   };
 };
 
-const normalizeConversionTracking = (
-  value: unknown
-): WebsiteSiteSettings['conversionTracking'] => {
+const normalizeConversionTracking = (value: unknown): WebsiteSiteSettings['conversionTracking'] => {
   const config = asObject(value);
   const events = asObject(config.events);
   return {
     enabled: cleanBoolean(config.enabled) ?? DEFAULT_CONVERSION_TRACKING.enabled,
     events: {
-      formSubmit:
-        cleanBoolean(events.formSubmit) ?? DEFAULT_CONVERSION_TRACKING.events.formSubmit,
+      formSubmit: cleanBoolean(events.formSubmit) ?? DEFAULT_CONVERSION_TRACKING.events.formSubmit,
       donation: cleanBoolean(events.donation) ?? DEFAULT_CONVERSION_TRACKING.events.donation,
       eventRegister:
-        cleanBoolean(events.eventRegister) ??
-        DEFAULT_CONVERSION_TRACKING.events.eventRegister,
+        cleanBoolean(events.eventRegister) ?? DEFAULT_CONVERSION_TRACKING.events.eventRegister,
     },
   };
 };
@@ -303,7 +299,7 @@ const buildDefaultSettings = (
   siteId,
   organizationId,
   newsletter: {
-    provider: 'mautic',
+    provider: 'local_email',
     selectedAudienceId: null,
     selectedAudienceName: null,
     selectedPresetId: null,
@@ -555,6 +551,7 @@ export class WebsiteSiteSettingsService {
     const nextPreset: WebsiteNewsletterListPreset = {
       ...preset,
       id: `newsletter-list-${randomUUID()}`,
+      audienceId: preset.audienceId ?? null,
       createdAt: timestamp,
       updatedAt: timestamp,
       defaultTags: preset.defaultTags || [],
@@ -585,23 +582,38 @@ export class WebsiteSiteSettingsService {
     const timestamp = new Date();
     const nextPresets = (current.newsletter.listPresets || []).map((preset) =>
       preset.id === presetId
-        ? {
-            ...preset,
-            ...stripUndefined({
-              ...patch,
-              provider:
-                patch.provider === 'mailchimp' || patch.provider === 'mautic'
-                  ? patch.provider
-                  : undefined,
-              audienceId: cleanString(patch.audienceId) || preset.audienceId,
-              audienceName:
-                patch.audienceName === null ? null : cleanString(patch.audienceName),
-              notes: patch.notes === null ? null : cleanString(patch.notes),
-              defaultTags: cleanStringArray(patch.defaultTags),
-              syncEnabled: cleanBoolean(patch.syncEnabled),
-            }),
-            updatedAt: timestamp,
-          }
+        ? (() => {
+            const provider =
+              patch.provider === 'local_email' ||
+              patch.provider === 'mailchimp' ||
+              patch.provider === 'mautic'
+                ? patch.provider
+                : preset.provider;
+            const patchAudienceId =
+              patch.audienceId === null ? null : cleanString(patch.audienceId);
+            const audienceId =
+              provider === 'local_email'
+                ? patch.audienceId === undefined
+                  ? null
+                  : (patchAudienceId ?? null)
+                : patch.audienceId === undefined
+                  ? (preset.audienceId ?? null)
+                  : patchAudienceId || preset.audienceId || null;
+
+            return {
+              ...preset,
+              ...stripUndefined({
+                ...patch,
+                provider,
+                audienceId,
+                audienceName: patch.audienceName === null ? null : cleanString(patch.audienceName),
+                notes: patch.notes === null ? null : cleanString(patch.notes),
+                defaultTags: cleanStringArray(patch.defaultTags),
+                syncEnabled: cleanBoolean(patch.syncEnabled),
+              }),
+              updatedAt: timestamp,
+            };
+          })()
         : preset
     );
 

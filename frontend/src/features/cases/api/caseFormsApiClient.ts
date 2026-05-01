@@ -7,14 +7,46 @@ import type {
   CaseFormAssignmentDetail,
   CaseFormDefault,
   CaseFormReviewDecision,
+  CaseFormTemplateStatus,
   CreateCaseFormAssignmentDTO,
+  CreateCaseFormDefaultDTO,
   SaveCaseFormDraftDTO,
   SendCaseFormAssignmentDTO,
   SubmitCaseFormDTO,
   UpdateCaseFormAssignmentDTO,
+  UpdateCaseFormDefaultDTO,
 } from '../../../types/caseForms';
 
 class StaffCaseFormsApiClient {
+  async listTemplates(input?: {
+    status?: CaseFormTemplateStatus;
+    case_type_id?: string | null;
+  }): Promise<CaseFormDefault[]> {
+    const response = await api.get<ApiEnvelope<CaseFormDefault[]>>('/v2/cases/forms/templates', {
+      params: {
+        status: input?.status,
+        case_type_id: input?.case_type_id || undefined,
+      },
+    });
+    return unwrapApiData(response.data);
+  }
+
+  async createTemplate(payload: CreateCaseFormDefaultDTO): Promise<CaseFormDefault> {
+    const response = await api.post<ApiEnvelope<CaseFormDefault>>('/v2/cases/forms/templates', payload);
+    return unwrapApiData(response.data);
+  }
+
+  async autosaveTemplate(
+    templateId: string,
+    payload: UpdateCaseFormDefaultDTO
+  ): Promise<CaseFormDefault> {
+    const response = await api.put<ApiEnvelope<CaseFormDefault>>(
+      `/v2/cases/forms/templates/${templateId}`,
+      payload
+    );
+    return unwrapApiData(response.data);
+  }
+
   async listRecommendedDefaults(caseId: string): Promise<CaseFormDefault[]> {
     const response = await api.get<ApiEnvelope<CaseFormDefault[]>>(
       `/v2/cases/${caseId}/forms/recommended-defaults`
@@ -39,6 +71,18 @@ class StaffCaseFormsApiClient {
   async instantiateDefault(caseId: string, defaultId: string): Promise<CaseFormAssignment> {
     const response = await api.post<ApiEnvelope<CaseFormAssignment>>(
       `/v2/cases/${caseId}/forms/defaults/${defaultId}/instantiate`
+    );
+    return unwrapApiData(response.data);
+  }
+
+  async saveAssignmentAsTemplate(
+    caseId: string,
+    assignmentId: string,
+    payload: CreateCaseFormDefaultDTO
+  ): Promise<CaseFormDefault> {
+    const response = await api.post<ApiEnvelope<CaseFormDefault>>(
+      `/v2/cases/${caseId}/forms/${assignmentId}/save-template`,
+      payload
     );
     return unwrapApiData(response.data);
   }

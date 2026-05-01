@@ -1,3 +1,4 @@
+import { BellIcon } from '@heroicons/react/24/outline';
 import PortalPageState from '../../../components/portal/PortalPageState';
 import PortalPageShell from '../../../components/portal/PortalPageShell';
 import PortalListCard from '../../../components/portal/PortalListCard';
@@ -36,28 +37,13 @@ export default function PortalReminders() {
     sort: sortField,
     order: sortOrder,
   });
+  const shouldShowListTools = reminders.length > 0 || searchTerm.trim().length > 0;
 
   return (
     <PortalPageShell
       title="Reminders"
       description="Track upcoming tasks, events, and appointment reminders in one place."
     >
-      <PortalListToolbar
-        searchValue={searchTerm}
-        onSearchChange={setSearch}
-        searchPlaceholder="Search reminders by type or title"
-        sortValue={sortField}
-        onSortChange={setSort}
-        sortOptions={[
-          { value: 'date', label: 'Reminder date' },
-          { value: 'title', label: 'Title' },
-          { value: 'type', label: 'Type' },
-        ]}
-        orderValue={sortOrder}
-        onOrderChange={setOrder}
-        showingCount={reminders.length}
-        totalCount={total}
-      />
       <PortalPageState
         loading={loading}
         error={error}
@@ -69,13 +55,33 @@ export default function PortalReminders() {
             ? 'Try a different search term.'
             : 'Upcoming reminders will show here once available.'
         }
+        emptyIcon={<BellIcon className="h-5 w-5" aria-hidden="true" />}
         onRetry={refresh}
       />
+      {shouldShowListTools && (
+        <PortalListToolbar
+          searchValue={searchTerm}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search reminders by type or title"
+          sortValue={sortField}
+          onSortChange={setSort}
+          sortOptions={[
+            { value: 'date', label: 'Reminder date' },
+            { value: 'title', label: 'Title' },
+            { value: 'type', label: 'Type' },
+          ]}
+          orderValue={sortOrder}
+          onOrderChange={setOrder}
+          showingCount={reminders.length}
+          totalCount={total}
+        />
+      )}
       {!loading && !error && reminders.length > 0 && (
-        <ul className="space-y-3">
+        <ul className="mt-3 space-y-3">
           {reminders.map((reminder: PortalReminder) => (
             <li key={`${reminder.type}-${reminder.id}`}>
               <PortalListCard
+                icon={<BellIcon className="h-5 w-5" aria-hidden="true" />}
                 title={reminder.title}
                 subtitle={reminder.type.toUpperCase()}
                 meta={formatPortalDateTime(reminder.date)}

@@ -216,7 +216,7 @@ describe('WebsiteSiteSettingsService', () => {
       'site-1',
       'org-1',
       JSON.stringify({
-        provider: 'mautic',
+        provider: 'local_email',
         selectedAudienceId: null,
         selectedAudienceName: null,
         selectedPresetId: null,

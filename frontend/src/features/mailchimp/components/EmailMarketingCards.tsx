@@ -1,4 +1,12 @@
-import type { CampaignRun, MailchimpCampaign, MailchimpList } from '../../../types/mailchimp';
+import { useState } from 'react';
+import type {
+  CampaignRun,
+  CampaignRunRecipient,
+  CampaignRunRecipientStatus,
+  CampaignRunProviderMetrics,
+  MailchimpCampaign,
+  MailchimpList,
+} from '../../../types/mailchimp';
 
 function StatusBadge({ status }: { status: string }) {
   const statusColors: Record<string, string> = {
@@ -38,6 +46,7 @@ function StatusBadge({ status }: { status: string }) {
 
 export function CampaignCard({ campaign }: { campaign: MailchimpCampaign }) {
   const sendTimeLabel = campaign.status === 'schedule' ? 'Scheduled' : 'Sent';
+  const providerLabel = campaign.provider === 'mailchimp' ? 'Mailchimp' : 'Local Email';
 
   return (
     <div className="bg-app-surface border border-app-border rounded-lg p-4 hover:shadow-md transition-shadow">
@@ -47,6 +56,7 @@ export function CampaignCard({ campaign }: { campaign: MailchimpCampaign }) {
           {campaign.subject && (
             <p className="text-sm text-app-text-muted mt-1">{campaign.subject}</p>
           )}
+          <p className="mt-1 text-xs text-app-text-subtle">{providerLabel}</p>
         </div>
         <StatusBadge status={campaign.status} />
       </div>
@@ -87,7 +97,81 @@ export function CampaignCard({ campaign }: { campaign: MailchimpCampaign }) {
   );
 }
 
-export function CampaignRunCard({ run }: { run: CampaignRun }) {
+const asProviderMetrics = (value: unknown): CampaignRunProviderMetrics | null =>
+  typeof value === 'object' && value !== null ? (value as CampaignRunProviderMetrics) : null;
+
+const metricNumber = (
+  metrics: CampaignRunProviderMetrics | null,
+  key: keyof CampaignRunProviderMetrics
+): number | undefined => {
+  const value = metrics?.[key];
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+};
+
+const formatProviderCount = (value: number): string => value.toLocaleString();
+
+const formatProviderRate = (value: number): string => {
+  const normalized = value <= 1 ? value * 100 : value;
+  return `${normalized.toFixed(1)}%`;
+};
+
+const buildProviderSummary = (metrics: CampaignRunProviderMetrics | null): string | null => {
+  if (!metrics) {
+    return null;
+  }
+
+  const emailsSent = metricNumber(metrics, 'emailsSent');
+  const openRate = metricNumber(metrics, 'openRate');
+  const clickRate = metricNumber(metrics, 'clickRate');
+  const unsubscribes = metricNumber(metrics, 'unsubscribes');
+  const rawBounces = metrics?.bounces;
+  const bounceTotal =
+    typeof rawBounces === 'object' && rawBounces !== null && 'total' in rawBounces
+      ? Number((rawBounces as { total?: unknown }).total)
+      : undefined;
+  const bounces =
+    metricNumber(metrics, 'bounces') ??
+    (Number.isFinite(bounceTotal) ? bounceTotal : undefined);
+  const abuseReports = metricNumber(metrics, 'abuseReports');
+  const summaryParts = [
+    emailsSent !== undefined ? `${formatProviderCount(emailsSent)} sent` : null,
+    openRate !== undefined ? `${formatProviderRate(openRate)} opens` : null,
+    clickRate !== undefined ? `${formatProviderRate(clickRate)} clicks` : null,
+    unsubscribes !== undefined ? `${formatProviderCount(unsubscribes)} unsubscribed` : null,
+    bounces !== undefined ? `${formatProviderCount(bounces)} bounced` : null,
+    abuseReports !== undefined ? `${formatProviderCount(abuseReports)} abuse reports` : null,
+  ].filter(Boolean);
+
+  return summaryParts.length > 0 ? summaryParts.join(', ') : null;
+};
+
+export function CampaignRunCard({
+  run,
+  onSend,
+  onRefreshStatus,
+  onCancel,
+  onReschedule,
+  onLoadRecipients,
+  recipients = [],
+  isLoadingRecipients = false,
+  recipientsError,
+  localDeliveryReady = true,
+  localDeliveryBlockedReason,
+}: {
+  run: CampaignRun;
+  onSend?: (runId: string) => void;
+  onRefreshStatus?: (runId: string) => void;
+  onCancel?: (runId: string) => void;
+  onReschedule?: (runId: string, sendTime: string) => void;
+  onLoadRecipients?: (runId: string, status?: CampaignRunRecipientStatus | 'all') => void;
+  recipients?: CampaignRunRecipient[];
+  isLoadingRecipients?: boolean;
+  recipientsError?: string | null;
+  localDeliveryReady?: boolean;
+  localDeliveryBlockedReason?: string;
+}) {
+  const [recipientStatus, setRecipientStatus] = useState<CampaignRunRecipientStatus | 'all'>('all');
+  const [rescheduleTime, setRescheduleTime] = useState('');
   const statusLabels: Record<CampaignRun['status'], string> = {
     draft: 'Draft',
     scheduled: 'Scheduled',
@@ -101,8 +185,11 @@ export function CampaignRunCard({ run }: { run: CampaignRun }) {
       ? run.audienceSnapshot.savedAudienceName
       : run.includeAudienceId
         ? 'Saved audience'
-        : 'Provider audience';
-  const providerCampaignId = run.providerCampaignId || 'Pending provider id';
+        : run.provider === 'mailchimp'
+          ? 'Provider audience'
+          : 'CRM audience';
+  const providerCampaignId =
+    run.providerCampaignId || (run.provider === 'mailchimp' ? 'Pending provider id' : 'Local queue');
   const requestedCount =
     typeof run.counts.requestedContactCount === 'number'
       ? run.counts.requestedContactCount
@@ -133,6 +220,50 @@ export function CampaignRunCard({ run }: { run: CampaignRun }) {
     typeof run.counts.providerLifecycle === 'object' && run.counts.providerLifecycle !== null
       ? (run.counts.providerLifecycle as Record<string, unknown>)
       : null;
+  const providerReportSummary = asProviderMetrics(run.counts.providerReportSummary);
+  const providerSummary = buildProviderSummary(providerReportSummary);
+  const providerReportSyncedAt =
+    typeof providerReportSummary?.lastReportedAt === 'string'
+      ? providerReportSummary.lastReportedAt
+      : typeof providerReportSummary?.lastSyncedAt === 'string'
+        ? providerReportSummary.lastSyncedAt
+        : typeof providerReportSummary?.refreshedAt === 'string'
+          ? providerReportSummary.refreshedAt
+          : null;
+  const canRequestRunAction =
+    run.provider === 'local_email'
+      ? run.status === 'draft' || run.status === 'scheduled' || run.status === 'sending'
+      : run.status === 'draft' || run.status === 'scheduled';
+  const canCancelLocalRun =
+    run.provider === 'local_email' &&
+    (run.status === 'draft' || run.status === 'scheduled' || run.status === 'sending');
+  const canRescheduleLocalRun =
+    run.provider === 'local_email' && (run.status === 'draft' || run.status === 'scheduled');
+  const isLocalSendBlocked = run.provider === 'local_email' && !localDeliveryReady;
+  const sendDisabledReason =
+    isLocalSendBlocked
+      ? localDeliveryBlockedReason ||
+        'Configure SMTP before sending local campaign runs.'
+      : undefined;
+  const contactsActionLabel = run.provider === 'mailchimp' ? 'synced' : 'selected';
+  const sendActionLabel =
+    run.provider === 'local_email' && run.status === 'sending' ? 'Continue sending' : 'Send run now';
+  const recipientStatusOptions: Array<CampaignRunRecipientStatus | 'all'> = [
+    'all',
+    'queued',
+    'sending',
+    'sent',
+    'failed',
+    'suppressed',
+    'canceled',
+  ];
+  const handleRecipientLoad = () => onLoadRecipients?.(run.id, recipientStatus);
+  const handleReschedule = () => {
+    if (!rescheduleTime) {
+      return;
+    }
+    onReschedule?.(run.id, rescheduleTime);
+  };
 
   return (
     <div className="rounded-lg border border-app-border bg-app-surface p-4">
@@ -155,13 +286,13 @@ export function CampaignRunCard({ run }: { run: CampaignRun }) {
         </p>
         {providerSegmentId !== undefined || providerSegmentName ? (
           <p>
-            Run segment: {providerSegmentName || 'Mailchimp static segment'}
+            Run segment: {providerSegmentName || 'Provider static segment'}
             {providerSegmentId !== undefined ? ` (#${providerSegmentId})` : ''}
           </p>
         ) : null}
         {requestedCount !== undefined || syncedCount !== undefined ? (
           <p>
-            Contacts: {syncedCount ?? requestedCount} synced
+            Contacts: {syncedCount ?? requestedCount} {contactsActionLabel}
             {requestedCount !== undefined ? ` from ${requestedCount} requested` : ''}
             {skippedCount !== undefined && skippedCount > 0 ? `, ${skippedCount} skipped` : ''}
           </p>
@@ -187,6 +318,14 @@ export function CampaignRunCard({ run }: { run: CampaignRun }) {
             )}
           </p>
         ) : null}
+        {providerSummary ? (
+          <p>
+            Provider summary: {providerSummary}
+            {providerReportSyncedAt
+              ? ` (synced ${new Date(providerReportSyncedAt).toLocaleString()})`
+              : ''}
+          </p>
+        ) : null}
         {run.testRecipients.length > 0 ? (
           <p>
             Test recipients: {run.testRecipients.slice(0, 2).join(', ')}
@@ -200,6 +339,130 @@ export function CampaignRunCard({ run }: { run: CampaignRun }) {
           <p className="text-app-accent">Failure: {run.failureMessage}</p>
         ) : null}
       </div>
+      <div className="mt-4 flex flex-wrap gap-2 border-t border-app-border pt-3">
+        <button
+          type="button"
+          onClick={() => onSend?.(run.id)}
+          disabled={!canRequestRunAction || !onSend || isLocalSendBlocked}
+          title={sendDisabledReason}
+          className="rounded-lg border border-app-input-border px-3 py-1.5 text-xs font-medium text-app-text transition-colors hover:bg-app-surface-muted disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {sendActionLabel}
+        </button>
+        <button
+          type="button"
+          onClick={() => onRefreshStatus?.(run.id)}
+          disabled={!canRequestRunAction || !onRefreshStatus}
+          className="rounded-lg border border-app-input-border px-3 py-1.5 text-xs font-medium text-app-text transition-colors hover:bg-app-surface-muted disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Refresh run status
+        </button>
+        {run.provider === 'local_email' ? (
+          <>
+            <button
+              type="button"
+              onClick={() => onCancel?.(run.id)}
+              disabled={!canCancelLocalRun || !onCancel}
+              className="rounded-lg border border-app-input-border px-3 py-1.5 text-xs font-medium text-app-text transition-colors hover:bg-app-surface-muted disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <label className="flex min-w-[220px] flex-wrap items-center gap-2 text-xs text-app-text-muted">
+              <span>New send time</span>
+              <input
+                type="datetime-local"
+                value={rescheduleTime}
+                onChange={(event) => setRescheduleTime(event.target.value)}
+                disabled={!canRescheduleLocalRun}
+                className="min-w-[160px] rounded-lg border border-app-input-border px-2 py-1.5 text-xs text-app-text disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={handleReschedule}
+              disabled={!canRescheduleLocalRun || !onReschedule || !rescheduleTime}
+              className="rounded-lg border border-app-input-border px-3 py-1.5 text-xs font-medium text-app-text transition-colors hover:bg-app-surface-muted disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Reschedule
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              disabled
+              title="Mailchimp campaign cancellation is not supported by this backend contract yet."
+              className="rounded-lg border border-app-input-border px-3 py-1.5 text-xs font-medium text-app-text-muted opacity-60"
+            >
+              Cancel unsupported
+            </button>
+            <button
+              type="button"
+              disabled
+              title="Mailchimp campaign rescheduling is not supported by this backend contract yet."
+              className="rounded-lg border border-app-input-border px-3 py-1.5 text-xs font-medium text-app-text-muted opacity-60"
+            >
+              Reschedule unsupported
+            </button>
+          </>
+        )}
+      </div>
+      {run.provider === 'local_email' ? (
+        <div className="mt-3 border-t border-app-border pt-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="text-xs font-medium text-app-text-muted">
+              Recipients
+              <select
+                value={recipientStatus}
+                onChange={(event) =>
+                  setRecipientStatus(event.target.value as CampaignRunRecipientStatus | 'all')
+                }
+                className="ml-2 rounded-lg border border-app-input-border px-2 py-1.5 text-xs text-app-text"
+              >
+                {recipientStatusOptions.map((status) => (
+                  <option key={status} value={status}>
+                    {status === 'all' ? 'All statuses' : statusLabels[status as CampaignRun['status']] ?? status}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              onClick={handleRecipientLoad}
+              disabled={!onLoadRecipients || isLoadingRecipients}
+              className="rounded-lg border border-app-input-border px-3 py-1.5 text-xs font-medium text-app-text transition-colors hover:bg-app-surface-muted disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isLoadingRecipients ? 'Loading...' : 'Show recipients'}
+            </button>
+          </div>
+          {recipientsError ? (
+            <p className="mt-2 text-xs text-app-accent">{recipientsError}</p>
+          ) : null}
+          {recipients.length > 0 ? (
+            <div className="mt-2 overflow-hidden rounded-lg border border-app-border-muted">
+              {recipients.slice(0, 8).map((recipient) => (
+                <div
+                  key={recipient.id}
+                  className="flex items-center justify-between gap-3 border-b border-app-border-muted px-3 py-2 text-xs last:border-b-0"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-app-text">
+                      {recipient.contactName || recipient.email}
+                    </p>
+                    {recipient.contactName ? (
+                      <p className="truncate text-app-text-muted">{recipient.email}</p>
+                    ) : null}
+                    {recipient.failureMessage ? (
+                      <p className="truncate text-app-accent">{recipient.failureMessage}</p>
+                    ) : null}
+                  </div>
+                  <StatusBadge status={recipient.status} />
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -235,7 +498,13 @@ export function ListCard({
         )}
       </div>
       <div className="mt-2 flex items-center gap-4 text-sm text-app-text-muted">
-        <span>{list.memberCount.toLocaleString()} subscribers</span>
+        <span>
+          {list.memberCount.toLocaleString()}{' '}
+          {list.provider === 'local_email' ? 'eligible contacts' : 'subscribers'}
+        </span>
+        {list.provider ? (
+          <span>{list.provider === 'mailchimp' ? 'Mailchimp' : 'Local Email'}</span>
+        ) : null}
         {list.doubleOptIn && (
           <span className="flex items-center gap-1">
             <svg className="w-4 h-4 text-app-accent" fill="currentColor" viewBox="0 0 20 20">

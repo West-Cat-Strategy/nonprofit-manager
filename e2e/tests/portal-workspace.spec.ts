@@ -307,11 +307,11 @@ test.describe('Portal Workspace', () => {
     await loginPortalUserUI(page, portalUser);
 
     await page.goto('/portal');
-    await expect(page.getByRole('heading', { name: /your case workspace/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /your portal home/i })).toBeVisible();
     await expect(page.getByText(caseTitle, { exact: true }).first()).toBeVisible();
-    await expect(page.getByRole('link', { name: /open workspace/i }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: /open case/i }).first()).toBeVisible();
 
-    await page.getByRole('link', { name: /open workspace/i }).first().click();
+    await page.getByRole('link', { name: /open case/i }).first().click();
     await expect(page).toHaveURL(new RegExp(`/portal/cases/${caseId}(?:\\?|$)`));
     await expect(page.locator('h1')).toHaveText(caseTitle);
     await expect(page.getByText(visibleNote)).toBeVisible();
@@ -378,11 +378,11 @@ test.describe('Portal Workspace', () => {
     await page.getByRole('button', { name: 'Completed' }).click();
     await expect(page.getByRole('button', { name: 'Completed' })).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByText(reviewedAssignment.title, { exact: true }).first()).toBeVisible();
-    await expect(page.getByRole('link', { name: /download response packet/i })).toHaveAttribute(
+    await expect(page.getByRole('link', { name: /download submitted answers/i })).toHaveAttribute(
       'href',
       `/api/v2/portal/forms/assignments/${reviewedAssignment.id}/response-packet`
     );
-    await expect(page.getByRole('link', { name: /^packet$/i })).toHaveAttribute(
+    await expect(page.getByRole('link', { name: /^receipt$/i })).toHaveAttribute(
       'href',
       `/api/v2/portal/forms/assignments/${reviewedAssignment.id}/response-packet`
     );

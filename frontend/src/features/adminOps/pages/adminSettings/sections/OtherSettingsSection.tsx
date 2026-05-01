@@ -6,8 +6,7 @@ export default function OtherSettingsSection() {
       <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted">
         <h2 className="text-lg font-semibold text-app-text">Admin Tools</h2>
         <p className="mt-1 text-sm text-app-text-muted">
-          Launch specialist admin workspaces that stay module-owned but share the same admin
-          system.
+          Launch specialist admin workspaces that stay module-owned but share the same admin system.
         </p>
       </div>
       <ul className="divide-y divide-app-border">
@@ -17,7 +16,12 @@ export default function OtherSettingsSection() {
             className="flex items-center justify-between px-6 py-4 hover:bg-app-surface-muted"
           >
             <div className="flex items-center space-x-4">
-              <svg className="h-6 w-6 text-app-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                className="h-6 w-6 text-app-text-subtle"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -30,7 +34,12 @@ export default function OtherSettingsSection() {
                 <p className="text-sm text-app-text-muted">Download a backup export</p>
               </div>
             </div>
-            <svg className="h-5 w-5 text-app-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className="h-5 w-5 text-app-text-subtle"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </Link>
@@ -41,15 +50,30 @@ export default function OtherSettingsSection() {
             className="flex items-center justify-between px-6 py-4 hover:bg-app-surface-muted"
           >
             <div className="flex items-center space-x-4">
-              <svg className="h-6 w-6 text-app-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              <svg
+                className="h-6 w-6 text-app-text-subtle"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
               </svg>
               <div>
                 <span className="font-medium text-app-text">Navigation</span>
                 <p className="text-sm text-app-text-muted">Customize menu items and order</p>
               </div>
             </div>
-            <svg className="h-5 w-5 text-app-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className="h-5 w-5 text-app-text-subtle"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </Link>
@@ -60,10 +84,24 @@ export default function OtherSettingsSection() {
             className="flex items-center justify-between px-6 py-4 hover:bg-app-surface-muted"
           >
             <div className="flex items-center space-x-4">
-              <svg className="h-6 w-6 text-app-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+              <svg
+                className="h-6 w-6 text-app-text-subtle"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
                 />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                />
               </svg>
               <div>
                 <span className="font-medium text-app-text">API &amp; Webhooks</span>
@@ -72,7 +110,12 @@ export default function OtherSettingsSection() {
                 </p>
               </div>
             </div>
-            <svg className="h-5 w-5 text-app-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className="h-5 w-5 text-app-text-subtle"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </Link>
@@ -83,17 +126,32 @@ export default function OtherSettingsSection() {
             className="flex items-center justify-between px-6 py-4 hover:bg-app-surface-muted"
           >
             <div className="flex items-center space-x-4">
-              <svg className="h-6 w-6 text-app-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              <svg
+                className="h-6 w-6 text-app-text-subtle"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                />
               </svg>
               <div>
-                <span className="font-medium text-app-text">Newsletter Campaigns</span>
+                <span className="font-medium text-app-text">Communications</span>
                 <p className="text-sm text-app-text-muted">
-                  Manage newsletters, audiences, and campaign delivery
+                  Manage local email campaigns, audiences, and optional Mailchimp sync
                 </p>
               </div>
             </div>
-            <svg className="h-5 w-5 text-app-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className="h-5 w-5 text-app-text-subtle"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </Link>

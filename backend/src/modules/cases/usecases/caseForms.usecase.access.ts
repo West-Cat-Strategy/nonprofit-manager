@@ -88,10 +88,14 @@ export const buildAssignmentDetail = async (
   options: {
     responsePacketDownloadUrl?: string | null;
     buildAssetDownloadUrl?: ((assetId: string) => string) | null;
+    includeEvidenceEvents?: boolean;
   } = {}
 ): Promise<AssignmentDetailResult> => {
   const submissions = await repository.listSubmissionsForAssignment(assignment.id);
   const assignmentAssets = await repository.listAssetsForAssignment(assignment.id);
+  const evidenceEvents = options.includeEvidenceEvents
+    ? await repository.listAssignmentEvents(assignment.id)
+    : undefined;
   const assets = submissions.length
     ? await repository.listAssetsForSubmissionIds(submissions.map((submission) => submission.id))
     : [];
@@ -144,6 +148,7 @@ export const buildAssignmentDetail = async (
   return {
     assignment: plainAssignment,
     submissions: hydratedSubmissions,
+    ...(evidenceEvents ? { evidence_events: evidenceEvents } : {}),
   };
 };
 

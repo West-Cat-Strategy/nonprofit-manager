@@ -31,17 +31,34 @@ describe('AlertsUseCase', () => {
   it('normalizes alert instance query filters before delegating to the repository', async () => {
     repository.getAlertInstances.mockResolvedValue([]);
 
-    await usecase.getAlertInstances({
+    await usecase.getAlertInstances('user-1', {
       status: 'triggered',
       severity: 'critical',
       limit: '25',
     });
 
     expect(repository.getAlertInstances).toHaveBeenCalledWith({
+      userId: 'user-1',
       status: 'triggered',
       severity: 'critical',
       limit: 25,
     });
+  });
+
+  it('requires user scope for alert instance query filters', async () => {
+    repository.getAlertInstances.mockResolvedValue([]);
+
+    await usecase.getAlertInstances('user-1');
+
+    expect(repository.getAlertInstances).toHaveBeenCalledWith({ userId: 'user-1' });
+  });
+
+  it('passes user scope when resolving alert instances', async () => {
+    repository.resolveAlert.mockResolvedValue(null);
+
+    await usecase.resolveAlert('instance-1', 'user-1');
+
+    expect(repository.resolveAlert).toHaveBeenCalledWith('instance-1', 'user-1');
   });
 
   it('aggregates alert stats snapshot rows into numeric response data', async () => {

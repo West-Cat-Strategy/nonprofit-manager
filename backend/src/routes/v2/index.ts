@@ -29,6 +29,7 @@ import { externalServiceProvidersV2Routes } from '@modules/externalServiceProvid
 import { ingestV2Routes } from '@modules/ingest';
 import { invitationsV2Routes } from '@modules/invitations';
 import { mailchimpV2Routes } from '@modules/mailchimp';
+import { communicationsV2Routes } from '@modules/communications';
 import { meetingsV2Routes } from '@modules/meetings';
 import { paymentsV2Routes } from '@modules/payments';
 import { recurringDonationsV2Routes } from '@modules/recurringDonations';
@@ -38,7 +39,9 @@ import { reconciliationV2Routes } from '@modules/reconciliation';
 import { socialMediaV2Routes } from '@modules/socialMedia';
 import {
   publishingV2Routes,
+  publicContentEntriesV2Routes,
   publicPublishingV2Routes,
+  publicWebsiteActionsV2Routes,
   publicWebsiteFormsV2Routes,
 } from '@modules/publishing';
 import { templatesV2Routes } from '@modules/templates';
@@ -92,10 +95,13 @@ mountV2Routes('/activities', activitiesV2Routes);
 mountV2Routes('/export', exportV2Routes);
 mountV2Routes('/invitations', invitationsV2Routes);
 mountV2Routes('/mailchimp', mailchimpV2Routes);
+mountV2Routes('/communications', communicationsV2Routes);
 mountV2Routes('/payments', paymentsV2Routes);
 mountV2Routes('/public/events', publicEventsV2Routes);
 mountV2Routes('/public/newsletters', publicPublishingV2Routes);
+mountV2Routes('/public/content', publicContentEntriesV2Routes);
 mountV2Routes('/public/forms', publicWebsiteFormsV2Routes);
+mountV2Routes('/public/actions', publicWebsiteActionsV2Routes);
 mountV2Routes('/public/case-forms', publicCaseFormsV2Routes);
 mountV2Routes('/public/reports', publicReportsV2Routes);
 mountV2Routes('/social-media', socialMediaV2Routes);

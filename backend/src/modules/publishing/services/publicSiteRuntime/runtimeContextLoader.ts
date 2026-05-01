@@ -9,7 +9,13 @@ import {
 } from './shared';
 
 type PublicEventsPort = Pick<EventService, 'listPublicEventsByOwner' | 'getPublicEventBySlug'>;
-type WebsiteEntriesPort = Pick<WebsiteEntryService, 'listPublicNewsletters' | 'getPublicNewsletterBySlug'>;
+type WebsiteEntriesPort = Pick<
+  WebsiteEntryService,
+  | 'listPublicNewsletters'
+  | 'getPublicNewsletterBySlug'
+  | 'listPublicBlogEntries'
+  | 'getPublicBlogEntryBySlug'
+>;
 
 export class PublicSiteRuntimeContextLoader {
   constructor(
@@ -71,6 +77,33 @@ export class PublicSiteRuntimeContextLoader {
         kind: 'newsletterDetail',
         entry,
         detailPathPattern: this.routeResolver.getDetailPathPattern(site, 'newsletters'),
+      };
+    }
+
+    if (resolved.kind === 'blogIndex') {
+      return {
+        kind: 'blogIndex',
+        items: (
+          await this.entries.listPublicBlogEntries(site, {
+            limit: 50,
+            offset: 0,
+            sourceFilter: 'all',
+          })
+        ).items,
+        detailPathPattern: this.routeResolver.getDetailPathPattern(site, 'blog'),
+      };
+    }
+
+    if (resolved.kind === 'blogDetail') {
+      const entry = await this.entries.getPublicBlogEntryBySlug(site, resolved.slug);
+      if (!entry) {
+        return null;
+      }
+
+      return {
+        kind: 'blogDetail',
+        entry,
+        detailPathPattern: this.routeResolver.getDetailPathPattern(site, 'blog'),
       };
     }
 

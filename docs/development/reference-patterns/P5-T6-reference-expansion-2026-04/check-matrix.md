@@ -5,10 +5,10 @@
 ## Workspace Integrity
 
 1. `git status --short --ignored=matching -- reference-repos`
-Reason: confirm only `reference-repos/README.md` and `reference-repos/manifest.lock.json` are tracked while clone directories remain ignored.
+Reason: confirm only `reference-repos/README.md` and `reference-repos/manifest.lock.json` are tracked while clone compatibility symlinks remain ignored.
 
 2. `for repo in nm--primero nm--commcare-hq nm--avni-server nm--avni-webapp nm--givewp nm--oca-donation nm--oca-vertical-association nm--pretix nm--opencollective-api nm--opencollective-frontend nm--opencrvs-core nm--mautic; do git -C "reference-repos/external/$repo" rev-parse HEAD; done`
-Reason: verify the expansion clone set exists locally and matches the pinned commits in `reference-repos/manifest.lock.json`.
+Reason: verify the expansion clone set exists through compatibility symlinks and matches the pinned commits in `reference-repos/manifest.lock.json`.
 
 ## Tracked Docs
 

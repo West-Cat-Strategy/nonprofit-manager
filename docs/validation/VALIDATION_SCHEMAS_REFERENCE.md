@@ -129,9 +129,9 @@ const register = async (data: RegisterInput) => {
 - `changePasswordSchema` - Current + new password (confirmed)
 
 **Two-Factor Auth (TOTP)**:
-- `twoFactorSetupSchema` - 6-digit token for enabling
+- `twoFactorSetupSchema` - 6-digit code for enabling; accepts legacy `token` and normalizes to `code`
 - `twoFactorVerifySchema` - MFA token + 6-digit code for login
-- `twoFactorDisableSchema` - Password + 6-digit token to disable
+- `twoFactorDisableSchema` - Password + 6-digit code to disable; accepts legacy `token` and normalizes to `code`
 - `backupCodesSchema` - Array of backup codes
 
 **Passkeys (WebAuthn)**:

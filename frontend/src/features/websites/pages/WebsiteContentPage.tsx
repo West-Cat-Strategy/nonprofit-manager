@@ -18,16 +18,22 @@ import {
   syncWebsiteMailchimpEntries,
   updateWebsiteEntry,
 } from '../state';
-import type { WebsiteEntry, WebsiteEntryStatus } from '../../../types/websiteBuilder';
+import type {
+  WebsiteEntry,
+  WebsiteEntryKind,
+  WebsiteEntryStatus,
+} from '../../../types/websiteBuilder';
 import type { WebsiteRouteSummary } from '../types';
 
 const emptyDraft: {
+  kind: WebsiteEntryKind;
   title: string;
   slug: string;
   excerpt: string;
   bodyHtml: string;
   status: WebsiteEntryStatus;
 } = {
+  kind: 'newsletter',
   title: '',
   slug: '',
   excerpt: '',
@@ -43,6 +49,7 @@ const WebsiteContentPage: React.FC = () => {
   const [draft, setDraft] = useState(emptyDraft);
   const [editingEntry, setEditingEntry] = useState<WebsiteEntry | null>(null);
   const [sourceFilter, setSourceFilter] = useState<'all' | 'native' | 'mailchimp'>('all');
+  const [kindFilter, setKindFilter] = useState<'all' | WebsiteEntryKind>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | WebsiteEntryStatus>('all');
   const [routeFilter, setRouteFilter] = useState<'all' | 'live' | 'draft'>('all');
   const [notice, setNotice] = useState<{
@@ -56,10 +63,11 @@ const WebsiteContentPage: React.FC = () => {
       fetchWebsiteEntries({
         siteId,
         ...(sourceFilter === 'all' ? {} : { source: sourceFilter }),
+        ...(kindFilter === 'all' ? {} : { kind: kindFilter }),
         ...(statusFilter === 'all' ? {} : { status: statusFilter }),
       })
     );
-  }, [dispatch, siteId, sourceFilter, statusFilter]);
+  }, [dispatch, siteId, sourceFilter, kindFilter, statusFilter]);
 
   const managementSnapshot = overview?.managementSnapshot ?? deriveWebsiteManagementSnapshot(overview);
   const previewHref = getWebsiteConsoleUrlTarget(overview?.deployment);
@@ -70,12 +78,15 @@ const WebsiteContentPage: React.FC = () => {
         if (sourceFilter !== 'all' && entry.source !== sourceFilter) {
           return false;
         }
+        if (kindFilter !== 'all' && entry.kind !== kindFilter) {
+          return false;
+        }
         if (statusFilter !== 'all' && entry.status !== statusFilter) {
           return false;
         }
         return true;
       }),
-    [entries, sourceFilter, statusFilter]
+    [entries, sourceFilter, kindFilter, statusFilter]
   );
 
   const nativeEntries = useMemo(
@@ -111,6 +122,7 @@ const WebsiteContentPage: React.FC = () => {
   const handleEdit = (entry: WebsiteEntry) => {
     setEditingEntry(entry);
     setDraft({
+      kind: entry.kind,
       title: entry.title,
       slug: entry.slug,
       excerpt: entry.excerpt || '',
@@ -145,7 +157,7 @@ const WebsiteContentPage: React.FC = () => {
       if (updateWebsiteEntry.fulfilled.match(result)) {
         refreshOverview();
         resetEditor();
-        setNotice({ tone: 'success', message: 'Newsletter entry updated.' });
+        setNotice({ tone: 'success', message: 'Content entry updated.' });
       } else {
         setNotice({
           tone: 'error',
@@ -157,7 +169,7 @@ const WebsiteContentPage: React.FC = () => {
         createWebsiteEntry({
           siteId,
           data: {
-            kind: 'newsletter',
+            kind: draft.kind,
             title: draft.title,
             slug: draft.slug,
             excerpt: draft.excerpt,
@@ -169,7 +181,7 @@ const WebsiteContentPage: React.FC = () => {
       if (createWebsiteEntry.fulfilled.match(result)) {
         refreshOverview();
         resetEditor();
-        setNotice({ tone: 'success', message: 'Newsletter entry created.' });
+        setNotice({ tone: 'success', message: 'Content entry created.' });
       } else {
         setNotice({
           tone: 'error',
@@ -188,7 +200,7 @@ const WebsiteContentPage: React.FC = () => {
       if (editingEntry?.id === entryId) {
         resetEditor();
       }
-      setNotice({ tone: 'success', message: 'Newsletter entry deleted.' });
+      setNotice({ tone: 'success', message: 'Content entry deleted.' });
     } else {
       setNotice({
         tone: 'error',
@@ -226,7 +238,7 @@ const WebsiteContentPage: React.FC = () => {
     <WebsiteConsoleLayout
       siteId={siteId}
       overview={overview}
-      title="Manage native newsletters, Mailchimp archive sync, and route-level content visibility."
+      title="Manage content entries, Mailchimp archive sync, and route-level visibility."
       actions={
         <div className="flex flex-wrap gap-3">
           <WebsiteConsoleUrlAction
@@ -268,7 +280,7 @@ const WebsiteContentPage: React.FC = () => {
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <div>
               <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
-                Native entries
+                Native content
               </div>
               <div className="mt-2 text-3xl font-semibold text-app-text">
                 {managementSnapshot?.signals.nativeNewsletters ?? nativeEntries.length}
@@ -334,10 +346,10 @@ const WebsiteContentPage: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-app-text">
-                  {editingEntry ? 'Edit newsletter entry' : 'New newsletter entry'}
+                {editingEntry ? 'Edit content entry' : 'New content entry'}
                 </h2>
                 <p className="text-sm text-app-text-muted">
-                  Native entries are editable. Mailchimp entries remain read-only mirrors.
+                  Native entries are editable across newsletters, blog posts, and campaign updates.
                 </p>
               </div>
               {editingEntry ? (
@@ -352,19 +364,35 @@ const WebsiteContentPage: React.FC = () => {
             </div>
 
             <div className="mt-4 space-y-4">
+              <select
+                aria-label="Content kind"
+                value={draft.kind}
+                disabled={Boolean(editingEntry)}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    kind: event.target.value as WebsiteEntryKind,
+                  }))
+                }
+                className="w-full rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                <option value="newsletter">Newsletter</option>
+                <option value="blog_post">Blog post</option>
+                <option value="campaign_update">Campaign update</option>
+              </select>
               <input
                 type="text"
-                aria-label="Newsletter title"
+                aria-label="Content title"
                 value={draft.title}
                 onChange={(event) =>
                   setDraft((current) => ({ ...current, title: event.target.value }))
                 }
-                placeholder="Newsletter title"
+                placeholder="Content title"
                 className="w-full rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
               />
               <input
                 type="text"
-                aria-label="Newsletter slug"
+                aria-label="Content slug"
                 value={draft.slug}
                 onChange={(event) =>
                   setDraft((current) => ({ ...current, slug: event.target.value }))
@@ -373,7 +401,7 @@ const WebsiteContentPage: React.FC = () => {
                 className="w-full rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
               />
               <textarea
-                aria-label="Newsletter excerpt"
+                aria-label="Content excerpt"
                 value={draft.excerpt}
                 onChange={(event) =>
                   setDraft((current) => ({ ...current, excerpt: event.target.value }))
@@ -383,7 +411,7 @@ const WebsiteContentPage: React.FC = () => {
                 className="w-full rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
               />
               <textarea
-                aria-label="Newsletter body"
+                aria-label="Content body"
                 value={draft.bodyHtml}
                 onChange={(event) =>
                   setDraft((current) => ({ ...current, bodyHtml: event.target.value }))
@@ -393,7 +421,7 @@ const WebsiteContentPage: React.FC = () => {
                 className="w-full rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
               />
               <select
-                aria-label="Newsletter status"
+                aria-label="Content status"
                 value={draft.status}
                 onChange={(event) =>
                   setDraft((current) => ({
@@ -425,7 +453,7 @@ const WebsiteContentPage: React.FC = () => {
                 <div>
                   <h2 className="text-lg font-semibold text-app-text">Content filters</h2>
                   <p className="text-sm text-app-text-muted">
-                    Narrow the archive by source, status, and route visibility.
+                    Narrow the archive by kind, source, status, and route visibility.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2 text-xs text-app-text-muted">
@@ -438,7 +466,18 @@ const WebsiteContentPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="mt-4 grid gap-4 md:grid-cols-3">
+              <div className="mt-4 grid gap-4 md:grid-cols-4">
+                <select
+                  aria-label="Filter content kind"
+                  value={kindFilter}
+                  onChange={(event) => setKindFilter(event.target.value as typeof kindFilter)}
+                  className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+                >
+                  <option value="all">All content kinds</option>
+                  <option value="newsletter">Newsletters</option>
+                  <option value="blog_post">Blog posts</option>
+                  <option value="campaign_update">Campaign updates</option>
+                </select>
                 <select
                   aria-label="Filter content source"
                   value={sourceFilter}
@@ -521,13 +560,13 @@ const WebsiteContentPage: React.FC = () => {
                 <WebsiteConsoleStatePanel
                   tone="loading"
                   title="Loading website content"
-                  message="We are fetching newsletter entries, archive mirrors, and route visibility."
+                  message="We are fetching content entries, archive mirrors, and route visibility."
                 />
               ) : nativeEntries.length === 0 ? (
                 <WebsiteConsoleStatePanel
                   tone="empty"
-                  title="No native newsletter entries"
-                  message="No editable newsletter posts match the current filters."
+                  title="No native content entries"
+                  message="No editable entries match the current filters."
                 />
               ) : (
                 nativeEntries.map((entry) => (
@@ -539,7 +578,7 @@ const WebsiteContentPage: React.FC = () => {
                       <div>
                         <div className="font-medium text-app-text">{entry.title}</div>
                         <div className="text-sm text-app-text-muted">
-                          {entry.slug} • {entry.status}
+                          {entry.slug} • {entry.kind.replace('_', ' ')} • {entry.status}
                         </div>
                       </div>
                       <div className="flex gap-2">
@@ -582,7 +621,7 @@ const WebsiteContentPage: React.FC = () => {
                   >
                     <div className="font-medium text-app-text">{entry.title}</div>
                     <div className="text-sm text-app-text-muted">
-                      {entry.slug} • {entry.status} • read only
+                      {entry.slug} • {entry.kind.replace('_', ' ')} • {entry.status} • read only
                     </div>
                   </div>
                 ))

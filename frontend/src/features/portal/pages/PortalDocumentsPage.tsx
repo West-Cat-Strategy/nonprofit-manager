@@ -1,3 +1,4 @@
+import { ArrowDownTrayIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import PortalPageState from '../../../components/portal/PortalPageState';
 import PortalPageShell from '../../../components/portal/PortalPageShell';
 import PortalListCard from '../../../components/portal/PortalListCard';
@@ -21,6 +22,15 @@ const formatFileSize = (bytes: number): string => {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
+
+const formatFileType = (value?: string | null): string | null => {
+  if (!value) return null;
+  const [, subtype = value] = value.split('/');
+  return subtype.replace(/[-+.]/g, ' ').toUpperCase();
+};
+
+const documentActionClass =
+  'inline-flex items-center gap-1.5 rounded border border-app-input-border px-2 py-1 text-xs transition-colors duration-150 hover:border-app-accent hover:bg-app-surface-muted';
 
 export default function PortalDocuments() {
   const {
@@ -49,29 +59,13 @@ export default function PortalDocuments() {
     sort: sortField,
     order: sortOrder,
   });
+  const shouldShowListTools = documents.length > 0 || searchTerm.trim().length > 0;
 
   return (
     <PortalPageShell
       title="Documents"
       description="Only documents explicitly shared by staff appear here."
     >
-      <PortalListToolbar
-        searchValue={searchTerm}
-        onSearchChange={setSearch}
-        searchPlaceholder="Search documents by title, type, or mime"
-        sortValue={sortField}
-        onSortChange={setSort}
-        sortOptions={[
-          { value: 'created_at', label: 'Shared date' },
-          { value: 'title', label: 'Title' },
-          { value: 'document_type', label: 'Type' },
-          { value: 'original_name', label: 'Original file name' },
-        ]}
-        orderValue={sortOrder}
-        onOrderChange={setOrder}
-        showingCount={documents.length}
-        totalCount={total}
-      />
       <PortalPageState
         loading={loading}
         error={error}
@@ -83,13 +77,34 @@ export default function PortalDocuments() {
             ? 'Try a different search term.'
             : 'Only documents explicitly shared by staff will appear here.'
         }
+        emptyIcon={<DocumentTextIcon className="h-5 w-5" aria-hidden="true" />}
         onRetry={refresh}
       />
+      {shouldShowListTools && (
+        <PortalListToolbar
+          searchValue={searchTerm}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search documents by title, type, or file format"
+          sortValue={sortField}
+          onSortChange={setSort}
+          sortOptions={[
+            { value: 'created_at', label: 'Shared date' },
+            { value: 'title', label: 'Title' },
+            { value: 'document_type', label: 'Type' },
+            { value: 'original_name', label: 'Original file name' },
+          ]}
+          orderValue={sortOrder}
+          onOrderChange={setOrder}
+          showingCount={documents.length}
+          totalCount={total}
+        />
+      )}
       {!loading && !error && documents.length > 0 && (
-        <ul className="space-y-3">
+        <ul className="mt-3 space-y-3">
           {documents.map((doc: PortalDocument) => (
             <li key={doc.id}>
               <PortalListCard
+                icon={<DocumentTextIcon className="h-5 w-5" aria-hidden="true" />}
                 title={doc.title || doc.original_name}
                 subtitle={doc.document_type}
                 meta={`Shared ${formatPortalDateTime(doc.created_at)}`}
@@ -98,9 +113,9 @@ export default function PortalDocuments() {
                     <span className="rounded bg-app-surface-muted px-2 py-0.5 text-xs text-app-text-muted">
                       {formatFileSize(doc.file_size ?? 0)}
                     </span>
-                    {doc.mime_type && (
+                    {formatFileType(doc.mime_type) && (
                       <span className="rounded bg-app-surface-muted px-2 py-0.5 text-xs text-app-text-muted">
-                        {doc.mime_type}
+                        {formatFileType(doc.mime_type)}
                       </span>
                     )}
                   </>
@@ -108,8 +123,9 @@ export default function PortalDocuments() {
                 actions={
                   <a
                     href={portalV2ApiClient.getDocumentDownloadUrl(doc.id)}
-                    className="rounded border border-app-input-border px-2 py-1 text-xs"
+                    className={documentActionClass}
                   >
+                    <ArrowDownTrayIcon className="h-4 w-4" aria-hidden="true" />
                     Download
                   </a>
                 }

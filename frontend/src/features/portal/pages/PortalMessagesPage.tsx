@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ChatBubbleLeftRightIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline';
 import { createClientMessageId, shouldSubmitComposer } from '../../messaging/composer';
 import { usePersistedMessageDraft } from '../../messaging/drafts';
 import { pickPreferredMessageVersion } from '../../messaging/messageMerge';
@@ -300,7 +301,7 @@ export default function PortalMessages() {
     }
 
     if (!selectedCase?.is_messageable) {
-      showError('This case does not have an assigned pointperson yet.');
+      showError('This case does not have an assigned staff member yet.');
       return;
     }
 
@@ -323,7 +324,7 @@ export default function PortalMessages() {
       clearNewMessageDraft();
       setActiveThread(created);
       setActiveThreadId(created.thread.id);
-      showSuccess('Message sent to your pointperson.');
+      showSuccess('Message sent to your assigned staff member.');
       await refreshThreads();
     } catch (createError) {
       console.error('Failed to create thread', createError);
@@ -468,13 +469,14 @@ export default function PortalMessages() {
   return (
     <PortalPageShell
       title="Messages"
-      description="Send and track secure conversations with your assigned pointperson."
+      description="Send and track secure conversations with your assigned staff."
     >
       <PortalPageState
         loading={loading}
         error={resolvedError}
         empty={false}
         loadingLabel="Loading messages..."
+        emptyIcon={<ChatBubbleLeftRightIcon className="h-5 w-5" aria-hidden="true" />}
         onRetry={loadInitial}
       />
 
@@ -483,7 +485,7 @@ export default function PortalMessages() {
           <section className="rounded-lg border border-app-border bg-app-surface p-4">
             <h3 className="text-base font-semibold text-app-text">New Message</h3>
             <p className="mt-1 text-sm text-app-text-muted">
-              Messages are sent to your assigned case pointperson.
+              Messages are sent to the staff member assigned to your case.
             </p>
 
             <form onSubmit={handleCreateThread} className="mt-4 space-y-3">
@@ -499,7 +501,7 @@ export default function PortalMessages() {
                     context.cases.map((caseEntry) => (
                       <option key={caseEntry.case_id} value={caseEntry.case_id}>
                         {caseEntry.case_number} - {caseEntry.case_title}
-                        {caseEntry.is_messageable ? '' : ' (No pointperson assigned)'}
+                        {caseEntry.is_messageable ? '' : ' (No staff member assigned)'}
                       </option>
                     ))
                   ) : (
@@ -508,7 +510,7 @@ export default function PortalMessages() {
                 </select>
                 {selectedCase && !selectedCase.is_messageable && (
                   <p className="mt-1 text-xs text-app-accent">
-                    This case has no assigned pointperson yet. Ask staff to assign one before messaging.
+                    This case has no assigned staff member yet. Ask staff to assign one before messaging.
                   </p>
                 )}
               </div>
@@ -543,8 +545,9 @@ export default function PortalMessages() {
               <button
                 type="submit"
                 disabled={creating || composerBlocked || !context?.cases.length}
-                className="rounded-md bg-app-accent px-4 py-2 text-[var(--app-accent-foreground)] disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-md bg-app-accent px-4 py-2 text-[var(--app-accent-foreground)] transition-[box-shadow,transform] duration-150 hover:-translate-y-0.5 hover:shadow-sm disabled:opacity-50"
               >
+                <PaperAirplaneIcon className="h-4 w-4" aria-hidden="true" />
                 {creating ? 'Sending...' : 'Send Message'}
               </button>
             </form>
@@ -623,6 +626,7 @@ export default function PortalMessages() {
                             }`}
                           >
                             <PortalListCard
+                              icon={<ChatBubbleLeftRightIcon className="h-5 w-5" aria-hidden="true" />}
                               title={thread.subject || thread.case_title || 'Conversation'}
                               subtitle={`${thread.case_number || 'No case'} • ${thread.pointperson_first_name || 'Staff'} ${thread.pointperson_last_name || ''}`}
                               meta={formatTimestamp(thread.last_message_at)}
@@ -684,7 +688,7 @@ export default function PortalMessages() {
                       onClick={() => {
                         void handleToggleThreadStatus();
                       }}
-                      className="rounded-md border border-app-input-border px-3 py-1 text-xs"
+                        className="rounded-md border border-app-input-border px-3 py-1 text-xs transition-colors duration-150 hover:border-app-accent hover:bg-app-surface-muted"
                     >
                       {activeThread.thread.status === 'open' ? 'Close' : 'Reopen'}
                     </button>
@@ -761,8 +765,9 @@ export default function PortalMessages() {
                       <button
                         type="submit"
                         disabled={replying || activeThread.thread.status !== 'open' || !replyMessage.trim()}
-                        className="rounded-md bg-app-accent px-4 py-2 text-[var(--app-accent-foreground)] disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 rounded-md bg-app-accent px-4 py-2 text-[var(--app-accent-foreground)] transition-[box-shadow,transform] duration-150 hover:-translate-y-0.5 hover:shadow-sm disabled:opacity-50"
                       >
+                        <PaperAirplaneIcon className="h-4 w-4" aria-hidden="true" />
                         {replying ? 'Sending...' : 'Send Reply'}
                       </button>
                     </div>

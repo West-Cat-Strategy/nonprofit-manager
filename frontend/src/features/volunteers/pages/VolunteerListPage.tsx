@@ -6,13 +6,16 @@
 import { createSelector } from '@reduxjs/toolkit';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
-  fetchVolunteers,
-  deleteVolunteer,
-  setFilters,
-  clearFilters,
-} from '../state';
+  ArrowDownTrayIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  ExclamationCircleIcon,
+  PencilSquareIcon,
+  TrashIcon,
+} from '@heroicons/react/24/outline';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import { fetchVolunteers, deleteVolunteer, setFilters, clearFilters } from '../state';
 import type { Volunteer, VolunteersListState } from '../state';
 import {
   VOLUNTEER_AVAILABILITY_STATUS_VALUES,
@@ -56,7 +59,8 @@ type VolunteerListSlice = Partial<VolunteersListState> & {
   list?: Partial<VolunteersListState>;
 };
 
-const selectVolunteersModule = (state: { volunteers?: VolunteerListSlice } | undefined) => state?.volunteers;
+const selectVolunteersModule = (state: { volunteers?: VolunteerListSlice } | undefined) =>
+  state?.volunteers;
 
 const resolveVolunteerListState = createSelector(
   [selectVolunteersModule],
@@ -95,20 +99,15 @@ const VolunteerList = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { volunteers, loading, error, pagination, filters } = useAppSelector(
-    resolveVolunteerListState
-  );
+  const { volunteers, loading, error, pagination, filters } =
+    useAppSelector(resolveVolunteerListState);
 
-  const {
-    selectedIds,
-    selectedCount,
-    toggleRow,
-    selectAll,
-    deselectAll,
-  } = useBulkSelect();
+  const { selectedIds, selectedCount, toggleRow, selectAll, deselectAll } = useBulkSelect();
 
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
-  const [searchInput, setSearchInput] = useState(searchParams.get('search') || filters.search || '');
+  const [searchInput, setSearchInput] = useState(
+    searchParams.get('search') || filters.search || ''
+  );
   const [availabilityFilter, setAvailabilityFilter] = useState<
     '' | Volunteer['availability_status']
   >(
@@ -128,7 +127,9 @@ const VolunteerList = () => {
       filters.background_check_status ||
       ''
   );
-  const [currentPage, setCurrentPage] = useState(() => parsePositiveInteger(searchParams.get('page'), 1));
+  const [currentPage, setCurrentPage] = useState(() =>
+    parsePositiveInteger(searchParams.get('page'), 1)
+  );
   const [currentLimit] = useState(() =>
     parsePositiveInteger(searchParams.get('limit'), pagination.limit || 20)
   );
@@ -166,15 +167,22 @@ const VolunteerList = () => {
     if (sortBy !== 'created_at') params.set('sort_by', sortBy);
     if (sortOrder !== 'desc') params.set('sort_order', sortOrder);
     setSearchParams(params, { replace: true });
-  }, [searchInput, availabilityFilter, backgroundCheckFilter, currentPage, currentLimit, sortBy, sortOrder, setSearchParams]);
+  }, [
+    searchInput,
+    availabilityFilter,
+    backgroundCheckFilter,
+    currentPage,
+    currentLimit,
+    sortBy,
+    sortOrder,
+    setSearchParams,
+  ]);
 
   const handleFilterChange = (filterId: string, value: string | string[]) => {
     if (filterId === 'search' && typeof value === 'string') {
       setSearchInput(value);
     } else if (filterId === 'availability_status' && typeof value === 'string') {
-      setAvailabilityFilter(
-        parseAllowedValueOrEmpty(value, VOLUNTEER_AVAILABILITY_STATUS_VALUES)
-      );
+      setAvailabilityFilter(parseAllowedValueOrEmpty(value, VOLUNTEER_AVAILABILITY_STATUS_VALUES));
     } else if (filterId === 'background_check_status' && typeof value === 'string') {
       setBackgroundCheckFilter(
         parseAllowedValueOrEmpty(value, VOLUNTEER_BACKGROUND_CHECK_STATUS_VALUES)
@@ -229,15 +237,32 @@ const VolunteerList = () => {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      available: { bg: 'bg-app-accent-soft', text: 'text-app-accent-text', label: 'Available' },
-      unavailable: { bg: 'bg-app-accent-soft', text: 'text-app-accent-text', label: 'Unavailable' },
-      limited: { bg: 'bg-app-accent-soft', text: 'text-app-accent-text', label: 'Limited' },
+      available: {
+        bg: 'bg-app-accent-soft',
+        text: 'text-app-accent-text',
+        label: 'Available',
+        Icon: CheckCircleIcon,
+      },
+      unavailable: {
+        bg: 'bg-app-accent-soft',
+        text: 'text-app-accent-text',
+        label: 'Unavailable',
+        Icon: ExclamationCircleIcon,
+      },
+      limited: {
+        bg: 'bg-app-accent-soft',
+        text: 'text-app-accent-text',
+        label: 'Limited',
+        Icon: ClockIcon,
+      },
     };
-    return statusConfig[status as keyof typeof statusConfig] || {
-      bg: 'bg-app-surface-muted',
-      text: 'text-app-text',
-      label: status,
-    };
+    return (
+      statusConfig[status as keyof typeof statusConfig] || {
+        bg: 'bg-app-surface-muted',
+        text: 'text-app-text',
+        label: status,
+      }
+    );
   };
 
   const getBackgroundCheckBadge = (status: string) => {
@@ -249,10 +274,12 @@ const VolunteerList = () => {
       rejected: { bg: 'bg-app-accent-soft', text: 'text-app-accent-text' },
       expired: { bg: 'bg-app-accent-soft', text: 'text-app-accent-text' },
     };
-    return statusConfig[status as keyof typeof statusConfig] || {
-      bg: 'bg-app-surface-muted',
-      text: 'text-app-text',
-    };
+    return (
+      statusConfig[status as keyof typeof statusConfig] || {
+        bg: 'bg-app-surface-muted',
+        text: 'text-app-text',
+      }
+    );
   };
 
   const columns: TableColumn<Volunteer>[] = [
@@ -286,9 +313,7 @@ const VolunteerList = () => {
                 </BrutalBadge>
               ))}
               {row.skills.length > 2 && (
-                <span className="text-xs text-app-text-muted">
-                  +{row.skills.length - 2}
-                </span>
+                <span className="text-xs text-app-text-muted">+{row.skills.length - 2}</span>
               )}
             </>
           ) : (
@@ -303,8 +328,12 @@ const VolunteerList = () => {
       width: '140px',
       render: (_, row: Volunteer) => {
         const config = getStatusBadge(row.availability_status);
+        const StatusIcon = 'Icon' in config ? config.Icon : CheckCircleIcon;
         return (
-          <span className={`px-3 py-1 text-xs font-medium rounded ${config.bg} ${config.text}`}>
+          <span
+            className={`inline-flex items-center gap-1 rounded px-3 py-1 text-xs font-medium ${config.bg} ${config.text}`}
+          >
+            <StatusIcon className="h-3.5 w-3.5" aria-hidden="true" />
             {config.label}
           </span>
         );
@@ -317,7 +346,10 @@ const VolunteerList = () => {
       render: (_, row: Volunteer) => {
         const config = getBackgroundCheckBadge(row.background_check_status);
         return (
-          <span className={`px-3 py-1 text-xs font-medium rounded ${config.bg} ${config.text}`}>
+          <span
+            className={`inline-flex items-center gap-1 rounded px-3 py-1 text-xs font-medium ${config.bg} ${config.text}`}
+          >
+            <CheckCircleIcon className="h-3.5 w-3.5" aria-hidden="true" />
             {row.background_check_status.replace(/_/g, ' ')}
           </span>
         );
@@ -344,8 +376,9 @@ const VolunteerList = () => {
               event.stopPropagation();
               navigate(`/volunteers/${row.volunteer_id}/edit`);
             }}
-            className="px-2 py-1 border border-app-border rounded text-app-text text-xs font-mono hover:bg-app-surface-muted transition"
+            className="inline-flex items-center gap-1 rounded border border-app-border px-2 py-1 text-xs font-mono text-app-text transition hover:bg-app-surface-muted"
           >
+            <PencilSquareIcon className="h-3.5 w-3.5" aria-hidden="true" />
             Edit
           </button>
           <button
@@ -360,8 +393,9 @@ const VolunteerList = () => {
                 dispatch(deleteVolunteer(row.volunteer_id));
               }
             }}
-            className="px-2 py-1 border border-app-border rounded text-app-text text-xs font-mono hover:bg-app-accent-soft hover:text-app-accent-text transition"
+            className="inline-flex items-center gap-1 rounded border border-app-border px-2 py-1 text-xs font-mono text-app-text transition hover:bg-app-accent-soft hover:text-app-accent-text"
           >
+            <TrashIcon className="h-3.5 w-3.5" aria-hidden="true" />
             Delete
           </button>
         </div>
@@ -376,7 +410,10 @@ const VolunteerList = () => {
         description="Manage volunteer profiles and assignments"
         getRowId={(row) => row.volunteer_id}
         headerActions={
-          <SecondaryButton onClick={() => setShowImportExport(true)}>
+          <SecondaryButton
+            leadingIcon={<ArrowDownTrayIcon className="h-4 w-4" aria-hidden="true" />}
+            onClick={() => setShowImportExport(true)}
+          >
             Import / Export
           </SecondaryButton>
         }
@@ -423,9 +460,7 @@ const VolunteerList = () => {
             isCollapsed={filterCollapsed}
             onToggleCollapse={() => setFilterCollapsed(!filterCollapsed)}
             activeFilterCount={
-              [searchInput, availabilityFilter, backgroundCheckFilter].filter(
-                (f) => f
-              ).length
+              [searchInput, availabilityFilter, backgroundCheckFilter].filter((f) => f).length
             }
           />
         }

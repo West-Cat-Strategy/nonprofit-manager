@@ -414,6 +414,43 @@
           }
         },
         {
+          "name": "Test Campaign Draft",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    const data = response.data || response;",
+                  "    pm.collectionVariables.set('mailchimp_campaign_id', data.providerCampaignId);",
+                  "    console.log('Draft test campaign ID saved:', data.providerCampaignId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listId\": \"{{mailchimp_list_id}}\",\n  \"title\": \"Test Campaign Draft\",\n  \"subject\": \"Test Email Subject\",\n  \"previewText\": \"Preview text for test email\",\n  \"fromName\": \"Test Organization\",\n  \"replyTo\": \"test@example.com\",\n  \"htmlContent\": \"<h1>Test Email</h1><p>This is a test campaign.</p>\",\n  \"plainTextContent\": \"Test Email\\n\\nThis is a test campaign.\",\n  \"testRecipients\": [\"proof@example.com\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/mailchimp/campaigns/test-send",
+              "host": ["{{base_url}}"],
+              "path": ["mailchimp", "campaigns", "test-send"]
+            }
+          }
+        },
+        {
           "name": "Create Campaign",
           "event": [
             {
@@ -488,6 +525,27 @@
               "raw": "{{base_url}}/mailchimp/members",
               "host": ["{{base_url}}"],
               "path": ["mailchimp", "members"]
+            }
+          }
+        },
+        {
+          "name": "Update Member Tags",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listId\": \"{{mailchimp_list_id}}\",\n  \"email\": \"newmember@example.com\",\n  \"tagsToAdd\": [\"newsletter\"],\n  \"tagsToRemove\": [\"inactive\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/mailchimp/members/tags",
+              "host": ["{{base_url}}"],
+              "path": ["mailchimp", "members", "tags"]
             }
           }
         },

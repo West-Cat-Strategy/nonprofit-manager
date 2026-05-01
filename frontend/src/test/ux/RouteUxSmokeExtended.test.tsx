@@ -64,10 +64,13 @@ const apiMatchers = {
   authPreferences: '/auth/preferences',
   authRegistrationStatus: '/auth/registration-status',
   contacts: /^\/v2\/contacts(?:\?|$)/,
+  communicationsAudiences: /^\/communications\/audiences(?:\?|$)/,
+  communicationsCampaignRuns: /^\/communications\/campaign-runs(?:\?|$)/,
+  communicationsCampaigns: /^\/communications\/campaigns(?:\?|$)/,
+  communicationsStatus: '/communications/status',
   invitationValidate: '/invitations/validate/test-token',
   mailchimpCampaigns: '/mailchimp/campaigns',
   mailchimpLists: '/mailchimp/lists',
-  mailchimpStatus: '/mailchimp/status',
   resetPasswordValidate: '/auth/reset-password/test-token',
   webhooksApiKeys: '/webhooks/api-keys',
   webhooksApiKeyScopes: '/webhooks/api-keys/scopes',
@@ -108,11 +111,12 @@ const registerSharedApiMocks = () => {
     data: { permissions: [] },
   });
   registerTestApiGet(apiMatchers.adminRoles, { data: { roles: [] } });
-  registerTestApiGet(apiMatchers.mailchimpStatus, {
+  registerTestApiGet(apiMatchers.communicationsStatus, {
     data: { configured: false, accountName: null, listCount: 0 },
   });
-  registerTestApiGet(apiMatchers.mailchimpLists, { data: [] });
-  registerTestApiGet(apiMatchers.mailchimpCampaigns, { data: [] });
+  registerTestApiGet(apiMatchers.communicationsAudiences, { data: [] });
+  registerTestApiGet(apiMatchers.communicationsCampaigns, { data: [] });
+  registerTestApiGet(apiMatchers.communicationsCampaignRuns, { data: [] });
   registerTestApiGet(apiMatchers.contacts, {
     data: {
       data: [],
@@ -317,10 +321,10 @@ const smokeCases: SmokeCase[] = [
     name: 'navigation-settings',
     route: '/settings/navigation',
     page: <NavigationSettings />,
-    heading: /^navigation$/i,
+    heading: /my navigation/i,
     primaryActionPattern: /reset to defaults/i,
     contractAssertion: async () => {
-      expect(await screen.findByText(/navigation menu items/i)).toBeInTheDocument();
+      expect(await screen.findByText(/staff menu order/i)).toBeInTheDocument();
     },
   },
   {
@@ -359,17 +363,17 @@ const smokeCases: SmokeCase[] = [
     name: 'communications',
     route: '/settings/communications',
     page: <CommunicationsPage />,
-    heading: /newsletter campaigns/i,
-    primaryActionPattern: /admin\.mailchimp\.com\/account\/api/i,
-    primaryActionRole: 'link',
+    heading: /communications/i,
+    primaryActionPattern: /local email/i,
     contractAssertion: async () => {
-      await expectGetRequest(apiMatchers.mailchimpStatus);
+      await expectGetRequest(apiMatchers.communicationsStatus);
       expect(
         await screen.findByRole('heading', {
-          name: /newsletter provider not configured/i,
-          level: 2,
+          name: /communications/i,
+          level: 1,
         })
       ).toBeInTheDocument();
+      expect(await screen.findByText(/mailchimp optional/i)).toBeInTheDocument();
     },
   },
 ];
@@ -388,34 +392,38 @@ describe('Route UX smoke (auth/portal/settings)', () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it('avoids Mailchimp list and campaign requests when the communications hub is not configured', async () => {
+  it('loads the local-first communications workspace without legacy Mailchimp list or campaign calls', async () => {
     renderWithProviders(<CommunicationsPage />, { route: '/settings/communications' });
 
     await waitFor(() => {
       expect(
-        screen.getByRole('heading', { name: /newsletter provider not configured/i, level: 2 })
+        screen.getByText(/mailchimp optional/i)
       ).toBeInTheDocument();
     });
 
-    await expectGetRequest(apiMatchers.mailchimpStatus);
+    await expectGetRequest(apiMatchers.communicationsStatus);
+    await expectGetRequest(apiMatchers.communicationsAudiences);
+    await expectGetRequest(apiMatchers.communicationsCampaigns);
     expect(getTestApiCalls('get', apiMatchers.mailchimpLists)).toHaveLength(0);
     expect(getTestApiCalls('get', apiMatchers.mailchimpCampaigns)).toHaveLength(0);
   });
 
   it('loads Mailchimp list and campaign data when the integration is configured', async () => {
-    registerTestApiGet(apiMatchers.mailchimpStatus, {
+    registerTestApiGet(apiMatchers.communicationsStatus, {
       data: { configured: true, accountName: 'Test Org', listCount: 1 },
     });
 
     renderWithProviders(<CommunicationsPage />, { route: '/settings/communications' });
 
     await waitFor(() => {
-      expect(screen.getByText(/connected to mailchimp/i)).toBeInTheDocument();
+      expect(screen.getByText(/optional provider connected/i)).toBeInTheDocument();
     });
 
-    await expectGetRequest(apiMatchers.mailchimpStatus);
-    await expectGetRequest(apiMatchers.mailchimpLists);
-    await expectGetRequest(apiMatchers.mailchimpCampaigns);
+    await expectGetRequest(apiMatchers.communicationsStatus);
+    await expectGetRequest(apiMatchers.communicationsAudiences);
+    await expectGetRequest(apiMatchers.communicationsCampaigns);
+    expect(getTestApiCalls('get', apiMatchers.mailchimpLists)).toHaveLength(0);
+    expect(getTestApiCalls('get', apiMatchers.mailchimpCampaigns)).toHaveLength(0);
   });
 
   it.each(smokeCases)(

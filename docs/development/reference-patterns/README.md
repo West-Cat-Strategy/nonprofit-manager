@@ -1,8 +1,9 @@
 # Reference Patterns Index
 
-**Last Updated:** 2026-04-25
+**Last Updated:** 2026-05-01
 
 This directory retains adoption specs, pattern catalogs, and check matrices that still support planning and provenance. Use this index for navigation; current implementation rules remain in [../AGENT_INSTRUCTIONS.md](../AGENT_INSTRUCTIONS.md), [../CONVENTIONS.md](../CONVENTIONS.md), and the live workboard.
+Reference notes here are planning evidence, not authorization to widen runtime scope without a signed-out workboard row.
 
 ## Top-Level References
 
@@ -30,3 +31,7 @@ This directory retains adoption specs, pattern catalogs, and check matrices that
 - [P5-T6 Reference Expansion Adoption Spec](P5-T6-reference-expansion-2026-04/adoption-spec.md)
 - [P5-T6 Reference Expansion Check Matrix](P5-T6-reference-expansion-2026-04/check-matrix.md)
 - [P5-T6 Reference Expansion Improvement Opportunities](P5-T6-reference-expansion-2026-04/improvement-opportunities.md)
+- [P5-T6 Reference Repo Consolidation](P5-T6-reference-repo-consolidation-2026-05-01.md)
+- [P5-T26 Newsletter Reference Refresh](P5-T26-newsletter-reference-refresh.md)
+- [P5-T35 Finance, Governance, and Evidence Reference Refresh](P5-T35-finance-governance-evidence-reference-refresh.md)
+- [P5-T41 Form Builder Reference Refresh](P5-T41-form-builder-reference-refresh.md)

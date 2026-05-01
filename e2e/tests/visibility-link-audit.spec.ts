@@ -251,17 +251,17 @@ const staffRouteAudits: RouteAuditConfig[] = [
     route: '/alerts',
     surface: 'staff',
     expectedEntryId: 'alerts-overview',
-    heading: /alerts/i,
-    primaryAction: /create alert|edit alert rules/i,
+    heading: /alert rules/i,
+    primaryAction: /create alert rule/i,
     interaction: {
       expectedStatesAnyOf: [
-        /no alert configurations yet/i,
-        /create your first alert/i,
-        /alert configurations/i,
+        /no alert rules yet/i,
+        /create your first alert rule/i,
+        /alert rules/i,
       ],
-      revealAction: /create alert/i,
-      keyFields: [/alert name/i, /metric/i, /condition/i, /threshold/i],
-      keyControls: [/test alert/i, /create alert/i],
+      revealAction: /create alert rule/i,
+      keyFields: [/alert rule name/i, /metric/i, /condition/i, /threshold/i],
+      keyControls: [/test alert rule/i, /create alert rule/i],
     },
   },
   {
@@ -269,7 +269,7 @@ const staffRouteAudits: RouteAuditConfig[] = [
     route: '/alerts/instances',
     surface: 'staff',
     expectedEntryId: 'alerts-instances',
-    heading: /triggered alerts/i,
+    heading: /active alerts/i,
   },
   {
     name: 'alerts history',
@@ -367,7 +367,7 @@ const staffRouteAudits: RouteAuditConfig[] = [
     route: '/settings/email-marketing',
     surface: 'staff',
     expectedEntryId: 'email-marketing',
-    heading: /newsletter campaigns|email marketing/i,
+    heading: /communications|newsletter campaigns|email marketing/i,
   },
   {
     name: 'website builder',
@@ -389,7 +389,7 @@ const portalRouteAudits: RouteAuditConfig[] = [
     route: '/portal',
     surface: 'portal',
     expectedEntryId: 'portal-dashboard',
-    heading: /your case workspace/i,
+    heading: /your portal home/i,
   },
   { name: 'portal profile', route: '/portal/profile', surface: 'portal', expectedEntryId: 'portal-profile', heading: /profile|account/i },
   { name: 'portal people', route: '/portal/people', surface: 'portal', expectedEntryId: 'portal-people', heading: /people/i },
@@ -413,12 +413,12 @@ const staffNavigationLinks: ClickthroughAuditLink[] = [
   { label: 'Volunteers', href: '/volunteers', surface: 'staff', scope: 'more-navigation' },
   { label: 'Analytics', href: '/analytics', surface: 'staff', scope: 'more-navigation' },
   { label: 'Reports', href: '/reports', surface: 'staff', scope: 'more-navigation' },
-  { label: 'Alerts', href: '/alerts', surface: 'staff', scope: 'alerts-shortcut' },
+  { label: 'Alert rules', href: '/alerts', surface: 'staff', scope: 'alerts-shortcut' },
 ];
 
 const portalNavigationLinks = (portalCaseId?: string): ClickthroughAuditLink[] => [
   {
-    label: portalCaseId ? 'Resume Case Workspace' : 'View Shared Cases',
+    label: portalCaseId ? 'Open Case' : 'View Shared Cases',
     href: portalCaseId ? `/portal/cases/${portalCaseId}` : '/portal/cases',
     surface: 'portal',
   },

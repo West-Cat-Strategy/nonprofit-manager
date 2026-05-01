@@ -4,6 +4,12 @@
  */
 
 import { useLocation } from 'react-router-dom';
+import {
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
+  PlusIcon,
+  XMarkIcon,
+} from '@heroicons/react/24/outline';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import ApiSettingsWorkspace from '../components/ApiSettingsWorkspace';
 import {
@@ -67,32 +73,51 @@ export default function ApiSettingsPage() {
   return (
     <ApiSettingsWorkspace currentPath={location.pathname}>
       {error && (
-        <div className="flex items-center justify-between rounded-lg border border-app-border bg-app-accent-soft px-4 py-3 text-app-accent-text">
-          <span>{error}</span>
+        <div
+          className="flex items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-rose-700"
+          role="alert"
+        >
+          <span className="inline-flex items-center gap-2">
+            <ExclamationTriangleIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
+            {error}
+          </span>
           <button
+            type="button"
             onClick={clearWebhookError}
-            className="text-app-accent hover:text-app-accent-text"
+            className="rounded p-1 text-rose-700 transition-colors hover:bg-rose-100"
+            aria-label="Dismiss API settings error"
           >
-            Dismiss
+            <XMarkIcon className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
       )}
 
       {testResult && (
         <div
-          className={`flex items-center justify-between rounded-lg border px-4 py-3 ${
+          className={`flex items-center justify-between gap-3 rounded-lg border px-4 py-3 transition-all duration-150 ${
             testResult.success
-              ? 'bg-app-accent-soft border-app-border text-app-accent-text'
-              : 'bg-app-accent-soft border-app-border text-app-accent-text'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+              : 'border-rose-200 bg-rose-50 text-rose-700'
           }`}
+          role="status"
         >
-          <span>
+          <span className="inline-flex items-center gap-2">
+            {testResult.success ? (
+              <CheckCircleIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
+            ) : (
+              <ExclamationTriangleIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
+            )}
             {testResult.success
               ? `Test successful! Status: ${testResult.statusCode}, Response time: ${testResult.responseTime}ms`
               : `Test failed: ${testResult.error}`}
           </span>
-          <button onClick={clearTestResult} className="hover:opacity-70">
-            Dismiss
+          <button
+            type="button"
+            onClick={clearTestResult}
+            className="rounded p-1 transition-colors hover:bg-white/60"
+            aria-label="Dismiss webhook test result"
+          >
+            <XMarkIcon className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
       )}
@@ -100,8 +125,9 @@ export default function ApiSettingsPage() {
       <div className="border-b border-app-border">
         <nav className="-mb-px flex gap-6" aria-label="API settings sections">
           <button
+            type="button"
             onClick={() => setActiveTab('webhooks')}
-            className={`border-b-2 pb-4 text-sm font-medium ${
+            className={`border-b-2 pb-4 text-sm font-medium transition-colors ${
               activeTab === 'webhooks'
                 ? 'border-app-accent text-app-accent'
                 : 'border-transparent text-app-text-muted hover:text-app-text-muted'
@@ -110,8 +136,9 @@ export default function ApiSettingsPage() {
             Webhooks ({endpoints.length})
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab('apiKeys')}
-            className={`border-b-2 pb-4 text-sm font-medium ${
+            className={`border-b-2 pb-4 text-sm font-medium transition-colors ${
               activeTab === 'apiKeys'
                 ? 'border-app-accent text-app-accent'
                 : 'border-transparent text-app-text-muted hover:text-app-text-muted'
@@ -129,15 +156,20 @@ export default function ApiSettingsPage() {
               Receive real-time notifications when events occur in your account.
             </p>
             <button
+              type="button"
               onClick={() => setShowCreateWebhook(true)}
-              className="rounded-lg bg-app-accent px-4 py-2 font-medium text-[var(--app-accent-foreground)] hover:bg-app-accent-hover"
+              className="inline-flex items-center gap-2 rounded-lg bg-app-accent px-4 py-2 font-medium text-[var(--app-accent-foreground)] transition-colors hover:bg-app-accent-hover"
             >
+              <PlusIcon className="h-4 w-4" aria-hidden="true" />
               Add Webhook
             </button>
           </div>
 
           {showCreateWebhook && (
-            <div className="space-y-4 rounded-lg border border-app-border bg-app-surface p-6">
+            <div
+              className="space-y-4 rounded-lg border border-app-border bg-app-surface p-6 transition-all duration-150"
+              aria-label="Create webhook endpoint"
+            >
               <h3 className="text-lg font-semibold">Create Webhook Endpoint</h3>
 
               <div>
@@ -199,15 +231,17 @@ export default function ApiSettingsPage() {
 
               <div className="flex gap-3 pt-4">
                 <button
+                  type="button"
                   onClick={handleCreateWebhook}
                   disabled={!webhookUrl || webhookEvents.length === 0 || isLoading}
-                  className="rounded-lg bg-app-accent px-4 py-2 font-medium text-[var(--app-accent-foreground)] hover:bg-app-accent-hover disabled:cursor-not-allowed disabled:bg-app-text-subtle"
+                  className="rounded-lg bg-app-accent px-4 py-2 font-medium text-[var(--app-accent-foreground)] transition-colors hover:bg-app-accent-hover disabled:cursor-not-allowed disabled:bg-app-text-subtle"
                 >
                   {isLoading ? 'Creating...' : 'Create Webhook'}
                 </button>
                 <button
+                  type="button"
                   onClick={resetWebhookForm}
-                  className="rounded-lg bg-app-surface-muted px-4 py-2 font-medium text-app-text-muted hover:bg-app-surface-muted"
+                  className="rounded-lg bg-app-surface-muted px-4 py-2 font-medium text-app-text-muted transition-colors hover:bg-app-hover hover:text-app-text"
                 >
                   Cancel
                 </button>
@@ -249,15 +283,20 @@ export default function ApiSettingsPage() {
               Create API keys to access your data programmatically.
             </p>
             <button
+              type="button"
               onClick={() => setShowCreateApiKey(true)}
-              className="rounded-lg bg-app-accent px-4 py-2 font-medium text-[var(--app-accent-foreground)] hover:bg-app-accent-hover"
+              className="inline-flex items-center gap-2 rounded-lg bg-app-accent px-4 py-2 font-medium text-[var(--app-accent-foreground)] transition-colors hover:bg-app-accent-hover"
             >
+              <PlusIcon className="h-4 w-4" aria-hidden="true" />
               Create API Key
             </button>
           </div>
 
           {showCreateApiKey && (
-            <div className="space-y-4 rounded-lg border border-app-border bg-app-surface p-6">
+            <div
+              className="space-y-4 rounded-lg border border-app-border bg-app-surface p-6 transition-all duration-150"
+              aria-label="Create API key"
+            >
               <h3 className="text-lg font-semibold">Create API Key</h3>
 
               <div>
@@ -300,15 +339,17 @@ export default function ApiSettingsPage() {
 
               <div className="flex gap-3 pt-4">
                 <button
+                  type="button"
                   onClick={handleCreateApiKey}
                   disabled={!apiKeyName || apiKeyScopes.length === 0 || isLoading}
-                  className="rounded-lg bg-app-accent px-4 py-2 font-medium text-[var(--app-accent-foreground)] hover:bg-app-accent-hover disabled:cursor-not-allowed disabled:bg-app-text-subtle"
+                  className="rounded-lg bg-app-accent px-4 py-2 font-medium text-[var(--app-accent-foreground)] transition-colors hover:bg-app-accent-hover disabled:cursor-not-allowed disabled:bg-app-text-subtle"
                 >
                   {isLoading ? 'Creating...' : 'Create API Key'}
                 </button>
                 <button
+                  type="button"
                   onClick={resetApiKeyForm}
-                  className="rounded-lg bg-app-surface-muted px-4 py-2 font-medium text-app-text-muted hover:bg-app-surface-muted"
+                  className="rounded-lg bg-app-surface-muted px-4 py-2 font-medium text-app-text-muted transition-colors hover:bg-app-hover hover:text-app-text"
                 >
                   Cancel
                 </button>
@@ -344,13 +385,15 @@ export default function ApiSettingsPage() {
         <DeliveryHistoryModal deliveries={deliveries} onClose={() => setShowDeliveries(false)} />
       )}
 
-      {newApiKey && (
-        <NewApiKeyModal apiKey={newApiKey} onClose={clearNewApiKey} />
-      )}
+      {newApiKey && <NewApiKeyModal apiKey={newApiKey} onClose={clearNewApiKey} />}
 
       {isTesting && (
-        <div className="app-popup-backdrop fixed inset-0 z-50 flex items-center justify-center">
-          <div className="rounded-lg bg-app-surface p-8 text-center">
+        <div
+          className="app-popup-backdrop fixed inset-0 z-50 flex items-center justify-center"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="rounded-lg bg-app-surface p-8 text-center shadow-xl transition-all duration-150">
             <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-app-accent" />
             <p className="text-app-text-muted">Sending test webhook...</p>
           </div>

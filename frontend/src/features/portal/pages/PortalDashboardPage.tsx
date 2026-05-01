@@ -1,4 +1,12 @@
 import { useEffect, useState } from 'react';
+import {
+  BellIcon,
+  BriefcaseIcon,
+  CalendarDaysIcon,
+  ChatBubbleLeftRightIcon,
+  DocumentTextIcon,
+  FolderOpenIcon,
+} from '@heroicons/react/24/outline';
 import { Link } from 'react-router-dom';
 import PortalPageState from '../../../components/portal/PortalPageState';
 import PortalPageShell from '../../../components/portal/PortalPageShell';
@@ -13,6 +21,13 @@ import { formatPortalDateTime } from '../utils/dateDisplay';
 const formatDateTime = (value?: string | null): string =>
   formatPortalDateTime(value, undefined, 'Not scheduled');
 
+const quickActionClass =
+  'inline-flex items-center justify-center gap-2 rounded-[var(--ui-radius-sm)] border px-4 py-2 text-sm font-semibold shadow-sm transition-[background-color,border-color,box-shadow,transform] duration-150 ease-out hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent';
+const quietActionClass =
+  'border-app-border text-app-text hover:border-app-accent hover:bg-app-surface-muted';
+const cardActionClass =
+  'inline-flex items-center gap-1.5 rounded border border-app-input-border px-3 py-1 text-xs font-medium transition-colors duration-150 hover:border-app-accent hover:bg-app-surface-muted';
+
 export default function PortalDashboard() {
   const [dashboard, setDashboard] = useState<PortalDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -26,7 +41,7 @@ export default function PortalDashboard() {
       setDashboard(response);
     } catch (err) {
       console.error('Failed to load portal dashboard', err);
-      setError('Unable to load your case workspace right now.');
+      setError('Unable to load your portal home right now.');
     } finally {
       setLoading(false);
     }
@@ -54,16 +69,17 @@ export default function PortalDashboard() {
 
   return (
     <PortalPageShell
-      title="Your Case Workspace"
+      title="Your Portal Home"
       description="Pick up conversations, appointments, documents, and next steps from one place."
     >
       <PortalPageState
         loading={loading}
         error={error}
         empty={!loading && !error && !hasContent}
-        loadingLabel="Loading your workspace..."
-        emptyTitle="Your workspace is ready when staff share items with you."
+        loadingLabel="Loading your portal home..."
+        emptyTitle="Your portal is ready when staff share items with you."
         emptyDescription="Once a case, conversation, appointment, or document is shared, it will appear here."
+        emptyIcon={<FolderOpenIcon className="h-5 w-5" aria-hidden="true" />}
         onRetry={load}
       />
 
@@ -92,7 +108,7 @@ export default function PortalDashboard() {
               trend={
                 nextAppointment?.case_title
                   ? `${nextAppointment.case_title}${nextAppointment.location ? ` • ${nextAppointment.location}` : ''}`
-                  : 'Book a slot or send a request'
+                  : 'Book a time or send a request'
               }
             />
             <StatCard
@@ -119,34 +135,39 @@ export default function PortalDashboard() {
                 <Link
                   to={`/portal/cases/${primaryCase.id}`}
                   onClick={() => setSelectedCaseId(primaryCase.id)}
-                  className="app-accent-contrast-ink inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-accent bg-app-accent px-4 py-2 text-sm font-semibold shadow-sm"
+                  className={`${quickActionClass} app-accent-contrast-ink border-app-accent bg-app-accent`}
                 >
-                  Resume Case Workspace
+                  <BriefcaseIcon className="h-4 w-4" aria-hidden="true" />
+                  Open Case
                 </Link>
               ) : (
                 <Link
                   to="/portal/cases"
-                  className="inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-border px-4 py-2 text-sm font-semibold text-app-text shadow-sm"
+                  className={`${quickActionClass} ${quietActionClass}`}
                 >
+                  <FolderOpenIcon className="h-4 w-4" aria-hidden="true" />
                   View Shared Cases
                 </Link>
               )}
               <Link
                 to="/portal/messages"
-                className="inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-border px-4 py-2 text-sm font-semibold text-app-text shadow-sm"
+                className={`${quickActionClass} ${quietActionClass}`}
               >
+                <ChatBubbleLeftRightIcon className="h-4 w-4" aria-hidden="true" />
                 Message Staff
               </Link>
               <Link
                 to="/portal/appointments"
-                className="inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-border px-4 py-2 text-sm font-semibold text-app-text shadow-sm"
+                className={`${quickActionClass} ${quietActionClass}`}
               >
+                <CalendarDaysIcon className="h-4 w-4" aria-hidden="true" />
                 Manage Appointments
               </Link>
               <Link
                 to="/portal/documents"
-                className="inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-border px-4 py-2 text-sm font-semibold text-app-text shadow-sm"
+                className={`${quickActionClass} ${quietActionClass}`}
               >
+                <DocumentTextIcon className="h-4 w-4" aria-hidden="true" />
                 Shared Documents
               </Link>
             </div>
@@ -155,7 +176,7 @@ export default function PortalDashboard() {
           <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
             <SectionCard
               title="Resume A Shared Case"
-              subtitle="Each case workspace keeps its timeline, documents, appointments, and related conversations together."
+              subtitle="Each shared case keeps its timeline, documents, appointments, and conversations together."
               actions={
                 <Link
                   to="/portal/cases"
@@ -172,6 +193,7 @@ export default function PortalDashboard() {
                   {activeCases.map((item) => (
                     <PortalListCard
                       key={item.id}
+                      icon={<BriefcaseIcon className="h-5 w-5" aria-hidden="true" />}
                       title={item.title}
                       subtitle={item.case_number}
                       meta={`Updated ${formatDateTime(item.updated_at)}`}
@@ -193,9 +215,9 @@ export default function PortalDashboard() {
                         <Link
                           to={`/portal/cases/${item.id}`}
                           onClick={() => setSelectedCaseId(item.id)}
-                          className="rounded border border-app-input-border px-3 py-1 text-xs font-medium"
+                          className={cardActionClass}
                         >
-                          Open workspace
+                          Open case
                         </Link>
                       }
                     >
@@ -230,6 +252,7 @@ export default function PortalDashboard() {
                     {recentThreads.map((thread) => (
                       <PortalListCard
                         key={thread.id}
+                        icon={<ChatBubbleLeftRightIcon className="h-5 w-5" aria-hidden="true" />}
                         title={thread.subject || thread.case_title || 'Conversation'}
                         subtitle={thread.case_number || 'General support'}
                         meta={formatDateTime(thread.last_message_at)}
@@ -260,6 +283,7 @@ export default function PortalDashboard() {
               <SectionCard title="Next Steps" subtitle="Your nearest appointment and reminders.">
                 <div className="space-y-3">
                   <PortalListCard
+                    icon={<CalendarDaysIcon className="h-5 w-5" aria-hidden="true" />}
                     title={nextAppointment?.title || 'No appointment scheduled'}
                     subtitle={nextAppointment?.case_title || 'Appointments'}
                     meta={
@@ -288,6 +312,7 @@ export default function PortalDashboard() {
                       .map((reminder) => (
                         <PortalListCard
                           key={`${reminder.type}-${reminder.id}`}
+                          icon={<BellIcon className="h-5 w-5" aria-hidden="true" />}
                           title={reminder.title}
                           subtitle={reminder.type.toUpperCase()}
                           meta={formatDateTime(reminder.date)}
@@ -310,6 +335,15 @@ export default function PortalDashboard() {
                 {recentActivity.map((event) => (
                   <PortalListCard
                     key={`${event.type}-${event.id}`}
+                    icon={
+                      event.type === 'appointment' ? (
+                        <CalendarDaysIcon className="h-5 w-5" aria-hidden="true" />
+                      ) : event.type === 'document' ? (
+                        <DocumentTextIcon className="h-5 w-5" aria-hidden="true" />
+                      ) : (
+                        <FolderOpenIcon className="h-5 w-5" aria-hidden="true" />
+                      )
+                    }
                     title={event.title}
                     subtitle={event.case_title || event.type.toUpperCase()}
                     meta={formatDateTime(event.created_at)}
@@ -350,13 +384,14 @@ export default function PortalDashboard() {
                   {recentDocuments.map((doc) => (
                     <PortalListCard
                       key={doc.id}
+                      icon={<DocumentTextIcon className="h-5 w-5" aria-hidden="true" />}
                       title={doc.title || doc.original_name}
                       subtitle={doc.document_type}
                       meta={`Shared ${formatDateTime(doc.created_at)}`}
                       actions={
                         <a
                           href={portalV2ApiClient.getDocumentDownloadUrl(doc.id)}
-                          className="rounded border border-app-input-border px-2 py-1 text-xs"
+                          className={cardActionClass}
                         >
                           Download
                         </a>
@@ -390,6 +425,7 @@ export default function PortalDashboard() {
                   {upcomingEvents.map((event) => (
                     <PortalListCard
                       key={event.id}
+                      icon={<CalendarDaysIcon className="h-5 w-5" aria-hidden="true" />}
                       title={event.name}
                       subtitle={event.event_type || 'event'}
                       meta={formatDateTime(event.start_date)}

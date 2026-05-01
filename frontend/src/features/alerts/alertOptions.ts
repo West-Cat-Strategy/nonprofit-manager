@@ -11,30 +11,31 @@ import type {
 type Option<T extends string> = {
   value: T;
   label: string;
+  description?: string;
 };
 
 export const ALERT_METRIC_OPTIONS: Option<AlertMetricType>[] = [
   { value: 'donations', label: 'Donations' },
-  { value: 'donation_amount', label: 'Donation Amount' },
-  { value: 'volunteer_hours', label: 'Volunteer Hours' },
-  { value: 'event_attendance', label: 'Event Attendance' },
-  { value: 'case_volume', label: 'Case Volume' },
-  { value: 'engagement_score', label: 'Engagement Score' },
+  { value: 'donation_amount', label: 'Donation amount' },
+  { value: 'volunteer_hours', label: 'Volunteer hours' },
+  { value: 'event_attendance', label: 'Event attendance' },
+  { value: 'case_volume', label: 'Case volume' },
+  { value: 'engagement_score', label: 'Engagement score' },
 ];
 
 export const ALERT_CONDITION_OPTIONS: Option<AlertCondition>[] = [
-  { value: 'exceeds', label: 'Exceeds Threshold' },
-  { value: 'drops_below', label: 'Drops Below Threshold' },
-  { value: 'changes_by', label: 'Changes By Percentage' },
-  { value: 'anomaly_detected', label: 'Anomaly Detected' },
-  { value: 'trend_reversal', label: 'Trend Reversal' },
+  { value: 'exceeds', label: 'Goes above a value' },
+  { value: 'drops_below', label: 'Drops below a value' },
+  { value: 'changes_by', label: 'Changes by a percentage' },
+  { value: 'anomaly_detected', label: 'Looks unusual' },
+  { value: 'trend_reversal', label: 'Trend changes direction' },
 ];
 
 export const ALERT_FREQUENCY_OPTIONS: Option<AlertFrequency>[] = [
-  { value: 'real_time', label: 'Real-time' },
-  { value: 'daily', label: 'Daily Digest' },
-  { value: 'weekly', label: 'Weekly Summary' },
-  { value: 'monthly', label: 'Monthly Report' },
+  { value: 'real_time', label: 'Right away' },
+  { value: 'daily', label: 'Daily summary' },
+  { value: 'weekly', label: 'Weekly summary' },
+  { value: 'monthly', label: 'Monthly summary' },
 ];
 
 export const ALERT_SEVERITY_OPTIONS: Option<AlertSeverity>[] = [
@@ -45,10 +46,14 @@ export const ALERT_SEVERITY_OPTIONS: Option<AlertSeverity>[] = [
 ];
 
 export const ALERT_CHANNEL_OPTIONS: Option<AlertChannel>[] = [
-  { value: 'email', label: 'Email' },
-  { value: 'in_app', label: 'In App' },
-  { value: 'slack', label: 'Slack' },
-  { value: 'webhook', label: 'Webhook' },
+  { value: 'email', label: 'Email', description: 'Send an email to the selected recipients.' },
+  { value: 'in_app', label: 'In-app', description: 'Show the alert inside the staff app.' },
+  { value: 'slack', label: 'Slack', description: 'Post the alert to the connected Slack channel.' },
+  {
+    value: 'webhook',
+    label: 'Webhook',
+    description: 'Send the alert to a configured webhook URL.',
+  },
 ];
 
 const metricLabels = Object.fromEntries(
@@ -58,6 +63,14 @@ const metricLabels = Object.fromEntries(
 const conditionLabels = Object.fromEntries(
   ALERT_CONDITION_OPTIONS.map((option) => [option.value, option.label])
 ) as Record<AlertCondition, string>;
+
+const frequencyLabels = Object.fromEntries(
+  ALERT_FREQUENCY_OPTIONS.map((option) => [option.value, option.label])
+) as Record<AlertFrequency, string>;
+
+const channelLabels = Object.fromEntries(
+  ALERT_CHANNEL_OPTIONS.map((option) => [option.value, option.label])
+) as Record<AlertChannel, string>;
 
 export const createDefaultAlertConfig = (): CreateAlertDTO => ({
   name: '',
@@ -99,6 +112,12 @@ export const getAlertMetricLabel = (metric: AlertMetricType): string =>
 
 export const getAlertConditionLabel = (condition: AlertCondition): string =>
   conditionLabels[condition] || condition;
+
+export const getAlertFrequencyLabel = (frequency: AlertFrequency): string =>
+  frequencyLabels[frequency] || frequency;
+
+export const getAlertChannelLabel = (channel: AlertChannel): string =>
+  channelLabels[channel] || channel;
 
 export const getAlertSeverityClasses = (severity: AlertSeverity): string => {
   switch (severity) {

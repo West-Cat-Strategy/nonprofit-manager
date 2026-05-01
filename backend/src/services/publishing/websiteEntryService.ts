@@ -6,6 +6,7 @@ import type {
   CreateWebsiteEntryRequest,
   UpdateWebsiteEntryRequest,
   WebsiteEntry,
+  WebsiteEntryKind,
   WebsiteEntryListResult,
   WebsiteEntrySource,
   WebsiteEntryStatus,
@@ -51,11 +52,12 @@ const sanitizeBodyHtml = (value?: string | null): string | null => {
 };
 
 interface EntryListOptions {
+  kind?: WebsiteEntryKind;
   status?: WebsiteEntryStatus;
   source?: WebsiteEntrySource;
 }
 
-interface PublicNewsletterListOptions {
+interface PublicEntryListOptions {
   limit?: number;
   offset?: number;
   sourceFilter?: WebsiteEntrySource | 'all';
@@ -97,6 +99,11 @@ export class WebsiteEntryService {
     if (options.status) {
       conditions.push(`status = $${paramIndex++}`);
       params.push(options.status);
+    }
+
+    if (options.kind) {
+      conditions.push(`kind = $${paramIndex++}`);
+      params.push(options.kind);
     }
 
     if (options.source) {
@@ -341,15 +348,16 @@ export class WebsiteEntryService {
     return this.listEntries(siteId, userId, {}, organizationId);
   }
 
-  async listPublicNewsletters(
+  async listPublicEntries(
     site: PublishedSite,
-    options: PublicNewsletterListOptions = {}
+    kind: WebsiteEntryKind,
+    options: PublicEntryListOptions = {}
   ): Promise<WebsiteEntryListResult> {
     const limit = Math.max(1, Math.min(options.limit || 20, 100));
     const offset = Math.max(0, options.offset || 0);
-    const conditions = ['site_id = $1', `kind = 'newsletter'`, `status = 'published'`];
-    const params: unknown[] = [site.id];
-    let paramIndex = 2;
+    const conditions = ['site_id = $1', `kind = $2`, `status = 'published'`];
+    const params: unknown[] = [site.id, kind];
+    let paramIndex = 3;
 
     if (options.sourceFilter && options.sourceFilter !== 'all') {
       conditions.push(`source = $${paramIndex++}`);
@@ -379,19 +387,45 @@ export class WebsiteEntryService {
     };
   }
 
-  async getPublicNewsletterBySlug(site: PublishedSite, slug: string): Promise<WebsiteEntry | null> {
+  async listPublicNewsletters(
+    site: PublishedSite,
+    options: PublicEntryListOptions = {}
+  ): Promise<WebsiteEntryListResult> {
+    return this.listPublicEntries(site, 'newsletter', options);
+  }
+
+  async listPublicBlogEntries(
+    site: PublishedSite,
+    options: PublicEntryListOptions = {}
+  ): Promise<WebsiteEntryListResult> {
+    return this.listPublicEntries(site, 'blog_post', options);
+  }
+
+  async getPublicEntryBySlug(
+    site: PublishedSite,
+    kind: WebsiteEntryKind,
+    slug: string
+  ): Promise<WebsiteEntry | null> {
     const result = await this.pool.query(
       `SELECT *
        FROM website_entries
        WHERE site_id = $1
-         AND kind = 'newsletter'
+         AND kind = $2
          AND status = 'published'
-         AND slug = $2
+         AND slug = $3
        LIMIT 1`,
-      [site.id, normalizeSlug(slug)]
+      [site.id, kind, normalizeSlug(slug)]
     );
 
     return result.rows[0] ? mapEntryRow(result.rows[0]) : null;
+  }
+
+  async getPublicNewsletterBySlug(site: PublishedSite, slug: string): Promise<WebsiteEntry | null> {
+    return this.getPublicEntryBySlug(site, 'newsletter', slug);
+  }
+
+  async getPublicBlogEntryBySlug(site: PublishedSite, slug: string): Promise<WebsiteEntry | null> {
+    return this.getPublicEntryBySlug(site, 'blog_post', slug);
   }
 }
 

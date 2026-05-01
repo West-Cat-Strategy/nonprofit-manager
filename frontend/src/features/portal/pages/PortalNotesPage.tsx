@@ -1,3 +1,4 @@
+import { DocumentTextIcon } from '@heroicons/react/24/outline';
 import PortalPageState from '../../../components/portal/PortalPageState';
 import PortalPageShell from '../../../components/portal/PortalPageShell';
 import PortalListCard from '../../../components/portal/PortalListCard';
@@ -36,28 +37,13 @@ export default function PortalNotes() {
     sort: sortField,
     order: sortOrder,
   });
+  const shouldShowListTools = notes.length > 0 || searchTerm.trim().length > 0;
 
   return (
     <PortalPageShell
       title="Notes"
       description="Read notes that staff have shared with your portal account."
     >
-      <PortalListToolbar
-        searchValue={searchTerm}
-        onSearchChange={setSearch}
-        searchPlaceholder="Search notes by subject, type, or content"
-        sortValue={sortField}
-        onSortChange={setSort}
-        sortOptions={[
-          { value: 'created_at', label: 'Created date' },
-          { value: 'subject', label: 'Subject' },
-          { value: 'note_type', label: 'Note type' },
-        ]}
-        orderValue={sortOrder}
-        onOrderChange={setOrder}
-        showingCount={notes.length}
-        totalCount={total}
-      />
       <PortalPageState
         loading={loading}
         error={error}
@@ -69,13 +55,33 @@ export default function PortalNotes() {
             ? 'Try a different search term.'
             : 'Staff must explicitly share notes to make them visible here.'
         }
+        emptyIcon={<DocumentTextIcon className="h-5 w-5" aria-hidden="true" />}
         onRetry={refresh}
       />
+      {shouldShowListTools && (
+        <PortalListToolbar
+          searchValue={searchTerm}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search notes by subject, type, or content"
+          sortValue={sortField}
+          onSortChange={setSort}
+          sortOptions={[
+            { value: 'created_at', label: 'Created date' },
+            { value: 'subject', label: 'Subject' },
+            { value: 'note_type', label: 'Note type' },
+          ]}
+          orderValue={sortOrder}
+          onOrderChange={setOrder}
+          showingCount={notes.length}
+          totalCount={total}
+        />
+      )}
       {!loading && !error && notes.length > 0 && (
-        <ul className="space-y-3">
+        <ul className="mt-3 space-y-3">
           {notes.map((note: PortalNote) => (
             <li key={note.id}>
               <PortalListCard
+                icon={<DocumentTextIcon className="h-5 w-5" aria-hidden="true" />}
                 title={note.subject || note.note_type}
                 subtitle={note.note_type.toUpperCase()}
                 meta={formatPortalDateTime(note.created_at)}

@@ -249,7 +249,7 @@ export function usePortalCalendarController() {
 
   const handleBookSlot = async (slotId: string) => {
     if (!selectedCaseId) {
-      showError('Select a case before booking a slot.');
+      showError('Select a case before booking a time.');
       return;
     }
 
@@ -261,7 +261,7 @@ export function usePortalCalendarController() {
         await loadCalendar(visibleRange);
       }
     } catch (bookError) {
-      showError(formatApiErrorMessage(bookError, 'Could not book this slot.'));
+      showError(formatApiErrorMessage(bookError, 'Could not book this time.'));
     } finally {
       setSavingEntryId(null);
     }

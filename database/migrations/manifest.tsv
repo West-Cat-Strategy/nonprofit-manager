@@ -107,3 +107,9 @@
 107	107_donor_profiles.sql
 108	108_case_reassessment_cycles.sql
 109	109_case_form_revision_requests.sql
+110	110_communication_suppression_governance.sql
+111	111_local_first_communications.sql
+112	112_local_campaign_run_controls.sql
+113	113_case_form_assignment_events.sql
+114	114_case_form_templates_and_delivery_channels.sql
+115	115_website_public_actions.sql

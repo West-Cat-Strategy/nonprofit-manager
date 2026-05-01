@@ -256,6 +256,36 @@ const components: ComponentDefinition[] = [
       </svg>
     ),
   },
+  {
+    type: 'petition-form',
+    label: 'Petition',
+    category: 'forms',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7 4h10a2 2 0 012 2v14l-4-2-4 2-4-2-4 2V6a2 2 0 012-2z" />
+      </svg>
+    ),
+  },
+  {
+    type: 'donation-pledge-form',
+    label: 'Pledge',
+    category: 'forms',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V6m0 10v2m8-6a8 8 0 11-16 0 8 8 0 0116 0z" />
+      </svg>
+    ),
+  },
+  {
+    type: 'support-letter-request',
+    label: 'Support Letter',
+    category: 'forms',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h8m-8 4h6M5 4h14v16H5z" />
+      </svg>
+    ),
+  },
 
   // Integration
   {

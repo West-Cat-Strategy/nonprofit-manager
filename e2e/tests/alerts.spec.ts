@@ -6,7 +6,7 @@ const uniqueSuffix = () => `${Date.now()}-${Math.random().toString(16).slice(2, 
 const getAlertCard = (page: Page, alertName: string) =>
   page
     .getByRole('heading', { name: alertName, exact: true })
-    .locator('xpath=ancestor::div[.//button[@title="Edit alert"]][1]');
+    .locator('xpath=ancestor::div[.//button[@title="Edit alert rule"]][1]');
 
 test.describe('Alerts Workflows', () => {
   test('should create, edit, toggle, and delete an alert configuration through the UI', async ({
@@ -17,9 +17,9 @@ test.describe('Alerts Workflows', () => {
     const updatedDescription = `Updated description ${suffix}`;
 
     await authenticatedPage.goto('/alerts');
-    await authenticatedPage.getByRole('button', { name: /create alert/i }).click();
+    await authenticatedPage.getByRole('button', { name: /create alert rule/i }).click();
 
-    await authenticatedPage.getByLabel(/alert name/i).fill(alertName);
+    await authenticatedPage.getByLabel(/alert rule name/i).fill(alertName);
     await authenticatedPage
       .getByLabel(/description/i)
       .fill(`Initial description ${suffix}`);
@@ -31,7 +31,7 @@ test.describe('Alerts Workflows', () => {
         response.url().includes('/api/v2/alerts/test') &&
         response.ok()
     );
-    await authenticatedPage.getByRole('button', { name: /test alert/i }).click();
+    await authenticatedPage.getByRole('button', { name: /test alert rule/i }).click();
     await testAlertResponse;
     await expect(authenticatedPage.getByText(/alert would/i)).toBeVisible();
 
@@ -41,7 +41,7 @@ test.describe('Alerts Workflows', () => {
         response.url().includes('/api/v2/alerts/configs') &&
         response.ok()
     );
-    await authenticatedPage.getByRole('button', { name: /^create alert$/i }).last().click();
+    await authenticatedPage.getByRole('button', { name: /^create alert rule$/i }).last().click();
     await createAlertResponse;
 
     const alertCard = getAlertCard(authenticatedPage, alertName);
@@ -53,10 +53,10 @@ test.describe('Alerts Workflows', () => {
         response.url().includes('/api/v2/alerts/configs/') &&
         response.ok()
     );
-    await alertCard.locator('[title="Edit alert"]').click();
+    await alertCard.locator('[title="Edit alert rule"]').click();
     await authenticatedPage.getByLabel(/description/i).fill(updatedDescription);
     await authenticatedPage.getByLabel(/threshold/i).fill('40');
-    await authenticatedPage.getByRole('button', { name: /update alert/i }).click();
+    await authenticatedPage.getByRole('button', { name: /update alert rule/i }).click();
     await updateAlertResponse;
 
     await expect(alertCard).toContainText(updatedDescription);
@@ -68,7 +68,7 @@ test.describe('Alerts Workflows', () => {
         response.url().endsWith('/toggle') &&
         response.ok()
     );
-    await alertCard.locator('[title="Pause alert"]').click();
+    await alertCard.locator('[title="Pause alert rule"]').click();
     await pauseAlertResponse;
     await expect(alertCard).toContainText(/paused/i);
 
@@ -79,7 +79,7 @@ test.describe('Alerts Workflows', () => {
         response.url().endsWith('/toggle') &&
         response.ok()
     );
-    await alertCard.locator('[title="Enable alert"]').click();
+    await alertCard.locator('[title="Turn on alert rule"]').click();
     await enableAlertResponse;
     await expect(alertCard).toContainText(/active/i);
 
@@ -89,10 +89,10 @@ test.describe('Alerts Workflows', () => {
         response.url().includes('/api/v2/alerts/configs/') &&
         response.ok()
     );
-    await alertCard.locator('[title="Delete alert"]').click();
+    await alertCard.locator('[title="Delete alert rule"]').click();
     const confirmDeleteDialog = authenticatedPage
       .locator('.fixed.inset-0')
-      .filter({ hasText: /delete alert configuration/i });
+      .filter({ hasText: /delete alert rule|delete alert configuration/i });
     await expect(confirmDeleteDialog).toBeVisible({ timeout: 10000 });
     await confirmDeleteDialog.getByRole('button', { name: /^delete$/i }).click();
     await deleteAlertResponse;

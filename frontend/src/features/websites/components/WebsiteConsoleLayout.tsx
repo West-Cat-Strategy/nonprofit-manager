@@ -2,6 +2,12 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import type { NavLinkRenderProps } from 'react-router-dom';
 import {
+  CalendarDaysIcon,
+  GlobeAltIcon,
+  RocketLaunchIcon,
+  SparklesIcon,
+} from '@heroicons/react/24/outline';
+import {
   getWebsiteBuilderPath,
   getWebsiteContentPath,
   getWebsiteFormsPath,
@@ -65,45 +71,58 @@ const WebsiteConsoleLayout: React.FC<WebsiteConsoleLayoutProps> = ({
               ) : null}
             </div>
             <p className="mt-2 max-w-3xl text-sm text-app-text-muted">{title}</p>
-            {subtitle ? <p className="mt-1 max-w-3xl text-sm text-app-text-subtle">{subtitle}</p> : null}
+            {subtitle ? (
+              <p className="mt-1 max-w-3xl text-sm text-app-text-subtle">{subtitle}</p>
+            ) : null}
 
             {overview ? (
               <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-2xl border border-app-border bg-app-surface px-4 py-3">
-                  <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                <div className="rounded-2xl border border-app-border bg-app-surface px-4 py-3 transition duration-200 hover:-translate-y-0.5 hover:shadow-sm">
+                  <div className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                    <RocketLaunchIcon className="h-4 w-4 text-app-accent" aria-hidden="true" />
                     Site status
                   </div>
                   <div className="mt-2 text-sm font-semibold text-app-text">
                     {overview.site.blocked ? 'Needs assignment' : overview.site.status}
                   </div>
                   <p className="mt-1 text-sm text-app-text-muted">
-                    {overview.site.publishedVersion ? `Version ${overview.site.publishedVersion}` : 'Draft site'}
+                    {overview.site.publishedVersion
+                      ? `Version ${overview.site.publishedVersion}`
+                      : 'Draft site'}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-app-border bg-app-surface px-4 py-3">
-                  <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                <div className="rounded-2xl border border-app-border bg-app-surface px-4 py-3 transition duration-200 hover:-translate-y-0.5 hover:shadow-sm">
+                  <div className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                    <GlobeAltIcon className="h-4 w-4 text-app-accent" aria-hidden="true" />
                     Live URL
                   </div>
                   <div className="mt-2 truncate text-sm font-semibold text-app-text">
                     {overview.deployment?.primaryUrl || overview.site.primaryUrl || 'Not available'}
                   </div>
                   <p className="mt-1 text-sm text-app-text-muted">
-                    {overview.deployment?.domainStatus === 'configured' ? 'Custom domain configured' : 'Default routing'}
+                    {overview.deployment?.domainStatus === 'configured'
+                      ? 'Custom domain configured'
+                      : 'Default routing'}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-app-border bg-app-surface px-4 py-3">
-                  <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                <div className="rounded-2xl border border-app-border bg-app-surface px-4 py-3 transition duration-200 hover:-translate-y-0.5 hover:shadow-sm">
+                  <div className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                    <SparklesIcon className="h-4 w-4 text-app-accent" aria-hidden="true" />
                     Preview
                   </div>
                   <div className="mt-2 text-sm font-semibold text-app-text">
-                    {overview.deployment?.previewUrl ? 'Preview available' : 'No preview deployment'}
+                    {overview.deployment?.previewUrl
+                      ? 'Preview available'
+                      : 'No preview deployment'}
                   </div>
                   <p className="mt-1 text-sm text-app-text-muted">
-                    {overview.deployment?.previewUrl || 'Publish a preview to share a private review link.'}
+                    {overview.deployment?.previewUrl ||
+                      'Publish a preview to share a private review link.'}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-app-border bg-app-surface px-4 py-3">
-                  <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                <div className="rounded-2xl border border-app-border bg-app-surface px-4 py-3 transition duration-200 hover:-translate-y-0.5 hover:shadow-sm">
+                  <div className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                    <CalendarDaysIcon className="h-4 w-4 text-app-accent" aria-hidden="true" />
                     Updated
                   </div>
                   <div className="mt-2 text-sm font-semibold text-app-text">
@@ -136,7 +155,7 @@ const WebsiteConsoleLayout: React.FC<WebsiteConsoleLayoutProps> = ({
               key={tab.key}
               to={tab.href}
               className={({ isActive }: NavLinkRenderProps) =>
-                `shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                `shrink-0 rounded-full px-4 py-2 text-sm font-medium transition duration-150 hover:-translate-y-0.5 ${
                   isActive
                     ? 'app-pill-action app-pill-action-accent app-accent-contrast-ink shadow-sm'
                     : 'app-pill-action'

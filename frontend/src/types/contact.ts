@@ -410,6 +410,81 @@ export interface ContactCommunicationsResult {
   filters: ContactCommunicationFilters;
 }
 
+export type ContactSuppressionChannel = 'email' | 'phone' | 'sms' | 'voicemail' | 'mail' | 'all';
+
+export type ContactSuppressionReason =
+  | 'staff_dnc'
+  | 'client_request'
+  | 'caregiver_request'
+  | 'legal_hold'
+  | 'unsubscribed'
+  | 'cleaned'
+  | 'mailchimp_unsubscribe'
+  | 'mailchimp_cleaned'
+  | 'no_solicitations'
+  | 'invalid_contact'
+  | 'other';
+
+export interface ContactSuppressionEvidence {
+  id: string;
+  contact_id: string;
+  account_id?: string | null;
+  channel: ContactSuppressionChannel;
+  reason: ContactSuppressionReason | string;
+  source: string;
+  source_label?: string | null;
+  provider?: string | null;
+  provider_list_id?: string | null;
+  provider_event_id?: string | null;
+  provider_event_type?: string | null;
+  provider_reason?: string | null;
+  evidence?: string | Record<string, unknown> | null;
+  notes?: string | null;
+  is_active: boolean;
+  starts_at?: string | null;
+  expires_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by?: string | null;
+  created_by_name?: string | null;
+  resolved_at?: string | null;
+  resolved_by?: string | null;
+  resolved_by_name?: string | null;
+}
+
+export interface ContactSuppressionEvidenceResult {
+  items: ContactSuppressionEvidence[];
+  total: number;
+  fatiguePolicy?: CommunicationFatiguePolicy | null;
+}
+
+export interface CommunicationFatiguePolicy {
+  id: string;
+  account_id?: string | null;
+  channel: ContactSuppressionChannel;
+  max_messages: number;
+  window_days: number;
+  enforcement: 'advisory' | 'block';
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateContactSuppressionEvidenceDTO {
+  channel: ContactSuppressionChannel;
+  reason: ContactSuppressionReason;
+  source: 'staff';
+  evidence: string;
+  notes?: string | null;
+  starts_at?: string | null;
+  expires_at?: string | null;
+}
+
+export interface UpdateContactSuppressionEvidenceDTO {
+  is_active?: boolean;
+  resolved_note?: string | null;
+}
+
 // ============================================================================
 // Helper Constants
 // ============================================================================

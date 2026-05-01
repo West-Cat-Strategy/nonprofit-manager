@@ -4,6 +4,7 @@ import type { CaseFormAssignmentRecord, CaseFormsRepository } from '../../reposi
 import { CaseFormsUseCase } from '../caseForms.usecase';
 
 const sendMailMock = jest.fn();
+const sendSmsMock = jest.fn();
 const uploadFileMock = jest.fn();
 const generateCaseFormResponsePacketMock = jest.fn();
 const requireCaseOwnershipMock = jest.fn();
@@ -11,6 +12,10 @@ const createCaseNoteQueryMock = jest.fn();
 
 jest.mock('@services/emailService', () => ({
   sendMail: (...args: unknown[]) => sendMailMock(...args),
+}));
+
+jest.mock('@services/twilioSmsService', () => ({
+  sendSms: (...args: unknown[]) => sendSmsMock(...args),
 }));
 
 jest.mock('@services/fileStorageService', () => ({
@@ -165,6 +170,7 @@ const createRepositoryMock = (): {
   const mocks = {
     withTransaction: jest.fn(async (callback: (client: PoolClient) => Promise<unknown>) => callback(transactionClient)),
     listDefaultsByCaseType: jest.fn(),
+    listTemplates: jest.fn(),
     getDefaultById: jest.fn(),
     createDefault: jest.fn(),
     updateDefault: jest.fn(),
@@ -179,6 +185,8 @@ const createRepositoryMock = (): {
     markAssignmentAfterSubmission: jest.fn(),
     markAssignmentSent: jest.fn(),
     markAssignmentReviewDecision: jest.fn(),
+    createAssignmentEvent: jest.fn(),
+    listAssignmentEvents: jest.fn(),
     getSubmissionByClientSubmissionId: jest.fn(),
     listSubmissionsForAssignment: jest.fn(),
     getNextSubmissionNumber: jest.fn(),
@@ -219,6 +227,8 @@ describe('CaseFormsUseCase', () => {
       account_id: 'org-1',
     });
     createCaseNoteQueryMock.mockResolvedValue(undefined);
+    sendMailMock.mockResolvedValue(true);
+    sendSmsMock.mockResolvedValue({ success: true, to: '+15555550123' });
     uploadFileMock.mockResolvedValue({
       fileName: 'stored-response.pdf',
       filePath: 'case-forms/stored-response.pdf',
@@ -289,6 +299,36 @@ describe('CaseFormsUseCase', () => {
     expect(result.access_link_url).toMatch(/\/public\/case-forms\//);
   });
 
+  it('does not mark email delivery sent when SMTP delivery fails', async () => {
+    const { repository, mocks } = createRepositoryMock();
+    const useCase = new CaseFormsUseCase(repository);
+    const assignment = makeAssignment();
+
+    mocks.getAssignmentById.mockResolvedValueOnce(assignment);
+    sendMailMock.mockResolvedValueOnce(false);
+
+    await expect(
+      useCase.sendAssignment('case-1', assignment.id, {
+        delivery_target: 'email',
+        recipient_email: 'client@example.com',
+        expires_in_days: 7,
+      }, 'staff-1', 'org-1')
+    ).rejects.toMatchObject({
+      message: 'Email delivery failed',
+      statusCode: 502,
+      code: 'email_delivery_failed',
+    });
+
+    expect(sendMailMock).toHaveBeenCalledTimes(1);
+    expect(mocks.withTransaction).not.toHaveBeenCalled();
+    expect(mocks.revokeAccessTokens).not.toHaveBeenCalled();
+    expect(mocks.createAccessToken).not.toHaveBeenCalled();
+    expect(mocks.updateAssignment).not.toHaveBeenCalled();
+    expect(mocks.markAssignmentSent).not.toHaveBeenCalled();
+    expect(mocks.createAssignmentEvent).not.toHaveBeenCalled();
+    expect(createCaseNoteQueryMock).not.toHaveBeenCalled();
+  });
+
   it('supports combined portal and email delivery from one send action', async () => {
     const { repository, mocks } = createRepositoryMock();
     const useCase = new CaseFormsUseCase(repository);
@@ -313,6 +353,91 @@ describe('CaseFormsUseCase', () => {
     expect(mocks.markAssignmentSent).toHaveBeenCalledWith(expect.anything(), assignment.id);
     expect(result.delivery_target).toBe('portal_and_email');
     expect(result.access_link_url).toMatch(/\/public\/case-forms\//);
+  });
+
+  it('sends an SMS secure link without requiring portal visibility', async () => {
+    const { repository, mocks } = createRepositoryMock();
+    const useCase = new CaseFormsUseCase(repository);
+    const assignment = makeAssignment({
+      client_viewable: false,
+      recipient_email: null,
+    });
+    const refreshed = makeAssignment({
+      status: 'sent',
+      delivery_channels: ['sms'],
+      recipient_phone: '+15555550123',
+      sent_at: '2026-04-16T12:15:00.000Z',
+    });
+
+    mocks.getAssignmentById.mockResolvedValueOnce(assignment).mockResolvedValueOnce(refreshed);
+    mocks.createAccessToken.mockResolvedValue('token-row-1');
+
+    const result = await useCase.sendAssignment('case-1', assignment.id, {
+      delivery_channels: ['sms'],
+      recipient_phone: '+15555550123',
+      expires_in_days: 3,
+    }, 'staff-1', 'org-1');
+
+    expect(mocks.createAccessToken).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        recipientEmail: null,
+        recipientPhone: '+15555550123',
+        deliveryChannel: 'sms',
+      })
+    );
+    expect(sendMailMock).not.toHaveBeenCalled();
+    expect(sendSmsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: '+15555550123',
+        body: expect.stringContaining('/public/case-forms/'),
+      })
+    );
+    expect(mocks.updateAssignment).toHaveBeenCalledWith(
+      expect.anything(),
+      assignment.id,
+      expect.objectContaining({
+        deliveryTarget: null,
+        deliveryChannels: ['sms'],
+        recipientPhone: '+15555550123',
+        status: 'sent',
+      })
+    );
+    expect(result.delivery_channels).toEqual(['sms']);
+    expect(result.access_link_url).toMatch(/\/public\/case-forms\//);
+  });
+
+  it('does not mark SMS delivery sent when Twilio delivery fails', async () => {
+    const { repository, mocks } = createRepositoryMock();
+    const useCase = new CaseFormsUseCase(repository);
+    const assignment = makeAssignment({
+      client_viewable: false,
+      recipient_email: null,
+    });
+
+    mocks.getAssignmentById.mockResolvedValueOnce(assignment);
+    sendSmsMock.mockResolvedValueOnce({ success: false, error: 'Twilio rejected the message' });
+
+    await expect(
+      useCase.sendAssignment('case-1', assignment.id, {
+        delivery_channels: ['sms'],
+        recipient_phone: '+15555550123',
+        expires_in_days: 3,
+      }, 'staff-1', 'org-1')
+    ).rejects.toMatchObject({
+      message: 'Twilio rejected the message',
+      statusCode: 502,
+      code: 'sms_delivery_failed',
+    });
+
+    expect(sendSmsMock).toHaveBeenCalledTimes(1);
+    expect(mocks.withTransaction).not.toHaveBeenCalled();
+    expect(mocks.revokeAccessTokens).not.toHaveBeenCalled();
+    expect(mocks.createAccessToken).not.toHaveBeenCalled();
+    expect(mocks.updateAssignment).not.toHaveBeenCalled();
+    expect(mocks.markAssignmentSent).not.toHaveBeenCalled();
+    expect(mocks.createAssignmentEvent).not.toHaveBeenCalled();
+    expect(createCaseNoteQueryMock).not.toHaveBeenCalled();
   });
 
   it('expires public access links without clearing assignment attribution', async () => {
@@ -390,6 +515,53 @@ describe('CaseFormsUseCase', () => {
     expect(result.assignment.delivery_target).toBe('email');
     expect(result.assignment.viewed_at).toBe('2026-04-16T12:20:00.000Z');
     expect(result.submissions).toEqual([]);
+    expect(mocks.listAssignmentEvents).not.toHaveBeenCalled();
+  });
+
+  it('returns evidence events only on staff assignment detail', async () => {
+    const { repository, mocks } = createRepositoryMock();
+    const useCase = new CaseFormsUseCase(repository);
+    const assignment = makeAssignment({
+      status: 'submitted',
+      delivery_target: 'portal',
+    });
+
+    mocks.getAssignmentById.mockResolvedValueOnce(assignment);
+    mocks.listSubmissionsForAssignment.mockResolvedValue([]);
+    mocks.listAssetsForAssignment.mockResolvedValue([]);
+    mocks.listAssignmentEvents.mockResolvedValue([
+      {
+        id: 'event-1',
+        assignment_id: assignment.id,
+        case_id: assignment.case_id,
+        contact_id: assignment.contact_id,
+        event_type: 'submission_recorded',
+        actor_type: 'portal',
+        actor_user_id: null,
+        actor_portal_user_id: 'portal-user-1',
+        submission_id: 'submission-1',
+        metadata: {
+          submission_id: 'submission-1',
+          submission_number: 1,
+          mapped_field_count: 2,
+        },
+        created_at: '2026-04-16T12:30:00.000Z',
+      },
+    ]);
+
+    const result = await useCase.getAssignmentDetailForCase('case-1', assignment.id, 'org-1');
+
+    expect(mocks.listAssignmentEvents).toHaveBeenCalledWith(assignment.id);
+    expect(result.evidence_events).toEqual([
+      expect.objectContaining({
+        id: 'event-1',
+        event_type: 'submission_recorded',
+        metadata: expect.objectContaining({
+          submission_id: 'submission-1',
+          mapped_field_count: 2,
+        }),
+      }),
+    ]);
   });
 
   it('rejects delivery when the case is not client-viewable', async () => {
@@ -407,7 +579,7 @@ describe('CaseFormsUseCase', () => {
         delivery_target: 'portal',
       }, 'staff-1', 'org-1')
     ).rejects.toMatchObject({
-      message: 'This case must be shared with the client before forms can be delivered',
+      message: 'This client needs portal access or a client-visible case before portal delivery',
       statusCode: 400,
       code: 'validation_error',
     });
@@ -433,6 +605,32 @@ describe('CaseFormsUseCase', () => {
       statusCode: 404,
       code: 'not_found',
     });
+  });
+
+  it('does not expose evidence events on portal assignment detail', async () => {
+    const { repository, mocks } = createRepositoryMock();
+    const useCase = new CaseFormsUseCase(repository);
+    const assignment = makeAssignment({
+      status: 'submitted',
+      delivery_target: 'portal',
+      client_viewable: true,
+    });
+    const viewedAssignment = makeAssignment({
+      ...assignment,
+      viewed_at: '2026-04-16T12:20:00.000Z',
+    });
+
+    mocks.getAssignmentById.mockResolvedValueOnce(assignment).mockResolvedValueOnce(viewedAssignment);
+    mocks.listSubmissionsForAssignment.mockResolvedValue([]);
+    mocks.listAssetsForAssignment.mockResolvedValue([]);
+
+    const result = await useCase.getAssignmentDetailForPortal(
+      { contactId: 'contact-1', portalUserId: 'portal-user-1' },
+      assignment.id
+    );
+
+    expect(result.evidence_events).toBeUndefined();
+    expect(mocks.listAssignmentEvents).not.toHaveBeenCalled();
   });
 
   it('preserves case summary metadata in portal assignment lists', async () => {
@@ -598,6 +796,27 @@ describe('CaseFormsUseCase', () => {
     );
     expect(mocks.createCaseDocumentRecord).toHaveBeenCalled();
     expect(mocks.createContactDocumentRecord).toHaveBeenCalled();
+    expect(mocks.createAssignmentEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        assignmentId: assignment.id,
+        caseId: assignment.case_id,
+        contactId: assignment.contact_id,
+        eventType: 'submission_recorded',
+        actorType: 'portal',
+        actorPortalUserId: 'portal-user-1',
+        submissionId: submission.id,
+        metadata: expect.objectContaining({
+          submission_id: submission.id,
+          submission_number: 1,
+          client_submission_id: 'client-submission-1',
+          mapped_field_count: 2,
+          selected_asset_count: 0,
+          response_packet_case_document_id: 'case-doc-1',
+          response_packet_contact_document_id: 'contact-doc-1',
+        }),
+      })
+    );
     expect(createCaseNoteQueryMock).toHaveBeenCalled();
     expect(mocks.createReviewFollowUp).toHaveBeenCalledWith(
       expect.anything(),
@@ -615,6 +834,39 @@ describe('CaseFormsUseCase', () => {
     );
     expect(result.assignment.status).toBe('submitted');
     expect(result.assignment.source_default_version).toBe(4);
+  });
+
+  it('does not create duplicate submissions or evidence events on client submission replay', async () => {
+    const { repository, mocks } = createRepositoryMock();
+    const useCase = new CaseFormsUseCase(repository);
+    const assignment = makeAssignment({
+      status: 'submitted',
+      delivery_target: 'portal',
+    });
+    const existingSubmission = makeSubmission();
+
+    mocks.getAssignmentById.mockResolvedValueOnce(assignment);
+    mocks.getSubmissionByClientSubmissionId.mockResolvedValue(existingSubmission);
+    mocks.listSubmissionsForAssignment.mockResolvedValue([existingSubmission]);
+    mocks.listAssetsForAssignment.mockResolvedValue([]);
+    mocks.listAssetsForSubmissionIds.mockResolvedValue([]);
+
+    const result = await useCase.submitForPortal(
+      { contactId: 'contact-1', portalUserId: 'portal-user-1' },
+      assignment.id,
+      {
+        answers: {
+          email: 'client@example.com',
+          household_size: 3,
+        },
+        client_submission_id: 'client-submission-1',
+      }
+    );
+
+    expect(result.assignment.latest_submission?.id).toBe(existingSubmission.id);
+    expect(mocks.withTransaction).not.toHaveBeenCalled();
+    expect(mocks.createSubmission).not.toHaveBeenCalled();
+    expect(mocks.createAssignmentEvent).not.toHaveBeenCalled();
   });
 
   it('updates the existing scheduled review follow-up on resubmission instead of duplicating it', async () => {
@@ -702,6 +954,22 @@ describe('CaseFormsUseCase', () => {
         followUpId: 'follow-up-1',
       })
     );
+    expect(mocks.createAssignmentEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        assignmentId: assignment.id,
+        caseId: assignment.case_id,
+        contactId: assignment.contact_id,
+        eventType: 'reviewed',
+        actorType: 'staff',
+        actorUserId: 'staff-1',
+        metadata: expect.objectContaining({
+          decision: 'reviewed',
+          notes_character_count: 'Mapped values verified.'.length,
+          review_follow_up_id: 'follow-up-1',
+        }),
+      })
+    );
     expect(mocks.cancelReviewFollowUp).not.toHaveBeenCalled();
   });
 
@@ -737,6 +1005,19 @@ describe('CaseFormsUseCase', () => {
         status: 'revision_requested',
         notes: 'Please upload the signed release.',
         userId: 'staff-1',
+      })
+    );
+    expect(mocks.createAssignmentEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        eventType: 'revision_requested',
+        actorType: 'staff',
+        actorUserId: 'staff-1',
+        metadata: expect.objectContaining({
+          decision: 'revision_requested',
+          notes_character_count: 'Please upload the signed release.'.length,
+          review_follow_up_id: 'follow-up-1',
+        }),
       })
     );
     expect(createCaseNoteQueryMock).toHaveBeenCalledWith(
@@ -802,6 +1083,63 @@ describe('CaseFormsUseCase', () => {
         followUpId: 'follow-up-1',
       })
     );
+    expect(mocks.createAssignmentEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        eventType: 'cancelled',
+        actorType: 'staff',
+        actorUserId: 'staff-1',
+        metadata: expect.objectContaining({
+          decision: 'cancelled',
+          notes_character_count: 'Submission withdrawn.'.length,
+          review_follow_up_id: 'follow-up-1',
+        }),
+      })
+    );
     expect(mocks.completeReviewFollowUp).not.toHaveBeenCalled();
+  });
+
+  it('records a closed evidence event when staff closes review', async () => {
+    const { repository, mocks } = createRepositoryMock();
+    const useCase = new CaseFormsUseCase(repository);
+    const assignment = makeAssignment({
+      status: 'submitted',
+      delivery_target: 'portal',
+      review_follow_up_id: 'follow-up-1',
+    });
+    const refreshed = makeAssignment({
+      status: 'closed',
+      delivery_target: 'portal',
+      review_follow_up_id: 'follow-up-1',
+      closed_at: '2026-04-16T14:00:00.000Z',
+    });
+
+    mocks.getAssignmentById.mockResolvedValueOnce(assignment).mockResolvedValueOnce(refreshed);
+
+    await useCase.reviewAssignment('case-1', assignment.id, {
+      decision: 'closed',
+      notes: 'Ready for filing.',
+    }, 'staff-1', 'org-1');
+
+    expect(mocks.completeReviewFollowUp).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        organizationId: 'org-1',
+        followUpId: 'follow-up-1',
+      })
+    );
+    expect(mocks.createAssignmentEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        eventType: 'closed',
+        actorType: 'staff',
+        actorUserId: 'staff-1',
+        metadata: expect.objectContaining({
+          decision: 'closed',
+          notes_character_count: 'Ready for filing.'.length,
+          review_follow_up_id: 'follow-up-1',
+        }),
+      })
+    );
   });
 });

@@ -23,16 +23,20 @@ interface CaseFormsBuilderCardProps {
   editorDescription: string;
   editorDueAt: string;
   editorRecipientEmail: string;
+  editorRecipientPhone: string;
   editorSchema: CaseFormSchema;
   editorTitle: string;
   logicDrafts: Record<string, string>;
   saving: boolean;
   sendExpiryDays: string;
+  structureAutosaveStatus: 'idle' | 'saving' | 'saved' | 'error';
   onSaveStructure: () => void;
+  onSaveAsTemplate: () => void;
   onSchemaChange: (schema: CaseFormSchema) => void;
   setEditorDescription: (value: string) => void;
   setEditorDueAt: (value: string) => void;
   setEditorRecipientEmail: (value: string) => void;
+  setEditorRecipientPhone: (value: string) => void;
   setEditorTitle: (value: string) => void;
   setLogicDrafts: Dispatch<SetStateAction<Record<string, string>>>;
   setSendExpiryDays: (value: string) => void;
@@ -57,16 +61,20 @@ export function CaseFormsBuilderCard({
   editorDescription,
   editorDueAt,
   editorRecipientEmail,
+  editorRecipientPhone,
   editorSchema,
   editorTitle,
   logicDrafts,
   saving,
   sendExpiryDays,
+  structureAutosaveStatus,
   onSaveStructure,
+  onSaveAsTemplate,
   onSchemaChange,
   setEditorDescription,
   setEditorDueAt,
   setEditorRecipientEmail,
+  setEditorRecipientPhone,
   setEditorTitle,
   setLogicDrafts,
   setSendExpiryDays,
@@ -107,9 +115,20 @@ export function CaseFormsBuilderCard({
             Edit the case-owned form copy without mutating the original default.
           </p>
         </div>
-        <span className="rounded border-2 border-black px-3 py-1 text-xs font-black uppercase">
-          {detail.assignment.status.replace('_', ' ')}
-        </span>
+        <div className="flex flex-wrap justify-end gap-2">
+          <span className="rounded border-2 border-black px-3 py-1 text-xs font-black uppercase">
+            {detail.assignment.status.replace('_', ' ')}
+          </span>
+          <span className="rounded border-2 border-black bg-app-surface px-3 py-1 text-xs font-black uppercase">
+            {structureAutosaveStatus === 'saving'
+              ? 'Autosaving'
+              : structureAutosaveStatus === 'saved'
+                ? 'Saved'
+                : structureAutosaveStatus === 'error'
+                  ? 'Autosave Error'
+                  : 'Ready'}
+          </span>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -127,6 +146,15 @@ export function CaseFormsBuilderCard({
             type="email"
             value={editorRecipientEmail}
             onChange={(event) => setEditorRecipientEmail(event.target.value)}
+            className="w-full border-2 border-black bg-app-surface px-3 py-2 text-sm"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-black uppercase text-black/70">Recipient Phone</label>
+          <input
+            type="tel"
+            value={editorRecipientPhone}
+            onChange={(event) => setEditorRecipientPhone(event.target.value)}
             className="w-full border-2 border-black bg-app-surface px-3 py-2 text-sm"
           />
         </div>
@@ -644,6 +672,9 @@ export function CaseFormsBuilderCard({
         </BrutalButton>
         <BrutalButton onClick={onSaveStructure} disabled={saving}>
           {saving ? 'Saving…' : 'Save Structure'}
+        </BrutalButton>
+        <BrutalButton onClick={onSaveAsTemplate} disabled={saving} variant="secondary">
+          Save as Template
         </BrutalButton>
       </div>
     </BrutalCard>

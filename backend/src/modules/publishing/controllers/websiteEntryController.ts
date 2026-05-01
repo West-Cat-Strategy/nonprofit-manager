@@ -1,6 +1,7 @@
 import type { Response, NextFunction, Request } from 'express';
 import { setRequestContext } from '@config/requestContext';
 import type { AuthRequest } from '@middleware/auth';
+import type { WebsiteEntryKind } from '@app-types/websiteBuilder';
 import { badRequest, noContent, notFoundMessage } from '@utils/responseHelpers';
 import { sendSuccess } from '@modules/shared/http/envelope';
 import publishingService from '@services/publishing';
@@ -170,6 +171,7 @@ export const listWebsiteEntries = async (
   try {
     const { siteId } = req.params;
     const query = (req.validatedQuery ?? req.query) as {
+      kind?: WebsiteEntryKind;
       status?: 'draft' | 'published' | 'archived';
       source?: 'native' | 'mailchimp';
     };
@@ -178,6 +180,7 @@ export const listWebsiteEntries = async (
       siteId,
       req.user!.id,
       {
+        kind: query.kind,
         status: query.status,
         source: query.source,
       },
@@ -392,6 +395,88 @@ export const getPublicNewsletter = async (
     const entry = await websiteEntryService.getPublicNewsletterBySlug(site, params.slug);
     if (!entry) {
       notFoundMessage(res, 'Newsletter not found');
+      return;
+    }
+
+    sendSuccess(res, {
+      entry,
+      site: {
+        id: site.id,
+        name: site.name,
+        subdomain: site.subdomain,
+        customDomain: site.customDomain,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const listPublicContentEntries = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const query = (req.validatedQuery ?? req.query) as {
+      site?: string;
+      kind?: WebsiteEntryKind;
+      limit?: number | string;
+      offset?: number | string;
+      source?: 'native' | 'mailchimp' | 'all';
+    };
+
+    const site = await resolvePublishedSiteFromRequest(req, query.site);
+    if (!site) {
+      notFoundMessage(res, 'Published site not found');
+      return;
+    }
+
+    const kind = query.kind || 'blog_post';
+    const result = await websiteEntryService.listPublicEntries(site, kind, {
+      limit: normalizeLimit(query.limit, 20),
+      offset: normalizeLimit(query.offset, 0),
+      sourceFilter: query.source || 'all',
+    });
+
+    sendSuccess(res, {
+      ...result,
+      site: {
+        id: site.id,
+        name: site.name,
+        subdomain: site.subdomain,
+        customDomain: site.customDomain,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getPublicContentEntry = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const query = (req.validatedQuery ?? req.query) as {
+      site?: string;
+      kind?: WebsiteEntryKind;
+    };
+    const params = (req.validatedParams ?? req.params) as { slug: string };
+    const site = await resolvePublishedSiteFromRequest(req, query.site);
+    if (!site) {
+      notFoundMessage(res, 'Published site not found');
+      return;
+    }
+
+    const entry = await websiteEntryService.getPublicEntryBySlug(
+      site,
+      query.kind || 'blog_post',
+      params.slug
+    );
+    if (!entry) {
+      notFoundMessage(res, 'Content entry not found');
       return;
     }
 

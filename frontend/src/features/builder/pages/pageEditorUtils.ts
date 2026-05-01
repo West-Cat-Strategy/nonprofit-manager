@@ -33,11 +33,15 @@ export const getDefaultRoutePattern = (
   isHomepage: boolean
 ): string => {
   if (pageType === 'collectionIndex') {
-    return collection === 'newsletters' ? '/newsletters' : '/events';
+    if (collection === 'newsletters') return '/newsletters';
+    if (collection === 'blog') return '/blog';
+    return '/events';
   }
 
   if (pageType === 'collectionDetail') {
-    return collection === 'newsletters' ? '/newsletters/:slug' : '/events/:slug';
+    if (collection === 'newsletters') return '/newsletters/:slug';
+    if (collection === 'blog') return '/blog/:slug';
+    return '/events/:slug';
   }
 
   if (isHomepage) {
@@ -152,6 +156,38 @@ export function createNewComponent(type: ComponentType): PageComponent {
       submitText: 'Share Interest',
       successMessage: 'Volunteer interest received.',
       includePhone: true,
+    },
+    'petition-form': {
+      type: 'petition-form',
+      heading: 'Sign the petition',
+      description: 'Add your name to support this request.',
+      petitionStatement: 'I support this petition.',
+      submitText: 'Sign Petition',
+      successMessage: 'Signature received.',
+      includePhone: false,
+      showSignatureCount: true,
+      defaultTags: ['petition'],
+    },
+    'donation-pledge-form': {
+      type: 'donation-pledge-form',
+      heading: 'Make a pledge',
+      description: 'Tell us how you would like to support this campaign.',
+      submitText: 'Send Pledge',
+      successMessage: 'Pledge received.',
+      suggestedAmounts: [25, 50, 100, 250],
+      allowCustomAmount: true,
+      currency: 'CAD',
+      pledgeSchedule: 'one_time',
+      defaultTags: ['donation-pledge'],
+    },
+    'support-letter-request': {
+      type: 'support-letter-request',
+      heading: 'Request a support letter',
+      description: 'Share what you need so staff can prepare the right letter.',
+      submitText: 'Send Request',
+      successMessage: 'Request received.',
+      includePhone: true,
+      defaultTags: ['support-letter'],
     },
     countdown: {
       type: 'countdown',

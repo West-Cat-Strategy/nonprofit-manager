@@ -1,4 +1,10 @@
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import {
+  ClipboardDocumentListIcon,
+  FunnelIcon,
+  SparklesIcon,
+  TagIcon,
+} from '@heroicons/react/24/outline';
 import type { ReportTemplate, TemplateCategory } from '../../../types/reportTemplate';
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 import useReportTemplatesController from '../hooks/useReportTemplatesController';
@@ -75,9 +81,12 @@ function ReportTemplates() {
       <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
         <PageHeader
           title="Report Templates"
-          description="Start with pre-built templates for common reports."
+          description="Start with a ready-made report shape, then adjust it for your next review."
           actions={
-            <PrimaryButton onClick={() => navigate('/reports/builder')}>
+            <PrimaryButton
+              leadingIcon={<SparklesIcon className="h-4 w-4" aria-hidden="true" />}
+              onClick={() => navigate('/reports/builder')}
+            >
               Create Custom Report
             </PrimaryButton>
           }
@@ -85,9 +94,10 @@ function ReportTemplates() {
 
         <details
           open={hasActiveFilters}
-          className="rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface shadow-sm"
+          className="rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface shadow-sm transition duration-200 open:shadow-md"
         >
-          <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-app-text-heading">
+          <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-semibold text-app-text-heading transition-colors hover:bg-app-surface-muted">
+            <FunnelIcon className="h-4 w-4 text-app-accent" aria-hidden="true" />
             Filter templates
           </summary>
           <div className="border-t border-app-border px-4 py-4">
@@ -98,7 +108,11 @@ function ReportTemplates() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <SecondaryButton
-                    className={selectedCategory === '' ? 'border-app-accent bg-app-accent-soft text-app-accent-text' : ''}
+                    className={
+                      selectedCategory === ''
+                        ? 'border-app-accent bg-app-accent-soft text-app-accent-text'
+                        : ''
+                    }
                     onClick={() => updateTemplateFilters({ category: '' })}
                   >
                     All
@@ -106,7 +120,11 @@ function ReportTemplates() {
                   {REPORT_TEMPLATE_CATEGORY_OPTIONS.map((category) => (
                     <SecondaryButton
                       key={category.value}
-                      className={selectedCategory === category.value ? 'border-app-accent bg-app-accent-soft text-app-accent-text' : ''}
+                      className={
+                        selectedCategory === category.value
+                          ? 'border-app-accent bg-app-accent-soft text-app-accent-text'
+                          : ''
+                      }
                       onClick={() => updateTemplateFilters({ category: category.value })}
                     >
                       {category.label}
@@ -168,6 +186,7 @@ function ReportTemplates() {
                   </span>
                   <SecondaryButton
                     className="px-3 py-1 text-xs"
+                    leadingIcon={<FunnelIcon className="h-3.5 w-3.5" aria-hidden="true" />}
                     onClick={() => updateTemplateFilters({ category: '', tag: '' })}
                   >
                     Clear all filters
@@ -215,19 +234,25 @@ function ReportTemplates() {
                   title={template.name}
                   subtitle={template.description || 'No description provided'}
                   actions={
-                    <PrimaryButton onClick={() => handleUseTemplate(template)}>
+                    <PrimaryButton
+                      leadingIcon={
+                        <ClipboardDocumentListIcon className="h-4 w-4" aria-hidden="true" />
+                      }
+                      onClick={() => handleUseTemplate(template)}
+                    >
                       Use Template
                     </PrimaryButton>
                   }
-                  className="h-full"
+                  className="h-full transition duration-200 hover:-translate-y-0.5 hover:border-app-accent hover:shadow-md"
                 >
                   <div className="mb-3 flex flex-wrap items-center gap-2">
                     <span className="inline-flex items-center rounded-full border border-app-border bg-app-accent-soft px-2 py-1 text-xs font-semibold text-app-accent-text">
                       {category?.label || template.category}
                     </span>
                     {template.is_system && (
-                      <span className="inline-flex items-center rounded-full border border-app-border bg-app-surface-muted px-2 py-1 text-xs font-semibold text-app-text-muted">
-                        System
+                      <span className="inline-flex items-center gap-1 rounded-full border border-app-border bg-app-surface-muted px-2 py-1 text-xs font-semibold text-app-text-muted">
+                        <SparklesIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                        Built-in
                       </span>
                     )}
                   </div>
@@ -237,14 +262,14 @@ function ReportTemplates() {
                         <button
                           key={tag}
                           type="button"
-                          className={`inline-flex items-center rounded-full border px-2 py-1 text-xs ${
+                          className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs transition-colors ${
                             normalizeTemplateTag(tag) === selectedTag
                               ? 'border-app-accent bg-app-accent-soft text-app-accent-text'
                               : 'border-app-border text-app-text-muted'
                           }`}
                           onClick={() => updateTemplateFilters({ tag })}
                         >
-                          #{tag}
+                          <TagIcon className="h-3 w-3" aria-hidden="true" />#{tag}
                         </button>
                       ))}
                     </div>

@@ -125,6 +125,12 @@ CREATE INDEX IF NOT EXISTS idx_schema_migrations_canonical_filename
 \i /migrations/107_donor_profiles.sql
 \i /migrations/108_case_reassessment_cycles.sql
 \i /migrations/109_case_form_revision_requests.sql
+\i /migrations/110_communication_suppression_governance.sql
+\i /migrations/111_local_first_communications.sql
+\i /migrations/112_local_campaign_run_controls.sql
+\i /migrations/113_case_form_assignment_events.sql
+\i /migrations/114_case_form_templates_and_delivery_channels.sql
+\i /migrations/115_website_public_actions.sql
 
 UPDATE schema_migrations
 SET migration_id = '032',
@@ -255,7 +261,13 @@ VALUES
     ('106_portal_escalations.sql', '106', '106_portal_escalations.sql'),
     ('107_donor_profiles.sql', '107', '107_donor_profiles.sql'),
     ('108_case_reassessment_cycles.sql', '108', '108_case_reassessment_cycles.sql'),
-    ('109_case_form_revision_requests.sql', '109', '109_case_form_revision_requests.sql')
+    ('109_case_form_revision_requests.sql', '109', '109_case_form_revision_requests.sql'),
+    ('110_communication_suppression_governance.sql', '110', '110_communication_suppression_governance.sql'),
+    ('111_local_first_communications.sql', '111', '111_local_first_communications.sql'),
+    ('112_local_campaign_run_controls.sql', '112', '112_local_campaign_run_controls.sql'),
+    ('113_case_form_assignment_events.sql', '113', '113_case_form_assignment_events.sql'),
+    ('114_case_form_templates_and_delivery_channels.sql', '114', '114_case_form_templates_and_delivery_channels.sql'),
+    ('115_website_public_actions.sql', '115', '115_website_public_actions.sql')
 ON CONFLICT (filename) DO UPDATE
 SET migration_id = EXCLUDED.migration_id,
     canonical_filename = EXCLUDED.canonical_filename;

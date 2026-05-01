@@ -1,8 +1,9 @@
 # Product Documentation Index
 
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-05-01
 
 Use this section for current product reference material, summary docs, and archived product research. For active sequencing and tracked status, use [../phases/PHASE_5_DEVELOPMENT_PLAN.md](../phases/PHASE_5_DEVELOPMENT_PLAN.md) and [../phases/planning-and-progress.md](../phases/planning-and-progress.md). The detailed persona and benchmark canon now lives in tracked repo-local skill references.
+For the first-step organization-facing overview, use [../../README.md](../../README.md).
 
 ## Tracked Persona And Benchmark Canon
 

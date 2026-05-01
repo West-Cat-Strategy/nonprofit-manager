@@ -15,14 +15,14 @@ export default function PortalCalendarToolbar({ controller }: Props) {
                 ['all', 'All'],
                 ['events', 'Events'],
                 ['appointments', 'Appointments'],
-                ['slots', 'Open slots'],
+                ['slots', 'Available times'],
               ] as const
             ).map(([value, label]) => (
               <button
                 key={value}
                 type="button"
                 onClick={() => controller.setFilter(value)}
-                className={`rounded-full px-3 py-1.5 text-sm ${
+                className={`rounded-full px-3 py-1.5 text-sm transition-colors duration-150 ${
                   controller.filter === value
                     ? 'bg-app-accent text-[var(--app-accent-foreground)]'
                     : 'bg-app-surface-muted text-app-text-muted'

@@ -11,6 +11,8 @@ import {
   pendingPasskeyRegistrationVerifySchema,
   passwordResetRequestSchema,
   setupFirstUserSchema,
+  twoFactorDisableSchema,
+  twoFactorSetupSchema,
   twoFactorVerifySchema,
 } from '../../../validations/auth';
 import { createVolunteerSchema, updateVolunteerSchema } from '../../../validations/volunteer';
@@ -344,6 +346,36 @@ describe('Authentication Schemas', () => {
     });
   });
 
+  describe('twoFactorSetupSchema', () => {
+    it('accepts code field for enabling TOTP', () => {
+      const result = twoFactorSetupSchema.safeParse({
+        code: '123456',
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toEqual({ code: '123456' });
+      }
+    });
+
+    it('accepts legacy token field for enabling TOTP', () => {
+      const result = twoFactorSetupSchema.safeParse({
+        token: '123456',
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toEqual({ code: '123456' });
+      }
+    });
+
+    it('rejects missing code/token for enabling TOTP', () => {
+      const result = twoFactorSetupSchema.safeParse({});
+
+      expect(result.success).toBe(false);
+    });
+  });
+
   describe('twoFactorVerifySchema', () => {
     it('accepts code field for TOTP verification', () => {
       const result = twoFactorVerifySchema.safeParse({
@@ -366,6 +398,46 @@ describe('Authentication Schemas', () => {
     it('rejects missing code/token for TOTP verification', () => {
       const result = twoFactorVerifySchema.safeParse({
         mfaToken: 'mfa-token',
+      });
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('twoFactorDisableSchema', () => {
+    it('accepts code field for disabling TOTP', () => {
+      const result = twoFactorDisableSchema.safeParse({
+        password: 'StrongPassword123!',
+        code: '123456',
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toEqual({
+          password: 'StrongPassword123!',
+          code: '123456',
+        });
+      }
+    });
+
+    it('accepts legacy token field for disabling TOTP', () => {
+      const result = twoFactorDisableSchema.safeParse({
+        password: 'StrongPassword123!',
+        token: '123456',
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toEqual({
+          password: 'StrongPassword123!',
+          code: '123456',
+        });
+      }
+    });
+
+    it('rejects missing code/token for disabling TOTP', () => {
+      const result = twoFactorDisableSchema.safeParse({
+        password: 'StrongPassword123!',
       });
 
       expect(result.success).toBe(false);

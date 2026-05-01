@@ -173,8 +173,8 @@ describe('Portal workflow pages', () => {
     expect(await screen.findByText('Morning slot')).toBeInTheDocument();
     expect(screen.getByText('Case check-in')).toBeInTheDocument();
     expect(screen.getAllByText('CASE-001 - Housing Support').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Pointperson: Alex Rivera').length).toBeGreaterThan(0);
-    expect(screen.getByRole('link', { name: /case workspace/i })).toHaveAttribute(
+    expect(screen.getAllByText('Assigned staff: Alex Rivera').length).toBeGreaterThan(0);
+    expect(screen.getByRole('link', { name: /case details/i })).toHaveAttribute(
       'href',
       '/portal/cases/case-1'
     );

@@ -1,6 +1,16 @@
+import {
+  BellAlertIcon,
+  CheckCircleIcon,
+  PauseCircleIcon,
+  PencilSquareIcon,
+  PlayCircleIcon,
+  TrashIcon,
+} from '@heroicons/react/24/outline';
 import type { AlertConfig } from '../types';
 import {
   getAlertConditionLabel,
+  getAlertChannelLabel,
+  getAlertFrequencyLabel,
   getAlertMetricLabel,
   getAlertSeverityClasses,
 } from '../alertOptions';
@@ -36,18 +46,18 @@ export default function AlertConfigList({
   onToggle,
 }: AlertConfigListProps) {
   if (loading) {
-    return <div className="p-8 text-center text-app-text-muted">Loading alerts...</div>;
+    return <div className="p-8 text-center text-app-text-muted">Loading alert rules...</div>;
   }
 
   if (configs.length === 0) {
     return (
       <div className="p-8 text-center">
-        <p className="text-app-text-muted">No alert configurations yet</p>
+        <p className="text-app-text-muted">No alert rules yet</p>
         <button
           onClick={onCreate}
           className="mt-4 text-sm font-medium text-app-accent hover:text-app-accent-hover"
         >
-          Create your first alert
+          Create your first alert rule
         </button>
       </div>
     );
@@ -59,21 +69,34 @@ export default function AlertConfigList({
         const lastTriggered = formatLastTriggered(config.last_triggered);
 
         return (
-          <div key={config.id} className="p-4 transition-colors hover:bg-app-surface-muted">
+          <div
+            key={config.id}
+            className="p-4 transition-all duration-150 ease-out hover:-translate-y-0.5 hover:bg-app-surface-muted"
+          >
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <div className="flex items-center space-x-3">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-app-accent-soft text-app-accent">
+                    <BellAlertIcon className="h-5 w-5" aria-hidden="true" />
+                  </span>
                   <h3 className="font-medium text-app-text">{config.name}</h3>
-                  <span className={`rounded px-2 py-1 text-xs font-medium ${getAlertSeverityClasses(config.severity)}`}>
+                  <span
+                    className={`rounded px-2 py-1 text-xs font-medium capitalize ${getAlertSeverityClasses(config.severity)}`}
+                  >
                     {config.severity}
                   </span>
                   <span
-                    className={`rounded px-2 py-1 text-xs font-medium ${
+                    className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium ${
                       config.enabled
                         ? 'bg-app-accent-soft text-app-accent-text'
                         : 'bg-app-surface-muted text-app-text-muted'
                     }`}
                   >
+                    {config.enabled ? (
+                      <CheckCircleIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                    ) : (
+                      <PauseCircleIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                    )}
                     {config.enabled ? 'Active' : 'Paused'}
                   </span>
                 </div>
@@ -102,7 +125,8 @@ export default function AlertConfigList({
                     </div>
                   ) : null}
                   <div>
-                    <span className="font-medium">Frequency:</span> {config.frequency}
+                    <span className="font-medium">Checks:</span>{' '}
+                    {getAlertFrequencyLabel(config.frequency)}
                   </div>
                 </div>
 
@@ -112,13 +136,15 @@ export default function AlertConfigList({
                       key={channel}
                       className="rounded bg-app-surface-muted px-2 py-1 text-xs font-medium text-app-text-muted"
                     >
-                      {channel}
+                      {getAlertChannelLabel(channel)}
                     </span>
                   ))}
                 </div>
 
                 {lastTriggered ? (
-                  <p className="mt-2 text-xs text-app-text-muted">Last triggered: {lastTriggered}</p>
+                  <p className="mt-2 text-xs text-app-text-muted">
+                    Last triggered: {lastTriggered}
+                  </p>
                 ) : null}
               </div>
 
@@ -126,61 +152,27 @@ export default function AlertConfigList({
                 <button
                   onClick={() => config.id && onToggle(config.id)}
                   className="p-2 text-app-text-subtle transition-colors hover:text-app-text-muted"
-                  title={config.enabled ? 'Pause alert' : 'Enable alert'}
+                  title={config.enabled ? 'Pause alert rule' : 'Turn on alert rule'}
                 >
                   {config.enabled ? (
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
+                    <PauseCircleIcon className="h-5 w-5" aria-hidden="true" />
                   ) : (
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
+                    <PlayCircleIcon className="h-5 w-5" aria-hidden="true" />
                   )}
                 </button>
                 <button
                   onClick={() => onEdit(config)}
                   className="p-2 text-app-text-subtle transition-colors hover:text-app-accent"
-                  title="Edit alert"
+                  title="Edit alert rule"
                 >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                    />
-                  </svg>
+                  <PencilSquareIcon className="h-5 w-5" aria-hidden="true" />
                 </button>
                 <button
                   onClick={() => config.id && onDelete(config.id)}
                   className="p-2 text-app-text-subtle transition-colors hover:text-app-accent"
-                  title="Delete alert"
+                  title="Delete alert rule"
                 >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                    />
-                  </svg>
+                  <TrashIcon className="h-5 w-5" aria-hidden="true" />
                 </button>
               </div>
             </div>

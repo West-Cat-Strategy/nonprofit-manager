@@ -1,23 +1,26 @@
 import { BrutalButton, BrutalCard } from '../../../components/neo-brutalist';
 import type {
   CaseFormAssignmentDetail,
-  CaseFormDeliveryTarget,
+  CaseFormDeliveryChannel,
   CaseFormReviewDecision,
 } from '../../../types/caseForms';
 import { staffCaseFormsApiClient } from '../api/caseFormsApiClient';
-import { sendLabelForTarget } from './caseFormsPanelUtils';
+import { sendLabelForChannels } from './caseFormsPanelUtils';
 
 interface CaseFormsAssignmentActionsCardProps {
   caseId: string;
   clientViewable: boolean;
-  deliveryTarget: CaseFormDeliveryTarget;
+  deliveryChannels: CaseFormDeliveryChannel[];
   detail: CaseFormAssignmentDetail;
+  draftAutosaveStatus: 'idle' | 'saving' | 'saved' | 'error';
   emailDeliveryEnabled: boolean;
+  smsDeliveryEnabled: boolean;
   canShowAccessLink: boolean;
   recipientEmail: string;
+  recipientPhone: string;
   reviewNotes: string;
   saving: boolean;
-  onChangeDeliveryTarget: (value: CaseFormDeliveryTarget) => void;
+  onChangeDeliveryChannels: (value: CaseFormDeliveryChannel[]) => void;
   setReviewNotes: (value: string) => void;
   onCopyAccessLink: () => void;
   onReviewDecision: (decision: CaseFormReviewDecision['decision']) => void;
@@ -29,14 +32,17 @@ interface CaseFormsAssignmentActionsCardProps {
 export function CaseFormsAssignmentActionsCard({
   caseId,
   clientViewable,
-  deliveryTarget,
+  deliveryChannels,
   detail,
+  draftAutosaveStatus,
   emailDeliveryEnabled,
+  smsDeliveryEnabled,
   canShowAccessLink,
   recipientEmail,
+  recipientPhone,
   reviewNotes,
   saving,
-  onChangeDeliveryTarget,
+  onChangeDeliveryChannels,
   setReviewNotes,
   onCopyAccessLink,
   onReviewDecision,
@@ -45,6 +51,13 @@ export function CaseFormsAssignmentActionsCard({
   onSubmitAsStaff,
 }: CaseFormsAssignmentActionsCardProps) {
   const revisionNotesRequired = !reviewNotes.trim();
+  const portalDeliveryEnabled = deliveryChannels.includes('portal');
+  const setChannel = (channel: CaseFormDeliveryChannel, enabled: boolean): void => {
+    const next = enabled
+      ? Array.from(new Set([...deliveryChannels, channel]))
+      : deliveryChannels.filter((item) => item !== channel);
+    onChangeDeliveryChannels(next);
+  };
 
   return (
     <BrutalCard color="white" className="p-6 space-y-4">
@@ -52,7 +65,7 @@ export function CaseFormsAssignmentActionsCard({
         <div>
           <h3 className="text-lg font-black uppercase">Assignment Actions</h3>
           <p className="text-sm text-black/70">
-            Save staff-entered answers, choose portal or email delivery, and move the submission through review.
+            Save staff-entered answers, open the form by channel, and move the submission through review.
           </p>
         </div>
         {canShowAccessLink && (
@@ -68,25 +81,24 @@ export function CaseFormsAssignmentActionsCard({
 
       {!clientViewable && (
         <div className="rounded border-2 border-black bg-[var(--loop-pink)] px-3 py-2 text-sm font-semibold">
-          This case is not shared with the client yet. Turn on client visibility before delivering forms by portal or email.
+          Portal delivery needs a client-visible case or an active portal account. Email and SMS links can still be sent directly.
         </div>
       )}
 
-      <div>
-        <label className="mb-1 block text-xs font-black uppercase text-black/70" htmlFor="case-form-delivery-target">
-          Delivery Target
-        </label>
-        <select
-          id="case-form-delivery-target"
-          aria-label="Delivery Target"
-          value={deliveryTarget}
-          onChange={(event) => onChangeDeliveryTarget(event.target.value as CaseFormDeliveryTarget)}
-          className="w-full border-2 border-black bg-app-surface px-3 py-2 text-sm"
-        >
-          <option value="portal">Portal</option>
-          <option value="email">Email</option>
-          <option value="portal_and_email">Portal + Email</option>
-        </select>
+      <div className="rounded border-2 border-black bg-app-surface p-3">
+        <p className="mb-2 text-xs font-black uppercase text-black/70">Open Form Channels</p>
+        <div className="grid gap-2 sm:grid-cols-3">
+          {(['portal', 'email', 'sms'] as CaseFormDeliveryChannel[]).map((channel) => (
+            <label key={channel} className="flex items-center gap-2 text-sm font-black uppercase">
+              <input
+                type="checkbox"
+                checked={deliveryChannels.includes(channel)}
+                onChange={(event) => setChannel(channel, event.target.checked)}
+              />
+              {channel === 'sms' ? 'SMS' : channel}
+            </label>
+          ))}
+        </div>
       </div>
 
       {canShowAccessLink && (
@@ -104,10 +116,15 @@ export function CaseFormsAssignmentActionsCard({
         </BrutalButton>
         <BrutalButton
           onClick={onSend}
-          disabled={saving || !clientViewable || (emailDeliveryEnabled && !recipientEmail.trim())}
+          disabled={
+            saving ||
+            deliveryChannels.length === 0 ||
+            (emailDeliveryEnabled && !recipientEmail.trim()) ||
+            (smsDeliveryEnabled && !recipientPhone.trim())
+          }
           variant="secondary"
         >
-          {sendLabelForTarget(deliveryTarget)}
+          {sendLabelForChannels(deliveryChannels)}
         </BrutalButton>
         <a
           href={staffCaseFormsApiClient.getResponsePacketDownloadUrl(caseId, detail.assignment.id)}
@@ -124,6 +141,25 @@ export function CaseFormsAssignmentActionsCard({
           Add a recipient email before sending through an email delivery target.
         </p>
       )}
+      {smsDeliveryEnabled && !recipientPhone.trim() && (
+        <p className="text-xs font-semibold uppercase text-black/60">
+          Add a recipient phone before sending through SMS.
+        </p>
+      )}
+      {portalDeliveryEnabled && !clientViewable && (
+        <p className="text-xs font-semibold uppercase text-black/60">
+          Portal delivery will be accepted only if this client already has an active portal account.
+        </p>
+      )}
+      <p className="text-xs font-semibold uppercase text-black/60">
+        Answer autosave: {draftAutosaveStatus === 'saving'
+          ? 'saving'
+          : draftAutosaveStatus === 'saved'
+            ? 'saved'
+            : draftAutosaveStatus === 'error'
+              ? 'needs manual save'
+              : 'ready'}
+      </p>
 
       <div className="rounded border-2 border-black bg-[var(--loop-pink)] p-4 space-y-3">
         {detail.assignment.status === 'revision_requested' && detail.assignment.revision_notes && (

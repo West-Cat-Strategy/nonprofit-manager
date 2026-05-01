@@ -16,6 +16,7 @@ export { VersionService } from './versionService';
 export { WebsiteSiteSettingsService } from './siteSettingsService';
 export { FormRegistryService } from './formRegistryService';
 export { SiteOperationsService } from './siteOperationsService';
+export { PublicActionService } from './publicActionService';
 
 // Import service classes for facade
 import { SiteManagementService } from './siteManagementService';

@@ -1,4 +1,12 @@
 import { useEffect, useId, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
+import {
+  ArrowDownTrayIcon,
+  CalendarDaysIcon,
+  ClipboardDocumentIcon,
+  QrCodeIcon,
+  TicketIcon,
+  XMarkIcon,
+} from '@heroicons/react/24/outline';
 import PortalPageState from '../../../components/portal/PortalPageState';
 import PortalPageShell from '../../../components/portal/PortalPageShell';
 import PortalListCard from '../../../components/portal/PortalListCard';
@@ -19,6 +27,8 @@ import {
 import { usePortalListUrlState } from '../utils/listQueryState';
 
 const EVENT_SORT_VALUES = ['start_date', 'name', 'created_at'] as const;
+const eventButtonClass =
+  'inline-flex items-center gap-1.5 rounded border border-app-input-border px-3 py-1 text-xs transition-colors duration-150 hover:border-app-accent hover:bg-app-surface-muted disabled:opacity-60';
 const DIALOG_FOCUSABLE_SELECTOR = [
   'button:not([disabled])',
   'a[href]',
@@ -65,6 +75,7 @@ export default function PortalEventsPage() {
     sort: sortField,
     order: sortOrder,
   });
+  const shouldShowListTools = events.length > 0 || searchTerm.trim().length > 0;
 
   useEffect(() => {
     let cancelled = false;
@@ -213,23 +224,6 @@ export default function PortalEventsPage() {
       title="Events"
       description="Browse upcoming opportunities, manage registrations, and present your QR pass at check-in."
     >
-      <PortalListToolbar
-        searchValue={searchTerm}
-        onSearchChange={setSearch}
-        searchPlaceholder="Search events by name, type, location, or status"
-        sortValue={sortField}
-        onSortChange={setSort}
-        sortOptions={[
-          { value: 'start_date', label: 'Start date' },
-          { value: 'name', label: 'Name' },
-          { value: 'created_at', label: 'Added date' },
-        ]}
-        orderValue={sortOrder}
-        onOrderChange={setOrder}
-        showingCount={events.length}
-        totalCount={total}
-      />
-
       <PortalPageState
         loading={loading}
         error={error}
@@ -241,11 +235,30 @@ export default function PortalEventsPage() {
             ? 'Try a different search term.'
             : 'Staff will publish upcoming opportunities here.'
         }
+        emptyIcon={<CalendarDaysIcon className="h-5 w-5" aria-hidden="true" />}
         onRetry={refresh}
       />
+      {shouldShowListTools && (
+        <PortalListToolbar
+          searchValue={searchTerm}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search events by name, type, location, or status"
+          sortValue={sortField}
+          onSortChange={setSort}
+          sortOptions={[
+            { value: 'start_date', label: 'Start date' },
+            { value: 'name', label: 'Name' },
+            { value: 'created_at', label: 'Added date' },
+          ]}
+          orderValue={sortOrder}
+          onOrderChange={setOrder}
+          showingCount={events.length}
+          totalCount={total}
+        />
+      )}
 
       {!loading && !error && events.length > 0 && (
-        <ul className="space-y-3">
+        <ul className="mt-3 space-y-3">
           {events.map((event) => {
             const hasRegistration = Boolean(event.registration_id);
             const isCheckedIn = Boolean(event.checked_in);
@@ -259,6 +272,7 @@ export default function PortalEventsPage() {
             return (
               <li key={event.id}>
                 <PortalListCard
+                  icon={<TicketIcon className="h-5 w-5" aria-hidden="true" />}
                   title={event.name}
                   subtitle={getPortalEventDateRange(event)}
                   meta={event.location_name || 'Location provided by staff'}
@@ -312,16 +326,17 @@ export default function PortalEventsPage() {
                             type="button"
                             onClick={(triggerEvent) => openPass(triggerEvent, event)}
                             aria-haspopup="dialog"
-                            className="rounded border border-app-input-border px-3 py-1 text-xs"
+                            className={eventButtonClass}
                           >
-                            QR Pass
+                            <QrCodeIcon className="h-4 w-4" aria-hidden="true" />
+                            Check-in pass
                           </button>
                         )}
                         <button
                           type="button"
                           onClick={() => void handleCancel(event.id)}
                           disabled={savingEventId === event.id || isCheckedIn}
-                          className="rounded border border-app-input-border px-3 py-1 text-xs disabled:opacity-60"
+                          className={eventButtonClass}
                         >
                           {savingEventId === event.id
                             ? 'Saving...'
@@ -335,8 +350,9 @@ export default function PortalEventsPage() {
                         type="button"
                         onClick={() => void handleRegister(event.id)}
                         disabled={savingEventId === event.id}
-                        className="rounded bg-app-accent px-3 py-1 text-xs text-[var(--app-accent-foreground)] disabled:opacity-60"
+                        className="inline-flex items-center gap-1.5 rounded bg-app-accent px-3 py-1 text-xs text-[var(--app-accent-foreground)] transition-[box-shadow,transform] duration-150 hover:-translate-y-0.5 hover:shadow-sm disabled:opacity-60"
                       >
+                        <TicketIcon className="h-4 w-4" aria-hidden="true" />
                         {savingEventId === event.id ? 'Saving...' : 'Register'}
                       </button>
                     )
@@ -390,7 +406,7 @@ export default function PortalEventsPage() {
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
                 <h2 id={passTitleId} className="text-lg font-semibold text-app-text">
-                  Event QR Pass
+                  Event Check-in Pass
                 </h2>
                 <p className="text-xs text-app-text-muted">{passEvent.name}</p>
                 {passOccurrenceLabel && (
@@ -407,8 +423,9 @@ export default function PortalEventsPage() {
                 ref={closeButtonRef}
                 type="button"
                 onClick={() => setPassEvent(null)}
-                className="rounded border border-app-input-border px-2 py-1 text-xs"
+                className="inline-flex items-center gap-1 rounded border border-app-input-border px-2 py-1 text-xs transition-colors duration-150 hover:border-app-accent hover:bg-app-surface-muted"
               >
+                <XMarkIcon className="h-4 w-4" aria-hidden="true" />
                 Close
               </button>
             </div>
@@ -441,9 +458,10 @@ export default function PortalEventsPage() {
                 type="button"
                 onClick={downloadPass}
                 disabled={!passQrDataUrl}
-                className="rounded bg-app-accent px-3 py-2 text-xs text-[var(--app-accent-foreground)] disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 rounded bg-app-accent px-3 py-2 text-xs text-[var(--app-accent-foreground)] disabled:opacity-60"
               >
-                Download PNG
+                <ArrowDownTrayIcon className="h-4 w-4" aria-hidden="true" />
+                Download pass
               </button>
               {passEvent.check_in_token && (
                 <button
@@ -451,9 +469,10 @@ export default function PortalEventsPage() {
                   onClick={() =>
                     void navigator.clipboard?.writeText(passEvent.check_in_token || '')
                   }
-                  className="rounded border border-app-input-border px-3 py-2 text-xs"
+                  className="inline-flex items-center gap-1.5 rounded border border-app-input-border px-3 py-2 text-xs transition-colors duration-150 hover:border-app-accent hover:bg-app-surface-muted"
                 >
-                  Copy Token
+                  <ClipboardDocumentIcon className="h-4 w-4" aria-hidden="true" />
+                  Copy code
                 </button>
               )}
             </div>

@@ -1,8 +1,5 @@
 import api from '../../../services/api';
-import {
-  getAdminRouteDefinition,
-  type AdminRouteId,
-} from '../adminNavigationCatalog';
+import { getAdminRouteDefinition, type AdminRouteId } from '../adminNavigationCatalog';
 import type {
   AdminEmailSettings,
   AdminTwilioSettings,
@@ -48,7 +45,7 @@ type MailchimpStatus = {
 const asRecord = (value: unknown): Record<string, unknown> | null =>
   value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
 
-const readArray = <T,>(value: unknown, keys: string[] = []): T[] => {
+const readArray = <T>(value: unknown, keys: string[] = []): T[] => {
   if (Array.isArray(value)) {
     return value as T[];
   }
@@ -88,10 +85,7 @@ const readTwilioSettings = (value: unknown): AdminTwilioSettings | null => {
   return candidate as unknown as AdminTwilioSettings;
 };
 
-const readCredentials = <T extends Record<string, boolean>>(
-  value: unknown,
-  fallback: T
-): T => {
+const readCredentials = <T extends Record<string, boolean>>(value: unknown, fallback: T): T => {
   const record = asRecord(value);
   const candidate = asRecord(record?.credentials);
 
@@ -253,16 +247,40 @@ export async function getAdminWorkspaceStatusCards(): Promise<AdminWorkspaceStat
   ] = await Promise.all([
     getOrganizationSettings().catch(() => null),
     getAdminStats().catch(() => null),
-    getEmailSettingsBundle().catch(() => ({ settings: null, credentials: { smtp: false, imap: false } })),
+    getEmailSettingsBundle().catch(() => ({
+      settings: null,
+      credentials: { smtp: false, imap: false },
+    })),
     getTwilioSettingsBundle().catch(() => ({ settings: null, credentials: { authToken: false } })),
     listPendingRegistrations('pending').catch(() => ({ items: [] })),
-    api.get('/mailchimp/status').then((response) => response.data as MailchimpStatus).catch(() => null),
-    api.get('/webhooks/endpoints').then((response) => readArray(response.data, ['endpoints', 'data'])).catch(() => []),
-    api.get('/webhooks/api-keys').then((response) => readArray(response.data, ['apiKeys', 'keys', 'data'])).catch(() => []),
-    api.get('/portal/admin/requests').then((response) => readArray(response.data, ['requests', 'data'])).catch(() => []),
-    api.get('/portal/admin/users').then((response) => readArray(response.data, ['users', 'data'])).catch(() => []),
-    api.get('/admin/audit-logs?limit=1').then((response) => response.data as AuditSummary).catch(() => null),
-    api.get('/admin/outcomes').then((response) => readArray(response.data, ['items', 'data'])).catch(() => []),
+    api
+      .get('/mailchimp/status')
+      .then((response) => response.data as MailchimpStatus)
+      .catch(() => null),
+    api
+      .get('/webhooks/endpoints')
+      .then((response) => readArray(response.data, ['endpoints', 'data']))
+      .catch(() => []),
+    api
+      .get('/webhooks/api-keys')
+      .then((response) => readArray(response.data, ['apiKeys', 'keys', 'data']))
+      .catch(() => []),
+    api
+      .get('/portal/admin/requests')
+      .then((response) => readArray(response.data, ['requests', 'data']))
+      .catch(() => []),
+    api
+      .get('/portal/admin/users')
+      .then((response) => readArray(response.data, ['users', 'data']))
+      .catch(() => []),
+    api
+      .get('/admin/audit-logs?limit=1')
+      .then((response) => response.data as AuditSummary)
+      .catch(() => null),
+    api
+      .get('/admin/outcomes')
+      .then((response) => readArray(response.data, ['items', 'data']))
+      .catch(() => []),
   ]);
 
   const organizationName = organization?.config.name?.trim() || 'Organization profile incomplete';
@@ -343,11 +361,13 @@ export async function getAdminWorkspaceStatusCards(): Promise<AdminWorkspaceStat
     },
     {
       id: 'campaigns',
-      title: 'Newsletter Campaigns',
-      description: 'Mailchimp sync and campaign operations',
+      title: 'Communications',
+      description: 'Local email campaigns and optional Mailchimp sync',
       summary: mailchimpStatus?.configured
-        ? `${mailchimpStatus.listCount ?? 0} audiences${mailchimpStatus.accountName ? ` · ${mailchimpStatus.accountName}` : ''}`
-        : 'Provider not connected',
+        ? `Mailchimp connected · ${mailchimpStatus.listCount ?? 0} audiences${
+            mailchimpStatus.accountName ? ` · ${mailchimpStatus.accountName}` : ''
+          }`
+        : 'Local email primary · Mailchimp optional',
       tone: mailchimpStatus?.configured ? 'positive' : 'neutral',
       icon: '📣',
       to: getPath('communications'),

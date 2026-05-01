@@ -225,16 +225,17 @@ export class AlertsRepository implements AlertsRepositoryPort {
     return parseFloat(result.rows[0]?.value || '0');
   }
 
-  async getAlertInstances(filters?: AlertInstanceFilters): Promise<AlertInstance[]> {
+  async getAlertInstances(filters: AlertInstanceFilters): Promise<AlertInstance[]> {
     let query = `
-      SELECT id, alert_config_id, alert_name, metric_type, condition, severity,
-             status, triggered_at, resolved_at, current_value, threshold_value,
-             message, details, acknowledged_by, acknowledged_at
-      FROM alert_instances
-      WHERE 1=1
+      SELECT ai.id, ai.alert_config_id, ai.alert_name, ai.metric_type, ai.condition, ai.severity,
+             ai.status, ai.triggered_at, ai.resolved_at, ai.current_value, ai.threshold_value,
+             ai.message, ai.details, ai.acknowledged_by, ai.acknowledged_at
+      FROM alert_instances ai
+      JOIN alert_configs ac ON ai.alert_config_id = ac.id
+      WHERE ac.user_id = $1
     `;
-    const values: unknown[] = [];
-    let paramCount = 1;
+    const values: unknown[] = [filters.userId];
+    let paramCount = 2;
 
     if (filters?.status) {
       query += ` AND status = $${paramCount++}`;
@@ -259,27 +260,33 @@ export class AlertsRepository implements AlertsRepositoryPort {
 
   async acknowledgeAlert(id: string, userId: string): Promise<AlertInstance | null> {
     const result = await this.pool.query<AlertInstance>(
-      `UPDATE alert_instances
+      `UPDATE alert_instances ai
        SET acknowledged_by = $1, acknowledged_at = NOW()
-       WHERE id = $2
-       RETURNING id, alert_config_id, alert_name, metric_type, condition, severity,
-                 status, triggered_at, resolved_at, current_value, threshold_value,
-                 message, details, acknowledged_by, acknowledged_at`,
+       FROM alert_configs ac
+       WHERE ai.id = $2
+         AND ai.alert_config_id = ac.id
+         AND ac.user_id = $1
+       RETURNING ai.id, ai.alert_config_id, ai.alert_name, ai.metric_type, ai.condition, ai.severity,
+                 ai.status, ai.triggered_at, ai.resolved_at, ai.current_value, ai.threshold_value,
+                 ai.message, ai.details, ai.acknowledged_by, ai.acknowledged_at`,
       [userId, id]
     );
 
     return result.rows[0] || null;
   }
 
-  async resolveAlert(id: string): Promise<AlertInstance | null> {
+  async resolveAlert(id: string, userId: string): Promise<AlertInstance | null> {
     const result = await this.pool.query<AlertInstance>(
-      `UPDATE alert_instances
+      `UPDATE alert_instances ai
        SET status = 'resolved', resolved_at = NOW()
-       WHERE id = $1
-       RETURNING id, alert_config_id, alert_name, metric_type, condition, severity,
-                 status, triggered_at, resolved_at, current_value, threshold_value,
-                 message, details, acknowledged_by, acknowledged_at`,
-      [id]
+       FROM alert_configs ac
+       WHERE ai.id = $1
+         AND ai.alert_config_id = ac.id
+         AND ac.user_id = $2
+       RETURNING ai.id, ai.alert_config_id, ai.alert_name, ai.metric_type, ai.condition, ai.severity,
+                 ai.status, ai.triggered_at, ai.resolved_at, ai.current_value, ai.threshold_value,
+                 ai.message, ai.details, ai.acknowledged_by, ai.acknowledged_at`,
+      [id, userId]
     );
 
     return result.rows[0] || null;

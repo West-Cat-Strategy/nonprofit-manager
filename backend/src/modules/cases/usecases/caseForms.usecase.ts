@@ -33,6 +33,10 @@ export class CaseFormsUseCase {
   declare readonly listDefaults: CaseFormsUseCaseFacade['listDefaults'];
   declare readonly createDefault: CaseFormsUseCaseFacade['createDefault'];
   declare readonly updateDefault: CaseFormsUseCaseFacade['updateDefault'];
+  declare readonly listTemplates: CaseFormsUseCaseFacade['listTemplates'];
+  declare readonly createTemplate: CaseFormsUseCaseFacade['createTemplate'];
+  declare readonly autosaveTemplate: CaseFormsUseCaseFacade['autosaveTemplate'];
+  declare readonly saveAssignmentAsTemplate: CaseFormsUseCaseFacade['saveAssignmentAsTemplate'];
   declare readonly listRecommendedDefaults: CaseFormsUseCaseFacade['listRecommendedDefaults'];
   declare readonly listAssignmentsForCase: CaseFormsUseCaseFacade['listAssignmentsForCase'];
   declare readonly createAssignment: CaseFormsUseCaseFacade['createAssignment'];

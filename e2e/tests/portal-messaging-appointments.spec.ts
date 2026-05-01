@@ -136,8 +136,8 @@ test.describe('Portal Messaging + Appointments', () => {
     await expect(page.getByRole('combobox').first()).toHaveValue('case-1');
     await expect(page.locator('p', { hasText: 'Selected Case' })).toBeVisible();
     await expect(page.getByText('Case: CASE-001 - Housing Support').first()).toBeVisible();
-    await expect(page.getByText('Pointperson: Alex Rivera').first()).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Case workspace' })).toHaveAttribute(
+    await expect(page.getByText('Assigned staff: Alex Rivera').first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Case details' })).toHaveAttribute(
       'href',
       '/portal/cases/case-1'
     );

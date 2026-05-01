@@ -1,7 +1,7 @@
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import type { UserSettingsPageController } from './useUserSettingsPageController';
-import { pronounOptions } from './helpers';
-import type { UserProfile } from './types';
+import { notificationPreferenceLabels, pronounOptions } from './helpers';
+import type { NotificationSettings, UserProfile } from './types';
 
 type Props = {
   controller: UserSettingsPageController;
@@ -214,34 +214,33 @@ export default function UserSettingsProfileSections({ controller }: Props) {
         </div>
 
         <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-          {Object.entries(profile.notifications).map(([key, value]) => (
-            <div
-              key={key}
-              className="flex items-center justify-between border-2 border-black p-3 bg-app-surface hover:bg-app-surface-muted transition-colors shadow-[4px_4px_0px_0px_var(--shadow-color)]"
-            >
-              <span className="font-bold uppercase text-sm">
-                {key.replace(/([A-Z])/g, ' $1').trim()}
-              </span>
-              <button
-                type="button"
-                onClick={() =>
-                  handleNotificationChange(key as keyof typeof profile.notifications, !value)
-                }
-                aria-label={`${
-                  key.replace(/([A-Z])/g, ' $1').trim()
-                } notifications ${value ? 'enabled' : 'disabled'}`}
-                className={`w-12 h-6 border-2 border-app-border rounded-full relative transition-colors shadow-[2px_2px_0px_0px_var(--shadow-color)] ${
-                  value ? 'bg-app-accent-foreground' : 'bg-app-surface-muted'
-                }`}
+          {Object.entries(profile.notifications).map(([key, value]) => {
+            const notificationKey = key as keyof NotificationSettings;
+            const label = notificationPreferenceLabels[notificationKey] ?? key;
+
+            return (
+              <div
+                key={key}
+                className="flex items-center justify-between border-2 border-black p-3 bg-app-surface hover:bg-app-surface-muted transition-colors shadow-[4px_4px_0px_0px_var(--shadow-color)]"
               >
-                <div
-                  className={`absolute top-0.5 bottom-0.5 w-4 h-4 bg-app-brutal-ink border border-app-border rounded-full transition-all ${
-                    value ? 'right-1' : 'left-1'
+                <span className="font-bold uppercase text-sm">{label}</span>
+                <button
+                  type="button"
+                  onClick={() => handleNotificationChange(notificationKey, !value)}
+                  aria-label={`${label} notifications ${value ? 'enabled' : 'disabled'}`}
+                  className={`w-12 h-6 border-2 border-app-border rounded-full relative transition-colors shadow-[2px_2px_0px_0px_var(--shadow-color)] ${
+                    value ? 'bg-app-accent-foreground' : 'bg-app-surface-muted'
                   }`}
-                />
-              </button>
-            </div>
-          ))}
+                >
+                  <div
+                    className={`absolute top-0.5 bottom-0.5 w-4 h-4 bg-app-brutal-ink border border-app-border rounded-full transition-all ${
+                      value ? 'right-1' : 'left-1'
+                    }`}
+                  />
+                </button>
+              </div>
+            );
+          })}
         </div>
       </div>
     </>

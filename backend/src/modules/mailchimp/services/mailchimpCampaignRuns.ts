@@ -76,7 +76,13 @@ const throwCampaignTargetingValidation = (message: string): never => {
 };
 
 const uniqueStrings = (values: readonly string[] = []): string[] =>
-  Array.from(new Set(values.filter((value): value is string => typeof value === 'string' && value.trim().length > 0)));
+  Array.from(
+    new Set(
+      values.filter(
+        (value): value is string => typeof value === 'string' && value.trim().length > 0
+      )
+    )
+  );
 
 const assertUuidList = (values: readonly string[], label: string): void => {
   const invalid = values.find((value) => !uuidPattern.test(value));
@@ -241,7 +247,11 @@ function resolveSavedAudienceFilters(
   audience: SavedAudience,
   listId: string
 ): CommunicationsSelectedContactsAudienceFilters {
-  return validateSavedAudienceFilters(audience.filters, listId, `Saved audience "${audience.name}"`);
+  return validateSavedAudienceFilters(
+    audience.filters,
+    listId,
+    `Saved audience "${audience.name}"`
+  );
 }
 
 export async function createSavedAudience(
@@ -303,13 +313,62 @@ export async function listCampaignRuns(
             requested_send_time, status, counts, scope_account_ids, failure_message,
             requested_by, created_at, updated_at
      FROM campaign_runs
-     WHERE ($2::uuid[] IS NULL OR scope_account_ids && $2::uuid[])
+     WHERE provider = 'mailchimp'
+       AND ($2::uuid[] IS NULL OR scope_account_ids && $2::uuid[])
      ORDER BY updated_at DESC
      LIMIT $1`,
     [Math.min(Math.max(limit, 1), 100), scopeAccountIds.length > 0 ? scopeAccountIds : null]
   );
 
   return result.rows.map(mapCampaignRunRow);
+}
+
+export async function getCampaignRun(
+  runId: string,
+  requesterScopeAccountIds?: string[]
+): Promise<CampaignRun | null> {
+  const scopeAccountIds = uniqueStrings(requesterScopeAccountIds ?? []);
+  const result = await pool.query<CampaignRunRow>(
+    `SELECT id, provider, provider_campaign_id, title, list_id, include_audience_id,
+            exclusion_audience_ids, suppression_snapshot, test_recipients, audience_snapshot,
+            requested_send_time, status, counts, scope_account_ids, failure_message,
+            requested_by, created_at, updated_at
+     FROM campaign_runs
+     WHERE provider = 'mailchimp'
+       AND id = $1
+       AND ($2::uuid[] IS NULL OR scope_account_ids && $2::uuid[])`,
+    [runId, scopeAccountIds.length > 0 ? scopeAccountIds : null]
+  );
+
+  return result.rows[0] ? mapCampaignRunRow(result.rows[0]) : null;
+}
+
+export async function updateCampaignRunStatus(
+  runId: string,
+  status: CampaignRunStatus,
+  countsPatch: Record<string, unknown> = {},
+  failureMessage?: string | null
+): Promise<CampaignRun> {
+  const result = await pool.query<CampaignRunRow>(
+    `UPDATE campaign_runs
+     SET status = $2,
+         counts = COALESCE(counts, '{}'::jsonb) || $3::jsonb,
+         failure_message = $4,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE provider = 'mailchimp'
+       AND id = $1
+     RETURNING id, provider, provider_campaign_id, title, list_id, include_audience_id,
+               exclusion_audience_ids, suppression_snapshot, test_recipients, audience_snapshot,
+               requested_send_time, status, counts, scope_account_ids, failure_message,
+               requested_by, created_at, updated_at`,
+    [runId, status, JSON.stringify(countsPatch), failureMessage ?? null]
+  );
+
+  if (!result.rows[0]) {
+    throwCampaignTargetingValidation('Campaign run was not found');
+  }
+
+  return mapCampaignRunRow(result.rows[0]);
 }
 
 function buildCampaignRunAudienceSnapshot(
@@ -327,7 +386,9 @@ function buildCampaignRunAudienceSnapshot(
   };
 }
 
-export async function createPendingCampaignRun(request: CreateCampaignRequest): Promise<CampaignRun> {
+export async function createPendingCampaignRun(
+  request: CreateCampaignRequest
+): Promise<CampaignRun> {
   const result = await pool.query<CampaignRunRow>(
     `INSERT INTO campaign_runs (
        title,
@@ -563,7 +624,10 @@ export async function prepareSavedAudienceTargeting(
     );
   }
 
-  const segmentName = `NPM ${new Date().toISOString()} ${runId.slice(0, 8)} ${request.title}`.slice(0, 100);
+  const segmentName = `NPM ${new Date().toISOString()} ${runId.slice(0, 8)} ${request.title}`.slice(
+    0,
+    100
+  );
   const segment = await mailchimpClient.lists.createSegment(request.listId, {
     name: segmentName,
     static_segment: [],
@@ -634,7 +698,8 @@ export async function recordCampaignLifecycleWebhook(
     lastWebhookType: payload.type,
     lastWebhookAction: payload.data?.action ?? null,
     lastWebhookStatus: payload.data?.status ?? null,
-    lastWebhookAt: payload.firedAt instanceof Date ? payload.firedAt.toISOString() : new Date().toISOString(),
+    lastWebhookAt:
+      payload.firedAt instanceof Date ? payload.firedAt.toISOString() : new Date().toISOString(),
   };
 
   const result = await pool.query(

@@ -1,6 +1,6 @@
 /**
  * Alerts Redux Slice
- * State management for analytics alert configuration
+ * State management for analytics alert rules
  */
 
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
@@ -22,6 +22,8 @@ interface AlertsState {
   loading: boolean;
   saving: boolean;
   error: string | null;
+  actionError: string | null;
+  pendingInstanceActionIds: string[];
 }
 
 const initialState: AlertsState = {
@@ -32,26 +34,26 @@ const initialState: AlertsState = {
   loading: false,
   saving: false,
   error: null,
+  actionError: null,
+  pendingInstanceActionIds: [],
 };
 
 /**
- * Fetch all alert configurations
+ * Fetch all alert rules
  */
-export const fetchAlertConfigs = createAsyncThunk(
-  'alerts/fetchConfigs',
-  async () => alertsApiClient.fetchAlertConfigs()
+export const fetchAlertConfigs = createAsyncThunk('alerts/fetchConfigs', async () =>
+  alertsApiClient.fetchAlertConfigs()
 );
 
 /**
- * Fetch a specific alert configuration
+ * Fetch a specific alert rule
  */
-export const fetchAlertConfig = createAsyncThunk(
-  'alerts/fetchConfig',
-  async (id: string) => alertsApiClient.fetchAlertConfig(id)
+export const fetchAlertConfig = createAsyncThunk('alerts/fetchConfig', async (id: string) =>
+  alertsApiClient.fetchAlertConfig(id)
 );
 
 /**
- * Create new alert configuration
+ * Create new alert rule
  */
 export const createAlertConfig = createAsyncThunk(
   'alerts/createConfig',
@@ -59,7 +61,7 @@ export const createAlertConfig = createAsyncThunk(
 );
 
 /**
- * Update alert configuration
+ * Update alert rule
  */
 export const updateAlertConfig = createAsyncThunk(
   'alerts/updateConfig',
@@ -68,26 +70,22 @@ export const updateAlertConfig = createAsyncThunk(
 );
 
 /**
- * Delete alert configuration
+ * Delete alert rule
  */
-export const deleteAlertConfig = createAsyncThunk(
-  'alerts/deleteConfig',
-  async (id: string) => {
-    await alertsApiClient.deleteAlertConfig(id);
-    return id;
-  }
-);
+export const deleteAlertConfig = createAsyncThunk('alerts/deleteConfig', async (id: string) => {
+  await alertsApiClient.deleteAlertConfig(id);
+  return id;
+});
 
 /**
  * Toggle alert enabled status
  */
-export const toggleAlertConfig = createAsyncThunk(
-  'alerts/toggleConfig',
-  async (id: string) => alertsApiClient.toggleAlertConfig(id)
+export const toggleAlertConfig = createAsyncThunk('alerts/toggleConfig', async (id: string) =>
+  alertsApiClient.toggleAlertConfig(id)
 );
 
 /**
- * Test alert configuration
+ * Test alert rule
  */
 export const testAlertConfig = createAsyncThunk(
   'alerts/testConfig',
@@ -95,7 +93,7 @@ export const testAlertConfig = createAsyncThunk(
 );
 
 /**
- * Fetch alert instances (triggered alerts)
+ * Fetch active and historical alert instances
  */
 export const fetchAlertInstances = createAsyncThunk(
   'alerts/fetchInstances',
@@ -105,25 +103,22 @@ export const fetchAlertInstances = createAsyncThunk(
 /**
  * Acknowledge alert instance
  */
-export const acknowledgeAlert = createAsyncThunk(
-  'alerts/acknowledge',
-  async (id: string) => alertsApiClient.acknowledgeAlert(id)
+export const acknowledgeAlert = createAsyncThunk('alerts/acknowledge', async (id: string) =>
+  alertsApiClient.acknowledgeAlert(id)
 );
 
 /**
  * Resolve alert instance
  */
-export const resolveAlert = createAsyncThunk(
-  'alerts/resolve',
-  async (id: string) => alertsApiClient.resolveAlert(id)
+export const resolveAlert = createAsyncThunk('alerts/resolve', async (id: string) =>
+  alertsApiClient.resolveAlert(id)
 );
 
 /**
  * Fetch alert statistics
  */
-export const fetchAlertStats = createAsyncThunk(
-  'alerts/fetchStats',
-  async () => alertsApiClient.fetchAlertStats()
+export const fetchAlertStats = createAsyncThunk('alerts/fetchStats', async () =>
+  alertsApiClient.fetchAlertStats()
 );
 
 const alertsSlice = createSlice({
@@ -132,6 +127,7 @@ const alertsSlice = createSlice({
   reducers: {
     clearError: (state) => {
       state.error = null;
+      state.actionError = null;
     },
     setCurrentConfig: (state, action: PayloadAction<AlertConfig | null>) => {
       state.currentConfig = action.payload;
@@ -150,7 +146,7 @@ const alertsSlice = createSlice({
       })
       .addCase(fetchAlertConfigs.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to fetch alert configurations';
+        state.error = action.error.message || 'Unable to load alert rules';
       })
 
       // Fetch single config
@@ -164,7 +160,7 @@ const alertsSlice = createSlice({
       })
       .addCase(fetchAlertConfig.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to fetch alert configuration';
+        state.error = action.error.message || 'Unable to load this alert rule';
       })
 
       // Create config
@@ -179,7 +175,7 @@ const alertsSlice = createSlice({
       })
       .addCase(createAlertConfig.rejected, (state, action) => {
         state.saving = false;
-        state.error = action.error.message || 'Failed to create alert configuration';
+        state.error = action.error.message || 'Unable to create this alert rule';
       })
 
       // Update config
@@ -199,7 +195,7 @@ const alertsSlice = createSlice({
       })
       .addCase(updateAlertConfig.rejected, (state, action) => {
         state.saving = false;
-        state.error = action.error.message || 'Failed to update alert configuration';
+        state.error = action.error.message || 'Unable to update this alert rule';
       })
 
       // Delete config
@@ -216,7 +212,7 @@ const alertsSlice = createSlice({
       })
       .addCase(deleteAlertConfig.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to delete alert configuration';
+        state.error = action.error.message || 'Unable to delete this alert rule';
       })
 
       // Toggle config
@@ -241,23 +237,49 @@ const alertsSlice = createSlice({
       })
       .addCase(fetchAlertInstances.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to fetch alert instances';
+        state.error = action.error.message || 'Unable to load alerts';
       })
 
       // Acknowledge alert
+      .addCase(acknowledgeAlert.pending, (state, action) => {
+        state.actionError = null;
+        state.pendingInstanceActionIds.push(action.meta.arg);
+      })
       .addCase(acknowledgeAlert.fulfilled, (state, action) => {
+        state.pendingInstanceActionIds = state.pendingInstanceActionIds.filter(
+          (id) => id !== action.meta.arg
+        );
         const index = state.instances.findIndex((i: AlertInstance) => i.id === action.payload.id);
         if (index !== -1) {
           state.instances[index] = action.payload;
         }
       })
+      .addCase(acknowledgeAlert.rejected, (state, action) => {
+        state.pendingInstanceActionIds = state.pendingInstanceActionIds.filter(
+          (id) => id !== action.meta.arg
+        );
+        state.actionError = action.error.message || 'Unable to mark this alert as reviewed';
+      })
 
       // Resolve alert
+      .addCase(resolveAlert.pending, (state, action) => {
+        state.actionError = null;
+        state.pendingInstanceActionIds.push(action.meta.arg);
+      })
       .addCase(resolveAlert.fulfilled, (state, action) => {
+        state.pendingInstanceActionIds = state.pendingInstanceActionIds.filter(
+          (id) => id !== action.meta.arg
+        );
         const index = state.instances.findIndex((i: AlertInstance) => i.id === action.payload.id);
         if (index !== -1) {
           state.instances[index] = action.payload;
         }
+      })
+      .addCase(resolveAlert.rejected, (state, action) => {
+        state.pendingInstanceActionIds = state.pendingInstanceActionIds.filter(
+          (id) => id !== action.meta.arg
+        );
+        state.actionError = action.error.message || 'Unable to resolve this alert';
       })
 
       // Fetch stats

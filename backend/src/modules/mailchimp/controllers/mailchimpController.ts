@@ -18,7 +18,12 @@ import type {
   CreateSavedAudienceRequest,
 } from '@app-types/mailchimp';
 import { renderMailchimpCampaignPreview } from '@services/template/emailCampaignRenderer';
-import { badRequest, notFoundMessage, serverError, serviceUnavailable } from '@utils/responseHelpers';
+import {
+  badRequest,
+  notFoundMessage,
+  serverError,
+  serviceUnavailable,
+} from '@utils/responseHelpers';
 import { sendProviderAck, sendSuccess } from '@modules/shared/http/envelope';
 import type { DataScopeFilter } from '@app-types/dataScope';
 
@@ -704,6 +709,178 @@ export const sendCampaign = async (req: AuthRequest, res: Response): Promise<voi
   }
 };
 
+export const sendDraftCampaignTest = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const {
+      listId,
+      title,
+      subject,
+      previewText,
+      fromName,
+      replyTo,
+      htmlContent,
+      plainTextContent,
+      builderContent,
+      segmentId,
+      testRecipients,
+      audienceSnapshot,
+    } = req.body as CreateCampaignRequest;
+
+    if (!mailchimpService.isMailchimpConfigured()) {
+      serviceUnavailable(res, 'Mailchimp is not configured');
+      return;
+    }
+
+    const result = await mailchimpService.sendDraftCampaignTest({
+      listId,
+      title,
+      subject,
+      previewText,
+      fromName,
+      replyTo,
+      htmlContent,
+      plainTextContent,
+      builderContent,
+      segmentId,
+      testRecipients,
+      audienceSnapshot,
+      requestedBy: req.user?.id,
+      scopeAccountIds: getRequesterScopeAccountIds(req),
+    });
+
+    sendSuccess(res, result);
+  } catch (error) {
+    if (isMailchimpNotFoundError(error)) {
+      notFoundMessage(res, 'Mailchimp list not found');
+      return;
+    }
+    if (isValidationStatusError(error)) {
+      badRequest(res, error instanceof Error ? error.message : 'Invalid campaign test send');
+      return;
+    }
+    logger.error('Error sending draft campaign test email', { error });
+    serverError(res, 'Failed to send campaign test email');
+  }
+};
+
+export const sendCampaignTest = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { campaignId } = req.params;
+    const { testRecipients, sendType } = req.body as {
+      testRecipients?: string[];
+      sendType?: 'html' | 'plain_text';
+    };
+
+    if (!campaignId) {
+      badRequest(res, 'Campaign ID is required');
+      return;
+    }
+    if (!testRecipients?.length) {
+      badRequest(res, 'At least one test recipient is required');
+      return;
+    }
+
+    if (!mailchimpService.isMailchimpConfigured()) {
+      serviceUnavailable(res, 'Mailchimp is not configured');
+      return;
+    }
+
+    await mailchimpService.sendCampaignTest({ campaignId, testRecipients, sendType });
+    sendSuccess(res, {
+      message: 'Campaign test email sent successfully',
+      recipientCount: testRecipients.length,
+    });
+  } catch (error) {
+    if (isValidationStatusError(error)) {
+      badRequest(res, error instanceof Error ? error.message : 'Invalid campaign test send');
+      return;
+    }
+    logger.error('Error sending campaign test email', { error });
+    serverError(res, 'Failed to send campaign test email');
+  }
+};
+
+const handleCampaignRunActionResult = (
+  res: Response,
+  result: Awaited<ReturnType<typeof mailchimpService.sendCampaignRun>>
+): void => {
+  if (!result) {
+    notFoundMessage(res, 'Campaign run not found');
+    return;
+  }
+
+  sendSuccess(res, result);
+};
+
+export const sendCampaignRun = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!mailchimpService.isMailchimpConfigured()) {
+      serviceUnavailable(res, 'Mailchimp is not configured');
+      return;
+    }
+
+    const result = await mailchimpService.sendCampaignRun(
+      req.params.runId,
+      getRequesterScopeAccountIds(req)
+    );
+    handleCampaignRunActionResult(res, result);
+  } catch (error) {
+    if (isValidationStatusError(error)) {
+      badRequest(res, error instanceof Error ? error.message : 'Invalid campaign run action');
+      return;
+    }
+    logger.error('Error sending campaign run', { error });
+    serverError(res, 'Failed to send campaign run');
+  }
+};
+
+export const refreshCampaignRunStatus = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    if (!mailchimpService.isMailchimpConfigured()) {
+      serviceUnavailable(res, 'Mailchimp is not configured');
+      return;
+    }
+
+    const result = await mailchimpService.refreshCampaignRunStatus(
+      req.params.runId,
+      getRequesterScopeAccountIds(req)
+    );
+    handleCampaignRunActionResult(res, result);
+  } catch (error) {
+    logger.error('Error refreshing campaign run status', { error });
+    serverError(res, 'Failed to refresh campaign run status');
+  }
+};
+
+export const cancelCampaignRun = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const result = await mailchimpService.cancelCampaignRun(
+      req.params.runId,
+      getRequesterScopeAccountIds(req)
+    );
+    handleCampaignRunActionResult(res, result);
+  } catch (error) {
+    logger.error('Error canceling campaign run', { error });
+    serverError(res, 'Failed to cancel campaign run');
+  }
+};
+
+export const rescheduleCampaignRun = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const result = await mailchimpService.rescheduleCampaignRun(
+      req.params.runId,
+      getRequesterScopeAccountIds(req)
+    );
+    handleCampaignRunActionResult(res, result);
+  } catch (error) {
+    logger.error('Error rescheduling campaign run', { error });
+    serverError(res, 'Failed to reschedule campaign run');
+  }
+};
+
 /**
  * Handle Mailchimp webhook
  */
@@ -732,37 +909,19 @@ export const handleWebhook = async (req: Request, res: Response): Promise<void> 
         break;
 
       case 'unsubscribe':
-        logger.info('Unsubscribe', {
-          listId: data.listId,
-          hasEmail: Boolean(data.email),
-        });
-        // Could update contact's do_not_email flag
+        await mailchimpService.recordContactPreferenceWebhook(payload);
         break;
 
       case 'profile':
-        logger.info('Profile update', {
-          listId: data.listId,
-          hasEmail: Boolean(data.email),
-        });
-        // Could sync profile changes back to contacts
+        await mailchimpService.recordContactPreferenceWebhook(payload);
         break;
 
       case 'upemail':
-        logger.info('Email address changed', {
-          listId: data.listId,
-          hasOldEmail: Boolean(data.oldEmail),
-          hasNewEmail: Boolean(data.newEmail),
-        });
-        // Could update contact email if needed
+        await mailchimpService.recordContactPreferenceWebhook(payload);
         break;
 
       case 'cleaned':
-        logger.info('Email cleaned (bounced/invalid)', {
-          listId: data.listId,
-          hasEmail: Boolean(data.email),
-          reason: data.reason,
-        });
-        // Could mark contact email as invalid
+        await mailchimpService.recordContactPreferenceWebhook(payload);
         break;
 
       case 'campaign':
@@ -806,7 +965,13 @@ export default {
   getCampaignRuns,
   previewCampaign,
   createCampaign,
+  sendDraftCampaignTest,
+  sendCampaignTest,
   sendCampaign,
+  sendCampaignRun,
+  refreshCampaignRunStatus,
+  cancelCampaignRun,
+  rescheduleCampaignRun,
   createSegment,
   getSegments,
   handleWebhook,

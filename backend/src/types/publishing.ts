@@ -83,7 +83,7 @@ export type PublishedSection = Omit<PageSection, 'components'> & {
   components: PublishedComponent[];
 };
 
-export type WebsiteNewsletterProvider = 'mailchimp' | 'mautic';
+export type WebsiteNewsletterProvider = 'local_email' | 'mailchimp' | 'mautic';
 
 // Published Navigation
 export interface PublishedNavigation {
@@ -153,7 +153,12 @@ export interface PublishedPageSEO {
 }
 
 // Site Analytics Event Types
-export type AnalyticsEventType = 'pageview' | 'click' | 'form_submit' | 'donation' | 'event_register';
+export type AnalyticsEventType =
+  | 'pageview'
+  | 'click'
+  | 'form_submit'
+  | 'donation'
+  | 'event_register';
 
 // Site Analytics Record
 export interface SiteAnalyticsRecord {
@@ -393,7 +398,7 @@ export interface WebsiteFormOperationalConfig {
   provider?: PaymentProvider;
   mailchimpListId?: string | null;
   mauticSegmentId?: string | null;
-  audienceMode?: 'crm' | 'mailchimp' | 'mautic' | 'both';
+  audienceMode?: 'crm' | 'local_email' | 'mailchimp' | 'mautic' | 'both';
   defaultTags?: string[];
   includePhone?: boolean;
   includeMessage?: boolean;
@@ -438,7 +443,7 @@ export interface WebsiteFormDefinition {
 
 export interface WebsiteMailchimpSettings {
   audienceId?: string | null;
-  audienceMode?: 'crm' | 'mailchimp' | 'mautic' | 'both';
+  audienceMode?: 'crm' | 'local_email' | 'mailchimp' | 'mautic' | 'both';
   defaultTags?: string[];
   syncEnabled?: boolean;
 }
@@ -456,7 +461,7 @@ export interface WebsiteNewsletterListPreset {
   id: string;
   name: string;
   provider: WebsiteNewsletterProvider;
-  audienceId: string;
+  audienceId?: string | null;
   audienceName?: string | null;
   notes?: string | null;
   defaultTags?: string[];

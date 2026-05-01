@@ -18,6 +18,33 @@ export async function listDefaultsByCaseType(
   return result.rows.map(mapDefault);
 }
 
+export async function listTemplates(
+  db: DbExecutor,
+  input: {
+    organizationId?: string | null;
+    status?: string | null;
+    caseTypeId?: string | null;
+  }
+): Promise<CaseFormDefault[]> {
+  const result = await db.query(
+    `SELECT *
+     FROM case_form_defaults
+     WHERE ($1::uuid IS NULL OR account_id IS NULL OR account_id = $1::uuid)
+       AND ($2::text IS NULL OR template_status = $2::text)
+       AND ($3::uuid IS NULL OR case_type_id IS NULL OR case_type_id = $3::uuid)
+     ORDER BY
+       CASE template_status
+         WHEN 'published' THEN 1
+         WHEN 'draft' THEN 2
+         ELSE 3
+       END,
+       updated_at DESC,
+       created_at DESC`,
+    [input.organizationId || null, input.status || null, input.caseTypeId || null]
+  );
+  return result.rows.map(mapDefault);
+}
+
 export async function getDefaultById(
   db: DbExecutor,
   defaultId: string,
@@ -37,12 +64,15 @@ export async function getDefaultById(
 export async function createDefault(
   executor: DbExecutor,
   input: {
-    caseTypeId: string;
+    caseTypeId?: string | null;
     organizationId?: string | null;
     title: string;
     description?: string | null;
     schema: CaseFormSchema;
     isActive: boolean;
+    templateStatus?: string;
+    savedFromAssignmentId?: string | null;
+    autosave?: boolean;
     userId?: string | null;
   }
 ): Promise<CaseFormDefault> {
@@ -55,18 +85,24 @@ export async function createDefault(
        schema,
        version,
        is_active,
+       template_status,
+       last_autosaved_at,
+       saved_from_assignment_id,
        created_by,
        updated_by
      )
-     VALUES ($1, $2, $3, $4, $5::jsonb, 1, $6, $7, $7)
+     VALUES ($1, $2, $3, $4, $5::jsonb, 1, $6, $7, CASE WHEN $8 THEN NOW() ELSE NULL END, $9, $10, $10)
      RETURNING *`,
     [
-      input.caseTypeId,
+      input.caseTypeId || null,
       input.organizationId || null,
       input.title,
       input.description || null,
       JSON.stringify(input.schema),
       input.isActive,
+      input.templateStatus || 'published',
+      input.autosave === true,
+      input.savedFromAssignmentId || null,
       input.userId || null,
     ]
   );
@@ -81,6 +117,9 @@ export async function updateDefault(
     description?: string | null;
     schema?: CaseFormSchema;
     isActive?: boolean;
+    caseTypeId?: string | null;
+    templateStatus?: string;
+    autosave?: boolean;
     userId?: string | null;
   }
 ): Promise<CaseFormDefault> {
@@ -104,6 +143,17 @@ export async function updateDefault(
   if (input.isActive !== undefined) {
     fields.push(`is_active = $${index++}`);
     values.push(input.isActive);
+  }
+  if (input.caseTypeId !== undefined) {
+    fields.push(`case_type_id = $${index++}`);
+    values.push(input.caseTypeId || null);
+  }
+  if (input.templateStatus !== undefined) {
+    fields.push(`template_status = $${index++}`);
+    values.push(input.templateStatus);
+  }
+  if (input.autosave === true) {
+    fields.push('last_autosaved_at = NOW()');
   }
 
   fields.push('updated_at = NOW()');

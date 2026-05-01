@@ -3,7 +3,7 @@
  * Mailchimp integration settings and contact sync
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
@@ -13,23 +13,34 @@ import {
   fetchCampaigns,
   fetchSavedAudiences,
   fetchCampaignRuns,
+  fetchCampaignRunRecipients,
   createSavedAudience,
   archiveSavedAudience,
   fetchListSegments,
   bulkSyncContacts,
   createCampaign,
   previewCampaign,
+  sendCampaignTest,
   sendCampaign,
+  sendCampaignRun,
+  refreshCampaignRunStatus,
+  cancelCampaignRun,
+  rescheduleCampaignRun,
   clearSavedAudienceMessage,
   clearSyncResult,
   setSelectedList,
 } from '../../mailchimp/state';
 import { fetchContacts } from '../../contacts/state';
+import { useDebounce } from '../../../hooks/useVirtualList';
 import type {
   MailchimpCampaign,
   MailchimpList,
   CampaignRun,
+  CampaignRunRecipientStatus,
+  CommunicationProvider,
   CreateCampaignRequest,
+  CampaignTestSendRequest,
+  CampaignTestSendResponse,
   MailchimpCampaignPreview,
 } from '../../../types/mailchimp';
 import type { Contact } from '../../contacts/state';
@@ -39,17 +50,32 @@ import { CampaignCard, CampaignRunCard, ListCard } from '../components/EmailMark
 import { CampaignCreateModal, SyncResultModal } from '../components/EmailMarketingPageParts';
 import EmailSettingsSection from '../../adminOps/pages/adminSettings/sections/EmailSettingsSection';
 
+const CONTACT_SELECTOR_LIMIT = 25;
+const LOCAL_AUDIENCE_ID = 'local_email:crm';
+
+const getAudienceProvider = (
+  audience: Pick<MailchimpList, 'provider' | 'id'>,
+  isMailchimpConfigured: boolean
+): CommunicationProvider => {
+  if (audience.provider) {
+    return audience.provider;
+  }
+
+  return isMailchimpConfigured && !audience.id.startsWith('local') ? 'mailchimp' : 'local_email';
+};
+
 /**
  * Email Marketing Page Component
  */
 export default function EmailMarketing() {
   const location = useLocation();
   const dispatch = useAppDispatch();
-  const pageTitle = 'Newsletter Campaigns';
+  const pageTitle = 'Communications';
   const {
     status,
     lists,
     selectedList,
+    tags,
     campaigns,
     savedAudiences,
     campaignRuns,
@@ -67,28 +93,96 @@ export default function EmailMarketing() {
     savedAudienceCreateError,
     isLoadingCampaignRuns,
     campaignRunsError,
+    campaignRunActionMessage,
+    campaignRunActionError,
+    campaignRunRecipients = {},
+    isLoadingCampaignRunRecipients = {},
+    campaignRunRecipientsError = {},
     isCreatingCampaign,
     isSendingCampaign,
+    isTestingCampaign,
     error,
   } = useAppSelector((state) => state.mailchimp);
-  const { contacts } = useAppSelector((state) => state.contacts.list);
-  const isMailchimpConfigured = status?.configured === true;
+  const contactsListState = useAppSelector((state) => state.contacts.list);
+  const contacts = contactsListState?.contacts || [];
+  const isLoadingContacts = contactsListState?.loading || false;
+  const contactsError = contactsListState?.error || null;
+  const contactsPagination = contactsListState?.pagination || {
+    total: 0,
+    page: 1,
+    limit: CONTACT_SELECTOR_LIMIT,
+    total_pages: 1,
+  };
+  const localProviderStatus = status?.providers?.local_email || status?.localEmail;
+  const mailchimpProviderStatus = status?.providers?.mailchimp || status?.mailchimp;
+  const isMailchimpConfigured =
+    mailchimpProviderStatus?.configured === true ||
+    (status?.configured === true && status?.provider !== 'local_email');
+  const isLocalEmailConfigured =
+    localProviderStatus?.configured === true ||
+    status?.defaultProvider === 'local_email' ||
+    status?.provider === 'local_email';
+  const isLocalSmtpReady = localProviderStatus?.ready === true;
+  const localDeliveryReadinessMessage = isLocalSmtpReady
+    ? `SMTP ready${localProviderStatus?.fromAddress ? ` from ${localProviderStatus.fromAddress}` : ''}.`
+    : localProviderStatus?.message ||
+      (isLocalEmailConfigured
+        ? 'SMTP settings need a readiness check before test emails or live sends.'
+        : 'Configure SMTP before sending local campaign tests or live sends.');
 
   const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedProvider, setSelectedProvider] = useState<CommunicationProvider>('local_email');
   const [selectAll, setSelectAll] = useState(false);
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [showCampaignModal, setShowCampaignModal] = useState(false);
   const [campaignListId, setCampaignListId] = useState<string>('');
   const [savedAudienceName, setSavedAudienceName] = useState('');
   const [localSavedAudienceError, setLocalSavedAudienceError] = useState<string | null>(null);
+  const [contactSearchInput, setContactSearchInput] = useState('');
+  const [contactPage, setContactPage] = useState(1);
+  const debouncedContactSearch = useDebounce(contactSearchInput, 300);
 
-  // Fetch Mailchimp status on mount, then load dependent data only when configured.
+  const localAudience = useMemo<MailchimpList>(
+    () => ({
+      id: LOCAL_AUDIENCE_ID,
+      name: 'CRM Email Audience',
+      memberCount: contactsPagination.total || contacts.length,
+      doubleOptIn: false,
+      provider: 'local_email',
+      description: 'Eligible contacts with email addresses from the CRM.',
+      isDefault: true,
+    }),
+    [contacts.length, contactsPagination.total]
+  );
+
+  const localAudiences = useMemo(
+    () => {
+      const providerLocalAudiences = lists.filter(
+        (list) => getAudienceProvider(list, isMailchimpConfigured) === 'local_email'
+      );
+      return providerLocalAudiences.length > 0 ? providerLocalAudiences : [localAudience];
+    },
+    [isMailchimpConfigured, lists, localAudience]
+  );
+  const mailchimpAudiences = useMemo(
+    () => lists.filter((list) => getAudienceProvider(list, isMailchimpConfigured) === 'mailchimp'),
+    [isMailchimpConfigured, lists]
+  );
+  const displayedAudiences = selectedProvider === 'mailchimp' ? mailchimpAudiences : localAudiences;
+  const selectedAudienceProvider = selectedList
+    ? getAudienceProvider(selectedList, isMailchimpConfigured)
+    : selectedProvider;
+  const isSelectedProviderDeliveryReady =
+    selectedProvider === 'local_email' ? isLocalSmtpReady : true;
+
+  // Fetch communications status on mount, then load local-first workspace data.
   useEffect(() => {
     dispatch(fetchMailchimpStatus());
   }, [dispatch]);
 
   useEffect(() => {
-    if (!isMailchimpConfigured) {
+    if (!status) {
       return;
     }
 
@@ -96,27 +190,63 @@ export default function EmailMarketing() {
     dispatch(fetchCampaigns());
     dispatch(fetchSavedAudiences());
     dispatch(fetchCampaignRuns());
-    dispatch(fetchContacts({ page: 1, limit: 100 }));
-  }, [dispatch, isMailchimpConfigured]);
+  }, [dispatch, status]);
+
+  useEffect(() => {
+    if (!isMailchimpConfigured && selectedProvider === 'mailchimp') {
+      setSelectedProvider('local_email');
+    }
+  }, [isMailchimpConfigured, selectedProvider]);
+
+  useEffect(() => {
+    if (displayedAudiences.length === 0) {
+      return;
+    }
+
+    if (
+      !selectedList ||
+      getAudienceProvider(selectedList, isMailchimpConfigured) !== selectedProvider
+    ) {
+      dispatch(setSelectedList(displayedAudiences[0]));
+    }
+  }, [dispatch, displayedAudiences, isMailchimpConfigured, selectedList, selectedProvider]);
+
+  useEffect(() => {
+    if (!status) {
+      return;
+    }
+
+    dispatch(
+      fetchContacts({
+        page: contactPage,
+        limit: CONTACT_SELECTOR_LIMIT,
+        search: debouncedContactSearch || undefined,
+      })
+    );
+  }, [contactPage, debouncedContactSearch, dispatch, status]);
 
   // Fetch tags when a list is selected
   useEffect(() => {
-    if (selectedList) {
+    if (selectedList && selectedAudienceProvider === 'mailchimp') {
       dispatch(fetchListTags(selectedList.id));
+    }
+
+    if (selectedList) {
       setSelectedContactIds([]);
+      setSelectedTags([]);
       setSelectAll(false);
       setSavedAudienceName('');
       setLocalSavedAudienceError(null);
       dispatch(clearSavedAudienceMessage());
     }
-  }, [dispatch, selectedList]);
+  }, [dispatch, selectedAudienceProvider, selectedList]);
 
   // Fetch segments when campaign modal list changes
   useEffect(() => {
-    if (campaignListId) {
+    if (campaignListId && selectedProvider === 'mailchimp') {
       dispatch(fetchListSegments(campaignListId));
     }
-  }, [dispatch, campaignListId]);
+  }, [dispatch, campaignListId, selectedProvider]);
 
   const campaignSegments =
     segmentsListId === campaignListId
@@ -126,6 +256,10 @@ export default function EmailMarketing() {
             !/^NPM \d{4}-\d{2}-\d{2}T/.test(segment.name)
         )
       : [];
+  const selectableContactsOnPage = contacts.filter((c: Contact) => c.email && !c.do_not_email);
+  const selectedContactsOnPage = selectableContactsOnPage.filter((contact) =>
+    selectedContactIds.includes(contact.contact_id)
+  );
 
   // Show sync result modal
   useEffect(() => {
@@ -134,13 +268,25 @@ export default function EmailMarketing() {
     }
   }, [syncResult]);
 
+  useEffect(() => {
+    setSelectAll(
+      selectableContactsOnPage.length > 0 &&
+        selectedContactsOnPage.length === selectableContactsOnPage.length
+    );
+  }, [selectableContactsOnPage.length, selectedContactsOnPage.length]);
+
   // Handle select all contacts
   const handleSelectAll = () => {
     if (selectAll) {
-      setSelectedContactIds([]);
+      const currentPageIds = contacts
+        .filter((c: Contact) => c.email && !c.do_not_email)
+        .map((c: Contact) => c.contact_id);
+      setSelectedContactIds((prev) => prev.filter((id) => !currentPageIds.includes(id)));
     } else {
       const contactsWithEmail = contacts.filter((c: Contact) => c.email && !c.do_not_email);
-      setSelectedContactIds(contactsWithEmail.map((c: Contact) => c.contact_id));
+      setSelectedContactIds((prev) =>
+        Array.from(new Set([...prev, ...contactsWithEmail.map((c: Contact) => c.contact_id)]))
+      );
     }
     setSelectAll(!selectAll);
     setLocalSavedAudienceError(null);
@@ -158,20 +304,29 @@ export default function EmailMarketing() {
 
   // Handle sync
   const handleSync = () => {
-    if (!selectedList || selectedContactIds.length === 0) return;
+    if (selectedProvider !== 'mailchimp' || !selectedList || selectedContactIds.length === 0) {
+      return;
+    }
 
     dispatch(
       bulkSyncContacts({
         contactIds: selectedContactIds,
         listId: selectedList.id,
+        tags: selectedTags,
       })
+    );
+  };
+
+  const handleToggleTag = (tagName: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tagName) ? prev.filter((name) => name !== tagName) : [...prev, tagName]
     );
   };
 
   const handleCreateSavedAudience = async () => {
     const trimmedName = savedAudienceName.trim();
     if (!selectedList) {
-      setLocalSavedAudienceError('Select a Mailchimp audience before saving this audience.');
+      setLocalSavedAudienceError('Select a delivery audience before saving this CRM audience.');
       return;
     }
     if (!trimmedName || selectedContactIds.length === 0) {
@@ -183,11 +338,12 @@ export default function EmailMarketing() {
       await dispatch(
         createSavedAudience({
           name: trimmedName,
-          description: 'Saved from the communications workspace contact selection.',
+          description: 'Saved from the communications workspace CRM contact selection.',
           filters: {
             source: 'communications_selected_contacts',
             contactIds: selectedContactIds,
             listId: selectedList.id,
+            provider: selectedAudienceProvider,
           },
         })
       ).unwrap();
@@ -209,8 +365,8 @@ export default function EmailMarketing() {
 
   // Open campaign creation modal
   const handleOpenCampaignModal = () => {
-    if (lists.length > 0) {
-      setCampaignListId(lists[0].id);
+    if (displayedAudiences.length > 0) {
+      setCampaignListId(displayedAudiences[0].id);
       setShowCampaignModal(true);
     }
   };
@@ -223,11 +379,16 @@ export default function EmailMarketing() {
 
   // Submit campaign
   const handleCreateCampaign = async (data: CreateCampaignRequest, sendNow: boolean) => {
-    try {
-      const result = await dispatch(createCampaign(data)).unwrap();
+    if (selectedProvider === 'local_email' && !isLocalSmtpReady && (sendNow || data.sendTime)) {
+      return;
+    }
 
-      if (sendNow && result.id) {
-        await dispatch(sendCampaign(result.id)).unwrap();
+    try {
+      const result = await dispatch(createCampaign({ ...data, provider: selectedProvider })).unwrap();
+
+      const runId = result.campaignRunId || result.id;
+      if (sendNow && runId) {
+        await dispatch(sendCampaign(runId)).unwrap();
       }
 
       handleCloseCampaignModal();
@@ -241,7 +402,15 @@ export default function EmailMarketing() {
 
   const handlePreviewCampaign = async (
     data: CreateCampaignRequest
-  ): Promise<MailchimpCampaignPreview> => dispatch(previewCampaign(data)).unwrap();
+  ): Promise<MailchimpCampaignPreview> =>
+    dispatch(previewCampaign({ ...data, provider: selectedProvider })).unwrap();
+
+  const handleTestSendCampaign = async (
+    data: CampaignTestSendRequest
+  ): Promise<CampaignTestSendResponse> =>
+    selectedProvider === 'local_email' && !isLocalSmtpReady
+      ? Promise.reject('Configure SMTP before sending a local test email.')
+      : dispatch(sendCampaignTest({ ...data, provider: selectedProvider })).unwrap();
 
   const handleArchiveSavedAudience = async (audienceId: string) => {
     try {
@@ -251,70 +420,55 @@ export default function EmailMarketing() {
     }
   };
 
-  // Not configured state
-  if (status && !status.configured) {
-    return (
-      <AdminWorkspaceShell
-        title={pageTitle}
-        description="Manage newsletter audiences, campaign sync, and the shared email delivery stack from one admin workspace."
-        currentPath={location.pathname}
-      >
-        <AdminQuickActionsBar role="admin" />
-        <div className="bg-app-accent-soft border border-app-border rounded-lg p-6">
-          <div className="flex items-start gap-4">
-            <svg
-              className="w-8 h-8 text-app-accent flex-shrink-0"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
-            <div>
-              <h2 className="text-lg font-medium text-app-accent-text">
-                Newsletter provider not configured
-              </h2>
-              <p className="mt-2 text-sm text-app-accent-text">
-                To use the newsletter campaigns workspace, configure a provider before sending
-                campaigns or syncing contacts:
-              </p>
-              <ul className="mt-3 text-sm text-app-accent-text list-disc list-inside space-y-1">
-                <li>
-                  <code className="bg-app-accent-soft px-1 rounded">MAILCHIMP_API_KEY</code> - Your
-                  Mailchimp API key
-                </li>
-                <li>
-                  <code className="bg-app-accent-soft px-1 rounded">MAILCHIMP_SERVER_PREFIX</code> -
-                  Your datacenter (e.g., us1, us2)
-                </li>
-              </ul>
-              <p className="mt-3 text-sm text-app-accent-text">
-                You can find your API key at{' '}
-                <a
-                  href="https://admin.mailchimp.com/account/api/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline"
-                >
-                  admin.mailchimp.com/account/api
-                </a>
-              </p>
-            </div>
-          </div>
-        </div>
-      </AdminWorkspaceShell>
-    );
-  }
+  const handleSendCampaignRun = async (runId: string) => {
+    const run = campaignRuns.find((candidate) => candidate.id === runId);
+    if (run?.provider === 'local_email' && !isLocalSmtpReady) {
+      return;
+    }
+
+    try {
+      await dispatch(sendCampaignRun(runId)).unwrap();
+    } catch {
+      // The slice owns the displayable error state.
+    }
+  };
+
+  const handleRefreshCampaignRunStatus = async (runId: string) => {
+    try {
+      await dispatch(refreshCampaignRunStatus(runId)).unwrap();
+    } catch {
+      // The slice owns the displayable error state.
+    }
+  };
+
+  const handleCancelCampaignRun = async (runId: string) => {
+    try {
+      await dispatch(cancelCampaignRun(runId)).unwrap();
+      dispatch(fetchCampaignRunRecipients({ runId, status: 'all', limit: 8 }));
+    } catch {
+      // The slice owns the displayable error state.
+    }
+  };
+
+  const handleRescheduleCampaignRun = async (runId: string, sendTime: string) => {
+    try {
+      await dispatch(rescheduleCampaignRun({ runId, sendTime })).unwrap();
+    } catch {
+      // The slice owns the displayable error state.
+    }
+  };
+
+  const handleLoadCampaignRunRecipients = (
+    runId: string,
+    statusFilter: CampaignRunRecipientStatus | 'all' = 'all'
+  ) => {
+    dispatch(fetchCampaignRunRecipients({ runId, status: statusFilter, limit: 8 }));
+  };
 
   return (
     <AdminWorkspaceShell
       title={pageTitle}
-      description="Manage newsletter audiences, campaign sync, and the shared email delivery stack from one admin workspace."
+      description="Manage local email campaigns, CRM audiences, and optional provider sync from one admin workspace."
       currentPath={location.pathname}
     >
       <AdminQuickActionsBar role="admin" />
@@ -326,34 +480,73 @@ export default function EmailMarketing() {
           </div>
         )}
 
-        {/* Account Status */}
-        {status?.configured && (
-          <div className="mb-8 bg-app-accent-soft border border-app-border rounded-lg p-4">
-            <div className="flex items-center gap-3">
-              <svg className="w-6 h-6 text-app-accent" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <div>
-                <p className="font-medium text-app-accent-text">Connected to Mailchimp</p>
-                <p className="text-sm text-app-accent-text">
-                  Account: {status.accountName} | {status.listCount} audience
-                  {status.listCount !== 1 ? 's' : ''}
-                </p>
-              </div>
-            </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="rounded-lg border border-app-border bg-app-surface p-4">
+            <p className="text-sm font-medium text-app-text-heading">Local Email</p>
+            <p className="mt-1 text-sm text-app-text-muted">
+              {isLocalSmtpReady
+                ? localDeliveryReadinessMessage
+                : `CRM audience building is available. ${localDeliveryReadinessMessage}`}
+            </p>
           </div>
-        )}
+          {isMailchimpConfigured ? (
+            <div className="rounded-lg border border-app-border bg-app-surface p-4">
+              <p className="text-sm font-medium text-app-text-heading">Mailchimp</p>
+              <p className="mt-1 text-sm text-app-text-muted">
+                Optional provider connected
+                {mailchimpProviderStatus?.accountName || status?.accountName
+                  ? `: ${mailchimpProviderStatus?.accountName || status?.accountName}`
+                  : ''}
+                .
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-app-input-border bg-app-surface p-4">
+              <p className="text-sm font-medium text-app-text-heading">Mailchimp Optional</p>
+              <p className="mt-1 text-sm text-app-text-muted">
+                Mailchimp is not configured, so the workspace stays on local email and CRM audiences.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-lg border border-app-border bg-app-surface p-3">
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              aria-pressed={selectedProvider === 'local_email'}
+              onClick={() => setSelectedProvider('local_email')}
+              className={`rounded-lg px-3 py-2 text-sm font-medium ${
+                selectedProvider === 'local_email'
+                  ? 'bg-app-accent text-[var(--app-accent-foreground)]'
+                  : 'border border-app-input-border text-app-text-muted'
+              }`}
+            >
+              Local Email
+            </button>
+            {isMailchimpConfigured ? (
+              <button
+                type="button"
+                aria-pressed={selectedProvider === 'mailchimp'}
+                onClick={() => setSelectedProvider('mailchimp')}
+                className={`rounded-lg px-3 py-2 text-sm font-medium ${
+                  selectedProvider === 'mailchimp'
+                    ? 'bg-app-accent text-[var(--app-accent-foreground)]'
+                    : 'border border-app-input-border text-app-text-muted'
+                }`}
+              >
+                Mailchimp
+              </button>
+            ) : null}
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Audiences Column */}
           <div className="lg:col-span-1">
-            <h2 className="text-lg font-medium text-app-text-heading mb-4">Audiences</h2>
+            <h2 className="text-lg font-medium text-app-text-heading mb-4">Delivery Audiences</h2>
 
-            {isLoading && lists.length === 0 ? (
+            {isLoading && displayedAudiences.length === 0 ? (
               <div className="animate-pulse space-y-3">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="h-24 bg-app-surface-muted rounded-lg"></div>
@@ -361,7 +554,7 @@ export default function EmailMarketing() {
               </div>
             ) : (
               <div className="space-y-3">
-                {lists.map((list: MailchimpList) => (
+                {displayedAudiences.map((list: MailchimpList) => (
                   <ListCard
                     key={list.id}
                     list={list}
@@ -377,9 +570,13 @@ export default function EmailMarketing() {
           <div className="lg:col-span-2">
             <div className="bg-app-surface border border-app-border rounded-lg">
               <div className="p-4 border-b border-app-border">
-                <h2 className="text-lg font-medium text-app-text-heading">Sync Contacts</h2>
+                <h2 className="text-lg font-medium text-app-text-heading">
+                  {selectedProvider === 'mailchimp' ? 'Sync Contacts' : 'CRM Audience Builder'}
+                </h2>
                 <p className="text-sm text-app-text-muted mt-1">
-                  Select contacts to sync with {selectedList?.name || 'a Mailchimp audience'}
+                  {selectedProvider === 'mailchimp'
+                    ? `Select contacts to sync with ${selectedList?.name || 'a Mailchimp audience'}`
+                    : `Select email-ready CRM contacts for ${selectedList?.name || 'local delivery'}`}
                 </p>
               </div>
 
@@ -398,70 +595,128 @@ export default function EmailMarketing() {
                       d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
                     />
                   </svg>
-                  <p className="mt-2">Select an audience to sync contacts</p>
+                  <p className="mt-2">Select a delivery audience to continue</p>
                 </div>
               ) : (
                 <>
                   {/* Toolbar */}
-                  <div className="p-4 bg-app-surface-muted border-b border-app-border flex items-center justify-between">
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={selectAll}
-                        onChange={handleSelectAll}
-                        className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
-                      />
-                      <span className="text-sm text-app-text-muted">
-                        Select all (
-                        {contacts.filter((c: Contact) => c.email && !c.do_not_email).length}{' '}
-                        contacts with email)
-                      </span>
-                    </label>
+                  <div className="space-y-4 border-b border-app-border bg-app-surface-muted p-4">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <label className="block text-sm font-medium text-app-text-label">
+                          Search CRM contacts
+                        </label>
+                        <input
+                          aria-label="Search CRM contacts"
+                          type="search"
+                          value={contactSearchInput}
+                          onChange={(event) => {
+                            setContactSearchInput(event.target.value);
+                            setContactPage(1);
+                          }}
+                          className="mt-1 w-full rounded-lg border border-app-input-border px-3 py-2 focus:border-app-accent focus:ring-2 focus:ring-app-accent"
+                          placeholder="Search by name, email, or phone"
+                        />
+                      </div>
+                      {selectedProvider === 'mailchimp' ? (
+                        <button
+                          onClick={handleSync}
+                          disabled={selectedContactIds.length === 0 || isSyncing}
+                          className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] text-sm font-medium rounded-lg hover:bg-app-accent-hover disabled:bg-app-text-subtle disabled:cursor-not-allowed transition-colors"
+                        >
+                          {isSyncing ? (
+                            <>
+                              <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                ></circle>
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                ></path>
+                              </svg>
+                              Syncing...
+                            </>
+                          ) : (
+                            <>
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                />
+                              </svg>
+                              Sync {selectedContactIds.length} Contact
+                              {selectedContactIds.length !== 1 ? 's' : ''}
+                              {selectedTags.length > 0
+                                ? ` with ${selectedTags.length} tag${selectedTags.length === 1 ? '' : 's'}`
+                                : ''}
+                            </>
+                          )}
+                        </button>
+                      ) : null}
+                    </div>
 
-                    <button
-                      onClick={handleSync}
-                      disabled={selectedContactIds.length === 0 || isSyncing}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] text-sm font-medium rounded-lg hover:bg-app-accent-hover disabled:bg-app-text-subtle disabled:cursor-not-allowed transition-colors"
-                    >
-                      {isSyncing ? (
-                        <>
-                          <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            ></circle>
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            ></path>
-                          </svg>
-                          Syncing...
-                        </>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={selectAll}
+                          onChange={handleSelectAll}
+                          className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
+                        />
+                        <span className="text-sm text-app-text-muted">
+                          Select visible eligible contacts ({selectedContactsOnPage.length}/
+                          {selectableContactsOnPage.length})
+                        </span>
+                      </label>
+                      <p className="text-xs text-app-text-muted">
+                        {selectedContactIds.length} selected across pages. Do-not-email contacts stay excluded.
+                      </p>
+                    </div>
+
+                    {selectedProvider === 'mailchimp' ? (
+                    <div>
+                      <p className="text-sm font-medium text-app-text-label">Sync tags</p>
+                      {tags.length > 0 ? (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {tags.map((tag) => (
+                            <label
+                              key={tag.id}
+                              className="inline-flex items-center gap-2 rounded-lg border border-app-input-border bg-app-surface px-3 py-1.5 text-xs text-app-text-muted"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedTags.includes(tag.name)}
+                                onChange={() => handleToggleTag(tag.name)}
+                                className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
+                              />
+                              {tag.name}
+                              {typeof tag.memberCount === 'number'
+                                ? ` (${tag.memberCount.toLocaleString()})`
+                                : ''}
+                            </label>
+                          ))}
+                        </div>
                       ) : (
-                        <>
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                            />
-                          </svg>
-                          Sync {selectedContactIds.length} Contact
-                          {selectedContactIds.length !== 1 ? 's' : ''}
-                        </>
+                        <p className="mt-1 text-xs text-app-text-muted">
+                          No provider tags returned for this audience yet; tag and segment endpoints remain API-only until tags exist.
+                        </p>
                       )}
-                    </button>
+                    </div>
+                    ) : null}
                   </div>
 
                   <div className="border-b border-app-border bg-app-surface px-4 py-4">
@@ -495,7 +750,7 @@ export default function EmailMarketing() {
                       </button>
                     </div>
                     <p className="mt-2 text-xs text-app-text-muted">
-                      Saves {selectedContactIds.length} selected contact
+                      Saves {selectedContactIds.length} selected CRM contact
                       {selectedContactIds.length === 1 ? '' : 's'} as an internal targeting
                       snapshot tied to {selectedList.name}.
                     </p>
@@ -511,9 +766,14 @@ export default function EmailMarketing() {
 
                   {/* Contact List */}
                   <div className="max-h-96 overflow-y-auto">
-                    {contacts
-                      .filter((c: Contact) => c.email)
-                      .map((contact: Contact) => (
+                    {contactsError ? (
+                      <div className="p-4 text-sm text-app-accent">{contactsError}</div>
+                    ) : isLoadingContacts ? (
+                      <div className="p-4 text-sm text-app-text-muted">Loading CRM contacts...</div>
+                    ) : contacts.filter((c: Contact) => c.email).length > 0 ? (
+                      contacts
+                        .filter((c: Contact) => c.email)
+                        .map((contact: Contact) => (
                         <label
                           key={contact.contact_id}
                           className={`flex items-center gap-3 p-4 border-b border-app-border-muted hover:bg-app-surface-muted cursor-pointer ${
@@ -537,7 +797,44 @@ export default function EmailMarketing() {
                             <span className="text-xs text-app-accent">Do not email</span>
                           )}
                         </label>
-                      ))}
+                        ))
+                    ) : (
+                      <div className="p-4 text-sm text-app-text-muted">
+                        No email-ready contacts match this page and search.
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-3 border-t border-app-border bg-app-surface px-4 py-3 text-sm text-app-text-muted sm:flex-row sm:items-center sm:justify-between">
+                    <span>
+                      Page {contactsPagination.page || contactPage} of{' '}
+                      {Math.max(contactsPagination.total_pages || 1, 1)} |{' '}
+                      {contactsPagination.total.toLocaleString()} CRM contacts
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setContactPage((page) => Math.max(1, page - 1))}
+                        disabled={contactPage <= 1 || isLoadingContacts}
+                        className="rounded-lg border border-app-input-border px-3 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Previous
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setContactPage((page) =>
+                            Math.min(Math.max(contactsPagination.total_pages || 1, 1), page + 1)
+                          )
+                        }
+                        disabled={
+                          contactPage >= Math.max(contactsPagination.total_pages || 1, 1) ||
+                          isLoadingContacts
+                        }
+                        className="rounded-lg border border-app-input-border px-3 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Next
+                      </button>
+                    </div>
                   </div>
                 </>
               )}
@@ -564,7 +861,7 @@ export default function EmailMarketing() {
             </h2>
             <button
               onClick={handleOpenCampaignModal}
-              disabled={lists.length === 0}
+              disabled={displayedAudiences.length === 0}
               className="inline-flex items-center gap-2 px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] text-sm font-medium rounded-lg hover:bg-app-accent-hover disabled:bg-app-text-subtle disabled:cursor-not-allowed transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -602,9 +899,9 @@ export default function EmailMarketing() {
               </svg>
               <h3 className="mt-4 text-lg font-medium text-app-text-heading">No campaigns yet</h3>
               <p className="mt-2 text-sm text-app-text-muted">
-                Create your first email campaign to start engaging with your audience
+                Create your first local email campaign to start engaging with CRM audiences
               </p>
-              {lists.length > 0 && (
+              {displayedAudiences.length > 0 && (
                 <button
                   onClick={handleOpenCampaignModal}
                   className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] text-sm font-medium rounded-lg hover:bg-app-accent-hover transition-colors"
@@ -651,7 +948,7 @@ export default function EmailMarketing() {
                           {audience.name}
                         </p>
                         <p className="mt-1 text-sm text-app-text-muted">
-                          {audience.sourceCount.toLocaleString()} contacts in latest snapshot
+                          {(audience.sourceCount ?? 0).toLocaleString()} contacts in latest snapshot
                         </p>
                       </div>
                       <button
@@ -665,7 +962,7 @@ export default function EmailMarketing() {
                     </div>
                     {typeof audience.filters.listId === 'string' ? (
                       <p className="mt-2 text-xs text-app-text-subtle">
-                        Provider audience: {audience.filters.listId}
+                        Delivery audience: {audience.filters.listId}
                       </p>
                     ) : null}
                   </div>
@@ -683,6 +980,12 @@ export default function EmailMarketing() {
 
           <section>
             <h2 className="mb-4 text-lg font-medium text-app-text-heading">Campaign Run History</h2>
+            {campaignRunActionMessage ? (
+              <p className="mb-3 text-sm text-app-accent-text">{campaignRunActionMessage}</p>
+            ) : null}
+            {campaignRunActionError ? (
+              <p className="mb-3 text-sm text-app-accent">{campaignRunActionError}</p>
+            ) : null}
             {isLoadingCampaignRuns ? (
               <div className="rounded-lg border border-app-border bg-app-surface p-6 text-sm text-app-text-muted">
                 Loading campaign run history...
@@ -694,7 +997,20 @@ export default function EmailMarketing() {
             ) : campaignRuns.length > 0 ? (
               <div className="space-y-3">
                 {campaignRuns.slice(0, 5).map((run: CampaignRun) => (
-                  <CampaignRunCard key={run.id} run={run} />
+                  <CampaignRunCard
+                    key={run.id}
+                    run={run}
+                    onSend={handleSendCampaignRun}
+                    onRefreshStatus={handleRefreshCampaignRunStatus}
+                    onCancel={handleCancelCampaignRun}
+                    onReschedule={handleRescheduleCampaignRun}
+                    onLoadRecipients={handleLoadCampaignRunRecipients}
+                    recipients={campaignRunRecipients[run.id] ?? []}
+                    isLoadingRecipients={Boolean(isLoadingCampaignRunRecipients[run.id])}
+                    recipientsError={campaignRunRecipientsError[run.id]}
+                    localDeliveryReady={isLocalSmtpReady}
+                    localDeliveryBlockedReason={localDeliveryReadinessMessage}
+                  />
                 ))}
               </div>
             ) : (
@@ -713,15 +1029,20 @@ export default function EmailMarketing() {
         {/* Campaign Create Modal */}
         {showCampaignModal && (
           <CampaignCreateModal
-            lists={lists}
+            lists={displayedAudiences}
             segments={campaignSegments}
             savedAudiences={savedAudiences}
             campaignRuns={campaignRuns}
+            provider={selectedProvider}
+            isDeliveryReady={isSelectedProviderDeliveryReady}
+            deliveryReadinessMessage={localDeliveryReadinessMessage}
             isCreatingCampaign={isCreatingCampaign}
             isSendingCampaign={isSendingCampaign}
+            isTestingCampaign={isTestingCampaign}
             onClose={handleCloseCampaignModal}
             onListChange={setCampaignListId}
             onPreview={handlePreviewCampaign}
+            onTestSend={handleTestSendCampaign}
             onSubmit={handleCreateCampaign}
           />
         )}

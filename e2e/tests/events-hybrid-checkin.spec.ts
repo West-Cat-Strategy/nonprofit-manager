@@ -211,11 +211,11 @@ test.describe('Events Hybrid Check-In', () => {
     await eventCard.getByRole('button', { name: 'Register' }).click();
     await expect(eventCard.getByText('Registered')).toBeVisible({ timeout: 20000 });
 
-    await eventCard.getByRole('button', { name: 'QR Pass' }).click();
-    await expect(authenticatedPage.getByRole('heading', { name: 'Event QR Pass' })).toBeVisible({
+    await eventCard.getByRole('button', { name: 'Check-in pass' }).click();
+    await expect(authenticatedPage.getByRole('heading', { name: 'Event Check-in Pass' })).toBeVisible({
       timeout: 15000,
     });
-    await expect(authenticatedPage.getByRole('button', { name: 'Download PNG' })).toBeVisible();
+    await expect(authenticatedPage.getByRole('button', { name: 'Download pass' })).toBeVisible();
     await authenticatedPage
       .locator('.fixed.inset-0')
       .getByRole('button', { name: 'Close' })

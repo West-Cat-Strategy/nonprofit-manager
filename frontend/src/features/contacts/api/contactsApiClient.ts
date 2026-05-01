@@ -4,6 +4,8 @@ import type { ApiEnvelope } from '../../../services/apiEnvelope';
 import type {
   Contact,
   ContactCommunicationsResult,
+  ContactSuppressionEvidence,
+  ContactSuppressionEvidenceResult,
   ContactDocument,
   ContactEmailAddress,
   ContactNote,
@@ -20,12 +22,14 @@ import type {
   CreateContactNoteDTO,
   CreateContactRelationshipDTO,
   CreateContactPhoneDTO,
+  CreateContactSuppressionEvidenceDTO,
   UpdateDonorProfileDTO,
   UpdateContactDocumentDTO,
   UpdateContactEmailDTO,
   UpdateContactNoteDTO,
   UpdateContactRelationshipDTO,
   UpdateContactPhoneDTO,
+  UpdateContactSuppressionEvidenceDTO,
 } from '../../../types/contact';
 import type {
   ContactCommunicationQuery,
@@ -178,6 +182,43 @@ export class ContactsApiClient implements ContactsApiClientPort {
           limit: query.limit,
         },
       }
+    );
+    return unwrapApiData(response.data);
+  }
+
+  async listSuppressions(contactId: string): Promise<ContactSuppressionEvidenceResult> {
+    const response = await api.get<ApiEnvelope<ContactSuppressionEvidenceResult>>(
+      `/v2/contacts/${contactId}/suppressions`
+    );
+    return unwrapApiData(response.data);
+  }
+
+  async createSuppression(
+    contactId: string,
+    payload: CreateContactSuppressionEvidenceDTO
+  ): Promise<ContactSuppressionEvidence> {
+    const response = await api.post<ApiEnvelope<ContactSuppressionEvidence>>(
+      `/v2/contacts/${contactId}/suppressions/staff-dnc`,
+      {
+        channel: payload.channel,
+        reason: payload.reason,
+        evidence_summary: payload.evidence,
+        source_reference: payload.notes,
+        starts_at: payload.starts_at,
+        expires_at: payload.expires_at,
+      }
+    );
+    return unwrapApiData(response.data);
+  }
+
+  async updateSuppression(
+    contactId: string,
+    suppressionId: string,
+    payload: UpdateContactSuppressionEvidenceDTO
+  ): Promise<ContactSuppressionEvidence> {
+    const response = await api.patch<ApiEnvelope<ContactSuppressionEvidence>>(
+      `/v2/contacts/${contactId}/suppressions/${suppressionId}`,
+      payload
     );
     return unwrapApiData(response.data);
   }

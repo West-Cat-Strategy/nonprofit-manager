@@ -1,5 +1,6 @@
 import type {
   CaseFormAsset,
+  CaseFormDeliveryChannel,
   CaseFormDeliveryTarget,
   CaseFormAssignmentDetail,
   CaseFormMappingTarget,
@@ -159,6 +160,49 @@ export const resolveDeliveryTarget = (
 
 export const usesEmailDelivery = (deliveryTarget: CaseFormDeliveryTarget): boolean =>
   deliveryTarget === 'email' || deliveryTarget === 'portal_and_email';
+
+export const resolveDeliveryChannels = (
+  deliveryChannels?: CaseFormDeliveryChannel[] | null,
+  deliveryTarget?: CaseFormDeliveryTarget | null,
+  recipientEmail?: string | null
+): CaseFormDeliveryChannel[] => {
+  if (deliveryChannels?.length) {
+    return Array.from(new Set(deliveryChannels));
+  }
+  if (deliveryTarget === 'portal_and_email') {
+    return ['portal', 'email'];
+  }
+  if (deliveryTarget === 'portal' || deliveryTarget === 'email') {
+    return [deliveryTarget];
+  }
+  return recipientEmail ? ['email'] : ['portal'];
+};
+
+export const usesChannel = (
+  deliveryChannels: CaseFormDeliveryChannel[],
+  channel: CaseFormDeliveryChannel
+): boolean => deliveryChannels.includes(channel);
+
+export const sendLabelForChannels = (deliveryChannels: CaseFormDeliveryChannel[]): string => {
+  const labels = deliveryChannels.map((channel) => (channel === 'sms' ? 'SMS' : channel));
+  return labels.length ? `Open Form: ${labels.join(' + ')}` : 'Open Form';
+};
+
+export const successMessageForChannels = (deliveryChannels: CaseFormDeliveryChannel[]): string => {
+  const hasPortal = deliveryChannels.includes('portal');
+  const hasEmail = deliveryChannels.includes('email');
+  const hasSms = deliveryChannels.includes('sms');
+  if (hasPortal && !hasEmail && !hasSms) {
+    return 'Form opened in the client portal';
+  }
+  if (!hasPortal && hasEmail && !hasSms) {
+    return 'Secure form email sent';
+  }
+  if (!hasPortal && !hasEmail && hasSms) {
+    return 'Secure form SMS sent';
+  }
+  return 'Form opened with the selected delivery channels';
+};
 
 export const sendLabelForTarget = (deliveryTarget: CaseFormDeliveryTarget): string => {
   if (deliveryTarget === 'portal') {

@@ -12,7 +12,7 @@ export default function PortalCalendarPage() {
   return (
     <PortalPageShell
       title="Calendar"
-      description="See appointments, open booking slots, and events together in one place."
+      description="See appointments, available times, and events together in one place."
     >
       <PortalPageState
         loading={controller.loading}

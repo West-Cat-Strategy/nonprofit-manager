@@ -255,9 +255,9 @@ export async function syncContact(request: SyncContactRequest): Promise<SyncResu
 
   try {
     const result = await pool.query(
-      `SELECT contact_id, first_name, last_name, email, phone,
+      `SELECT id AS contact_id, first_name, last_name, email, phone,
               do_not_email
-       FROM contacts WHERE contact_id = $1`,
+       FROM contacts WHERE id = $1`,
       [request.contactId]
     );
 

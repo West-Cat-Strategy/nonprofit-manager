@@ -465,6 +465,145 @@ const FormComponentPropertyEditor: React.FC<FormComponentPropertyEditorProps> = 
         </>
       );
 
+    case 'petition-form':
+    case 'donation-pledge-form':
+    case 'support-letter-request': {
+      const defaultSubmitText =
+        selectedComponent.type === 'petition-form'
+          ? 'Add my name'
+          : selectedComponent.type === 'donation-pledge-form'
+            ? 'Make pledge'
+            : 'Request letter';
+
+      return (
+        <>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-app-text-muted">Heading</label>
+            <input
+              type="text"
+              value={selectedComponent.heading || ''}
+              onChange={(e) => update({ heading: e.target.value || undefined })}
+              className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-app-text-muted">
+              Action Slug
+            </label>
+            <input
+              type="text"
+              value={selectedComponent.actionSlug || ''}
+              onChange={(e) => update({ actionSlug: e.target.value.trim() || undefined })}
+              placeholder="campaign-action"
+              className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-app-text-muted">
+              Description
+            </label>
+            <textarea
+              value={selectedComponent.description || ''}
+              onChange={(e) => update({ description: e.target.value || undefined })}
+              rows={3}
+              className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
+            />
+          </div>
+
+          {selectedComponent.type === 'petition-form' ? (
+            <div>
+              <label className="mb-1 block text-sm font-medium text-app-text-muted">
+                Petition Statement
+              </label>
+              <textarea
+                value={selectedComponent.petitionStatement || ''}
+                onChange={(e) => update({ petitionStatement: e.target.value || undefined })}
+                rows={3}
+                className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
+              />
+            </div>
+          ) : null}
+
+          {selectedComponent.type === 'donation-pledge-form' ? (
+            <>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-app-text-muted">
+                  Suggested Amounts
+                </label>
+                <input
+                  type="text"
+                  value={(selectedComponent.suggestedAmounts || []).join(', ')}
+                  onChange={(e) =>
+                    update({
+                      suggestedAmounts: e.target.value
+                        .split(',')
+                        .map((value) => Number.parseFloat(value.trim()))
+                        .filter((value) => Number.isFinite(value) && value > 0),
+                    })
+                  }
+                  placeholder="25, 50, 100, 250"
+                  className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-app-text-muted">
+                  Currency
+                </label>
+                <input
+                  type="text"
+                  value={selectedComponent.currency || 'CAD'}
+                  onChange={(e) => update({ currency: e.target.value.trim().toUpperCase() || 'CAD' })}
+                  className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
+                />
+              </div>
+            </>
+          ) : null}
+
+          {selectedComponent.type === 'support-letter-request' ? (
+            <div>
+              <label className="mb-1 block text-sm font-medium text-app-text-muted">
+                Letter Template
+              </label>
+              <textarea
+                value={selectedComponent.letterTemplate || ''}
+                onChange={(e) => update({ letterTemplate: e.target.value || undefined })}
+                rows={5}
+                placeholder="Use {{full_name}}, {{purpose}}, and {{organization_name}}"
+                className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
+              />
+            </div>
+          ) : null}
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-app-text-muted">
+              Submit Text
+            </label>
+            <input
+              type="text"
+              value={selectedComponent.submitText || defaultSubmitText}
+              onChange={(e) => update({ submitText: e.target.value })}
+              className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-app-text-muted">
+              Success Message
+            </label>
+            <input
+              type="text"
+              value={selectedComponent.successMessage || ''}
+              onChange={(e) => update({ successMessage: e.target.value || undefined })}
+              className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
+            />
+          </div>
+        </>
+      );
+    }
+
     default:
       return null;
   }

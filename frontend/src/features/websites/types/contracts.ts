@@ -1,7 +1,11 @@
 import type {
   CreateWebsiteEntryRequest,
+  CreatePublicActionRequest,
+  PublicAction,
+  PublicActionSubmission,
   SiteKind,
   UpdateWebsiteEntryRequest,
+  UpdatePublicActionRequest,
   WebsiteEntry,
 } from '../../../types/websiteBuilder';
 import type { PaymentProvider } from '../../../types/payment';
@@ -67,7 +71,7 @@ export interface WebsiteRouteSummary {
   pageName: string;
   pageSlug: string;
   pageType: 'static' | 'collectionIndex' | 'collectionDetail';
-  collection?: 'events' | 'newsletters';
+  collection?: 'events' | 'newsletters' | 'blog';
   routePattern: string;
   path: string;
   seoTitle?: string;
@@ -168,7 +172,7 @@ export interface WebsiteFormDefinition {
   pageName: string;
   pageSlug: string;
   pageType: 'static' | 'collectionIndex' | 'collectionDetail';
-  collection?: 'events' | 'newsletters';
+  collection?: 'events' | 'newsletters' | 'blog';
   routePattern: string;
   path: string;
   live: boolean;
@@ -518,3 +522,7 @@ export interface WebsiteState {
 
 export type WebsiteEntryCreateRequest = Omit<CreateWebsiteEntryRequest, 'siteId'>;
 export type WebsiteEntryUpdateRequest = UpdateWebsiteEntryRequest;
+export type WebsitePublicAction = PublicAction;
+export type WebsitePublicActionSubmission = PublicActionSubmission;
+export type WebsitePublicActionCreateRequest = CreatePublicActionRequest;
+export type WebsitePublicActionUpdateRequest = UpdatePublicActionRequest;

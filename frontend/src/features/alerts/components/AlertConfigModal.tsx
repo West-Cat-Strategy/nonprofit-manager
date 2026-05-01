@@ -1,4 +1,13 @@
 import { useEffect, useState } from 'react';
+import {
+  ArrowPathIcon,
+  ChatBubbleLeftRightIcon,
+  CheckCircleIcon,
+  ComputerDesktopIcon,
+  EnvelopeIcon,
+  ExclamationTriangleIcon,
+  LinkIcon,
+} from '@heroicons/react/24/outline';
 import { useAppDispatch } from '../../../store/hooks';
 import { createAlertConfig, testAlertConfig, updateAlertConfig } from '../state';
 import {
@@ -34,15 +43,26 @@ const isAlertTestResult = (
   result: AlertTestResult | { error: string }
 ): result is AlertTestResult => 'would_trigger' in result;
 
-export default function AlertConfigModal({
-  config,
-  onClose,
-  onSuccess,
-}: AlertConfigModalProps) {
+const getChannelIcon = (channel: AlertChannel) => {
+  switch (channel) {
+    case 'email':
+      return EnvelopeIcon;
+    case 'in_app':
+      return ComputerDesktopIcon;
+    case 'slack':
+      return ChatBubbleLeftRightIcon;
+    case 'webhook':
+    default:
+      return LinkIcon;
+  }
+};
+
+export default function AlertConfigModal({ config, onClose, onSuccess }: AlertConfigModalProps) {
   const dispatch = useAppDispatch();
   const [formData, setFormData] = useState<CreateAlertDTO>(createDefaultAlertConfig());
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [testing, setTesting] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<AlertTestResult | { error: string } | null>(null);
 
@@ -51,6 +71,7 @@ export default function AlertConfigModal({
     setErrors({});
     setTestResult(null);
     setSubmitError(null);
+    setSubmitting(false);
   }, [config]);
 
   const handleChange = <K extends keyof CreateAlertDTO>(field: K, value: CreateAlertDTO[K]) => {
@@ -73,22 +94,22 @@ export default function AlertConfigModal({
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = 'Alert name is required';
+      newErrors.name = 'Alert rule name is required';
     }
 
     if (
       (formData.condition === 'exceeds' || formData.condition === 'drops_below') &&
       formData.threshold === undefined
     ) {
-      newErrors.threshold = 'Threshold is required for this condition';
+      newErrors.threshold = 'Add the value that should trigger this alert rule';
     }
 
     if (formData.condition === 'changes_by' && formData.percentage_change === undefined) {
-      newErrors.percentage_change = 'Percentage change is required for this condition';
+      newErrors.percentage_change = 'Add the percentage change that should trigger this alert rule';
     }
 
     if (formData.channels.length === 0) {
-      newErrors.channels = 'At least one notification channel is required';
+      newErrors.channels = 'Choose at least one alert channel';
     }
 
     setErrors(newErrors);
@@ -107,7 +128,7 @@ export default function AlertConfigModal({
       const result = await dispatch(testAlertConfig(formData)).unwrap();
       setTestResult(result);
     } catch {
-      setTestResult({ error: 'Failed to test alert configuration' });
+      setTestResult({ error: 'Unable to test this alert rule' });
     } finally {
       setTesting(false);
     }
@@ -120,6 +141,7 @@ export default function AlertConfigModal({
 
     try {
       setSubmitError(null);
+      setSubmitting(true);
       if (config?.id) {
         await dispatch(updateAlertConfig({ id: config.id, config: formData })).unwrap();
       } else {
@@ -127,7 +149,9 @@ export default function AlertConfigModal({
       }
       onSuccess();
     } catch {
-      setSubmitError('Failed to save alert configuration');
+      setSubmitError('Unable to save this alert rule. Check the fields and try again.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -136,10 +160,10 @@ export default function AlertConfigModal({
       <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-app-surface shadow-xl">
         <div className="border-b border-app-border p-6">
           <h2 className="text-xl font-semibold text-app-text">
-            {config ? 'Edit Alert Configuration' : 'Create Alert Configuration'}
+            {config ? 'Edit alert rule' : 'Create alert rule'}
           </h2>
           <p className="mt-1 text-sm text-app-text-muted">
-            Configure conditions and notifications for analytics monitoring
+            Choose when the rule should fire and which channels should carry the alert.
           </p>
         </div>
 
@@ -149,7 +173,7 @@ export default function AlertConfigModal({
               htmlFor="alert-config-name"
               className="mb-1 block text-sm font-medium text-app-text-muted"
             >
-              Alert Name *
+              Alert rule name *
             </label>
             <input
               id="alert-config-name"
@@ -157,7 +181,7 @@ export default function AlertConfigModal({
               value={formData.name}
               onChange={(event) => handleChange('name', event.target.value)}
               className="w-full rounded-lg border border-app-input-border px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-app-accent"
-              placeholder="e.g., Low Donation Alert"
+              placeholder="e.g., Low donation alert"
             />
             {errors.name ? <p className="mt-1 text-sm text-app-accent">{errors.name}</p> : null}
           </div>
@@ -175,7 +199,7 @@ export default function AlertConfigModal({
               onChange={(event) => handleChange('description', event.target.value)}
               rows={2}
               className="w-full rounded-lg border border-app-input-border px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-app-accent"
-              placeholder="Optional description of this alert"
+              placeholder="Optional note about when staff should act on this alert"
             />
           </div>
 
@@ -227,7 +251,7 @@ export default function AlertConfigModal({
             </div>
           </div>
 
-          {(formData.condition === 'exceeds' || formData.condition === 'drops_below') ? (
+          {formData.condition === 'exceeds' || formData.condition === 'drops_below' ? (
             <div>
               <label
                 htmlFor="alert-config-threshold"
@@ -309,9 +333,7 @@ export default function AlertConfigModal({
               <select
                 id="alert-config-severity"
                 value={formData.severity}
-                onChange={(event) =>
-                  handleChange('severity', event.target.value as AlertSeverity)
-                }
+                onChange={(event) => handleChange('severity', event.target.value as AlertSeverity)}
                 className="w-full rounded-lg border border-app-input-border px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-app-accent"
               >
                 {ALERT_SEVERITY_OPTIONS.map((option) => (
@@ -327,7 +349,7 @@ export default function AlertConfigModal({
                 htmlFor="alert-config-frequency"
                 className="mb-1 block text-sm font-medium text-app-text-muted"
               >
-                Frequency *
+                Check frequency *
               </label>
               <select
                 id="alert-config-frequency"
@@ -348,20 +370,43 @@ export default function AlertConfigModal({
 
           <div>
             <label className="mb-2 block text-sm font-medium text-app-text-muted">
-              Notification Channels *
+              Alert channels *
             </label>
             <div className="grid grid-cols-2 gap-3">
-              {ALERT_CHANNEL_OPTIONS.map((option) => (
-                <label key={option.value} className="flex cursor-pointer items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.channels.includes(option.value)}
-                    onChange={() => toggleChannel(option.value)}
-                    className="h-4 w-4 rounded border-app-input-border text-app-accent focus:ring-app-accent"
-                  />
-                  <span className="text-sm capitalize text-app-text-muted">{option.label}</span>
-                </label>
-              ))}
+              {ALERT_CHANNEL_OPTIONS.map((option) => {
+                const ChannelIcon = getChannelIcon(option.value);
+                const checked = formData.channels.includes(option.value);
+
+                return (
+                  <label
+                    key={option.value}
+                    className={`flex cursor-pointer items-start gap-3 rounded-[var(--ui-radius-sm)] border p-3 transition-all duration-150 ${
+                      checked
+                        ? 'border-app-accent bg-app-accent-soft'
+                        : 'border-app-border bg-app-surface hover:bg-app-hover'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleChannel(option.value)}
+                      className="mt-1 h-4 w-4 rounded border-app-input-border text-app-accent focus:ring-app-accent"
+                    />
+                    <ChannelIcon
+                      className="mt-0.5 h-5 w-5 text-app-text-muted"
+                      aria-hidden="true"
+                    />
+                    <span>
+                      <span className="block text-sm font-semibold text-app-text">
+                        {option.label}
+                      </span>
+                      <span className="mt-1 block text-xs leading-5 text-app-text-muted">
+                        {option.description}
+                      </span>
+                    </span>
+                  </label>
+                );
+              })}
             </div>
             {errors.channels ? (
               <p className="mt-1 text-sm text-app-accent">{errors.channels}</p>
@@ -377,7 +422,12 @@ export default function AlertConfigModal({
           {testResult ? (
             isAlertTestResult(testResult) ? (
               <div className="rounded-lg border border-app-border bg-app-accent-soft p-4">
-                <p className="mb-1 text-sm font-medium">
+                <p className="mb-1 inline-flex items-center gap-2 text-sm font-medium">
+                  {testResult.would_trigger ? (
+                    <ExclamationTriangleIcon className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    <CheckCircleIcon className="h-4 w-4" aria-hidden="true" />
+                  )}
                   {testResult.would_trigger ? 'Alert would trigger' : 'Alert would not trigger'}
                 </p>
                 <p className="text-sm text-app-text-muted">{testResult.message}</p>
@@ -400,9 +450,10 @@ export default function AlertConfigModal({
           <button
             onClick={handleTest}
             disabled={testing}
-            className="rounded-lg border border-app-input-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted hover:bg-app-surface-muted disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg border border-app-input-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {testing ? 'Testing...' : 'Test Alert'}
+            {testing ? <ArrowPathIcon className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
+            {testing ? 'Testing...' : 'Test alert rule'}
           </button>
           <div className="flex space-x-3">
             <button
@@ -413,9 +464,13 @@ export default function AlertConfigModal({
             </button>
             <button
               onClick={handleSubmit}
-              className="rounded-lg bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] hover:bg-app-accent-hover"
+              disabled={submitting}
+              className="inline-flex items-center gap-2 rounded-lg bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] transition-colors hover:bg-app-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {config ? 'Update Alert' : 'Create Alert'}
+              {submitting ? (
+                <ArrowPathIcon className="h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : null}
+              {submitting ? 'Saving...' : config ? 'Update alert rule' : 'Create alert rule'}
             </button>
           </div>
         </div>

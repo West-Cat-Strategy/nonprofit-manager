@@ -356,7 +356,7 @@ export const updateComponentInSections = (
   sections.map((section) => ({
     ...section,
     components: section.components.map((component) =>
-      component.id === componentId ? { ...component, ...updates } : component
+      component.id === componentId ? ({ ...component, ...updates } as PageComponent) : component
     ),
   })) as PageSection[];
 

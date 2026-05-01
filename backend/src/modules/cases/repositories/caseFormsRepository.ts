@@ -2,6 +2,10 @@ import pool from '@config/database';
 import type { Pool, PoolClient } from 'pg';
 import type {
   CaseFormAsset,
+  CaseFormAssignmentEvent,
+  CaseFormAssignmentEventMetadataValue,
+  CaseFormAssignmentEventType,
+  CaseFormActorType,
   CaseFormDeliveryTarget,
   CaseFormDefault,
   CaseFormSchema,
@@ -12,6 +16,7 @@ import {
   getDefaultById,
   listDefaultsByCaseType,
   listRecommendedDefaultsForCase,
+  listTemplates,
   updateDefault,
 } from './caseFormsRepository.defaults';
 import {
@@ -53,6 +58,10 @@ import {
   getReviewFollowUp as getReviewFollowUpQuery,
   updateScheduledReviewFollowUp as updateScheduledReviewFollowUpQuery,
 } from './caseFormsRepository.followUps';
+import {
+  createAssignmentEvent as createAssignmentEventQuery,
+  listAssignmentEvents as listAssignmentEventsQuery,
+} from './caseFormsRepository.events';
 import type {
   CaseFormAccessTokenRecord,
   CaseFormAssignmentRecord,
@@ -87,6 +96,14 @@ export class CaseFormsRepository {
     return listDefaultsByCaseType(this.db, caseTypeId, organizationId);
   }
 
+  async listTemplates(input: {
+    organizationId?: string | null;
+    status?: string | null;
+    caseTypeId?: string | null;
+  }): Promise<CaseFormDefault[]> {
+    return listTemplates(this.db, input);
+  }
+
   async getDefaultById(defaultId: string, organizationId?: string): Promise<CaseFormDefault | null> {
     return getDefaultById(this.db, defaultId, organizationId);
   }
@@ -94,12 +111,15 @@ export class CaseFormsRepository {
   async createDefault(
     executor: DbExecutor,
     input: {
-      caseTypeId: string;
+      caseTypeId?: string | null;
       organizationId?: string | null;
       title: string;
       description?: string | null;
       schema: CaseFormSchema;
       isActive: boolean;
+      templateStatus?: string;
+      savedFromAssignmentId?: string | null;
+      autosave?: boolean;
       userId?: string | null;
     }
   ): Promise<CaseFormDefault> {
@@ -114,6 +134,9 @@ export class CaseFormsRepository {
       description?: string | null;
       schema?: CaseFormSchema;
       isActive?: boolean;
+      caseTypeId?: string | null;
+      templateStatus?: string;
+      autosave?: boolean;
       userId?: string | null;
     }
   ): Promise<CaseFormDefault> {
@@ -150,6 +173,7 @@ export class CaseFormsRepository {
       schema: CaseFormSchema;
       dueAt?: string | null;
       recipientEmail?: string | null;
+      recipientPhone?: string | null;
       userId?: string | null;
     }
   ): Promise<CaseFormAssignmentRecord> {
@@ -165,8 +189,11 @@ export class CaseFormsRepository {
       schema?: CaseFormSchema;
       dueAt?: string | null;
       recipientEmail?: string | null;
+      recipientPhone?: string | null;
       status?: string;
       deliveryTarget?: CaseFormDeliveryTarget | null;
+      deliveryChannels?: string[];
+      structureAutosave?: boolean;
       reviewFollowUpId?: string | null;
       userId?: string | null;
     }
@@ -213,6 +240,29 @@ export class CaseFormsRepository {
     }
   ): Promise<void> {
     return markAssignmentReviewDecision(executor, assignmentId, input);
+  }
+
+  async createAssignmentEvent(
+    executor: DbExecutor,
+    input: {
+      assignmentId: string;
+      caseId: string;
+      contactId: string;
+      accountId?: string | null;
+      eventType: CaseFormAssignmentEventType;
+      actorType: CaseFormActorType;
+      actorUserId?: string | null;
+      actorPortalUserId?: string | null;
+      submissionId?: string | null;
+      accessTokenId?: string | null;
+      metadata?: Record<string, CaseFormAssignmentEventMetadataValue>;
+    }
+  ): Promise<CaseFormAssignmentEvent> {
+    return createAssignmentEventQuery(executor, input);
+  }
+
+  async listAssignmentEvents(assignmentId: string): Promise<CaseFormAssignmentEvent[]> {
+    return listAssignmentEventsQuery(this.db, assignmentId);
   }
 
   async getSubmissionByClientSubmissionId(
@@ -297,6 +347,8 @@ export class CaseFormsRepository {
       caseId: string;
       contactId: string;
       recipientEmail?: string | null;
+      recipientPhone?: string | null;
+      deliveryChannel?: 'email' | 'sms' | null;
       tokenHash: string;
       expiresAt: string | Date;
       userId?: string | null;

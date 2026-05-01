@@ -186,18 +186,32 @@ export const changePasswordSchema = z
 
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 
+const totpCodeSchema = z.string().trim().min(6, 'Token must be 6 digits').max(6);
+
 // 2FA Setup
-export const twoFactorSetupSchema = z.object({
-  token: z.string().min(6, 'Token must be 6 digits').max(6),
-});
+export const twoFactorSetupSchema = z
+  .object({
+    code: totpCodeSchema.optional(),
+    token: totpCodeSchema.optional(),
+  })
+  .refine(
+    (data) => Boolean(data.code || data.token),
+    {
+      message: 'Authentication code is required',
+      path: ['code'],
+    }
+  )
+  .transform((data) => ({
+    code: data.code ?? data.token ?? '',
+  }));
 
 export type TwoFactorSetupInput = z.infer<typeof twoFactorSetupSchema>;
 
 // 2FA Verify
 export const twoFactorVerifySchema = z.object({
   mfaToken: z.string().min(1, 'MFA token is required'),
-  code: z.string().trim().min(6, 'Token must be 6 digits').max(6).optional(),
-  token: z.string().trim().min(6, 'Token must be 6 digits').max(6).optional(),
+  code: totpCodeSchema.optional(),
+  token: totpCodeSchema.optional(),
 }).refine(
   (data) => Boolean(data.code || data.token),
   {
@@ -209,10 +223,23 @@ export const twoFactorVerifySchema = z.object({
 export type TwoFactorVerifyInput = z.infer<typeof twoFactorVerifySchema>;
 
 // 2FA Disable
-export const twoFactorDisableSchema = z.object({
-  password: z.string().min(1, 'Password is required'),
-  token: z.string().min(6, 'Token must be 6 digits').max(6),
-});
+export const twoFactorDisableSchema = z
+  .object({
+    password: z.string().min(1, 'Password is required'),
+    code: totpCodeSchema.optional(),
+    token: totpCodeSchema.optional(),
+  })
+  .refine(
+    (data) => Boolean(data.code || data.token),
+    {
+      message: 'Authentication code is required',
+      path: ['code'],
+    }
+  )
+  .transform((data) => ({
+    password: data.password,
+    code: data.code ?? data.token ?? '',
+  }));
 
 export type TwoFactorDisableInput = z.infer<typeof twoFactorDisableSchema>;
 

@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "generatedAt": "2026-04-25",
-  "workspaceRoot": "/Users/bryan/projects/nonprofit-manager/reference-repos",
+  "generatedAt": "2026-05-01",
+  "workspaceRoot": "/Users/bryan/projects/reference-repos/repos",
   "trackedFilesOnly": [
     "README.md",
     "manifest.lock.json"
@@ -16,6 +16,21 @@
       "id": "P5-T6-reference-expansion-2026-04",
       "status": "research",
       "description": "Expanded reference-repo research wave for service delivery, field operations, fundraising, events, transparent finance, intake, and campaign automation patterns."
+    },
+    {
+      "id": "P5-T26-newsletter-reference-refresh",
+      "status": "research",
+      "description": "Newsletter and email-builder reference refresh for campaign, audience, suppression, delivery, and API-only tag or segment management patterns."
+    },
+    {
+      "id": "P5-T35-finance-governance-evidence-reference-refresh",
+      "status": "planning",
+      "description": "Planning-only finance, governance, and evidence reference refresh using existing central clones; no runtime implementation or direct source copying authorized."
+    },
+    {
+      "id": "P5-T41-form-builder-template-refresh",
+      "status": "implementation-reference",
+      "description": "Reference-only form builder refresh for case-form template library, autosave, and SMS/email/portal opening workflow."
     }
   ],
   "repos": [
@@ -25,13 +40,36 @@
       "wave": "P5-T6-oss-benchmark",
       "role": "primary",
       "reviewLane": "civicrm-review",
-      "path": "reference-repos/external/nm--civicrm-core",
+      "path": "/Users/bryan/projects/reference-repos/repos/civicrm__civicrm-core",
       "remote": "https://github.com/civicrm/civicrm-core.git",
       "branch": "master",
-      "commit": "401c7b905ae5a3752d765d54911f2a00a6a679ac",
+      "commit": "172cdfcdb34b5a114e81646daedcc534293a91cc",
       "reuseClass": "architecture_only",
       "runtimeStrategy": "review-first; companion repo used for standalone lab",
-      "runtimeResult": "no direct lab attempted from core repo"
+      "runtimeResult": "no direct lab attempted from core repo",
+      "compatibilityPath": "reference-repos/external/nm--civicrm-core",
+      "centralId": "civicrm__civicrm-core",
+      "license": "AGPL-3.0 with exception",
+      "licenseRisk": "high",
+      "sourceFamilies": [
+        "open-practice",
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "nonprofit-crm",
+        "saved-audiences",
+        "membership"
+      ],
+      "techStack": [
+        "node",
+        "php"
+      ],
+      "summary": "Groups, relationships, pledges, soft credits, and clinic CRM vocabulary; no code reuse.",
+      "notableEntryPoints": [
+        "README.md",
+        "package.json",
+        "api"
+      ]
     },
     {
       "id": "nm--civicrm-docker",
@@ -39,13 +77,31 @@
       "wave": "P5-T6-oss-benchmark",
       "role": "companion",
       "reviewLane": "civicrm-review",
-      "path": "reference-repos/external/nm--civicrm-docker",
+      "path": "/Users/bryan/projects/reference-repos/repos/civicrm__civicrm-docker",
       "remote": "https://github.com/civicrm/civicrm-docker.git",
       "branch": "main",
       "commit": "ee9457a36c72403ba81491ae89c2f596852e6a72",
       "reuseClass": "architecture_only",
       "runtimeStrategy": "wave-one lab companion",
-      "runtimeResult": "compose config validated; example standalone containers booted via docker compose and were then torn down"
+      "runtimeResult": "compose config validated; example standalone containers booted via docker compose and were then torn down",
+      "compatibilityPath": "reference-repos/external/nm--civicrm-docker",
+      "centralId": "civicrm__civicrm-docker",
+      "license": "not-recorded",
+      "licenseRisk": "medium_verify",
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "runtime-lab",
+        "nonprofit-crm"
+      ],
+      "techStack": [
+        "php"
+      ],
+      "summary": "Companion runtime lab for standalone CiviCRM validation.",
+      "notableEntryPoints": [
+        "README.md"
+      ]
     },
     {
       "id": "nm--openpetra",
@@ -53,13 +109,31 @@
       "wave": "P5-T6-oss-benchmark",
       "role": "primary",
       "reviewLane": "openpetra-erpnext-review",
-      "path": "reference-repos/external/nm--openpetra",
+      "path": "/Users/bryan/projects/reference-repos/repos/openpetra__openpetra",
       "remote": "https://github.com/openpetra/openpetra.git",
       "branch": "master",
       "commit": "9762f8d0ec55cdb1e09deec1eb6d8abdedec22bd",
       "reuseClass": "architecture_only",
       "runtimeStrategy": "wave-one lab; official dev bootstrap is system-level",
-      "runtimeResult": "prerequisite blocked; official flow requires bootstrap script plus Nant, and `nant` is not installed on this machine"
+      "runtimeResult": "prerequisite blocked; official flow requires bootstrap script plus Nant, and `nant` is not installed on this machine",
+      "compatibilityPath": "reference-repos/external/nm--openpetra",
+      "centralId": "openpetra__openpetra",
+      "license": "GPL-3.0",
+      "licenseRisk": "high",
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "donor-profile",
+        "donation-batches",
+        "fund-designations"
+      ],
+      "techStack": [],
+      "summary": "Receipt defaults, restricted-gift designation, batch close, and control totals.",
+      "notableEntryPoints": [
+        "README.md",
+        "db"
+      ]
     },
     {
       "id": "nm--erpnext",
@@ -67,13 +141,34 @@
       "wave": "P5-T6-oss-benchmark",
       "role": "primary",
       "reviewLane": "openpetra-erpnext-review",
-      "path": "reference-repos/external/nm--erpnext",
+      "path": "/Users/bryan/projects/reference-repos/repos/frappe__erpnext",
       "remote": "https://github.com/frappe/erpnext.git",
       "branch": "develop",
-      "commit": "7f8fa7cf5e467bfa045ecc485930e65ee5d6cd72",
+      "commit": "25be38e23cad100d6e75ab17804332a7639730d6",
       "reuseClass": "architecture_only",
       "runtimeStrategy": "deferred; code/docs review first",
-      "runtimeResult": "not attempted in wave one"
+      "runtimeResult": "not attempted in wave one",
+      "compatibilityPath": "reference-repos/external/nm--erpnext",
+      "centralId": "frappe__erpnext",
+      "license": "GPL-3.0",
+      "licenseRisk": "high",
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "fund-designations",
+        "accounting-dimensions"
+      ],
+      "techStack": [
+        "node",
+        "yarn",
+        "python"
+      ],
+      "summary": "Typed accounting dimensions and nonprofit accounting references; avoid stale parity claims.",
+      "notableEntryPoints": [
+        "README.md",
+        "package.json"
+      ]
     },
     {
       "id": "nm--suitecrm",
@@ -81,13 +176,34 @@
       "wave": "P5-T6-oss-benchmark",
       "role": "primary",
       "reviewLane": "suitecrm-review",
-      "path": "reference-repos/external/nm--suitecrm",
+      "path": "/Users/bryan/projects/reference-repos/repos/suitecrm__suitecrm",
       "remote": "https://github.com/SuiteCRM/SuiteCRM.git",
       "branch": "hotfix",
       "commit": "1e97fa326893273568829b4219d177043f2a44f2",
       "reuseClass": "architecture_only",
       "runtimeStrategy": "wave-one lab; prerequisite check only",
-      "runtimeResult": "prerequisite blocked; repo has install docs but no safe turnkey local lab here, and `php` is not installed on this machine"
+      "runtimeResult": "prerequisite blocked; repo has install docs but no safe turnkey local lab here, and `php` is not installed on this machine",
+      "compatibilityPath": "reference-repos/external/nm--suitecrm",
+      "centralId": "suitecrm__suitecrm",
+      "license": "AGPL-3.0",
+      "licenseRisk": "high",
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "campaign-runs",
+        "queue-views",
+        "workflow-rules"
+      ],
+      "techStack": [
+        "php"
+      ],
+      "summary": "Campaign history, target and suppression snapshots, and saved queue definitions.",
+      "notableEntryPoints": [
+        "README.md",
+        "api",
+        "modules"
+      ]
     },
     {
       "id": "nm--openspp2",
@@ -95,13 +211,34 @@
       "wave": "P5-T6-oss-benchmark",
       "role": "primary",
       "reviewLane": "openspp-sahana-review",
-      "path": "reference-repos/external/nm--openspp2",
+      "path": "/Users/bryan/projects/reference-repos/repos/openspp__openspp2",
       "remote": "https://github.com/OpenSPP/OpenSPP2.git",
       "branch": "19.0",
-      "commit": "5f420e82ae3a292409f965e25e5b14da61db7217",
+      "commit": "6e859bb369ca9d52b545e9f2037781917bc75f9b",
       "reuseClass": "architecture_only",
       "runtimeStrategy": "wave-one docker lab",
-      "runtimeResult": "compose config validated; `docker compose --profile ui up -d` exposed early `openspp-dev` image pull/access trouble before a clean boot completed"
+      "runtimeResult": "compose config validated; `docker compose --profile ui up -d` exposed early `openspp-dev` image pull/access trouble before a clean boot completed",
+      "compatibilityPath": "reference-repos/external/nm--openspp2",
+      "centralId": "openspp__openspp2",
+      "license": "LGPL-3.0",
+      "licenseRisk": "medium",
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "public-intake",
+        "portal-review",
+        "service-sites"
+      ],
+      "techStack": [
+        "python",
+        "docker"
+      ],
+      "summary": "Identity resolution, change requests, and service routing; avoid generic studio-builder scope.",
+      "notableEntryPoints": [
+        "README.md",
+        "docker-compose.yml"
+      ]
     },
     {
       "id": "nm--sahana-eden",
@@ -109,13 +246,36 @@
       "wave": "P5-T6-oss-benchmark",
       "role": "primary",
       "reviewLane": "openspp-sahana-review",
-      "path": "reference-repos/external/nm--sahana-eden",
+      "path": "/Users/bryan/projects/reference-repos/repos/sahana__eden",
       "remote": "https://github.com/sahana/eden.git",
       "branch": "master",
       "commit": "0e55ecf7ed780b7ad659e70398b56260c41de021",
       "reuseClass": "architecture_only",
       "runtimeStrategy": "deferred; code/docs review first",
-      "runtimeResult": "not attempted in wave one"
+      "runtimeResult": "not attempted in wave one",
+      "compatibilityPath": "reference-repos/external/nm--sahana-eden",
+      "centralId": "sahana__eden",
+      "license": "MIT",
+      "licenseRisk": "low",
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "field-packets",
+        "volunteer-dispatch",
+        "service-sites"
+      ],
+      "techStack": [
+        "python",
+        "docker"
+      ],
+      "summary": "Dispatch ergonomics and field-service packet ideas without sync-engine adoption.",
+      "notableEntryPoints": [
+        "README.md",
+        "docs",
+        "Dockerfile",
+        "modules"
+      ]
     },
     {
       "id": "nm--primero",
@@ -123,14 +283,37 @@
       "wave": "P5-T6-reference-expansion-2026-04",
       "role": "primary",
       "reviewLane": "service-delivery",
-      "path": "reference-repos/external/nm--primero",
+      "path": "/Users/bryan/projects/reference-repos/repos/primeroims__primero",
       "remote": "https://github.com/primeroIMS/primero.git",
       "branch": "main",
       "commit": "904d0eb43f2a4208e8b8afa1dd21e01eda8e8803",
       "license": "AGPL-3.0",
       "reuseClass": "architecture_only",
       "runtimeStrategy": "code/docs review first",
-      "runtimeResult": "not attempted in this research wave"
+      "runtimeResult": "not attempted in this research wave",
+      "compatibilityPath": "reference-repos/external/nm--primero",
+      "centralId": "primeroims__primero",
+      "licenseRisk": "high",
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "case-management",
+        "referrals",
+        "closure"
+      ],
+      "techStack": [
+        "node",
+        "ruby"
+      ],
+      "summary": "Case plans, referrals, closure forms, and protection workflow vocabulary.",
+      "notableEntryPoints": [
+        "README.md",
+        "package.json",
+        "app",
+        "config",
+        "db"
+      ]
     },
     {
       "id": "nm--commcare-hq",
@@ -138,14 +321,37 @@
       "wave": "P5-T6-reference-expansion-2026-04",
       "role": "primary",
       "reviewLane": "service-delivery",
-      "path": "reference-repos/external/nm--commcare-hq",
+      "path": "/Users/bryan/projects/reference-repos/repos/dimagi__commcare-hq",
       "remote": "https://github.com/dimagi/commcare-hq.git",
       "branch": "master",
-      "commit": "24627f3f11df76b4fa0275a7c3a0cf7ed8422ae5",
+      "commit": "be8fb87d9b7ba52e2043de77c1a08aa6a5510df0",
       "license": "BSD-3-Clause",
       "reuseClass": "architecture_only",
       "runtimeStrategy": "code/docs review first",
-      "runtimeResult": "not attempted in this research wave"
+      "runtimeResult": "not attempted in this research wave",
+      "compatibilityPath": "reference-repos/external/nm--commcare-hq",
+      "centralId": "dimagi__commcare-hq",
+      "licenseRisk": "low",
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "field-case-packets",
+        "forms-cases"
+      ],
+      "techStack": [
+        "node",
+        "yarn",
+        "python",
+        "docker"
+      ],
+      "summary": "Portable case packet and field workflow comparison; avoid inheriting offline-sync complexity.",
+      "notableEntryPoints": [
+        "README.md",
+        "docs",
+        "package.json",
+        "Dockerfile"
+      ]
     },
     {
       "id": "nm--avni-server",
@@ -153,14 +359,33 @@
       "wave": "P5-T6-reference-expansion-2026-04",
       "role": "primary",
       "reviewLane": "service-delivery",
-      "path": "reference-repos/external/nm--avni-server",
+      "path": "/Users/bryan/projects/reference-repos/repos/avniproject__avni-server",
       "remote": "https://github.com/avniproject/avni-server.git",
       "branch": "master",
-      "commit": "65fa24fac808dfea93f4f40597c249211c165f55",
+      "commit": "019e798c8cec07ec27de0d1d7b8869e8ef65dd76",
       "license": "AGPL-3.0",
       "reuseClass": "architecture_only",
       "runtimeStrategy": "code/docs review first",
-      "runtimeResult": "not attempted in this research wave"
+      "runtimeResult": "not attempted in this research wave",
+      "compatibilityPath": "reference-repos/external/nm--avni-server",
+      "centralId": "avniproject__avni-server",
+      "licenseRisk": "high",
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "service-delivery",
+        "case-reassessment"
+      ],
+      "techStack": [
+        "java",
+        "docker"
+      ],
+      "summary": "Encounter, checklist, and case-plan cadence inspiration for service delivery workflows.",
+      "notableEntryPoints": [
+        "README.md",
+        "Dockerfile"
+      ]
     },
     {
       "id": "nm--avni-webapp",
@@ -168,14 +393,36 @@
       "wave": "P5-T6-reference-expansion-2026-04",
       "role": "primary",
       "reviewLane": "service-delivery",
-      "path": "reference-repos/external/nm--avni-webapp",
+      "path": "/Users/bryan/projects/reference-repos/repos/avniproject__avni-webapp",
       "remote": "https://github.com/avniproject/avni-webapp.git",
       "branch": "master",
-      "commit": "07e167d973f0e8e59412b2e189acaa50ade79d33",
+      "commit": "c2b0fb2a34ee6d6bd07f880f7a5afad1c56f6029",
       "license": "AGPL-3.0",
       "reuseClass": "architecture_only",
       "runtimeStrategy": "code/docs review first",
-      "runtimeResult": "not attempted in this research wave"
+      "runtimeResult": "not attempted in this research wave",
+      "compatibilityPath": "reference-repos/external/nm--avni-webapp",
+      "centralId": "avniproject__avni-webapp",
+      "licenseRisk": "high",
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "service-delivery",
+        "admin-worklists"
+      ],
+      "techStack": [
+        "node",
+        "yarn",
+        "docker"
+      ],
+      "summary": "Admin worklist and operational UI patterns; avoid low-code-builder parity.",
+      "notableEntryPoints": [
+        "README.md",
+        "package.json",
+        "Dockerfile",
+        "src"
+      ]
     },
     {
       "id": "nm--givewp",
@@ -183,14 +430,36 @@
       "wave": "P5-T6-reference-expansion-2026-04",
       "role": "primary",
       "reviewLane": "fundraising-membership",
-      "path": "reference-repos/external/nm--givewp",
+      "path": "/Users/bryan/projects/reference-repos/repos/impress-org__givewp",
       "remote": "https://github.com/impress-org/givewp.git",
       "branch": "develop",
-      "commit": "a02d1d702b13a9d1ac5b69494d152309163f5a3e",
+      "commit": "b39d19ef364669c3e6790b8d41a4b39a205a2de8",
       "license": "GPL-3.0",
       "reuseClass": "architecture_only",
       "runtimeStrategy": "code/docs review first",
-      "runtimeResult": "not attempted in this research wave"
+      "runtimeResult": "not attempted in this research wave",
+      "compatibilityPath": "reference-repos/external/nm--givewp",
+      "centralId": "impress-org__givewp",
+      "licenseRisk": "high",
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "fundraising",
+        "receipts"
+      ],
+      "techStack": [
+        "node",
+        "php",
+        "docker"
+      ],
+      "summary": "Donation validation and receipt/default concepts only.",
+      "notableEntryPoints": [
+        "README.md",
+        "package.json",
+        "docker-compose.yml",
+        "src"
+      ]
     },
     {
       "id": "nm--oca-donation",
@@ -198,14 +467,29 @@
       "wave": "P5-T6-reference-expansion-2026-04",
       "role": "primary",
       "reviewLane": "fundraising-membership",
-      "path": "reference-repos/external/nm--oca-donation",
+      "path": "/Users/bryan/projects/reference-repos/repos/oca__donation",
       "remote": "https://github.com/OCA/donation.git",
       "branch": "18.0",
       "commit": "357b6a3e11d5f3947ffcc06ced702ae28261577d",
       "license": "AGPL-3.0",
       "reuseClass": "architecture_only",
       "runtimeStrategy": "code/docs review first",
-      "runtimeResult": "not attempted in this research wave"
+      "runtimeResult": "not attempted in this research wave",
+      "compatibilityPath": "reference-repos/external/nm--oca-donation",
+      "centralId": "oca__donation",
+      "licenseRisk": "high",
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "donations",
+        "receipts"
+      ],
+      "techStack": [],
+      "summary": "Donation validation and receipt lifecycle concepts only.",
+      "notableEntryPoints": [
+        "README.md"
+      ]
     },
     {
       "id": "nm--oca-vertical-association",
@@ -213,14 +497,29 @@
       "wave": "P5-T6-reference-expansion-2026-04",
       "role": "primary",
       "reviewLane": "fundraising-membership",
-      "path": "reference-repos/external/nm--oca-vertical-association",
+      "path": "/Users/bryan/projects/reference-repos/repos/oca__vertical-association",
       "remote": "https://github.com/OCA/vertical-association.git",
       "branch": "18.0",
       "commit": "41865f8ff9cf1b2c339073e01a757173f92fddf5",
       "license": "AGPL-3.0",
       "reuseClass": "architecture_only",
       "runtimeStrategy": "code/docs review first",
-      "runtimeResult": "not attempted in this research wave"
+      "runtimeResult": "not attempted in this research wave",
+      "compatibilityPath": "reference-repos/external/nm--oca-vertical-association",
+      "centralId": "oca__vertical-association",
+      "licenseRisk": "high",
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "membership",
+        "associations"
+      ],
+      "techStack": [],
+      "summary": "Membership and association lifecycle patterns only.",
+      "notableEntryPoints": [
+        "README.md"
+      ]
     },
     {
       "id": "nm--pretix",
@@ -228,14 +527,34 @@
       "wave": "P5-T6-reference-expansion-2026-04",
       "role": "primary",
       "reviewLane": "events-finance",
-      "path": "reference-repos/external/nm--pretix",
+      "path": "/Users/bryan/projects/reference-repos/repos/pretix__pretix",
       "remote": "https://github.com/pretix/pretix.git",
       "branch": "master",
-      "commit": "b000dff1348fca836196914586a9a2f9d9201cb7",
+      "commit": "f4fcca19a407f41e7698ee3b6e452363c55bcedb",
       "license": "AGPL-3.0 with additional terms",
       "reuseClass": "architecture_only",
       "runtimeStrategy": "code/docs review first",
-      "runtimeResult": "not attempted in this research wave"
+      "runtimeResult": "not attempted in this research wave",
+      "compatibilityPath": "reference-repos/external/nm--pretix",
+      "centralId": "pretix__pretix",
+      "licenseRisk": "high",
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "events",
+        "orders",
+        "check-in"
+      ],
+      "techStack": [
+        "python",
+        "docker"
+      ],
+      "summary": "Event order, check-in state, finance, and export concepts only.",
+      "notableEntryPoints": [
+        "Dockerfile",
+        "src"
+      ]
     },
     {
       "id": "nm--opencollective-api",
@@ -243,14 +562,37 @@
       "wave": "P5-T6-reference-expansion-2026-04",
       "role": "primary",
       "reviewLane": "events-finance",
-      "path": "reference-repos/external/nm--opencollective-api",
+      "path": "/Users/bryan/projects/reference-repos/repos/opencollective__opencollective-api",
       "remote": "https://github.com/opencollective/opencollective-api.git",
       "branch": "main",
-      "commit": "3a09b02c4e84b2201f3c55bf1abde8d7f1e29a07",
+      "commit": "8571da42069b2597269bdaf97f13719f4fd5a31d",
       "license": "MIT",
       "reuseClass": "architecture_only",
       "runtimeStrategy": "code/docs review first",
-      "runtimeResult": "not attempted in this research wave"
+      "runtimeResult": "not attempted in this research wave",
+      "compatibilityPath": "reference-repos/external/nm--opencollective-api",
+      "centralId": "opencollective__opencollective-api",
+      "licenseRisk": "low",
+      "sourceFamilies": [
+        "open-practice",
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "events-finance",
+        "fiscal-host"
+      ],
+      "techStack": [
+        "node"
+      ],
+      "summary": "Accounting categories, fiscal reporting, and event-finance comparison.",
+      "notableEntryPoints": [
+        "README.md",
+        "docs",
+        "package.json",
+        "server",
+        "config",
+        "migrations"
+      ]
     },
     {
       "id": "nm--opencollective-frontend",
@@ -258,14 +600,37 @@
       "wave": "P5-T6-reference-expansion-2026-04",
       "role": "primary",
       "reviewLane": "events-finance",
-      "path": "reference-repos/external/nm--opencollective-frontend",
+      "path": "/Users/bryan/projects/reference-repos/repos/opencollective__opencollective-frontend",
       "remote": "https://github.com/opencollective/opencollective-frontend.git",
       "branch": "main",
-      "commit": "1326c6580cdf1ad1a9d58e1e21f509752b4142c5",
+      "commit": "54f52a3349866389bd1ec7444bd70c10c234c0db",
       "license": "MIT",
       "reuseClass": "architecture_only",
       "runtimeStrategy": "code/docs review first",
-      "runtimeResult": "not attempted in this research wave"
+      "runtimeResult": "not attempted in this research wave",
+      "compatibilityPath": "reference-repos/external/nm--opencollective-frontend",
+      "centralId": "opencollective__opencollective-frontend",
+      "licenseRisk": "low",
+      "sourceFamilies": [
+        "open-practice",
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "fiscal-host-ui",
+        "transparent-reporting"
+      ],
+      "techStack": [
+        "node",
+        "docker"
+      ],
+      "summary": "Operator-facing fiscal-host UI and transparent reporting references.",
+      "notableEntryPoints": [
+        "README.md",
+        "docs",
+        "package.json",
+        "Dockerfile",
+        "server"
+      ]
     },
     {
       "id": "nm--opencrvs-core",
@@ -273,14 +638,36 @@
       "wave": "P5-T6-reference-expansion-2026-04",
       "role": "primary",
       "reviewLane": "service-delivery",
-      "path": "reference-repos/external/nm--opencrvs-core",
+      "path": "/Users/bryan/projects/reference-repos/repos/opencrvs__opencrvs-core",
       "remote": "https://github.com/opencrvs/opencrvs-core.git",
       "branch": "develop",
-      "commit": "ca9336d3bb71bf43f4f5346b2f7a788908251e4c",
+      "commit": "440bc51269fbd60994c969e6ea1ee6a699c5234d",
       "license": "MPL-2.0",
       "reuseClass": "architecture_only",
       "runtimeStrategy": "code/docs review first",
-      "runtimeResult": "not attempted in this research wave"
+      "runtimeResult": "not attempted in this research wave",
+      "compatibilityPath": "reference-repos/external/nm--opencrvs-core",
+      "centralId": "opencrvs__opencrvs-core",
+      "licenseRisk": "medium",
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "service-delivery",
+        "public-intake"
+      ],
+      "techStack": [
+        "node",
+        "yarn",
+        "docker"
+      ],
+      "summary": "Typed event config and public-service workflow comparison.",
+      "notableEntryPoints": [
+        "README.md",
+        "package.json",
+        "docker-compose.yml",
+        "packages"
+      ]
     },
     {
       "id": "nm--mautic",
@@ -288,14 +675,674 @@
       "wave": "P5-T6-reference-expansion-2026-04",
       "role": "primary",
       "reviewLane": "campaign-automation",
-      "path": "reference-repos/external/nm--mautic",
+      "path": "/Users/bryan/projects/reference-repos/repos/mautic__mautic",
       "remote": "https://github.com/mautic/mautic.git",
       "branch": "7.x",
-      "commit": "008c4ee461c656ae48f4d330f2b3797b36870bb2",
+      "commit": "122ace2e85ff30696f740436dac3abbf056e713d",
       "license": "GPL-3.0-or-later",
       "reuseClass": "architecture_only",
       "runtimeStrategy": "code/docs review first",
-      "runtimeResult": "not attempted in this research wave"
+      "runtimeResult": "not attempted in this research wave",
+      "compatibilityPath": "reference-repos/external/nm--mautic",
+      "centralId": "mautic__mautic",
+      "licenseRisk": "high",
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "campaign-automation",
+        "suppression"
+      ],
+      "techStack": [
+        "node",
+        "php"
+      ],
+      "summary": "Fatigue rules, do-not-contact rules, and campaign automation comparison.",
+      "notableEntryPoints": [
+        "README.md",
+        "package.json",
+        "app",
+        "config"
+      ]
+    },
+    {
+      "id": "nm--sendportal",
+      "product": "SendPortal",
+      "wave": "P5-T26-newsletter-reference-refresh",
+      "role": "primary",
+      "reviewLane": "newsletter-operability",
+      "path": "/Users/bryan/projects/reference-repos/repos/mettle__sendportal",
+      "remote": "https://github.com/mettle/sendportal.git",
+      "branch": "master",
+      "commit": "6652906992cd7b7e5d4bb2b1f64dba6a8b953293",
+      "license": "MIT",
+      "reuseClass": "adapt_with_attribution",
+      "runtimeStrategy": "code/docs review first",
+      "runtimeResult": "not attempted in this research wave",
+      "compatibilityPath": "reference-repos/external/nm--sendportal",
+      "centralId": "mettle__sendportal",
+      "licenseRisk": "low",
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "newsletter",
+        "dispatch-queues"
+      ],
+      "techStack": [
+        "php"
+      ],
+      "summary": "Workspace newsletter operations and provider-backed dispatch queue patterns.",
+      "notableEntryPoints": [
+        "README.md",
+        "app",
+        "config",
+        "database"
+      ]
+    },
+    {
+      "id": "nm--dittofeed",
+      "product": "Dittofeed",
+      "wave": "P5-T26-newsletter-reference-refresh",
+      "role": "primary",
+      "reviewLane": "newsletter-operability",
+      "path": "/Users/bryan/projects/reference-repos/repos/dittofeed__dittofeed",
+      "remote": "https://github.com/dittofeed/dittofeed.git",
+      "branch": "main",
+      "commit": "52b2bee909744d07dd5d409fd3974d4b95c66766",
+      "license": "MIT",
+      "reuseClass": "architecture_only",
+      "runtimeStrategy": "code/docs review first",
+      "runtimeResult": "not attempted in this research wave",
+      "compatibilityPath": "reference-repos/external/nm--dittofeed",
+      "centralId": "dittofeed__dittofeed",
+      "licenseRisk": "low",
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "newsletter",
+        "journeys"
+      ],
+      "techStack": [
+        "node",
+        "yarn"
+      ],
+      "summary": "Subscription groups, broadcasts, events, and journey-boundary patterns.",
+      "notableEntryPoints": [
+        "README.md",
+        "package.json",
+        "packages"
+      ]
+    },
+    {
+      "id": "nm--listmonk",
+      "product": "listmonk",
+      "wave": "P5-T26-newsletter-reference-refresh",
+      "role": "primary",
+      "reviewLane": "newsletter-operability",
+      "path": "/Users/bryan/projects/reference-repos/repos/knadh__listmonk",
+      "remote": "https://github.com/knadh/listmonk.git",
+      "branch": "master",
+      "commit": "d359bf9623947214bd7b806c11dec48a14c59fd4",
+      "license": "AGPL-3.0",
+      "reuseClass": "architecture_only",
+      "runtimeStrategy": "code/docs review first",
+      "runtimeResult": "not attempted in this research wave",
+      "compatibilityPath": "reference-repos/external/nm--listmonk",
+      "centralId": "knadh__listmonk",
+      "licenseRisk": "high",
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "newsletter",
+        "campaign-ops"
+      ],
+      "techStack": [
+        "go",
+        "docker"
+      ],
+      "summary": "Campaign status, list/subscriber, bounce, and compact operator UI inspiration.",
+      "notableEntryPoints": [
+        "README.md",
+        "docs",
+        "docker-compose.yml",
+        "Dockerfile",
+        "frontend",
+        "cmd",
+        "internal"
+      ]
+    },
+    {
+      "id": "nm--keila",
+      "product": "Keila",
+      "wave": "P5-T26-newsletter-reference-refresh",
+      "role": "primary",
+      "reviewLane": "newsletter-operability",
+      "path": "/Users/bryan/projects/reference-repos/repos/pentacent__keila",
+      "remote": "https://github.com/pentacent/keila.git",
+      "branch": "main",
+      "commit": "5d7e1349bc01a7c61a91d0e84d88aa450eddfbca",
+      "license": "AGPL-3.0",
+      "reuseClass": "architecture_only",
+      "runtimeStrategy": "code/docs review first",
+      "runtimeResult": "not attempted in this research wave",
+      "compatibilityPath": "reference-repos/external/nm--keila",
+      "centralId": "pentacent__keila",
+      "licenseRisk": "high",
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "newsletter",
+        "campaign-stats"
+      ],
+      "techStack": [],
+      "summary": "Sender adapters, scheduled delivery, opt-in, segments, and campaign statistics.",
+      "notableEntryPoints": [
+        "README.md",
+        "config"
+      ]
+    },
+    {
+      "id": "nm--mailtrain",
+      "product": "Mailtrain",
+      "wave": "P5-T26-newsletter-reference-refresh",
+      "role": "primary",
+      "reviewLane": "newsletter-operability",
+      "path": "/Users/bryan/projects/reference-repos/repos/mailtrain-org__mailtrain",
+      "remote": "https://github.com/Mailtrain-org/mailtrain.git",
+      "branch": "v2",
+      "commit": "7c6f34ef25dba981de58aec9785af48f3ea3315d",
+      "license": "GPL-3.0",
+      "reuseClass": "architecture_only",
+      "runtimeStrategy": "code/docs review first",
+      "runtimeResult": "not attempted in this research wave",
+      "compatibilityPath": "reference-repos/external/nm--mailtrain",
+      "centralId": "mailtrain-org__mailtrain",
+      "licenseRisk": "high",
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "newsletter",
+        "segments"
+      ],
+      "techStack": [
+        "docker"
+      ],
+      "summary": "List fields, segments, blacklist, test-send, and campaign report ideas.",
+      "notableEntryPoints": [
+        "README.md",
+        "docs",
+        "docker-compose.yml",
+        "Dockerfile",
+        "server"
+      ]
+    },
+    {
+      "id": "nm--phplist3",
+      "product": "phpList 3",
+      "wave": "P5-T26-newsletter-reference-refresh",
+      "role": "primary",
+      "reviewLane": "newsletter-operability",
+      "path": "/Users/bryan/projects/reference-repos/repos/phplist__phplist3",
+      "remote": "https://github.com/phpList/phplist3.git",
+      "branch": "main",
+      "commit": "998fde417f3f14bb1f251084d37cff7308dddf03",
+      "license": "AGPL-3.0-or-later",
+      "reuseClass": "architecture_only",
+      "runtimeStrategy": "code/docs review first",
+      "runtimeResult": "not attempted in this research wave",
+      "compatibilityPath": "reference-repos/external/nm--phplist3",
+      "centralId": "phplist__phplist3",
+      "licenseRisk": "high",
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "newsletter",
+        "subscription-pages"
+      ],
+      "techStack": [
+        "php"
+      ],
+      "summary": "Subscribe/unsubscribe, bounce processing, and event log patterns.",
+      "notableEntryPoints": [
+        "README.md"
+      ]
+    },
+    {
+      "id": "nm--email-builder-js",
+      "product": "EmailBuilder.js",
+      "wave": "P5-T26-newsletter-reference-refresh",
+      "role": "primary",
+      "reviewLane": "newsletter-operability",
+      "path": "/Users/bryan/projects/reference-repos/repos/usewaypoint__email-builder-js",
+      "remote": "https://github.com/usewaypoint/email-builder-js.git",
+      "branch": "main",
+      "commit": "ce3e610749fc80d7e999b20e28f6e775bfe09da7",
+      "license": "MIT",
+      "reuseClass": "adapt_with_attribution",
+      "runtimeStrategy": "code/docs review first",
+      "runtimeResult": "not attempted in this research wave",
+      "compatibilityPath": "reference-repos/external/nm--email-builder-js",
+      "centralId": "usewaypoint__email-builder-js",
+      "licenseRisk": "low",
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "newsletter",
+        "email-authoring"
+      ],
+      "techStack": [
+        "node"
+      ],
+      "summary": "Block-schema email authoring and renderer separation.",
+      "notableEntryPoints": [
+        "README.md",
+        "package.json",
+        "packages"
+      ]
+    },
+    {
+      "id": "nm--fineract",
+      "product": "Apache Fineract",
+      "wave": "P5-T35-finance-governance-evidence-reference-refresh",
+      "role": "candidate",
+      "reviewLane": "finance-governance-evidence",
+      "path": "/Users/bryan/projects/reference-repos/repos/apache__fineract",
+      "remote": "https://github.com/apache/fineract.git",
+      "branch": "develop",
+      "commit": "ca738eb752ecb94ed2dcdf29d54bf196866acd79",
+      "license": "Apache-2.0",
+      "licenseRisk": "low",
+      "reuseClass": "adopt_selectively",
+      "sourceFamilies": [
+        "open-practice",
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "trust-funds",
+        "accounting-controls",
+        "finance-ledger"
+      ],
+      "techStack": [
+        "java",
+        "docker"
+      ],
+      "summary": "Maker-checker, tenant, accounting-control, and reporting patterns; avoid adopting the lending product model.",
+      "notableEntryPoints": [
+        "README.md",
+        "docker-compose.yml",
+        "config"
+      ],
+      "runtimeStrategy": "planning-only source review; central clone already present",
+      "runtimeResult": "not attempted in this planning wave",
+      "compatibilityPath": "reference-repos/external/nm--fineract",
+      "centralId": "apache__fineract"
+    },
+    {
+      "id": "nm--blnk",
+      "product": "Blnk",
+      "wave": "P5-T35-finance-governance-evidence-reference-refresh",
+      "role": "candidate",
+      "reviewLane": "finance-governance-evidence",
+      "path": "/Users/bryan/projects/reference-repos/repos/blnkfinance__blnk",
+      "remote": "https://github.com/blnkfinance/blnk.git",
+      "branch": "main",
+      "commit": "834fdfbb4e3f8ad8f8437f67f5f18e829405d98d",
+      "license": "Apache-2.0",
+      "licenseRisk": "low",
+      "reuseClass": "adopt_selectively",
+      "sourceFamilies": [
+        "open-practice",
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "ledger",
+        "balances",
+        "idempotency"
+      ],
+      "techStack": [
+        "go",
+        "docker"
+      ],
+      "summary": "Ledger API, balance, reconciliation, idempotency, and transaction-boundary design reference.",
+      "notableEntryPoints": [
+        "README.md",
+        "docs",
+        "Dockerfile",
+        "api",
+        "config",
+        "database",
+        "cmd",
+        "internal"
+      ],
+      "runtimeStrategy": "planning-only source review; central clone already present",
+      "runtimeResult": "not attempted in this planning wave",
+      "compatibilityPath": "reference-repos/external/nm--blnk",
+      "centralId": "blnkfinance__blnk"
+    },
+    {
+      "id": "nm--ledgersmb",
+      "product": "LedgerSMB",
+      "wave": "P5-T35-finance-governance-evidence-reference-refresh",
+      "role": "candidate",
+      "reviewLane": "finance-governance-evidence",
+      "path": "/Users/bryan/projects/reference-repos/repos/ledgersmb__ledgersmb",
+      "remote": "https://github.com/ledgersmb/LedgerSMB.git",
+      "branch": "master",
+      "commit": "4d91acb523108bc312c0f8964f7791b5cf8a51f7",
+      "license": "GPL-2.0",
+      "licenseRisk": "high",
+      "reuseClass": "reference_only",
+      "sourceFamilies": [
+        "open-practice",
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "general-ledger",
+        "reconciliation"
+      ],
+      "techStack": [],
+      "summary": "General ledger, journal, reconciliation, and reporting comparison only.",
+      "notableEntryPoints": [
+        "README.md"
+      ],
+      "runtimeStrategy": "planning-only source review; central clone already present",
+      "runtimeResult": "not attempted in this planning wave",
+      "compatibilityPath": "reference-repos/external/nm--ledgersmb",
+      "centralId": "ledgersmb__ledgersmb"
+    },
+    {
+      "id": "nm--docuseal",
+      "product": "DocuSeal",
+      "wave": "P5-T35-finance-governance-evidence-reference-refresh",
+      "role": "candidate",
+      "reviewLane": "governance-evidence",
+      "path": "/Users/bryan/projects/reference-repos/repos/docusealco__docuseal",
+      "remote": "https://github.com/docusealco/docuseal.git",
+      "branch": "master",
+      "commit": "daaa289a5c6830198d7b9d8dec39bad9c03b10ad",
+      "license": "AGPL-3.0 with additional terms",
+      "licenseRisk": "high",
+      "reuseClass": "reference_only",
+      "sourceFamilies": [
+        "open-practice",
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "e-signature",
+        "evidence"
+      ],
+      "techStack": [
+        "node",
+        "yarn",
+        "ruby",
+        "docker"
+      ],
+      "summary": "Signature templates, submitters, submissions, and webhook evidence concepts only.",
+      "notableEntryPoints": [
+        "README.md",
+        "docs",
+        "package.json",
+        "docker-compose.yml",
+        "Dockerfile",
+        "app",
+        "config",
+        "db"
+      ],
+      "runtimeStrategy": "planning-only source review; central clone already present",
+      "runtimeResult": "not attempted in this planning wave",
+      "compatibilityPath": "reference-repos/external/nm--docuseal",
+      "centralId": "docusealco__docuseal"
+    },
+    {
+      "id": "nm--formera",
+      "product": "Formera",
+      "wave": "P5-T41-form-builder-template-refresh",
+      "role": "reference",
+      "reviewLane": "case-form-template-builder",
+      "path": "/Users/bryan/projects/reference-repos/repos/formeraapp__formera",
+      "remote": "https://github.com/FormeraApp/Formera.git",
+      "branch": "main",
+      "commit": "1dc08fbb1b5e6cec34c895281abc04c1afe16cde",
+      "license": "MIT",
+      "licenseRisk": "low",
+      "reuseClass": "reference_only",
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "form-builder",
+        "template-library",
+        "autosave"
+      ],
+      "techStack": [
+        "node",
+        "react",
+        "docker"
+      ],
+      "summary": "Self-hosted drag-and-drop form builder reference for template libraries, JSON form storage, and share-and-collect workflow.",
+      "notableEntryPoints": [
+        "README.md",
+        "LICENSE.md",
+        "frontend",
+        "backend",
+        "docker-compose.yml"
+      ],
+      "runtimeStrategy": "reference-only source review; no product dependency adoption in P5-T41",
+      "runtimeResult": "not attempted for runtime; cloned and pinned for architecture review",
+      "compatibilityPath": "reference-repos/external/nm--formera",
+      "centralId": "formeraapp__formera"
+    },
+    {
+      "id": "nm--formio-js",
+      "product": "Form.io renderer",
+      "wave": "P5-T41-form-builder-template-refresh",
+      "role": "reference",
+      "reviewLane": "case-form-template-builder",
+      "path": "/Users/bryan/projects/reference-repos/repos/formio__formio.js",
+      "remote": "https://github.com/formio/formio.js.git",
+      "branch": "main",
+      "commit": "8e86497fb375f96765e611fc876551501e0961ca",
+      "license": "MIT",
+      "licenseRisk": "low",
+      "reuseClass": "reference_only",
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "form-renderer",
+        "json-schema",
+        "conditional-logic"
+      ],
+      "techStack": [
+        "node",
+        "typescript"
+      ],
+      "summary": "JSON form renderer and SDK reference for separating form definitions from runtime rendering and submissions.",
+      "notableEntryPoints": [
+        "README.md",
+        "LICENSE.txt",
+        "src",
+        "package.json"
+      ],
+      "runtimeStrategy": "reference-only source review; no product dependency adoption in P5-T41",
+      "runtimeResult": "not attempted for runtime; cloned and pinned for architecture review",
+      "compatibilityPath": "reference-repos/external/nm--formio-js",
+      "centralId": "formio__formio.js"
+    },
+    {
+      "id": "nm--formspec",
+      "product": "Formspec",
+      "wave": "P5-T41-form-builder-template-refresh",
+      "role": "reference",
+      "reviewLane": "case-form-template-builder",
+      "path": "/Users/bryan/projects/reference-repos/repos/formspec-org__formspec",
+      "remote": "https://github.com/Formspec-org/formspec.git",
+      "branch": "main",
+      "commit": "1804ee017cd75169a3c12ac4c5cb76afbf9e9f32",
+      "license": "Apache-2.0 plus BSL-covered studio pieces",
+      "licenseRisk": "medium_mixed",
+      "reuseClass": "reference_only",
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "form-specification",
+        "validation",
+        "multi-page-forms"
+      ],
+      "techStack": [
+        "typescript",
+        "react",
+        "rust"
+      ],
+      "summary": "High-stakes JSON-native form specification reference for validation, rules, and portable definitions.",
+      "notableEntryPoints": [
+        "README.md",
+        "LICENSE",
+        "LICENSE-BSL",
+        "packages",
+        "formspec-studio"
+      ],
+      "runtimeStrategy": "reference-only source review; no product dependency adoption in P5-T41",
+      "runtimeResult": "not attempted for runtime; cloned and pinned for architecture review",
+      "compatibilityPath": "reference-repos/external/nm--formspec",
+      "centralId": "formspec-org__formspec"
+    },
+    {
+      "id": "nm--react-jsonschema-form",
+      "product": "RJSF",
+      "wave": "P5-T41-form-builder-template-refresh",
+      "role": "reference",
+      "reviewLane": "case-form-template-builder",
+      "path": "/Users/bryan/projects/reference-repos/repos/rjsf-team__react-jsonschema-form",
+      "remote": "https://github.com/rjsf-team/react-jsonschema-form.git",
+      "branch": "main",
+      "commit": "7148fc48d1ac7d87c96d1acbe05b1bf99483d01e",
+      "license": "Apache-2.0",
+      "licenseRisk": "low",
+      "reuseClass": "reference_only",
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "react-forms",
+        "json-schema",
+        "validation"
+      ],
+      "techStack": [
+        "typescript",
+        "react"
+      ],
+      "summary": "React JSON Schema form renderer reference for schema-driven rendering, validation, themes, and UI-schema separation.",
+      "notableEntryPoints": [
+        "README.md",
+        "LICENSE.md",
+        "packages/core",
+        "packages/validator-ajv8",
+        "packages/shadcn"
+      ],
+      "runtimeStrategy": "reference-only source review; no product dependency adoption in P5-T41",
+      "runtimeResult": "not attempted for runtime; cloned and pinned for architecture review",
+      "compatibilityPath": "reference-repos/external/nm--react-jsonschema-form",
+      "centralId": "rjsf-team__react-jsonschema-form"
+    },
+    {
+      "id": "nm--opnform",
+      "product": "OpnForm",
+      "wave": "P5-T41-form-builder-template-refresh",
+      "role": "reference",
+      "reviewLane": "case-form-template-builder",
+      "path": "/Users/bryan/projects/reference-repos/repos/jhumanj__opnform",
+      "remote": "https://github.com/JhumanJ/OpnForm.git",
+      "branch": "main",
+      "commit": "c2982e638c777ee0bbfcbf00a6ec185d4b7260c3",
+      "license": "AGPL-3.0 with proprietary enterprise directory",
+      "licenseRisk": "high",
+      "reuseClass": "reference_only",
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "form-builder",
+        "templates",
+        "submission-workflow"
+      ],
+      "techStack": [
+        "php",
+        "laravel",
+        "vue",
+        "nuxt"
+      ],
+      "summary": "No-code form builder reference for templates, publishing, submission states, and builder UX; no source copying.",
+      "notableEntryPoints": [
+        "README.md",
+        "LICENSE",
+        "api",
+        "client",
+        "docker-compose.yml"
+      ],
+      "runtimeStrategy": "reference-only source review; no product dependency adoption in P5-T41",
+      "runtimeResult": "not attempted for runtime; cloned and pinned for architecture review",
+      "compatibilityPath": "reference-repos/external/nm--opnform",
+      "centralId": "jhumanj__opnform"
+    },
+    {
+      "id": "nm--survey-creator",
+      "product": "SurveyJS Creator",
+      "wave": "P5-T41-form-builder-template-refresh",
+      "role": "reference",
+      "reviewLane": "case-form-template-builder",
+      "path": "/Users/bryan/projects/reference-repos/repos/surveyjs__survey-creator",
+      "remote": "https://github.com/surveyjs/survey-creator.git",
+      "branch": "master",
+      "commit": "ace2b1e6a069ae4ecf19c613845731eacdff09f4",
+      "license": "Commercial developer license for Creator",
+      "licenseRisk": "high_commercial",
+      "reuseClass": "reference_only",
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ],
+      "domains": [
+        "form-builder",
+        "conditional-logic",
+        "json-definitions"
+      ],
+      "techStack": [
+        "typescript",
+        "react",
+        "knockout"
+      ],
+      "summary": "Commercially licensed creator reference for autosaved JSON definitions, conditional logic UI, and backend-agnostic builder boundaries.",
+      "notableEntryPoints": [
+        "README.md",
+        "LICENSE",
+        "docs/license.md",
+        "packages",
+        "src"
+      ],
+      "runtimeStrategy": "reference-only source review; no product dependency adoption in P5-T41",
+      "runtimeResult": "not attempted for runtime; cloned and pinned for architecture review",
+      "compatibilityPath": "reference-repos/external/nm--survey-creator",
+      "centralId": "surveyjs__survey-creator"
     }
+  ],
+  "compatibilityRoot": "/Users/bryan/projects/nonprofit-manager/reference-repos",
+  "compatibilityMode": "reference-repos/external/* entries are ignored symlinks to the central workspaceRoot",
+  "policyLockFields": [
+    "license",
+    "licenseRisk",
+    "reuseClass",
+    "sourceFamilies",
+    "domains",
+    "techStack",
+    "summary",
+    "notableEntryPoints"
   ]
 }

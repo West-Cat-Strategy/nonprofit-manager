@@ -1,11 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
+import { BellAlertIcon, ClockIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/outline';
 import { normalizeStartupRouteLocation } from '../../../routes/startupRouteCatalog';
 import { classNames } from '../../../components/ui/classNames';
 
 const alertTabs = [
-  { href: '/alerts', label: 'Configuration' },
-  { href: '/alerts/instances', label: 'Triggered Alerts' },
-  { href: '/alerts/history', label: 'History' },
+  { href: '/alerts', label: 'Alert rules', Icon: ClipboardDocumentListIcon },
+  { href: '/alerts/instances', label: 'Active alerts', Icon: BellAlertIcon },
+  { href: '/alerts/history', label: 'Alert history', Icon: ClockIcon },
 ];
 
 export default function AlertsSectionTabs() {
@@ -20,17 +21,19 @@ export default function AlertsSectionTabs() {
       <div className="flex flex-wrap gap-2">
         {alertTabs.map((tab) => {
           const isActive = currentLocation === normalizeStartupRouteLocation(tab.href);
+          const TabIcon = tab.Icon;
           return (
             <Link
               key={tab.href}
               to={tab.href}
               className={classNames(
-                'inline-flex items-center rounded-[var(--ui-radius-sm)] px-3 py-2 text-sm font-medium transition-colors',
+                'inline-flex items-center gap-2 rounded-[var(--ui-radius-sm)] px-3 py-2 text-sm font-medium transition-all duration-150',
                 isActive
                   ? 'bg-app-accent-soft text-app-accent-text'
-                  : 'text-app-text-muted hover:bg-app-hover hover:text-app-text'
+                  : 'text-app-text-muted hover:-translate-y-0.5 hover:bg-app-hover hover:text-app-text'
               )}
             >
+              <TabIcon className="h-4 w-4" aria-hidden="true" />
               {tab.label}
             </Link>
           );

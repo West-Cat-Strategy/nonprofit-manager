@@ -366,6 +366,55 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
         </div>
       );
 
+    case 'petition-form':
+    case 'donation-pledge-form':
+    case 'support-letter-request': {
+      const label =
+        component.type === 'petition-form'
+          ? 'Petition'
+          : component.type === 'donation-pledge-form'
+            ? 'Donation pledge'
+            : 'Support letter request';
+      const buttonText =
+        component.submitText ||
+        (component.type === 'petition-form'
+          ? 'Add my name'
+          : component.type === 'donation-pledge-form'
+            ? 'Make pledge'
+            : 'Request letter');
+
+      return (
+        <div style={baseStyle} className="rounded-lg border border-app-border bg-app-surface-muted p-5">
+          <div className="mb-4">
+            <p className="text-xs uppercase tracking-wide text-app-text-muted">{label}</p>
+            <h4 className="font-semibold text-app-text">{component.heading || label}</h4>
+            {component.description ? (
+              <p className="mt-1 text-sm text-app-text-muted">{component.description}</p>
+            ) : null}
+          </div>
+          <div className="space-y-3">
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="rounded-md border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text-muted">First name</div>
+              <div className="rounded-md border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text-muted">Last name</div>
+            </div>
+            <div className="rounded-md border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text-muted">Email</div>
+            {component.type === 'donation-pledge-form' ? (
+              <div className="rounded-md border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text-muted">Pledge amount</div>
+            ) : null}
+            {component.type === 'support-letter-request' ? (
+              <div className="rounded-md border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text-muted">Letter purpose</div>
+            ) : null}
+            <button
+              style={{ backgroundColor: theme.colors.primary, color: primaryForeground }}
+              className="rounded-md px-4 py-2 text-sm font-medium"
+            >
+              {buttonText}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     case 'event-list':
     case 'event-calendar': {
       const filterType =

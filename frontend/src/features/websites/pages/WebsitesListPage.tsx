@@ -1,12 +1,16 @@
 import React, { useEffect, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import {
+  ArrowPathIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
+  GlobeAltIcon,
+  RocketLaunchIcon,
+  WrenchScrewdriverIcon,
+} from '@heroicons/react/24/outline';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import WebsiteConsoleStatePanel from '../components/WebsiteConsoleStatePanel';
-import {
-  clearWebsitesError,
-  fetchWebsiteSites,
-  setWebsiteSearchParams,
-} from '../state';
+import { clearWebsitesError, fetchWebsiteSites, setWebsiteSearchParams } from '../state';
 import WebsiteStatusBadge from '../components/WebsiteStatusBadge';
 import {
   deriveWebsiteSiteManagementSummary,
@@ -72,9 +76,13 @@ const buildWebsiteListSearchParams = (params: {
 const WebsitesListPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { sites, pagination, isLoading, error, searchParams: mirroredSearchParams } = useAppSelector(
-    (state) => state.websites
-  );
+  const {
+    sites,
+    pagination,
+    isLoading,
+    error,
+    searchParams: mirroredSearchParams,
+  } = useAppSelector((state) => state.websites);
   const resolvedSearchParams = useMemo(
     () => ({
       search: searchParams.get('search')?.trim() || undefined,
@@ -126,12 +134,13 @@ const WebsitesListPage: React.FC = () => {
   const currentPage = pagination.page || 1;
   const totalPages = Math.max(pagination.totalPages || 0, 1);
   const rangeStart = pagination.total === 0 ? 0 : (currentPage - 1) * pagination.limit + 1;
-  const rangeEnd = pagination.total === 0 ? 0 : Math.min(currentPage * pagination.limit, pagination.total);
+  const rangeEnd =
+    pagination.total === 0 ? 0 : Math.min(currentPage * pagination.limit, pagination.total);
   const hasFilterReset = Boolean(
     resolvedSearchParams.search ||
-      resolvedSearchParams.status ||
-      resolvedSearchParams.sortBy !== DEFAULT_WEBSITE_LIST_PARAMS.sortBy ||
-      resolvedSearchParams.sortOrder !== DEFAULT_WEBSITE_LIST_PARAMS.sortOrder
+    resolvedSearchParams.status ||
+    resolvedSearchParams.sortBy !== DEFAULT_WEBSITE_LIST_PARAMS.sortBy ||
+    resolvedSearchParams.sortOrder !== DEFAULT_WEBSITE_LIST_PARAMS.sortOrder
   );
 
   const handleRefresh = () => {
@@ -197,7 +206,7 @@ const WebsitesListPage: React.FC = () => {
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-app-text-subtle">
-                Websites module
+                Website management
               </p>
               <h1 className="mt-2 text-3xl font-semibold text-app-text">Websites</h1>
               <p className="mt-2 text-sm text-app-text-muted">
@@ -208,30 +217,36 @@ const WebsitesListPage: React.FC = () => {
             <div className="flex flex-wrap gap-3">
               <Link
                 to="/website-builder"
-                className="app-pill-action rounded-full px-4 py-2 text-sm font-medium transition-colors"
+                className="app-pill-action inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition duration-150 hover:-translate-y-0.5"
               >
-                Open Template Builder
+                <WrenchScrewdriverIcon className="h-4 w-4" aria-hidden="true" />
+                Open site builder
               </Link>
               <button
                 type="button"
                 onClick={handleRefresh}
-                className="app-pill-action app-pill-action-accent app-accent-contrast-ink rounded-full px-4 py-2 text-sm font-medium transition-colors hover:bg-app-accent-hover"
+                className="app-pill-action app-pill-action-accent app-accent-contrast-ink inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition duration-150 hover:-translate-y-0.5 hover:bg-app-accent-hover"
               >
+                <ArrowPathIcon className="h-4 w-4" aria-hidden="true" />
                 Refresh list
               </button>
             </div>
           </div>
 
           <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-3xl border border-app-border bg-app-surface-elevated p-4 shadow-sm">
-              <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+            <div className="rounded-3xl border border-app-border bg-app-surface-elevated p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md">
+              <div className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                <GlobeAltIcon className="h-4 w-4 text-app-accent" aria-hidden="true" />
                 Sites
               </div>
               <div className="mt-2 text-3xl font-semibold text-app-text">{pagination.total}</div>
-              <p className="mt-2 text-sm text-app-text-muted">All org-scoped websites in the workspace.</p>
+              <p className="mt-2 text-sm text-app-text-muted">
+                All org-scoped websites in the workspace.
+              </p>
             </div>
-            <div className="rounded-3xl border border-app-border bg-app-surface-elevated p-4 shadow-sm">
-              <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+            <div className="rounded-3xl border border-app-border bg-app-surface-elevated p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md">
+              <div className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                <CheckCircleIcon className="h-4 w-4 text-app-accent" aria-hidden="true" />
                 Ready
               </div>
               <div className="mt-2 text-3xl font-semibold text-app-text">
@@ -241,8 +256,9 @@ const WebsitesListPage: React.FC = () => {
                 Sites that already have a healthy management summary.
               </p>
             </div>
-            <div className="rounded-3xl border border-app-border bg-app-surface-elevated p-4 shadow-sm">
-              <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+            <div className="rounded-3xl border border-app-border bg-app-surface-elevated p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md">
+              <div className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                <ExclamationTriangleIcon className="h-4 w-4 text-app-accent" aria-hidden="true" />
                 Needs attention
               </div>
               <div className="mt-2 text-3xl font-semibold text-app-text">
@@ -252,8 +268,9 @@ const WebsitesListPage: React.FC = () => {
                 Sites with missing readiness items or incomplete setup.
               </p>
             </div>
-            <div className="rounded-3xl border border-app-border bg-app-surface-elevated p-4 shadow-sm">
-              <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+            <div className="rounded-3xl border border-app-border bg-app-surface-elevated p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md">
+              <div className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                <ExclamationTriangleIcon className="h-4 w-4 text-app-accent" aria-hidden="true" />
                 Blocked
               </div>
               <div className="mt-2 text-3xl font-semibold text-app-text">
@@ -341,9 +358,7 @@ const WebsitesListPage: React.FC = () => {
           </div>
 
           <div className="rounded-3xl border border-app-border bg-app-surface p-4 shadow-sm">
-            <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
-              Results
-            </div>
+            <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">Results</div>
             <div className="mt-2 text-3xl font-semibold text-app-text">{pagination.total}</div>
             <p className="mt-2 text-sm text-app-text-muted">
               Showing {rangeStart}-{rangeEnd} of {pagination.total} websites.
@@ -370,7 +385,7 @@ const WebsitesListPage: React.FC = () => {
         </div>
 
         {spotlightSite ? (
-          <section className="mb-6 rounded-3xl border border-app-border bg-app-surface p-5 shadow-sm">
+          <section className="mb-6 rounded-3xl border border-app-border bg-app-surface p-5 shadow-sm transition duration-200 hover:shadow-md">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-3xl">
                 <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
@@ -395,48 +410,54 @@ const WebsitesListPage: React.FC = () => {
                       href={spotlightSite.managementSummary.nextAction.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${getWebsiteActionToneClasses(
+                      className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition duration-150 hover:-translate-y-0.5 ${getWebsiteActionToneClasses(
                         spotlightSite.managementSummary.nextAction.tone
                       )}`}
                     >
+                      <RocketLaunchIcon className="h-4 w-4" aria-hidden="true" />
                       {spotlightSite.managementSummary.nextAction.title}
                     </a>
                   ) : (
                     <Link
                       to={spotlightSite.managementSummary.nextAction.href}
-                      className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${getWebsiteActionToneClasses(
+                      className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition duration-150 hover:-translate-y-0.5 ${getWebsiteActionToneClasses(
                         spotlightSite.managementSummary.nextAction.tone
                       )}`}
                     >
+                      <RocketLaunchIcon className="h-4 w-4" aria-hidden="true" />
                       {spotlightSite.managementSummary.nextAction.title}
                     </Link>
                   )}
                   <Link
                     to={getWebsiteOverviewPath(spotlightSite.id)}
-                    className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+                    className="inline-flex items-center gap-2 rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition duration-150 hover:-translate-y-0.5 hover:bg-app-surface-muted"
                   >
+                    <GlobeAltIcon className="h-4 w-4" aria-hidden="true" />
                     Open Console
                   </Link>
                   <Link
                     to={getWebsiteBuilderPath(spotlightSite.id)}
-                    className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+                    className="inline-flex items-center gap-2 rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition duration-150 hover:-translate-y-0.5 hover:bg-app-surface-muted"
                   >
+                    <WrenchScrewdriverIcon className="h-4 w-4" aria-hidden="true" />
                     Open Builder
                   </Link>
                 </div>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2 xl:w-[30rem] xl:grid-cols-2">
-                {([
-                  ['Publish', spotlightSite.managementSummary.readiness.publish],
-                  ['Domain', spotlightSite.managementSummary.readiness.domain],
-                  ['Preview', spotlightSite.managementSummary.readiness.preview],
-                  ['SSL', spotlightSite.managementSummary.readiness.ssl],
-                  ['Analytics', spotlightSite.managementSummary.readiness.analytics],
-                ] as const).map(([label, ready]) => (
+                {(
+                  [
+                    ['Publish', spotlightSite.managementSummary.readiness.publish],
+                    ['Domain', spotlightSite.managementSummary.readiness.domain],
+                    ['Preview', spotlightSite.managementSummary.readiness.preview],
+                    ['SSL', spotlightSite.managementSummary.readiness.ssl],
+                    ['Analytics', spotlightSite.managementSummary.readiness.analytics],
+                  ] as const
+                ).map(([label, ready]) => (
                   <div
                     key={label}
-                    className="rounded-2xl border border-app-border bg-app-surface-muted px-4 py-4"
+                    className="rounded-2xl border border-app-border bg-app-surface-muted px-4 py-4 transition duration-200 hover:-translate-y-0.5 hover:shadow-sm"
                   >
                     <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
                       {label}
@@ -479,9 +500,10 @@ const WebsitesListPage: React.FC = () => {
                 ) : null}
                 <Link
                   to="/website-builder"
-                  className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+                  className="inline-flex items-center gap-2 rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition duration-150 hover:-translate-y-0.5 hover:bg-app-surface-muted"
                 >
-                  Open Template Builder
+                  <WrenchScrewdriverIcon className="h-4 w-4" aria-hidden="true" />
+                  Open site builder
                 </Link>
               </div>
             }
@@ -495,7 +517,7 @@ const WebsitesListPage: React.FC = () => {
               return (
                 <article
                   key={site.id}
-                  className="rounded-3xl border border-app-border bg-app-surface p-5 shadow-sm"
+                  className="rounded-3xl border border-app-border bg-app-surface p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-app-accent hover:shadow-md"
                 >
                   <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0 space-y-3">
@@ -519,7 +541,8 @@ const WebsitesListPage: React.FC = () => {
                       </div>
 
                       <p className="text-sm text-app-text-muted">
-                        Template: <span className="font-medium text-app-text">{site.templateName}</span>
+                        Template:{' '}
+                        <span className="font-medium text-app-text">{site.templateName}</span>
                         {site.organizationName ? (
                           <>
                             {' '}
@@ -539,13 +562,15 @@ const WebsitesListPage: React.FC = () => {
                       </div>
 
                       <div className="flex flex-wrap gap-2">
-                        {([
-                          ['Publish', summary.readiness.publish],
-                          ['Preview', summary.readiness.preview],
-                          ['Domain', summary.readiness.domain],
-                          ['SSL', summary.readiness.ssl],
-                          ['Analytics', summary.readiness.analytics],
-                        ] as const).map(([label, ready]) => (
+                        {(
+                          [
+                            ['Publish', summary.readiness.publish],
+                            ['Preview', summary.readiness.preview],
+                            ['Domain', summary.readiness.domain],
+                            ['SSL', summary.readiness.ssl],
+                            ['Analytics', summary.readiness.analytics],
+                          ] as const
+                        ).map(([label, ready]) => (
                           <span
                             key={label}
                             className={`rounded-full px-3 py-1 text-xs font-medium ${
@@ -573,26 +598,29 @@ const WebsitesListPage: React.FC = () => {
                               href={nextAction.href}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${getWebsiteActionToneClasses(
+                              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition duration-150 hover:-translate-y-0.5 ${getWebsiteActionToneClasses(
                                 nextAction.tone
                               )}`}
                             >
+                              <RocketLaunchIcon className="h-4 w-4" aria-hidden="true" />
                               {nextAction.title}
                             </a>
                           ) : (
                             <Link
                               to={nextAction.href}
-                              className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${getWebsiteActionToneClasses(
+                              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition duration-150 hover:-translate-y-0.5 ${getWebsiteActionToneClasses(
                                 nextAction.tone
                               )}`}
                             >
+                              <RocketLaunchIcon className="h-4 w-4" aria-hidden="true" />
                               {nextAction.title}
                             </Link>
                           )}
                           <Link
                             to={getWebsiteOverviewPath(site.id)}
-                            className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+                            className="inline-flex items-center gap-2 rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition duration-150 hover:-translate-y-0.5 hover:bg-app-surface-muted"
                           >
+                            <GlobeAltIcon className="h-4 w-4" aria-hidden="true" />
                             Open Console
                           </Link>
                         </div>
@@ -647,7 +675,6 @@ const WebsitesListPage: React.FC = () => {
             })}
           </div>
         )}
-
       </div>
     </div>
   );

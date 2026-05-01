@@ -8,14 +8,18 @@ export type ResolvedRoute =
   | { kind: 'eventsIndex'; page: PublishedPage }
   | { kind: 'eventDetail'; page: PublishedPage; slug: string }
   | { kind: 'newslettersIndex'; page: PublishedPage }
-  | { kind: 'newsletterDetail'; page: PublishedPage; slug: string };
+  | { kind: 'newsletterDetail'; page: PublishedPage; slug: string }
+  | { kind: 'blogIndex'; page: PublishedPage }
+  | { kind: 'blogDetail'; page: PublishedPage; slug: string };
 
 export type RuntimeContext =
   | { kind: 'static' }
   | { kind: 'eventsIndex'; items: PublicEventListItem[]; detailPathPattern: string }
   | { kind: 'eventDetail'; event: PublicEventDetail; detailPathPattern: string }
   | { kind: 'newslettersIndex'; items: WebsiteEntry[]; detailPathPattern: string }
-  | { kind: 'newsletterDetail'; entry: WebsiteEntry; detailPathPattern: string };
+  | { kind: 'newsletterDetail'; entry: WebsiteEntry; detailPathPattern: string }
+  | { kind: 'blogIndex'; items: WebsiteEntry[]; detailPathPattern: string }
+  | { kind: 'blogDetail'; entry: WebsiteEntry; detailPathPattern: string };
 
 export const getPublicSiteOwnerUserId = (site: PublishedSite): string => site.ownerUserId || site.userId;
 
@@ -67,11 +71,13 @@ export const getPageRoutePattern = (page: PublishedPage): string => {
   if (page.pageType === 'collectionIndex') {
     if (page.collection === 'events') return '/events';
     if (page.collection === 'newsletters') return '/newsletters';
+    if (page.collection === 'blog') return '/blog';
   }
 
   if (page.pageType === 'collectionDetail') {
     if (page.collection === 'events') return '/events/:slug';
     if (page.collection === 'newsletters') return '/newsletters/:slug';
+    if (page.collection === 'blog') return '/blog/:slug';
   }
 
   return page.isHomepage ? '/' : `/${page.slug}`;

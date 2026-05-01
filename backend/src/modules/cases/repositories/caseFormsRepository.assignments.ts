@@ -40,8 +40,10 @@ export async function listAssignmentsForPortal(
   const result = await db.query(
     `${assignmentSelect}
      WHERE cfa.contact_id = $1
-       AND c.client_viewable = true
-       AND cfa.delivery_target IN ('portal', 'portal_and_email')
+       AND (
+         cfa.delivery_target IN ('portal', 'portal_and_email')
+         OR cfa.delivery_channels @> ARRAY['portal']::text[]
+       )
        AND ($2::text[] IS NULL OR cfa.status = ANY($2::text[]))
      ORDER BY COALESCE(cfa.submitted_at, cfa.sent_at, cfa.updated_at) DESC, cfa.updated_at DESC`,
     [contactId, statusFilter]
@@ -76,6 +78,7 @@ export async function createAssignment(
     schema: CaseFormSchema;
     dueAt?: string | null;
     recipientEmail?: string | null;
+    recipientPhone?: string | null;
     userId?: string | null;
   }
 ): Promise<CaseFormAssignmentRecord> {
@@ -94,10 +97,11 @@ export async function createAssignment(
        current_draft_answers,
        due_at,
        recipient_email,
+       recipient_phone,
        created_by,
        updated_by
      )
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'draft', $9::jsonb, '{}'::jsonb, $10, $11, $12, $12)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'draft', $9::jsonb, '{}'::jsonb, $10, $11, $12, $13, $13)
      RETURNING *`,
     [
       input.caseId,
@@ -111,6 +115,7 @@ export async function createAssignment(
       JSON.stringify(input.schema),
       input.dueAt || null,
       input.recipientEmail || null,
+      input.recipientPhone || null,
       input.userId || null,
     ]
   );
@@ -134,8 +139,11 @@ export async function updateAssignment(
     schema?: CaseFormSchema;
     dueAt?: string | null;
     recipientEmail?: string | null;
+    recipientPhone?: string | null;
     status?: string;
     deliveryTarget?: CaseFormDeliveryTarget | null;
+    deliveryChannels?: string[];
+    structureAutosave?: boolean;
     reviewFollowUpId?: string | null;
     userId?: string | null;
   }
@@ -164,6 +172,10 @@ export async function updateAssignment(
     fields.push(`recipient_email = $${index++}`);
     values.push(input.recipientEmail || null);
   }
+  if (input.recipientPhone !== undefined) {
+    fields.push(`recipient_phone = $${index++}`);
+    values.push(input.recipientPhone || null);
+  }
   if (input.status !== undefined) {
     fields.push(`status = $${index++}`);
     values.push(input.status);
@@ -171,6 +183,13 @@ export async function updateAssignment(
   if (input.deliveryTarget !== undefined) {
     fields.push(`delivery_target = $${index++}`);
     values.push(input.deliveryTarget || null);
+  }
+  if (input.deliveryChannels !== undefined) {
+    fields.push(`delivery_channels = $${index++}::text[]`);
+    values.push(input.deliveryChannels);
+  }
+  if (input.structureAutosave === true) {
+    fields.push('last_structure_autosaved_at = NOW()');
   }
   if (input.reviewFollowUpId !== undefined) {
     fields.push(`review_follow_up_id = $${index++}`);

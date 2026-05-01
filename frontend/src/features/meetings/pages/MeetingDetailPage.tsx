@@ -1,5 +1,13 @@
 import React from 'react';
 import {
+  ArrowLeftIcon,
+  CalendarDaysIcon,
+  ClipboardDocumentCheckIcon,
+  DocumentTextIcon,
+  MapPinIcon,
+  PencilSquareIcon,
+} from '@heroicons/react/24/outline';
+import {
   BrutalCard,
   BrutalButton,
   BrutalBadge,
@@ -20,17 +28,21 @@ const MeetingDetailPage: React.FC = () => {
         <div>
           <h1 className="text-4xl font-black uppercase mb-2">{meeting.meeting.title}</h1>
           <p className="text-xl font-bold opacity-80">
-            {meeting.meeting.meeting_type.toUpperCase()} Meeting - {new Date(meeting.meeting.starts_at).toLocaleString()}
+            {meeting.meeting.meeting_type.toUpperCase()} Meeting -{' '}
+            {new Date(meeting.meeting.starts_at).toLocaleString()}
           </p>
         </div>
         <div className="flex gap-4">
           <BrutalButton variant="secondary" onClick={onBack}>
+            <ArrowLeftIcon className="mr-2 inline h-5 w-5" aria-hidden="true" />
             Back
           </BrutalButton>
           <BrutalButton variant="primary" onClick={onEdit}>
+            <PencilSquareIcon className="mr-2 inline h-5 w-5" aria-hidden="true" />
             Edit Meeting
           </BrutalButton>
           <BrutalButton variant="success" onClick={generateMinutes}>
+            <DocumentTextIcon className="mr-2 inline h-5 w-5" aria-hidden="true" />
             Draft Minutes
           </BrutalButton>
         </div>
@@ -47,22 +59,32 @@ const MeetingDetailPage: React.FC = () => {
               ) : (
                 <div className="flex flex-col gap-4">
                   {meeting.agenda_items.map((item, index) => (
-                    <div key={item.id} className="p-4 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white">
+                    <div
+                      key={item.id}
+                      className="bg-white p-4 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px]"
+                    >
                       <div className="flex justify-between items-start">
-                        <h4 className="font-bold">{index + 1}. {item.title}</h4>
+                        <h4 className="font-bold">
+                          {index + 1}. {item.title}
+                        </h4>
                         <BrutalBadge color="gray">{item.duration_minutes}m</BrutalBadge>
                       </div>
                       {item.description && <p className="text-sm mt-2">{item.description}</p>}
-                      
+
                       {/* Motions for this item */}
-                      {meeting.motions.filter(m => m.agenda_item_id === item.id).map(motion => (
-                        <div key={motion.id} className="mt-3 pl-4 border-l-4 border-black">
-                          <p className="text-sm font-bold">Motion: {motion.text}</p>
-                          <BrutalBadge color={motion.status === 'passed' ? 'green' : 'gray'} className="mt-1">
-                            {motion.status.toUpperCase()}
-                          </BrutalBadge>
-                        </div>
-                      ))}
+                      {meeting.motions
+                        .filter((m) => m.agenda_item_id === item.id)
+                        .map((motion) => (
+                          <div key={motion.id} className="mt-3 pl-4 border-l-4 border-black">
+                            <p className="text-sm font-bold">Motion: {motion.text}</p>
+                            <BrutalBadge
+                              color={motion.status === 'passed' ? 'green' : 'gray'}
+                              className="mt-1"
+                            >
+                              {motion.status.toUpperCase()}
+                            </BrutalBadge>
+                          </div>
+                        ))}
                     </div>
                   ))}
                 </div>
@@ -79,15 +101,23 @@ const MeetingDetailPage: React.FC = () => {
               <div className="flex flex-col gap-4 text-sm">
                 <div>
                   <label className="font-bold block uppercase text-xs opacity-60">Location</label>
-                  <p className="font-bold">{meeting.meeting.location || 'Not specified'}</p>
+                  <p className="font-bold">
+                    <MapPinIcon className="mr-1 inline h-4 w-4" aria-hidden="true" />
+                    {meeting.meeting.location || 'Not specified'}
+                  </p>
                 </div>
                 <div>
                   <label className="font-bold block uppercase text-xs opacity-60">Status</label>
-                  <BrutalBadge color={getStatusColor(meeting.meeting.status)}>{meeting.meeting.status}</BrutalBadge>
+                  <BrutalBadge color={getStatusColor(meeting.meeting.status)}>
+                    {meeting.meeting.status}
+                  </BrutalBadge>
                 </div>
                 <div>
                   <label className="font-bold block uppercase text-xs opacity-60">Committee</label>
-                  <p className="font-bold">{meeting.committee?.name || 'None'}</p>
+                  <p className="font-bold">
+                    <CalendarDaysIcon className="mr-1 inline h-4 w-4" aria-hidden="true" />
+                    {meeting.committee?.name || 'None'}
+                  </p>
                 </div>
               </div>
             </div>
@@ -100,11 +130,25 @@ const MeetingDetailPage: React.FC = () => {
                 <p className="opacity-60 italic">No action items assigned.</p>
               ) : (
                 <div className="flex flex-col gap-3">
-                  {meeting.action_items.map(item => (
-                    <div key={item.id} className="text-sm p-3 border-2 border-black bg-app-surface shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  {meeting.action_items.map((item) => (
+                    <div
+                      key={item.id}
+                      className="text-sm p-3 border-2 border-black bg-app-surface shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px]"
+                    >
                       <p className="font-bold">{item.subject}</p>
-                      <p className="opacity-70 mt-1">Due: {item.due_date ? new Date(item.due_date).toLocaleDateString() : 'No date'}</p>
-                      <BrutalBadge color={item.status === 'completed' ? 'green' : 'yellow'} size="sm" className="mt-2">
+                      <p className="opacity-70 mt-1">
+                        <ClipboardDocumentCheckIcon
+                          className="mr-1 inline h-4 w-4"
+                          aria-hidden="true"
+                        />
+                        Due:{' '}
+                        {item.due_date ? new Date(item.due_date).toLocaleDateString() : 'No date'}
+                      </p>
+                      <BrutalBadge
+                        color={item.status === 'completed' ? 'green' : 'yellow'}
+                        size="sm"
+                        className="mt-2"
+                      >
                         {item.status}
                       </BrutalBadge>
                     </div>
@@ -119,13 +163,20 @@ const MeetingDetailPage: React.FC = () => {
   );
 };
 
-const getStatusColor = (status: string): 'yellow' | 'green' | 'red' | 'gray' | 'purple' | 'blue' => {
+const getStatusColor = (
+  status: string
+): 'yellow' | 'green' | 'red' | 'gray' | 'purple' | 'blue' => {
   switch (status) {
-    case 'scheduled': return 'blue';
-    case 'in_progress': return 'yellow';
-    case 'completed': return 'green';
-    case 'cancelled': return 'red';
-    default: return 'gray';
+    case 'scheduled':
+      return 'blue';
+    case 'in_progress':
+      return 'yellow';
+    case 'completed':
+      return 'green';
+    case 'cancelled':
+      return 'red';
+    default:
+      return 'gray';
   }
 };
 

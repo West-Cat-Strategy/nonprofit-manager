@@ -1,10 +1,11 @@
 # Refactoring Notes
 
-**Last Updated:** 2026-04-26
+**Last Updated:** 2026-05-01
 
 This directory holds durable planning and handoff notes for broad behavior-preserving refactors.
 Use the live workboard in [../phases/planning-and-progress.md](../phases/planning-and-progress.md)
 for current status and ownership.
+For contributor workflow, validation, and handoff expectations, start with [../../CONTRIBUTING.md](../../CONTRIBUTING.md).
 
 ## Active Artifacts
 

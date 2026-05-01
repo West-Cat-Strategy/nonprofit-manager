@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { ClipboardDocumentCheckIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 import {
   EmptyState,
@@ -13,25 +14,35 @@ import type { WorkflowCoverageFilters } from '../types/contracts';
 import useWorkflowCoverageReportController from '../hooks/useWorkflowCoverageReportController';
 
 const summaryCardClass =
-  'rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface p-4';
+  'rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface p-4 transition duration-200 hover:-translate-y-0.5 hover:shadow-sm';
 
 export default function WorkflowCoverageReportPage() {
-  const { error, filters, handleFilterChange, handleMissingFilterChange, handleRetry, loading, report } =
-    useWorkflowCoverageReportController();
+  const {
+    error,
+    filters,
+    handleFilterChange,
+    handleMissingFilterChange,
+    handleRetry,
+    loading,
+    report,
+  } = useWorkflowCoverageReportController();
 
   return (
     <NeoBrutalistLayout pageTitle="WORKFLOW COVERAGE REPORT">
       <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
         <PageHeader
           title="Workflow Coverage Report"
-          description="Find unresolved conversations, missing appointment/follow-up notes or outcomes, reminder gaps, and unlinked attendance."
+          description="Find conversations, notes, reminders, outcomes, and attendance items that still need follow-up."
         />
 
-        <SectionCard title="Filters" subtitle="Narrow the gap list by owner, case status, or missing coverage type.">
+        <SectionCard
+          title="Filters"
+          subtitle="Narrow the list by owner, case status, or type of follow-up."
+        >
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <FormField
               type="text"
-              label="Owner ID"
+              label="Owner"
               value={filters.ownerId || ''}
               onChange={(event) => handleFilterChange('ownerId', event.target.value || undefined)}
               placeholder="Optional"
@@ -70,11 +81,7 @@ export default function WorkflowCoverageReportPage() {
         {loading && <LoadingState label="Loading workflow coverage..." />}
 
         {!loading && error && (
-          <ErrorState
-            message={error}
-            onRetry={handleRetry}
-            retryLabel="Retry"
-          />
+          <ErrorState message={error} onRetry={handleRetry} retryLabel="Retry" />
         )}
 
         {!loading && !error && report && (
@@ -127,10 +134,10 @@ export default function WorkflowCoverageReportPage() {
               </div>
             </SectionCard>
 
-            <SectionCard title="Cases with Workflow Gaps">
+            <SectionCard title="Cases needing follow-up">
               {report.items.length === 0 ? (
                 <EmptyState
-                  title="No workflow gaps found"
+                  title="No follow-up gaps found"
                   description="The selected cases have complete conversation, appointment, follow-up, reminder, and attendance coverage."
                 />
               ) : (
@@ -138,7 +145,7 @@ export default function WorkflowCoverageReportPage() {
                   {report.items.map((item) => (
                     <div
                       key={item.caseId}
-                      className="rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface p-4"
+                      className="rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface p-4 transition duration-200 hover:-translate-y-0.5 hover:shadow-sm"
                     >
                       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                         <div className="space-y-2">
@@ -153,6 +160,10 @@ export default function WorkflowCoverageReportPage() {
                               {item.statusName || item.statusType || 'Unknown status'}
                             </span>
                             <span className="rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-800">
+                              <ExclamationTriangleIcon
+                                className="mr-1 inline h-3.5 w-3.5"
+                                aria-hidden="true"
+                              />
                               {item.totalGaps} gaps
                             </span>
                           </div>
@@ -166,33 +177,46 @@ export default function WorkflowCoverageReportPage() {
                           to={`/cases/${item.caseId}?tab=appointments`}
                           className="rounded-md border border-app-input-border bg-app-surface px-3 py-2 text-sm text-app-text"
                         >
+                          <ClipboardDocumentCheckIcon
+                            className="mr-1 inline h-4 w-4"
+                            aria-hidden="true"
+                          />
                           Open workflow
                         </Link>
                       </div>
                       <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                         <div className={summaryCardClass}>
-                          <div className="text-xs uppercase text-app-text-muted">Conversation resolution</div>
+                          <div className="text-xs uppercase text-app-text-muted">
+                            Conversation resolution
+                          </div>
                           <div className="mt-1 text-xl font-semibold text-app-text">
                             {item.missingConversationResolutionCount}
                           </div>
                         </div>
                         <div className={summaryCardClass}>
-                          <div className="text-xs uppercase text-app-text-muted">Appointment note/outcome</div>
+                          <div className="text-xs uppercase text-app-text-muted">
+                            Appointment note/outcome
+                          </div>
                           <div className="mt-1 text-xl font-semibold text-app-text">
-                            {item.missingAppointmentNoteCount} / {item.missingAppointmentOutcomeCount}
+                            {item.missingAppointmentNoteCount} /{' '}
+                            {item.missingAppointmentOutcomeCount}
                           </div>
                         </div>
                         <div className={summaryCardClass}>
-                          <div className="text-xs uppercase text-app-text-muted">Follow-up note/outcome</div>
+                          <div className="text-xs uppercase text-app-text-muted">
+                            Follow-up note/outcome
+                          </div>
                           <div className="mt-1 text-xl font-semibold text-app-text">
                             {item.missingFollowUpNoteCount} / {item.missingFollowUpOutcomeCount}
                           </div>
                         </div>
                         <div className={summaryCardClass}>
-                          <div className="text-xs uppercase text-app-text-muted">Reminder / attendance / status</div>
+                          <div className="text-xs uppercase text-app-text-muted">
+                            Reminder / attendance / status
+                          </div>
                           <div className="mt-1 text-xl font-semibold text-app-text">
-                            {item.missingReminderOfferCount} / {item.missingAttendanceLinkageCount} /{' '}
-                            {item.missingCaseStatusOutcomeCount}
+                            {item.missingReminderOfferCount} / {item.missingAttendanceLinkageCount}{' '}
+                            / {item.missingCaseStatusOutcomeCount}
                           </div>
                         </div>
                       </div>

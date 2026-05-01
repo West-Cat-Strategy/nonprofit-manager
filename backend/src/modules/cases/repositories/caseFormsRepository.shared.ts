@@ -27,6 +27,8 @@ export interface CaseFormAccessTokenRecord {
   case_id: string;
   contact_id: string;
   recipient_email?: string | null;
+  recipient_phone?: string | null;
+  delivery_channel?: 'email' | 'sms' | null;
   token_hash: string;
   expires_at: Date | string;
   revoked_at?: Date | string | null;
@@ -82,13 +84,16 @@ export const parseJsonArray = <T>(value: unknown): T[] => {
 
 export const mapDefault = (row: QueryResultRow): CaseFormDefault => ({
   id: String(row.id),
-  case_type_id: String(row.case_type_id),
+  case_type_id: (row.case_type_id as string | null | undefined) ?? null,
   account_id: (row.account_id as string | null | undefined) ?? null,
   title: String(row.title),
   description: (row.description as string | null | undefined) ?? null,
   schema: (row.schema as CaseFormSchema) ?? { version: 1, title: String(row.title), sections: [] },
   version: Number(row.version ?? 1),
   is_active: Boolean(row.is_active),
+  template_status: (row.template_status as CaseFormDefault['template_status'] | null | undefined) ?? 'published',
+  last_autosaved_at: (row.last_autosaved_at as Date | string | null | undefined) ?? null,
+  saved_from_assignment_id: (row.saved_from_assignment_id as string | null | undefined) ?? null,
   created_at: row.created_at as Date | string,
   updated_at: row.updated_at as Date | string,
   created_by: (row.created_by as string | null | undefined) ?? null,
@@ -114,10 +119,16 @@ export const mapAssignment = (row: QueryResultRow): CaseFormAssignmentRecord => 
   last_draft_saved_at: (row.last_draft_saved_at as Date | string | null | undefined) ?? null,
   due_at: (row.due_at as Date | string | null | undefined) ?? null,
   recipient_email: (row.recipient_email as string | null | undefined) ?? null,
+  recipient_phone: (row.recipient_phone as string | null | undefined) ?? null,
   delivery_target: (row.delivery_target as CaseFormDeliveryTarget | null | undefined) ?? null,
+  delivery_channels: Array.isArray(row.delivery_channels)
+    ? (row.delivery_channels as CaseFormAssignment['delivery_channels'])
+    : [],
   sent_at: (row.sent_at as Date | string | null | undefined) ?? null,
   viewed_at: (row.viewed_at as Date | string | null | undefined) ?? null,
   submitted_at: (row.submitted_at as Date | string | null | undefined) ?? null,
+  last_structure_autosaved_at:
+    (row.last_structure_autosaved_at as Date | string | null | undefined) ?? null,
   revision_requested_at: (row.revision_requested_at as Date | string | null | undefined) ?? null,
   revision_notes: (row.revision_notes as string | null | undefined) ?? null,
   reviewed_at: (row.reviewed_at as Date | string | null | undefined) ?? null,

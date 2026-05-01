@@ -36,6 +36,10 @@ const campaignIdParamsSchema = z.object({
   campaignId: z.string().trim().min(1, 'Campaign ID is required'),
 });
 
+const campaignRunIdParamsSchema = z.object({
+  runId: uuidSchema,
+});
+
 const audienceIdParamsSchema = z.object({
   audienceId: uuidSchema,
 });
@@ -203,6 +207,19 @@ const createCampaignSchema = z
   })
   .strict();
 
+const campaignTestSendSchema = z
+  .object({
+    testRecipients: z.array(emailSchema).min(1).max(50),
+    sendType: z.enum(['html', 'plain_text']).optional(),
+  })
+  .strict();
+
+const draftCampaignTestSendSchema = createCampaignSchema
+  .extend({
+    testRecipients: z.array(emailSchema).min(1).max(50),
+  })
+  .strict();
+
 /**
  * POST /api/mailchimp/webhook
  * Mailchimp webhook handler (no auth - Mailchimp sends webhooks)
@@ -346,6 +363,30 @@ router.get(
 
 router.get('/campaign-runs', mailchimpController.getCampaignRuns);
 
+router.post(
+  '/campaign-runs/:runId/send',
+  validateParams(campaignRunIdParamsSchema),
+  mailchimpController.sendCampaignRun
+);
+
+router.post(
+  '/campaign-runs/:runId/status',
+  validateParams(campaignRunIdParamsSchema),
+  mailchimpController.refreshCampaignRunStatus
+);
+
+router.post(
+  '/campaign-runs/:runId/cancel',
+  validateParams(campaignRunIdParamsSchema),
+  mailchimpController.cancelCampaignRun
+);
+
+router.post(
+  '/campaign-runs/:runId/reschedule',
+  validateParams(campaignRunIdParamsSchema),
+  mailchimpController.rescheduleCampaignRun
+);
+
 /**
  * POST /api/mailchimp/campaigns/preview
  * Render a local preview for a campaign draft
@@ -366,6 +407,12 @@ router.post(
   mailchimpController.createCampaign
 );
 
+router.post(
+  '/campaigns/test-send',
+  validateBody(draftCampaignTestSendSchema),
+  mailchimpController.sendDraftCampaignTest
+);
+
 /**
  * POST /api/mailchimp/campaigns/:campaignId/send
  * Send a campaign immediately
@@ -374,6 +421,13 @@ router.post(
   '/campaigns/:campaignId/send',
   validateParams(campaignIdParamsSchema),
   mailchimpController.sendCampaign
+);
+
+router.post(
+  '/campaigns/:campaignId/test-send',
+  validateParams(campaignIdParamsSchema),
+  validateBody(campaignTestSendSchema),
+  mailchimpController.sendCampaignTest
 );
 
 export default router;

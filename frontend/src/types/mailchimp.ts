@@ -3,13 +3,31 @@
  * Type definitions for email marketing UI
  */
 
+export type CommunicationProvider = 'local_email' | 'mailchimp';
+
+export interface CommunicationProviderStatus {
+  provider: CommunicationProvider;
+  configured: boolean;
+  ready?: boolean;
+  accountName?: string;
+  audienceCount?: number;
+  fromAddress?: string | null;
+  fromName?: string | null;
+  message?: string;
+}
+
 /**
- * Mailchimp configuration status
+ * Communications configuration status. The name is retained for legacy imports.
  */
 export interface MailchimpStatus {
   configured: boolean;
   accountName?: string;
   listCount?: number;
+  defaultProvider?: CommunicationProvider;
+  provider?: CommunicationProvider;
+  localEmail?: CommunicationProviderStatus;
+  mailchimp?: CommunicationProviderStatus;
+  providers?: Partial<Record<CommunicationProvider, CommunicationProviderStatus>>;
 }
 
 /**
@@ -19,8 +37,11 @@ export interface MailchimpList {
   id: string;
   name: string;
   memberCount: number;
-  createdAt: string;
+  createdAt?: string;
   doubleOptIn: boolean;
+  provider?: CommunicationProvider;
+  description?: string;
+  isDefault?: boolean;
 }
 
 /**
@@ -56,6 +77,8 @@ export interface MailchimpTag {
  */
 export interface MailchimpCampaign {
   id: string;
+  provider?: CommunicationProvider;
+  campaignRunId?: string;
   type: 'regular' | 'plaintext' | 'absplit' | 'rss' | 'variate';
   status: 'save' | 'paused' | 'schedule' | 'sending' | 'sent' | 'canceled' | 'canceling' | 'archived';
   title: string;
@@ -97,13 +120,20 @@ export interface CreateSavedAudienceRequest {
 }
 
 export type CampaignRunStatus = 'draft' | 'scheduled' | 'sending' | 'sent' | 'failed' | 'canceled';
+export type CampaignRunRecipientStatus =
+  | 'queued'
+  | 'sending'
+  | 'sent'
+  | 'failed'
+  | 'suppressed'
+  | 'canceled';
 
 export interface CampaignRun {
   id: string;
-  provider: 'mailchimp';
+  provider: CommunicationProvider;
   providerCampaignId?: string | null;
   title: string;
-  listId: string;
+  listId: string | null;
   includeAudienceId?: string | null;
   exclusionAudienceIds: string[];
   suppressionSnapshot: unknown[];
@@ -116,6 +146,43 @@ export interface CampaignRun {
   requestedBy?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CampaignRunProviderMetrics {
+  lastReportedAt?: string | null;
+  refreshedAt?: string | null;
+  emailsSent?: number;
+  opens?: number;
+  uniqueOpens?: number;
+  openRate?: number;
+  clicks?: number;
+  uniqueClicks?: number;
+  clickRate?: number;
+  unsubscribes?: number;
+  bounces?: number;
+  abuseReports?: number;
+  lastSyncedAt?: string | null;
+  [key: string]: unknown;
+}
+
+export interface CampaignRunRecipient {
+  id: string;
+  campaignRunId: string;
+  contactId?: string | null;
+  email: string;
+  status: CampaignRunRecipientStatus;
+  contactName?: string | null;
+  failureMessage?: string | null;
+  sentAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CampaignRunRecipientList {
+  runId: string;
+  status?: CampaignRunRecipientStatus;
+  limit: number;
+  recipients: CampaignRunRecipient[];
 }
 
 /**
@@ -175,6 +242,7 @@ export interface BulkSyncResponse {
  * Request to create a campaign
  */
 export interface CreateCampaignRequest {
+  provider?: CommunicationProvider;
   listId: string;
   title: string;
   subject: string;
@@ -192,6 +260,30 @@ export interface CreateCampaignRequest {
   suppressionSnapshot?: unknown[];
   testRecipients?: string[];
   audienceSnapshot?: Record<string, unknown>;
+}
+
+export interface CampaignTestSendRequest extends CreateCampaignRequest {
+  testRecipients: string[];
+}
+
+export interface CampaignTestSendResponse {
+  delivered: boolean;
+  recipients: string[];
+  providerCampaignId?: string | null;
+  message?: string;
+}
+
+export interface CampaignRunActionResponse {
+  run: CampaignRun;
+  action:
+    | 'sent'
+    | 'queued'
+    | 'processed_batch'
+    | 'refreshed'
+    | 'canceled'
+    | 'rescheduled'
+    | 'unsupported';
+  message: string;
 }
 
 export type EmailBuilderBlockType = 'heading' | 'paragraph' | 'button' | 'image' | 'divider';
@@ -275,7 +367,14 @@ export interface MailchimpState {
   savedAudienceCreateError: string | null;
   isLoadingCampaignRuns: boolean;
   campaignRunsError: string | null;
+  campaignRunActionMessage: string | null;
+  campaignRunActionError: string | null;
+  campaignRunRecipients: Record<string, CampaignRunRecipient[]>;
+  campaignRunRecipientsStatus: Record<string, CampaignRunRecipientStatus | 'all'>;
+  isLoadingCampaignRunRecipients: Record<string, boolean>;
+  campaignRunRecipientsError: Record<string, string | null>;
   isCreatingCampaign: boolean;
   isSendingCampaign: boolean;
+  isTestingCampaign: boolean;
   error: string | null;
 }

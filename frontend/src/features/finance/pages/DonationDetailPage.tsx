@@ -37,7 +37,9 @@ const DonationDetail: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { showError, showSuccess } = useToast();
-  const { selectedDonation: donation, loading } = useAppSelector((state) => state.finance.donations);
+  const { selectedDonation: donation, loading } = useAppSelector(
+    (state) => state.finance.donations
+  );
   const [receiptModalMode, setReceiptModalMode] = useState<'single' | 'annual' | null>(null);
   const [defaultDeliveryMode, setDefaultDeliveryMode] =
     useState<TaxReceiptDeliveryMode>('download');
@@ -88,9 +90,7 @@ const DonationDetail: React.FC = () => {
           : 'Tax receipt';
 
     showSuccess(
-      deliveryMode === 'email'
-        ? `${actionLabel} processed.`
-        : `${actionLabel} ready for download.`
+      deliveryMode === 'email' ? `${actionLabel} processed.` : `${actionLabel} ready for download.`
     );
 
     if (result.delivery.warning) {
@@ -277,7 +277,9 @@ const DonationDetail: React.FC = () => {
                 </div>
                 {donation.provider_transaction_id && (
                   <div>
-                    <dt className="text-sm font-medium text-app-text-muted">Provider Transaction ID</dt>
+                    <dt className="text-sm font-medium text-app-text-muted">
+                      Provider Transaction ID
+                    </dt>
                     <dd className="text-sm text-app-text font-mono">
                       {donation.provider_transaction_id}
                     </dd>
@@ -285,7 +287,9 @@ const DonationDetail: React.FC = () => {
                 )}
                 {donation.provider_checkout_session_id && (
                   <div>
-                    <dt className="text-sm font-medium text-app-text-muted">Provider Checkout Session</dt>
+                    <dt className="text-sm font-medium text-app-text-muted">
+                      Provider Checkout Session
+                    </dt>
                     <dd className="text-sm text-app-text font-mono">
                       {donation.provider_checkout_session_id}
                     </dd>
@@ -293,7 +297,9 @@ const DonationDetail: React.FC = () => {
                 )}
                 {donation.provider_subscription_id && (
                   <div>
-                    <dt className="text-sm font-medium text-app-text-muted">Provider Subscription ID</dt>
+                    <dt className="text-sm font-medium text-app-text-muted">
+                      Provider Subscription ID
+                    </dt>
                     <dd className="text-sm text-app-text font-mono">
                       {donation.provider_subscription_id}
                     </dd>
@@ -424,7 +430,7 @@ const DonationDetail: React.FC = () => {
           </div>
 
           <div className="border-t pt-6">
-            <h3 className="text-lg font-semibold mb-2">Metadata</h3>
+            <h3 className="text-lg font-semibold mb-2">Record details</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-app-text-muted">
               <div>
                 <span className="font-medium">Created:</span>{' '}

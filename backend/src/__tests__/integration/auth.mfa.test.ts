@@ -180,4 +180,76 @@ describe('Auth MFA Integration Tests', () => {
     expect(response.body).toHaveProperty('csrfToken');
     expect(response.body.user.email).toBe(mfaEmail);
   });
+
+  it('enables and disables TOTP with code payloads', async () => {
+    const setupEmail = `auth-mfa-setup-${unique()}@example.com`;
+    const setupPassword = 'StrongPassword123!';
+    const passwordHash = await bcrypt.hash(setupPassword, 10);
+
+    const userResult = await pool.query<{ id: string }>(
+      `INSERT INTO users (
+        email,
+        password_hash,
+        first_name,
+        last_name,
+        role,
+        mfa_totp_enabled,
+        created_at,
+        updated_at
+      )
+      VALUES ($1, $2, 'Mfa', 'Setup', 'user', FALSE, NOW(), NOW())
+      RETURNING id`,
+      [setupEmail, passwordHash]
+    );
+    const setupUserId = userResult.rows[0].id;
+
+    await pool.query(
+      `INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active)
+       VALUES ($1, $2, 'viewer', $1, TRUE)
+       ON CONFLICT (user_id, account_id)
+       DO UPDATE SET
+         access_level = EXCLUDED.access_level,
+         granted_by = EXCLUDED.granted_by,
+         is_active = TRUE`,
+      [setupUserId, expectedOrganizationId]
+    );
+
+    const loginResponse = await request(app)
+      .post('/api/v2/auth/login')
+      .send({
+        email: setupEmail,
+        password: setupPassword,
+      })
+      .expect(200);
+
+    const authHeader = `Bearer ${loginResponse.body.token}`;
+
+    const enrollResponse = await request(app)
+      .post('/api/v2/auth/2fa/totp/enroll')
+      .set('Authorization', authHeader)
+      .expect(200);
+
+    const pendingSecret = enrollResponse.body.secret ?? enrollResponse.body.data.secret;
+    const enableCode = generateTotpCodeForTest(pendingSecret);
+
+    const enableResponse = await request(app)
+      .post('/api/v2/auth/2fa/totp/enable')
+      .set('Authorization', authHeader)
+      .send({ code: enableCode })
+      .expect(200);
+
+    expect(enableResponse.body.totpEnabled).toBe(true);
+
+    const disableCode = generateTotpCodeForTest(pendingSecret);
+    const disableResponse = await request(app)
+      .post('/api/v2/auth/2fa/totp/disable')
+      .set('Authorization', authHeader)
+      .send({
+        password: setupPassword,
+        code: disableCode,
+      })
+      .expect(200);
+
+    expect(disableResponse.body.totpEnabled).toBe(false);
+  });
 });

@@ -11,7 +11,9 @@ vi.mock('../../components/ApiSettingsWorkspace', () => ({
   default: ({ children }: { children: ReactNode }) => (
     <div>
       <h1>API &amp; Webhooks</h1>
-      <p>Manage webhook endpoints, delivery history, and API key access from one admin workspace.</p>
+      <p>
+        Manage webhook endpoints, delivery history, and API key access from one admin workspace.
+      </p>
       {children}
     </div>
   ),
@@ -166,5 +168,21 @@ describe('ApiSettingsPage', () => {
     });
 
     expect(await screen.findByRole('heading', { name: /api key created/i })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: /api key created/i })).toBeInTheDocument();
+  });
+
+  it('opens delivery history in an accessible dialog', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<ApiSettingsPage />, { route: '/settings/api' });
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /webhooks \(1\)/i })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /view deliveries/i }));
+
+    expect(await screen.findByRole('dialog', { name: /delivery history/i })).toBeInTheDocument();
+    expect(screen.getByText(/no deliveries yet/i)).toBeInTheDocument();
   });
 });

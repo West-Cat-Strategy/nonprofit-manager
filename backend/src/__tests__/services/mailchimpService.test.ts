@@ -29,10 +29,15 @@ jest.mock('@mailchimp/mailchimp_marketing', () => ({
   },
   campaigns: {
     list: jest.fn(),
+    get: jest.fn(),
     create: jest.fn(),
     setContent: jest.fn(),
     schedule: jest.fn(),
     send: jest.fn(),
+    sendTestEmail: jest.fn(),
+  },
+  reports: {
+    getCampaignReport: jest.fn(),
   },
 }));
 
@@ -51,16 +56,22 @@ jest.mock('../../config/logger', () => ({
   },
 }));
 
+jest.mock('@modules/contacts/services/contactSuppressionService', () => ({
+  recordContactSuppressionEvidence: jest.fn().mockResolvedValue({ id: 'suppression-evidence-1' }),
+}));
+
 // Import service AFTER setting env vars and mocks
 import * as mailchimpService from '@services/mailchimpService';
 
 // Get mocked modules
 import mailchimp from '@mailchimp/mailchimp_marketing';
 import pool from '../../config/database';
+import { recordContactSuppressionEvidence } from '@modules/contacts/services/contactSuppressionService';
 
 // Use any to work around incomplete Mailchimp types
 const mockMailchimp = mailchimp as any;
 const mockPool = pool as any;
+const mockRecordContactSuppressionEvidence = recordContactSuppressionEvidence as jest.Mock;
 
 describe('MailchimpService', () => {
   beforeEach(() => {
@@ -635,10 +646,10 @@ describe('MailchimpService', () => {
 
       const runs = await mailchimpService.listCampaignRuns(20, [accountId]);
 
-      expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining('scope_account_ids &&'), [
-        20,
-        [accountId],
-      ]);
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringMatching(/WHERE provider = 'mailchimp'[\s\S]*scope_account_ids &&/),
+        [20, [accountId]]
+      );
       expect(runs[0].testRecipients).toEqual(['reviewer@example.org']);
     });
   });
@@ -1233,6 +1244,173 @@ describe('MailchimpService', () => {
     });
   });
 
+  describe('recordContactPreferenceWebhook', () => {
+    it('marks local contacts do_not_email when Mailchimp sends unsubscribe webhooks', async () => {
+      (mockPool.query as jest.Mock)
+        .mockResolvedValueOnce({ rows: [{ id: 'contact-1' }], rowCount: 1 })
+        .mockResolvedValueOnce({ rowCount: 1 });
+
+      await expect(
+        mailchimpService.recordContactPreferenceWebhook({
+          type: 'unsubscribe',
+          firedAt: new Date('2026-05-01T12:00:00Z'),
+          data: {
+            listId: 'list-123',
+            email: 'ada@example.org',
+          },
+        })
+      ).resolves.toEqual({ updated: true, affectedCount: 1 });
+
+      expect(mockRecordContactSuppressionEvidence).toHaveBeenCalledWith(
+        expect.objectContaining({
+          contactId: 'contact-1',
+          channel: 'email',
+          reason: 'mailchimp_unsubscribe',
+          source: 'mailchimp_webhook',
+          provider: 'mailchimp',
+          providerListId: 'list-123',
+          providerEventType: 'unsubscribe',
+          preserveDoNotEmail: true,
+        })
+      );
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining('SET do_not_email = true'),
+        ['ada@example.org']
+      );
+    });
+
+    it('records suppression evidence when Mailchimp sends cleaned webhooks', async () => {
+      (mockPool.query as jest.Mock)
+        .mockResolvedValueOnce({ rows: [{ id: 'contact-1' }], rowCount: 1 })
+        .mockResolvedValueOnce({ rowCount: 1 });
+
+      await expect(
+        mailchimpService.recordContactPreferenceWebhook({
+          type: 'cleaned',
+          firedAt: new Date('2026-05-01T12:00:00Z'),
+          data: {
+            listId: 'list-123',
+            email: 'ada@example.org',
+            reason: 'hard',
+          },
+        })
+      ).resolves.toEqual({ updated: true, affectedCount: 1 });
+
+      expect(mockRecordContactSuppressionEvidence).toHaveBeenCalledWith(
+        expect.objectContaining({
+          contactId: 'contact-1',
+          channel: 'email',
+          reason: 'mailchimp_cleaned',
+          source: 'mailchimp_webhook',
+          provider: 'mailchimp',
+          providerListId: 'list-123',
+          providerEventType: 'cleaned',
+          providerReason: 'hard',
+          preserveDoNotEmail: true,
+        })
+      );
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining('preferred_contact_method = CASE'),
+        ['ada@example.org']
+      );
+    });
+
+    it('updates local contact email from Mailchimp upemail webhooks without raw email logging', async () => {
+      (mockPool.query as jest.Mock).mockResolvedValue({ rowCount: 1 });
+
+      await expect(
+        mailchimpService.recordContactPreferenceWebhook({
+          type: 'upemail',
+          firedAt: new Date('2026-05-01T12:00:00Z'),
+          data: {
+            listId: 'list-123',
+            oldEmail: 'old@example.org',
+            newEmail: 'new@example.org',
+          },
+        })
+      ).resolves.toEqual({ updated: true, affectedCount: 1 });
+
+      expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining('SET email = $2'), [
+        'old@example.org',
+        'new@example.org',
+      ]);
+      const logger = jest.requireMock('../../config/logger').logger;
+      expect(logger.info).toHaveBeenCalledWith(
+        'Mailchimp contact webhook back-sync completed',
+        expect.not.objectContaining({
+          email: expect.any(String),
+          oldEmail: expect.any(String),
+          newEmail: expect.any(String),
+        })
+      );
+    });
+  });
+
+  describe('sendCampaignTest', () => {
+    it('creates a draft campaign and sends a real test email for preflight proof', async () => {
+      (mockMailchimp.campaigns.create as jest.Mock).mockResolvedValue({
+        id: 'campaign-draft-1',
+        create_time: '2026-05-01T12:00:00Z',
+      });
+      (mockMailchimp.campaigns.setContent as jest.Mock).mockResolvedValue({});
+      (mockMailchimp.campaigns.sendTestEmail as jest.Mock).mockResolvedValue({});
+
+      const result = await mailchimpService.sendDraftCampaignTest({
+        listId: 'list-123',
+        title: 'Spring Appeal',
+        subject: 'Spring Appeal',
+        fromName: 'Community Org',
+        replyTo: 'hello@example.org',
+        htmlContent: '<h1>Spring Appeal</h1>',
+        plainTextContent: 'Spring Appeal',
+        testRecipients: ['Proof@example.org', 'proof@example.org'],
+      });
+
+      expect(result).toEqual({
+        delivered: true,
+        recipients: ['proof@example.org'],
+        providerCampaignId: 'campaign-draft-1',
+        message: 'Campaign test email sent successfully',
+      });
+      expect(mockMailchimp.campaigns.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recipients: { list_id: 'list-123' },
+          settings: expect.objectContaining({
+            title: 'Spring Appeal',
+            subject_line: 'Spring Appeal',
+          }),
+        })
+      );
+      expect(mockMailchimp.campaigns.setContent).toHaveBeenCalledWith(
+        'campaign-draft-1',
+        expect.objectContaining({
+          html: expect.stringContaining('Spring Appeal'),
+          plain_text: expect.stringContaining('Spring Appeal'),
+        })
+      );
+      expect(mockMailchimp.campaigns.sendTestEmail).toHaveBeenCalledWith('campaign-draft-1', {
+        test_emails: ['proof@example.org'],
+        send_type: 'html',
+      });
+    });
+
+    it('sends a Mailchimp campaign test email to explicit recipients', async () => {
+      (mockMailchimp.campaigns.sendTestEmail as jest.Mock).mockResolvedValue({});
+
+      await expect(
+        mailchimpService.sendCampaignTest({
+          campaignId: 'campaign-123',
+          testRecipients: ['Proof@example.org', 'proof@example.org'],
+        })
+      ).resolves.toBeUndefined();
+
+      expect(mockMailchimp.campaigns.sendTestEmail).toHaveBeenCalledWith('campaign-123', {
+        test_emails: ['proof@example.org'],
+        send_type: 'html',
+      });
+    });
+  });
+
   describe('sendCampaign', () => {
     it('sends a campaign immediately', async () => {
       (mockMailchimp.campaigns.send as jest.Mock).mockResolvedValue({});
@@ -1241,6 +1419,197 @@ describe('MailchimpService', () => {
       await expect(mailchimpService.sendCampaign('campaign-123')).resolves.toBeUndefined();
 
       expect(mockMailchimp.campaigns.send).toHaveBeenCalledWith('campaign-123');
+    });
+
+    it('sends a campaign run by run id inside requester scope', async () => {
+      (mockMailchimp.campaigns.send as jest.Mock).mockResolvedValue({});
+      (mockPool.query as jest.Mock)
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: '11111111-1111-4111-8111-111111111111',
+              provider: 'mailchimp',
+              provider_campaign_id: 'campaign-123',
+              title: 'Scoped Campaign',
+              list_id: 'list-123',
+              include_audience_id: null,
+              exclusion_audience_ids: [],
+              suppression_snapshot: [],
+              test_recipients: [],
+              audience_snapshot: {},
+              requested_send_time: null,
+              status: 'draft',
+              counts: {},
+              scope_account_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+              failure_message: null,
+              requested_by: null,
+              created_at: new Date('2024-01-15T10:00:00Z'),
+              updated_at: new Date('2024-01-15T10:00:00Z'),
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: '11111111-1111-4111-8111-111111111111',
+              provider: 'mailchimp',
+              provider_campaign_id: 'campaign-123',
+              title: 'Scoped Campaign',
+              list_id: 'list-123',
+              include_audience_id: null,
+              exclusion_audience_ids: [],
+              suppression_snapshot: [],
+              test_recipients: [],
+              audience_snapshot: {},
+              requested_send_time: null,
+              status: 'sent',
+              counts: {},
+              scope_account_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+              failure_message: null,
+              requested_by: null,
+              created_at: new Date('2024-01-15T10:00:00Z'),
+              updated_at: new Date('2024-01-15T10:00:00Z'),
+            },
+          ],
+        });
+
+      const result = await mailchimpService.sendCampaignRun(
+        '11111111-1111-4111-8111-111111111111',
+        ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa']
+      );
+
+      expect(mockMailchimp.campaigns.send).toHaveBeenCalledWith('campaign-123');
+      expect(result?.action).toBe('sent');
+      expect(result?.run.status).toBe('sent');
+      expect((mockPool.query as jest.Mock).mock.calls[0][1]).toEqual([
+        '11111111-1111-4111-8111-111111111111',
+        ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+      ]);
+    });
+
+    it('refreshes campaign run status with normalized provider report metrics', async () => {
+      (mockMailchimp.campaigns.get as jest.Mock).mockResolvedValue({
+        id: 'campaign-123',
+        status: 'sent',
+        emails_sent: 250,
+        report_summary: {
+          opens: 125,
+          unique_opens: 100,
+          open_rate: 0.4,
+          clicks: 30,
+          subscriber_clicks: 25,
+          click_rate: 0.1,
+        },
+      });
+      (mockMailchimp.reports.getCampaignReport as jest.Mock).mockResolvedValue({
+        emails_sent: 250,
+        unsubscribed: 3,
+        abuse_reports: 1,
+        forwards: 2,
+        bounces: {
+          hard_bounces: 4,
+          soft_bounces: 5,
+          syntax_errors: 1,
+        },
+        opens: {
+          opens_total: 140,
+          unique_opens: 110,
+          open_rate: 0.44,
+          last_open: '2026-05-01T12:30:00Z',
+        },
+        clicks: {
+          clicks_total: 45,
+          unique_clicks: 35,
+          click_rate: 0.14,
+          last_click: '2026-05-01T12:45:00Z',
+        },
+      });
+      (mockPool.query as jest.Mock)
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: '11111111-1111-4111-8111-111111111111',
+              provider: 'mailchimp',
+              provider_campaign_id: 'campaign-123',
+              title: 'Scoped Campaign',
+              list_id: 'list-123',
+              include_audience_id: null,
+              exclusion_audience_ids: [],
+              suppression_snapshot: [],
+              test_recipients: [],
+              audience_snapshot: {},
+              requested_send_time: null,
+              status: 'sending',
+              counts: { providerStatus: { status: 'sending' } },
+              scope_account_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+              failure_message: null,
+              requested_by: null,
+              created_at: new Date('2024-01-15T10:00:00Z'),
+              updated_at: new Date('2024-01-15T10:00:00Z'),
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: '11111111-1111-4111-8111-111111111111',
+              provider: 'mailchimp',
+              provider_campaign_id: 'campaign-123',
+              title: 'Scoped Campaign',
+              list_id: 'list-123',
+              include_audience_id: null,
+              exclusion_audience_ids: [],
+              suppression_snapshot: [],
+              test_recipients: [],
+              audience_snapshot: {},
+              requested_send_time: null,
+              status: 'sent',
+              counts: {},
+              scope_account_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+              failure_message: null,
+              requested_by: null,
+              created_at: new Date('2024-01-15T10:00:00Z'),
+              updated_at: new Date('2024-01-15T10:00:00Z'),
+            },
+          ],
+        });
+
+      await expect(
+        mailchimpService.refreshCampaignRunStatus('11111111-1111-4111-8111-111111111111', [
+          'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        ])
+      ).resolves.toMatchObject({ action: 'refreshed', run: { status: 'sent' } });
+
+      expect(mockMailchimp.reports.getCampaignReport).toHaveBeenCalledWith('campaign-123');
+      const countsPatch = JSON.parse((mockPool.query as jest.Mock).mock.calls[1][1][2]);
+      expect(countsPatch.providerStatus).toEqual({
+        status: 'sent',
+        emailsSent: 250,
+        refreshedAt: expect.any(String),
+      });
+      expect(countsPatch.providerReportSummary).toMatchObject({
+        lastReportedAt: expect.any(String),
+        refreshedAt: expect.any(String),
+        emailsSent: 250,
+        opens: 140,
+        uniqueOpens: 110,
+        openRate: 0.44,
+        clicks: 45,
+        uniqueClicks: 35,
+        clickRate: 0.14,
+        unsubscribes: 3,
+        abuseReports: 1,
+        forwards: 2,
+        bounces: {
+          hard: 4,
+          soft: 5,
+          syntax: 1,
+          total: 10,
+        },
+        lastOpenAt: '2026-05-01T12:30:00Z',
+        lastClickAt: '2026-05-01T12:45:00Z',
+      });
+      expect(countsPatch.providerMetrics).toBeUndefined();
     });
   });
 });

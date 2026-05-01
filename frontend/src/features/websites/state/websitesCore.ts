@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice, isAnyOf } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import type { WebsiteEntry } from '../../../types/websiteBuilder';
+import type { WebsiteEntry, WebsiteEntryKind } from '../../../types/websiteBuilder';
 import { websitesApiClient } from '../api/websitesApiClient';
 import type {
   CreateWebsiteSiteRequest,
@@ -273,10 +273,10 @@ export const fetchWebsiteConversionFunnel = createAsyncThunk<
 
 export const fetchWebsiteEntries = createAsyncThunk<
   WebsiteEntry[],
-  { siteId: string; source?: 'native' | 'mailchimp'; status?: string }
->('websites/fetchEntries', async ({ siteId, source, status }, { rejectWithValue }) => {
+  { siteId: string; source?: 'native' | 'mailchimp'; status?: string; kind?: WebsiteEntryKind }
+>('websites/fetchEntries', async ({ siteId, source, status, kind }, { rejectWithValue }) => {
   try {
-    const result = await websitesApiClient.listEntries(siteId, source, status);
+    const result = await websitesApiClient.listEntries(siteId, source, status, kind);
     return result.items;
   } catch (error) {
     return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to load website content'));

@@ -1,4 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  BriefcaseIcon,
+  CalendarDaysIcon,
+  ChatBubbleLeftRightIcon,
+  ClockIcon,
+} from '@heroicons/react/24/outline';
 import { Link } from 'react-router-dom';
 import portalApi from '../../../services/portalApi';
 import { unwrapApiData } from '../../../services/apiEnvelope';
@@ -21,6 +27,8 @@ type AppointmentStatusFilter = 'all' | 'requested' | 'confirmed' | 'cancelled' |
 type AppointmentCaseFilter = 'all' | 'selected';
 
 const POLL_INTERVAL_MS = 30_000;
+const portalSmallActionClass =
+  'inline-flex items-center gap-1.5 rounded border border-app-input-border px-3 py-1.5 text-xs font-medium text-app-text transition-colors duration-150 hover:border-app-accent hover:bg-app-surface';
 
 const toIsoFromLocal = (value: string): string | null => {
   if (!value) return null;
@@ -314,7 +322,7 @@ export default function PortalAppointments() {
       await Promise.all([refreshAppointments(), loadSlots(selectedCaseId)]);
     } catch (bookError) {
       console.error('Failed to book slot', bookError);
-      showError('Could not book this slot.');
+      showError('Could not book this time.');
     } finally {
       setBookingSlotId(null);
     }
@@ -350,13 +358,14 @@ export default function PortalAppointments() {
   return (
     <PortalPageShell
       title="Appointments"
-      description="Book or request time while keeping the current case workspace and messages in view."
+      description="Book or request time while keeping the current case and messages in view."
     >
       <PortalPageState
         loading={loading}
         error={resolvedError}
         empty={false}
         loadingLabel="Loading appointments..."
+        emptyIcon={<CalendarDaysIcon className="h-5 w-5" aria-hidden="true" />}
         onRetry={loadInitial}
       />
 
@@ -368,21 +377,23 @@ export default function PortalAppointments() {
                 <button
                   type="button"
                   onClick={() => setMode('slot')}
-                  className={`rounded-md px-4 py-2 text-sm ${
+                  className={`inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm transition-colors duration-150 ${
                     mode === 'slot' ? 'bg-app-accent text-[var(--app-accent-foreground)]' : 'bg-app-surface-muted text-app-text-muted'
                   }`}
                 >
-                  Book a Slot
+                  <ClockIcon className="h-4 w-4" aria-hidden="true" />
+                  Book a Time
                 </button>
                 <button
                   type="button"
                   onClick={() => setMode('request')}
-                  className={`rounded-md px-4 py-2 text-sm ${
+                  className={`inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm transition-colors duration-150 ${
                     mode === 'request'
                       ? 'bg-app-accent text-[var(--app-accent-foreground)]'
                       : 'bg-app-surface-muted text-app-text-muted'
                   }`}
                 >
+                  <CalendarDaysIcon className="h-4 w-4" aria-hidden="true" />
                   Request Appointment
                 </button>
               </div>
@@ -423,26 +434,28 @@ export default function PortalAppointments() {
                     )}
                     <p className="mt-1 text-sm text-app-text-muted">
                       {selectedCasePointperson
-                        ? `Pointperson: ${selectedCasePointperson}`
-                        : 'Pointperson assignment is still pending for this case.'}
+                        ? `Assigned staff: ${selectedCasePointperson}`
+                        : 'Staff assignment is still pending for this case.'}
                     </p>
                     <p className="mt-1 text-xs text-app-text-subtle">
-                      Booking, appointment requests, and messages all stay tied to this case selection.
+                      Bookings, appointment requests, and messages all stay tied to this case selection.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Link
                       to={`/portal/cases/${selectedCase.case_id}`}
                       onClick={() => setSelectedCaseId(selectedCase.case_id)}
-                      className="rounded border border-app-input-border px-3 py-1.5 text-xs font-medium text-app-text hover:bg-app-surface"
+                      className={portalSmallActionClass}
                     >
-                      Case workspace
+                      <BriefcaseIcon className="h-4 w-4" aria-hidden="true" />
+                      Case details
                     </Link>
                     <Link
                       to="/portal/messages"
                       onClick={() => setSelectedCaseId(selectedCase.case_id)}
-                      className="rounded border border-app-input-border px-3 py-1.5 text-xs font-medium text-app-text hover:bg-app-surface"
+                      className={portalSmallActionClass}
                     >
+                      <ChatBubbleLeftRightIcon className="h-4 w-4" aria-hidden="true" />
                       Messages
                     </Link>
                   </div>
@@ -453,30 +466,31 @@ export default function PortalAppointments() {
             {mode === 'slot' ? (
               <div className="mt-4 space-y-3">
                 <input
-                  aria-label="Search available slots"
+                  aria-label="Search available times"
                   value={slotSearch}
                   onChange={(event) => setSlotSearch(event.target.value)}
-                  placeholder="Search available slots"
+                  placeholder="Search available times"
                   className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
                 />
                 {selectedCase && !selectedCase.is_messageable ? (
                   <div className="rounded-md border border-app-border bg-app-accent-soft px-3 py-2 text-sm text-app-accent-text">
-                    This case has no assigned pointperson yet, so no bookable slots are available.
+                    This case has no assigned staff member yet, so no bookable times are available.
                   </div>
                 ) : slotsLoading ? (
-                  <p className="text-sm text-app-text-muted">Loading available slots...</p>
+                  <p className="text-sm text-app-text-muted">Loading available times...</p>
                 ) : visibleSlots.length === 0 ? (
                   <p className="text-sm text-app-text-muted">
                     {slotSearch
-                      ? 'No available slots match your search.'
-                      : 'No available slots for this case right now.'}
+                      ? 'No available times match your search.'
+                      : 'No available times for this case right now.'}
                   </p>
                 ) : (
                   <ul className="space-y-3">
                     {visibleSlots.map((slot) => (
                       <li key={slot.id}>
                         <PortalListCard
-                          title={slot.title || 'Appointment Slot'}
+                          icon={<ClockIcon className="h-5 w-5" aria-hidden="true" />}
+                          title={slot.title || 'Appointment time'}
                           subtitle={`${new Date(slot.start_time).toLocaleString()} - ${new Date(slot.end_time).toLocaleString()}`}
                           meta={slot.location || 'Location provided by staff'}
                           badges={
@@ -491,8 +505,9 @@ export default function PortalAppointments() {
                                 void handleBookSlot(slot);
                               }}
                               disabled={bookingSlotId === slot.id || slot.available_count <= 0}
-                              className="rounded-md bg-app-accent px-3 py-1.5 text-xs text-[var(--app-accent-foreground)] disabled:opacity-50"
+                              className="inline-flex items-center gap-1.5 rounded-md bg-app-accent px-3 py-1.5 text-xs text-[var(--app-accent-foreground)] transition-[box-shadow,transform] duration-150 hover:-translate-y-0.5 hover:shadow-sm disabled:opacity-50"
                             >
+                              <CalendarDaysIcon className="h-4 w-4" aria-hidden="true" />
                               {bookingSlotId === slot.id ? 'Booking...' : 'Book'}
                             </button>
                           }
@@ -633,7 +648,7 @@ export default function PortalAppointments() {
               emptyDescription={
                 appointmentSearch
                   ? 'Try a different search term.'
-                  : 'Book a slot or submit a manual request to get started.'
+                  : 'Book an available time or request a different appointment to get started.'
               }
               onRetry={() => {
                 void loadInitial();
@@ -651,12 +666,13 @@ export default function PortalAppointments() {
                   return (
                     <li key={appointment.id}>
                       <PortalListCard
+                        icon={<CalendarDaysIcon className="h-5 w-5" aria-hidden="true" />}
                         title={appointment.title}
                         subtitle={new Date(appointment.start_time).toLocaleString()}
                         meta={`Status: ${appointment.status}`}
                         badges={
                           <span className="rounded bg-app-surface-muted px-2 py-0.5 text-xs text-app-text-muted">
-                            {appointment.request_type === 'slot_booking' ? 'Slot booking' : 'Manual request'}
+                            {appointment.request_type === 'slot_booking' ? 'Booked time' : 'Appointment request'}
                           </span>
                         }
                         actions={
@@ -666,7 +682,7 @@ export default function PortalAppointments() {
                                 void handleCancelAppointment(appointment.id);
                               }}
                               disabled={appointmentToCancel === appointment.id}
-                              className="rounded border border-app-border px-2 py-1 text-xs text-app-accent-text"
+                              className="rounded border border-app-border px-2 py-1 text-xs text-app-accent-text transition-colors duration-150 hover:border-app-accent hover:bg-app-surface-muted"
                             >
                               {appointmentToCancel === appointment.id ? 'Canceling...' : 'Cancel'}
                             </button>
@@ -680,7 +696,7 @@ export default function PortalAppointments() {
                         )}
                         {appointmentPointperson && (
                           <p className="text-xs text-app-text-subtle">
-                            Pointperson: {appointmentPointperson}
+                            Assigned staff: {appointmentPointperson}
                           </p>
                         )}
                         {appointment.description && (

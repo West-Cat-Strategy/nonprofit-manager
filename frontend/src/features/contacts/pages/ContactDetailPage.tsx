@@ -13,6 +13,7 @@ import ContactFollowUpsPanel from '../components/ContactFollowUpsPanel';
 import ContactDocumentsPanel from '../components/ContactDocumentsPanel';
 import ContactPaymentsPanel from '../components/ContactPaymentsPanel';
 import ContactDonorPreferencesPanel from '../components/ContactDonorPreferencesPanel';
+import ContactSuppressionPanel from '../components/ContactSuppressionPanel';
 import ContactPageShell from '../components/ContactPageShell';
 import { formatDate, formatDateOnly, getAgeFromDateOnly } from '../../../utils/format';
 import { useContactDetailPage } from '../hooks/useContactDetailPage';
@@ -411,6 +412,14 @@ const ContactDetail = () => {
                 {id && <ContactDonorPreferencesPanel contactId={id} />}
               </BrutalCard>
 
+              {/* Do Not Contact Evidence */}
+              <BrutalCard color="white" className="p-6">
+                <h2 className="text-lg font-black uppercase text-black mb-4 border-b-2 border-black pb-2">
+                  Do Not Contact Evidence
+                </h2>
+                {id && <ContactSuppressionPanel contactId={id} />}
+              </BrutalCard>
+
               {/* Associated People */}
               <BrutalCard color="white" className="p-6">
                 <h2 className="text-lg font-black uppercase text-black mb-4 border-b-2 border-black pb-2">
@@ -460,7 +469,10 @@ const ContactDetail = () => {
             <h2 className="text-lg font-black uppercase text-black mb-4 border-b-2 border-black pb-2">
               Communications
             </h2>
-            {id && <ContactCommunicationsPanel contactId={id} />}
+            <div className="space-y-6">
+              {id && <ContactSuppressionPanel contactId={id} />}
+              {id && <ContactCommunicationsPanel contactId={id} />}
+            </div>
           </BrutalCard>
         )}
 

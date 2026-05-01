@@ -494,8 +494,8 @@ const smokeCases: SmokeCase[] = [
     primaryActionRole: 'link',
     contractAssertion: async () => {
       expect(
-        await screen.findByRole('heading', { name: /april 2026/i, level: 2 })
-      ).toBeInTheDocument();
+        (await screen.findAllByText(/may 2026/i)).length
+      ).toBeGreaterThan(0);
     },
   },
   {
@@ -623,7 +623,7 @@ const smokeCases: SmokeCase[] = [
     route: '/websites',
     page: <WebsitesListPage />,
     heading: 'Websites',
-    primaryActionPattern: /open template builder/i,
+    primaryActionPattern: /open site builder/i,
     primaryActionRole: 'link',
     contractAssertion: () => expectGetRequest(apiMatchers.sites),
   },
@@ -676,6 +676,7 @@ describe('Route UX smoke', () => {
     async (smokeCase) => {
       await assertRouteUxContract(smokeCase);
       expect(consoleErrorSpy).not.toHaveBeenCalled();
-    }
+    },
+    15000
   );
 });

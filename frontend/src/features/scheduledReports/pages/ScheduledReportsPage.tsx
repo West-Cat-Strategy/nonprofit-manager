@@ -1,4 +1,4 @@
-import { Fragment } from 'react';
+import { Fragment, useMemo } from 'react';
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 import {
   EmptyState,
@@ -13,8 +13,17 @@ import {
 } from '../../../components/ui';
 import { useAppSelector } from '../../../store/hooks';
 import { getReportAccess } from '../../auth/state/reportAccess';
-import type { ScheduledReportFormat, ScheduledReportFrequency } from '../../../types/scheduledReport';
+import type {
+  ScheduledReportFormat,
+  ScheduledReportFrequency,
+} from '../../../types/scheduledReport';
 import useScheduledReportsController from '../hooks/useScheduledReportsController';
+import {
+  formatScheduledReportTimestamp,
+  getScheduledReportHealth,
+} from '../utils/scheduledReportHealth';
+
+type ScheduledReportStatusFilter = 'all' | 'active' | 'paused' | 'attention';
 
 const formatSchedule = (
   frequency: ScheduledReportFrequency,
@@ -54,6 +63,7 @@ export default function ScheduledReportsPage() {
     loadAllScheduledData,
     loading,
     openEditDialog,
+    reports,
     runsByReportId,
     savedReports,
     searchQuery,
@@ -65,6 +75,37 @@ export default function ScheduledReportsPage() {
     sortedReports,
     statusFilter,
   } = useScheduledReportsController();
+
+  const healthSummary = useMemo(
+    () =>
+      reports.reduce(
+        (summary, report) => {
+          const health = getScheduledReportHealth(report);
+          summary.total += 1;
+          summary[health.status] += 1;
+          return summary;
+        },
+        { total: 0, healthy: 0, running: 0, attention: 0, paused: 0 }
+      ),
+    [reports]
+  );
+
+  const healthCards = [
+    { label: 'Total schedules', value: healthSummary.total, detail: 'Tracked delivery plans' },
+    { label: 'On schedule', value: healthSummary.healthy, detail: 'Active with a future run' },
+    { label: 'Running now', value: healthSummary.running, detail: 'Processing started' },
+    { label: 'Needs attention', value: healthSummary.attention, detail: 'Error or overdue run' },
+    { label: 'Paused', value: healthSummary.paused, detail: 'Inactive schedules' },
+  ];
+
+  const healthBadgeClass = (status: ReturnType<typeof getScheduledReportHealth>['status']) =>
+    status === 'attention'
+      ? 'bg-app-accent-soft text-app-accent-text'
+      : status === 'running'
+        ? 'bg-app-accent-soft text-app-accent-text'
+        : status === 'healthy'
+          ? 'bg-app-surface-muted text-app-text'
+          : 'bg-app-surface-muted text-app-text-muted';
 
   const renderScheduleForm = (
     mode: 'create' | 'edit',
@@ -123,9 +164,7 @@ export default function ScheduledReportsPage() {
               className={mode === 'create' ? 'lg:col-span-2' : 'md:col-span-2'}
               label="Recipients (comma-separated emails)"
               value={form.recipients}
-              onChange={(event) =>
-                setForm((prev) => ({ ...prev, recipients: event.target.value }))
-              }
+              onChange={(event) => setForm((prev) => ({ ...prev, recipients: event.target.value }))}
               placeholder="ops@example.org, director@example.org"
             />
 
@@ -148,7 +187,10 @@ export default function ScheduledReportsPage() {
               label="Format"
               value={form.format}
               onChange={(event) =>
-                setForm((prev) => ({ ...prev, format: event.target.value as ScheduledReportFormat }))
+                setForm((prev) => ({
+                  ...prev,
+                  format: event.target.value as ScheduledReportFormat,
+                }))
               }
             >
               <option value="csv">CSV</option>
@@ -162,7 +204,9 @@ export default function ScheduledReportsPage() {
             />
 
             <div className="space-y-1.5">
-              <p className="block text-xs font-semibold uppercase tracking-wide text-app-text-label">Time (HH:MM)</p>
+              <p className="block text-xs font-semibold uppercase tracking-wide text-app-text-label">
+                Time (HH:MM)
+              </p>
               <div className="grid grid-cols-2 gap-2">
                 <FormField
                   aria-label="Hour"
@@ -242,9 +286,9 @@ export default function ScheduledReportsPage() {
           }
           actions={
             canManageScheduledReports ? (
-            <PrimaryButton onClick={() => setShowCreate((prev) => !prev)}>
-              {showCreate ? 'Close Creator' : 'New Schedule'}
-            </PrimaryButton>
+              <PrimaryButton onClick={() => setShowCreate((prev) => !prev)}>
+                {showCreate ? 'Close Creator' : 'New Schedule'}
+              </PrimaryButton>
             ) : undefined
           }
         />
@@ -260,6 +304,21 @@ export default function ScheduledReportsPage() {
           editTarget &&
           renderScheduleForm('edit', handleSaveEdit, closeEditDialog)}
 
+        <div className="grid gap-3 md:grid-cols-5">
+          {healthCards.map((card) => (
+            <div
+              key={card.label}
+              className="rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface px-4 py-3 shadow-sm"
+            >
+              <p className="text-xs font-semibold uppercase tracking-wide text-app-text-muted">
+                {card.label}
+              </p>
+              <p className="mt-2 text-2xl font-black text-app-text">{card.value}</p>
+              <p className="mt-1 text-xs text-app-text-muted">{card.detail}</p>
+            </div>
+          ))}
+        </div>
+
         <SectionCard title="Filters" subtitle="Search and narrow schedules by status.">
           <div className="grid gap-3 md:grid-cols-3">
             <FormField
@@ -273,12 +332,13 @@ export default function ScheduledReportsPage() {
               label="Status"
               value={statusFilter}
               onChange={(event) =>
-                setStatusFilter(event.target.value as 'all' | 'active' | 'paused')
+                setStatusFilter(event.target.value as ScheduledReportStatusFilter)
               }
             >
               <option value="all">All</option>
               <option value="active">Active</option>
               <option value="paused">Paused</option>
+              <option value="attention">Needs attention</option>
             </SelectField>
           </div>
         </SectionCard>
@@ -297,7 +357,9 @@ export default function ScheduledReportsPage() {
             }
             action={
               canManageScheduledReports ? (
-                <PrimaryButton onClick={() => setShowCreate(true)}>Create first schedule</PrimaryButton>
+                <PrimaryButton onClick={() => setShowCreate(true)}>
+                  Create first schedule
+                </PrimaryButton>
               ) : undefined
             }
           />
@@ -314,145 +376,186 @@ export default function ScheduledReportsPage() {
               <table className="min-w-full divide-y divide-app-border-muted bg-app-surface text-sm">
                 <thead className="bg-app-surface-muted">
                   <tr>
-                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-app-text-muted">Name</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-app-text-muted">Recipients</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-app-text-muted">Schedule</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-app-text-muted">Next Run</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-app-text-muted">Status</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-app-text-muted">Actions</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-app-text-muted">
+                      Name
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-app-text-muted">
+                      Recipients
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-app-text-muted">
+                      Schedule
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-app-text-muted">
+                      Next Run
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-app-text-muted">
+                      Status
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-app-text-muted">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-app-border-muted">
-                  {sortedReports.map((report) => (
-                    <Fragment key={report.id}>
-                      <tr>
-                        <td className="px-3 py-2">
-                          <p className="font-semibold text-app-text">{report.name}</p>
-                          <p className="text-xs text-app-text-muted">Format: {report.format.toUpperCase()}</p>
-                        </td>
-                        <td className="px-3 py-2 text-app-text">{report.recipients.join(', ')}</td>
-                        <td className="px-3 py-2 text-app-text">
-                          {formatSchedule(report.frequency, report.day_of_week, report.day_of_month)}
-                          <p className="text-xs text-app-text-muted">
-                            {String(report.hour).padStart(2, '0')}:{String(report.minute).padStart(2, '0')} ({report.timezone})
-                          </p>
-                        </td>
-                        <td className="px-3 py-2 text-app-text">{new Date(report.next_run_at).toLocaleString()}</td>
-                        <td className="px-3 py-2">
-                          <span
-                            className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${
-                              report.is_active
-                                ? 'bg-app-accent-soft text-app-accent-text'
-                                : 'bg-app-surface-muted text-app-text-muted'
-                            }`}
-                          >
-                            {report.is_active ? 'Active' : 'Paused'}
-                          </span>
-                          {report.last_error && (
-                            <p className="mt-1 text-xs text-app-accent-text">{report.last_error}</p>
-                          )}
-                        </td>
-                        <td className="px-3 py-2">
-                          <div className="flex flex-wrap gap-2">
-                            {canManageScheduledReports && (
-                              <>
-                                <SecondaryButton
-                                  className="px-2 py-1 text-xs"
-                                  onClick={() => void handleToggleScheduledReport(report.id)}
-                                >
-                                  {report.is_active ? 'Pause' : 'Resume'}
-                                </SecondaryButton>
-                                <PrimaryButton
-                                  className="px-2 py-1 text-xs"
-                                  onClick={() => void handleRunNow(report.id)}
-                                >
-                                  Run Now
-                                </PrimaryButton>
-                                <SecondaryButton
-                                  className="px-2 py-1 text-xs"
-                                  onClick={() => openEditDialog(report)}
-                                >
-                                  Edit
-                                </SecondaryButton>
-                              </>
-                            )}
-                            <SecondaryButton
-                              className="px-2 py-1 text-xs"
-                              onClick={() => void handleOpenHistory(report.id)}
-                            >
-                              {historyReportId === report.id ? 'Hide Runs' : 'View Runs'}
-                            </SecondaryButton>
-                            {canManageScheduledReports && (
-                              <SecondaryButton
-                                className="px-2 py-1 text-xs text-app-accent-text"
-                                onClick={() => {
-                                  if (!window.confirm('Delete this schedule?')) return;
-                                  void handleDelete(report.id);
-                                }}
-                              >
-                                Delete
-                              </SecondaryButton>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
+                  {sortedReports.map((report) => {
+                    const health = getScheduledReportHealth(report);
 
-                      {historyReportId === report.id && (
-                        <tr className="bg-app-surface-muted/40">
-                          <td colSpan={6} className="px-3 py-3">
-                            <p className="mb-2 text-sm font-semibold text-app-text">Recent Runs</p>
-                            {(runsByReportId[report.id] || []).length === 0 ? (
-                              <p className="text-xs text-app-text-muted">No run history yet.</p>
-                            ) : (
-                              <div className="space-y-2">
-                                {(runsByReportId[report.id] || []).map((run) => (
-                                  <div
-                                    key={run.id}
-                                    className="rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-3 py-2"
-                                  >
-                                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                                      <span className="font-semibold uppercase text-app-text">{run.status}</span>
-                                      <span className="text-app-text-muted">
-                                        {new Date(run.started_at).toLocaleString()}
-                                      </span>
-                                      <span className="text-app-text-muted">{run.rows_count ?? 0} rows</span>
-                                    </div>
-                                    <p className="mt-1 text-[11px] text-app-text-muted">
-                                      Completed: {run.completed_at ? new Date(run.completed_at).toLocaleString() : '—'}
-                                      {' • '}
-                                      Artifact: {run.file_name || '-'}
-                                    </p>
-                                    {run.error_message && (
-                                      <p className="mt-1 text-[11px] text-app-accent-text">Error: {run.error_message}</p>
-                                    )}
-                                    {canExportReports && run.status === 'success' && run.reportExportJobId && (
-                                      <SecondaryButton
-                                        className="mt-2 px-2 py-1 text-[11px]"
-                                        onClick={() => void handleDownloadRunArtifact(run)}
-                                        disabled={downloadingExportJobId === run.reportExportJobId}
-                                      >
-                                        {downloadingExportJobId === run.reportExportJobId
-                                          ? 'Downloading...'
-                                          : 'Download Artifact'}
-                                      </SecondaryButton>
-                                    )}
-                                    {canManageScheduledReports && run.status === 'failed' && (
-                                      <SecondaryButton
-                                        className="mt-2 px-2 py-1 text-[11px]"
-                                        onClick={() => void handleRunNow(report.id)}
-                                      >
-                                        Retry Failed Run
-                                      </SecondaryButton>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
+                    return (
+                      <Fragment key={report.id}>
+                        <tr>
+                          <td className="px-3 py-2">
+                            <p className="font-semibold text-app-text">{report.name}</p>
+                            <p className="text-xs text-app-text-muted">
+                              Format: {report.format.toUpperCase()}
+                            </p>
+                          </td>
+                          <td className="px-3 py-2 text-app-text">
+                            {report.recipients.join(', ')}
+                          </td>
+                          <td className="px-3 py-2 text-app-text">
+                            {formatSchedule(
+                              report.frequency,
+                              report.day_of_week,
+                              report.day_of_month
                             )}
+                            <p className="text-xs text-app-text-muted">
+                              {String(report.hour).padStart(2, '0')}:
+                              {String(report.minute).padStart(2, '0')} ({report.timezone})
+                            </p>
+                          </td>
+                          <td className="px-3 py-2 text-app-text">
+                            {new Date(report.next_run_at).toLocaleString()}
+                          </td>
+                          <td className="px-3 py-2">
+                            <span
+                              className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${healthBadgeClass(
+                                health.status
+                              )}`}
+                            >
+                              {health.label}
+                            </span>
+                            <p className="mt-1 text-xs text-app-text-muted">{health.detail}</p>
+                            <p className="mt-1 text-xs text-app-text-subtle">
+                              Last run: {formatScheduledReportTimestamp(report.last_run_at)}
+                            </p>
+                          </td>
+                          <td className="px-3 py-2">
+                            <div className="flex flex-wrap gap-2">
+                              {canManageScheduledReports && (
+                                <>
+                                  <SecondaryButton
+                                    className="px-2 py-1 text-xs"
+                                    onClick={() => void handleToggleScheduledReport(report.id)}
+                                  >
+                                    {report.is_active ? 'Pause' : 'Resume'}
+                                  </SecondaryButton>
+                                  <PrimaryButton
+                                    className="px-2 py-1 text-xs"
+                                    onClick={() => void handleRunNow(report.id)}
+                                  >
+                                    Run Now
+                                  </PrimaryButton>
+                                  <SecondaryButton
+                                    className="px-2 py-1 text-xs"
+                                    onClick={() => openEditDialog(report)}
+                                  >
+                                    Edit
+                                  </SecondaryButton>
+                                </>
+                              )}
+                              <SecondaryButton
+                                className="px-2 py-1 text-xs"
+                                onClick={() => void handleOpenHistory(report.id)}
+                              >
+                                {historyReportId === report.id ? 'Hide Runs' : 'View Runs'}
+                              </SecondaryButton>
+                              {canManageScheduledReports && (
+                                <SecondaryButton
+                                  className="px-2 py-1 text-xs text-app-accent-text"
+                                  onClick={() => {
+                                    if (!window.confirm('Delete this schedule?')) return;
+                                    void handleDelete(report.id);
+                                  }}
+                                >
+                                  Delete
+                                </SecondaryButton>
+                              )}
+                            </div>
                           </td>
                         </tr>
-                      )}
-                    </Fragment>
-                  ))}
+
+                        {historyReportId === report.id && (
+                          <tr className="bg-app-surface-muted/40">
+                            <td colSpan={6} className="px-3 py-3">
+                              <p className="mb-2 text-sm font-semibold text-app-text">
+                                Recent Runs
+                              </p>
+                              {(runsByReportId[report.id] || []).length === 0 ? (
+                                <p className="text-xs text-app-text-muted">No run history yet.</p>
+                              ) : (
+                                <div className="space-y-2">
+                                  {(runsByReportId[report.id] || []).map((run) => (
+                                    <div
+                                      key={run.id}
+                                      className="rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-3 py-2"
+                                    >
+                                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                                        <span className="font-semibold uppercase text-app-text">
+                                          {run.status}
+                                        </span>
+                                        <span className="text-app-text-muted">
+                                          {new Date(run.started_at).toLocaleString()}
+                                        </span>
+                                        <span className="text-app-text-muted">
+                                          {run.rows_count ?? 0} rows
+                                        </span>
+                                      </div>
+                                      <p className="mt-1 text-[11px] text-app-text-muted">
+                                        Completed:{' '}
+                                        {run.completed_at
+                                          ? new Date(run.completed_at).toLocaleString()
+                                          : '—'}
+                                        {' • '}
+                                        Artifact: {run.file_name || '-'}
+                                      </p>
+                                      {run.error_message && (
+                                        <p className="mt-1 text-[11px] text-app-accent-text">
+                                          Error: {run.error_message}
+                                        </p>
+                                      )}
+                                      {canExportReports &&
+                                        run.status === 'success' &&
+                                        run.reportExportJobId && (
+                                          <SecondaryButton
+                                            className="mt-2 px-2 py-1 text-[11px]"
+                                            onClick={() => void handleDownloadRunArtifact(run)}
+                                            disabled={
+                                              downloadingExportJobId === run.reportExportJobId
+                                            }
+                                          >
+                                            {downloadingExportJobId === run.reportExportJobId
+                                              ? 'Downloading...'
+                                              : 'Download Artifact'}
+                                          </SecondaryButton>
+                                        )}
+                                      {canManageScheduledReports && run.status === 'failed' && (
+                                        <SecondaryButton
+                                          className="mt-2 px-2 py-1 text-[11px]"
+                                          onClick={() => void handleRunNow(report.id)}
+                                        >
+                                          Retry Failed Run
+                                        </SecondaryButton>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

@@ -311,13 +311,11 @@ test('user settings uploads and persists the profile avatar', async ({ request, 
     await createWebhookButton.click({ force: true });
     await createWebhookResponse;
 
-    const webhookCard = page
-      .locator('div')
-      .filter({ hasText: webhookUrl })
-      .filter({ has: page.getByRole('button', { name: /^delete$/i }) })
-      .first();
-    await expect(webhookCard).toBeVisible({ timeout: 15000 });
-    await expect(webhookCard).toContainText(webhookDescription);
+    const deleteButton = page.getByRole('button', {
+      name: `Delete webhook endpoint ${webhookUrl}`,
+    });
+    await expect(deleteButton).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(webhookDescription)).toBeVisible();
 
     const deleteWebhookResponse = page.waitForResponse(
       (response) =>
@@ -325,7 +323,6 @@ test('user settings uploads and persists the profile avatar', async ({ request, 
         response.url().includes('/api/v2/webhooks/endpoints/') &&
         response.ok()
     );
-    const deleteButton = webhookCard.getByRole('button', { name: /^delete$/i });
     await deleteButton.scrollIntoViewIfNeeded();
     await deleteButton.click({ force: true });
     const confirmDeleteDialog = page
@@ -337,7 +334,7 @@ test('user settings uploads and persists the profile avatar', async ({ request, 
     await confirmDeleteButton.click({ force: true });
     await deleteWebhookResponse;
 
-    await expect(webhookCard).toHaveCount(0);
+    await expect(deleteButton).toHaveCount(0);
   });
 
   test('navigation settings toggles a module and resets defaults', async ({ page }) => {

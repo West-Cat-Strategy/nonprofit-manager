@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { EmptyState, ErrorState, LoadingState } from '../ui';
+import { classNames } from '../ui/classNames';
 
 interface PortalPageStateProps {
   loading?: boolean;
@@ -14,6 +15,7 @@ interface PortalPageStateProps {
   description?: string;
   actions?: ReactNode;
   compact?: boolean;
+  emptyIcon?: ReactNode;
 }
 
 export default function PortalPageState({
@@ -29,6 +31,7 @@ export default function PortalPageState({
   description,
   actions,
   compact = false,
+  emptyIcon,
 }: PortalPageStateProps) {
   const spacingClass = compact ? 'mt-2' : 'mt-4';
 
@@ -78,7 +81,26 @@ export default function PortalPageState({
             {actions}
           </div>
         )}
-        <EmptyState className={spacingClass} title={emptyTitle} description={emptyDescription} />
+        {emptyIcon ? (
+          <div
+            className={classNames(
+              'rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface-muted p-6 transition-colors duration-150',
+              spacingClass
+            )}
+          >
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface text-app-accent">
+                {emptyIcon}
+              </span>
+              <div>
+                <p className="text-base font-medium text-app-text">{emptyTitle}</p>
+                {emptyDescription && <p className="mt-1 text-sm text-app-text-muted">{emptyDescription}</p>}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <EmptyState className={spacingClass} title={emptyTitle} description={emptyDescription} />
+        )}
       </div>
     );
   }

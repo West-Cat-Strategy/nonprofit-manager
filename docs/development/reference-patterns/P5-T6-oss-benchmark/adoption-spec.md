@@ -5,8 +5,8 @@
 ## Locked Decisions
 
 1. The benchmark cohort is fixed to six primary upstream projects in wave one: `CiviCRM`, `OpenPetra`, `ERPNext`, `SuiteCRM`, `OpenSPP`, and `Sahana Eden`.
-2. Upstream clones live under `reference-repos/external/nm--<slug>/`; `reference-repos/local/` remains scratch space only.
-3. The only approved companion repo in wave one is `reference-repos/external/nm--civicrm-docker` because the official standalone local lab for CiviCRM lives there.
+2. Upstream clones live centrally under `/Users/bryan/projects/reference-repos/repos/`; ignored `reference-repos/external/nm--<slug>/` symlinks preserve the original review paths.
+3. The only approved companion repo in wave one is the `reference-repos/external/nm--civicrm-docker` compatibility path because the official standalone local lab for CiviCRM lives there.
 4. Clone contents remain local-only and ignored, but the comparison, synthesis, and workboard coordination are tracked `P5-T6` planning work.
 5. The lead owns `docs/phases/planning-and-progress.md`, `reference-repos/manifest.lock.json`, and `docs/development/reference-patterns/P5-T6-oss-benchmark/**`.
 6. Subagent lanes are analysis-only. They review local clones and this repo, then hand structured findings back to the lead instead of editing tracked files directly.

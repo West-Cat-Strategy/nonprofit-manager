@@ -66,10 +66,12 @@ import {
   caseFormCaseParamsSchema,
   caseFormCaseTypeParamsSchema,
   caseFormDraftSchema,
+  caseFormDefaultParamsSchema,
   caseFormListQuerySchema,
   caseFormReviewDecisionSchema,
   caseFormSendSchema,
   caseFormSubmitSchema,
+  caseFormTemplateListQuerySchema,
   createCaseFormAssignmentSchema,
   createCaseFormDefaultSchema,
   updateCaseFormAssignmentSchema,
@@ -422,6 +424,24 @@ export const createCasesRoutes = (): Router => {
   router.get('/types', catalogController.getCaseTypes);
   router.get('/statuses', catalogController.getCaseStatuses);
   router.get(
+    '/forms/templates',
+    validateQuery(caseFormTemplateListQuerySchema),
+    formsController.listTemplates
+  );
+  router.post(
+    '/forms/templates',
+    validateBody(createCaseFormDefaultSchema),
+    requirePermission(Permission.CASE_EDIT),
+    formsController.createTemplate
+  );
+  router.put(
+    '/forms/templates/:defaultId',
+    validateParams(caseFormDefaultParamsSchema),
+    validateBody(updateCaseFormDefaultSchema),
+    requirePermission(Permission.CASE_EDIT),
+    formsController.autosaveTemplate
+  );
+  router.get(
     '/types/:caseTypeId/forms/defaults',
     validateParams(caseFormCaseTypeParamsSchema),
     formsController.listDefaults
@@ -478,6 +498,13 @@ export const createCasesRoutes = (): Router => {
     validateParams(caseFormInstantiateParamsSchema),
     requirePermission(Permission.CASE_EDIT),
     formsController.instantiateDefault
+  );
+  router.post(
+    '/:id/forms/:assignmentId/save-template',
+    validateParams(caseFormAssignmentParamsSchema),
+    validateBody(createCaseFormDefaultSchema),
+    requirePermission(Permission.CASE_EDIT),
+    formsController.saveAssignmentAsTemplate
   );
   router.get(
     '/:id/forms/:assignmentId',

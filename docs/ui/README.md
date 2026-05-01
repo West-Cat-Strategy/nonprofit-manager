@@ -1,8 +1,9 @@
 # UI Docs
 
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-05-01
 
 Use this index for the current design-system and UI-governance docs. Start here before reaching for dated audit snapshots.
+For contributor workflow and validation expectations, use [../../CONTRIBUTING.md](../../CONTRIBUTING.md) before changing UI code or docs.
 
 ## Current Reference Docs
 

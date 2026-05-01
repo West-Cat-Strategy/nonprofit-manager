@@ -2,6 +2,7 @@ import { BrutalCard } from '../../../components/neo-brutalist';
 import type {
   CaseFormAsset,
   CaseFormAssignmentDetail,
+  CaseFormAssignmentEvent,
   CaseFormQuestion,
   CaseFormSchema,
 } from '../../../types/caseForms';
@@ -17,6 +18,33 @@ interface CaseFormsPreviewHistoryProps {
   onAnswerChange: (questionKey: string, value: unknown) => void;
   onUploadAsset: (question: CaseFormQuestion, file: File) => Promise<CaseFormAsset>;
 }
+
+const eventLabels: Record<CaseFormAssignmentEvent['event_type'], string> = {
+  opened: 'Opened to client',
+  submission_recorded: 'Submission recorded',
+  revision_requested: 'Revision requested',
+  reviewed: 'Reviewed',
+  closed: 'Closed',
+  cancelled: 'Cancelled',
+};
+
+const formatEventSummary = (event: CaseFormAssignmentEvent): string => {
+  const parts = [
+    event.submission_id ? `Submission ${event.metadata.submission_number || event.submission_id}` : null,
+    typeof event.metadata.mapped_field_count === 'number'
+      ? `${event.metadata.mapped_field_count} mapped fields`
+      : null,
+    typeof event.metadata.selected_asset_count === 'number'
+      ? `${event.metadata.selected_asset_count} assets`
+      : null,
+    event.metadata.decision ? `Decision: ${event.metadata.decision}` : null,
+    typeof event.metadata.notes_character_count === 'number'
+      ? `${event.metadata.notes_character_count} note chars`
+      : null,
+  ].filter(Boolean);
+
+  return parts.join(' / ');
+};
 
 export function CaseFormsPreviewHistory({
   assets,
@@ -46,6 +74,41 @@ export function CaseFormsPreviewHistory({
           onUploadAsset={onUploadAsset}
         />
       </BrutalCard>
+
+      {detail.evidence_events && (
+        <BrutalCard color="white" className="p-6 space-y-4">
+          <div>
+            <h3 className="text-lg font-black uppercase">Evidence Events</h3>
+            <p className="text-sm text-black/70">
+              Staff-only timeline of submission and review milestones.
+            </p>
+          </div>
+          <div className="space-y-3">
+            {detail.evidence_events.length === 0 && (
+              <div className="rounded border-2 border-dashed border-black p-4 text-sm font-semibold text-black/65">
+                No evidence events recorded yet.
+              </div>
+            )}
+            {detail.evidence_events.map((event) => (
+              <div key={event.id} className="rounded border-2 border-black bg-app-surface p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-black uppercase">{eventLabels[event.event_type]}</p>
+                    <p className="text-sm text-black/70">
+                      {new Date(event.created_at).toLocaleString()} • {event.actor_type}
+                    </p>
+                  </div>
+                </div>
+                {formatEventSummary(event) && (
+                  <p className="mt-3 text-xs font-semibold uppercase text-black/60">
+                    {formatEventSummary(event)}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </BrutalCard>
+      )}
 
       <BrutalCard color="white" className="p-6 space-y-4">
         <div>

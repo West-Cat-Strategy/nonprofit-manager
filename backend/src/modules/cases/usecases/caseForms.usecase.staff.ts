@@ -2,10 +2,13 @@ import crypto from 'crypto';
 import type { Pool, PoolClient } from 'pg';
 import { sendMail } from '@services/emailService';
 import { uploadFile } from '@services/fileStorageService';
+import { sendSms } from '@services/twilioSmsService';
 import { hashData } from '@utils/encryption';
 import type {
   CaseFormAsset,
   CaseFormAssignment,
+  CaseFormDeliveryChannel,
+  CaseFormDeliveryTarget,
   CaseFormDefault,
   CaseFormReviewDecision,
   CreateCaseFormAssignmentDTO,
@@ -32,14 +35,100 @@ import {
   buildAccessLinkUrl,
   buildReviewFollowUpResolutionNote,
   DownloadableFile,
-  formatDeliveryTargetLabel,
-  includesEmailDelivery,
   noteContent,
   resolveDraftStatus,
   resolveExpiryDate,
 } from './caseForms.usecase.shared';
 
 type Db = Pool | PoolClient;
+
+interface CaseFormTemplateListFilters {
+  status?: 'draft' | 'published' | 'archived';
+  caseTypeId?: string | null;
+}
+
+const DELIVERY_CHANNEL_ORDER: CaseFormDeliveryChannel[] = ['portal', 'email', 'sms'];
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const normalizeDeliveryChannels = (payload: SendCaseFormAssignmentDTO): CaseFormDeliveryChannel[] => {
+  const channels = new Set<CaseFormDeliveryChannel>();
+  const requested = payload.delivery_channels?.length
+    ? payload.delivery_channels
+    : payload.delivery_target === 'portal_and_email'
+      ? (['portal', 'email'] satisfies CaseFormDeliveryChannel[])
+      : payload.delivery_target
+        ? ([payload.delivery_target] satisfies CaseFormDeliveryChannel[])
+        : [];
+
+  for (const channel of requested) {
+    channels.add(channel);
+  }
+
+  return DELIVERY_CHANNEL_ORDER.filter((channel) => channels.has(channel));
+};
+
+const deriveLegacyDeliveryTarget = (
+  channels: CaseFormDeliveryChannel[]
+): CaseFormDeliveryTarget | null => {
+  const channelSet = new Set(channels);
+  if (channelSet.has('portal') && channelSet.has('email')) {
+    return 'portal_and_email';
+  }
+  if (channelSet.has('portal')) {
+    return 'portal';
+  }
+  if (channelSet.has('email')) {
+    return 'email';
+  }
+  return null;
+};
+
+const formatDeliveryChannelsLabel = (channels: CaseFormDeliveryChannel[]): string =>
+  channels.map((channel) => (channel === 'sms' ? 'SMS' : channel)).join(', ');
+
+const getContactDeliveryFallbacks = async (
+  db: Db,
+  contactId: string
+): Promise<{ email: string | null; phone: string | null }> => {
+  if (!UUID_PATTERN.test(contactId)) {
+    return { email: null, phone: null };
+  }
+
+  const result = await db.query<{
+    email: string | null;
+    phone: string | null;
+    mobile_phone: string | null;
+  }>(
+    `SELECT email, phone, mobile_phone
+     FROM contacts
+     WHERE id = $1
+     LIMIT 1`,
+    [contactId]
+  );
+  const row = result.rows[0];
+  return {
+    email: row?.email?.trim() || null,
+    phone: row?.mobile_phone?.trim() || row?.phone?.trim() || null,
+  };
+};
+
+const hasActivePortalAccount = async (db: Db, contactId: string): Promise<boolean> => {
+  if (!UUID_PATTERN.test(contactId)) {
+    return false;
+  }
+
+  const result = await db.query<{ exists: boolean }>(
+    `SELECT EXISTS (
+       SELECT 1
+       FROM portal_users
+       WHERE contact_id = $1
+         AND status = 'active'
+       LIMIT 1
+     ) AS exists`,
+    [contactId]
+  );
+  return result.rows[0]?.exists === true;
+};
 
 const applyReviewFollowUpDecision = async (
   repository: CaseFormsRepository,
@@ -82,6 +171,17 @@ export const listCaseFormDefaults = async (
   organizationId?: string
 ): Promise<CaseFormDefault[]> => repository.listDefaultsByCaseType(caseTypeId, organizationId);
 
+export const listCaseFormTemplates = async (
+  repository: CaseFormsRepository,
+  filters: CaseFormTemplateListFilters,
+  organizationId?: string
+): Promise<CaseFormDefault[]> =>
+  repository.listTemplates({
+    organizationId: organizationId || null,
+    status: filters.status,
+    caseTypeId: filters.caseTypeId,
+  });
+
 export const createCaseFormDefault = async (
   repository: CaseFormsRepository,
   caseTypeId: string,
@@ -97,6 +197,7 @@ export const createCaseFormDefault = async (
       description: payload.description || null,
       schema: payload.schema,
       isActive: payload.is_active !== false,
+      templateStatus: payload.template_status || 'published',
       userId: userId || null,
     })
   );
@@ -120,6 +221,81 @@ export const updateCaseFormDefault = async (
       description: payload.description,
       schema: payload.schema,
       isActive: payload.is_active,
+      templateStatus: payload.template_status,
+      autosave: payload.autosave === true,
+      userId: userId || null,
+    })
+  );
+};
+
+export const createCaseFormTemplate = async (
+  repository: CaseFormsRepository,
+  payload: CreateCaseFormDefaultDTO,
+  userId?: string,
+  organizationId?: string
+): Promise<CaseFormDefault> =>
+  repository.withTransaction((client) =>
+    repository.createDefault(client, {
+      caseTypeId: payload.case_type_id ?? null,
+      organizationId: organizationId || null,
+      title: payload.title,
+      description: payload.description || null,
+      schema: payload.schema,
+      isActive: payload.is_active !== false,
+      templateStatus: payload.template_status || 'draft',
+      savedFromAssignmentId: payload.saved_from_assignment_id ?? null,
+      autosave: true,
+      userId: userId || null,
+    })
+  );
+
+export const autosaveCaseFormTemplate = async (
+  repository: CaseFormsRepository,
+  templateId: string,
+  payload: UpdateCaseFormDefaultDTO,
+  userId?: string,
+  organizationId?: string
+): Promise<CaseFormDefault> => {
+  const current = await repository.getDefaultById(templateId, organizationId);
+  if (!current) {
+    throw Object.assign(new Error('Form template not found'), { statusCode: 404, code: 'not_found' });
+  }
+
+  return repository.withTransaction((client) =>
+    repository.updateDefault(client, templateId, {
+      title: payload.title,
+      description: payload.description,
+      schema: payload.schema,
+      isActive: payload.is_active,
+      caseTypeId: payload.case_type_id,
+      templateStatus: payload.template_status,
+      autosave: true,
+      userId: userId || null,
+    })
+  );
+};
+
+export const saveCaseFormAssignmentAsTemplate = async (
+  repository: CaseFormsRepository,
+  db: Db,
+  caseId: string,
+  assignmentId: string,
+  payload: CreateCaseFormDefaultDTO,
+  userId?: string,
+  organizationId?: string
+): Promise<CaseFormDefault> => {
+  const assignment = await getCaseAssignment(repository, db, caseId, assignmentId, organizationId);
+  return repository.withTransaction((client) =>
+    repository.createDefault(client, {
+      caseTypeId: payload.case_type_id ?? assignment.case_type_id ?? null,
+      organizationId: organizationId || assignment.account_id || null,
+      title: payload.title || assignment.title,
+      description: payload.description ?? assignment.description ?? null,
+      schema: payload.schema || assignment.schema,
+      isActive: payload.is_active !== false,
+      templateStatus: payload.template_status || 'draft',
+      savedFromAssignmentId: assignment.id,
+      autosave: true,
       userId: userId || null,
     })
   );
@@ -181,6 +357,7 @@ export const createCaseFormAssignment = async (
       schema: payload.schema,
       dueAt: payload.due_at || null,
       recipientEmail: payload.recipient_email || null,
+      recipientPhone: payload.recipient_phone || null,
       userId: userId || null,
     })
   );
@@ -228,6 +405,7 @@ export const getCaseFormAssignmentDetailForCase = async (
     responsePacketDownloadUrl: `/api/v2/cases/${assignment.case_id}/forms/${assignment.id}/response-packet`,
     buildAssetDownloadUrl: (assetId) =>
       `/api/v2/cases/${assignment.case_id}/forms/${assignment.id}/assets/${assetId}/download`,
+    includeEvidenceEvents: true,
   });
 };
 
@@ -248,7 +426,9 @@ export const updateCaseFormAssignmentForCase = async (
       schema: payload.schema,
       dueAt: payload.due_at,
       recipientEmail: payload.recipient_email,
+      recipientPhone: payload.recipient_phone,
       status: payload.status,
+      structureAutosave: payload.autosave === true,
       userId,
     })
   );
@@ -335,6 +515,7 @@ export const submitCaseFormForCase = async (
       responsePacketDownloadUrl: `/api/v2/cases/${assignment.case_id}/forms/${assignment.id}/response-packet`,
       buildAssetDownloadUrl: (assetId) =>
         `/api/v2/cases/${assignment.case_id}/forms/${assignment.id}/assets/${assetId}/download`,
+      includeEvidenceEvents: true,
     }
   );
 };
@@ -356,17 +537,40 @@ export const sendCaseFormAssignment = async (
     });
   }
 
-  if (assignment.client_viewable !== true) {
+  const deliveryChannels = normalizeDeliveryChannels(payload);
+  if (deliveryChannels.length === 0) {
+    throw Object.assign(new Error('At least one delivery channel is required'), {
+      statusCode: 400,
+      code: 'validation_error',
+    });
+  }
+
+  const portalDeliveryEnabled = deliveryChannels.includes('portal');
+  const emailDeliveryEnabled = deliveryChannels.includes('email');
+  const smsDeliveryEnabled = deliveryChannels.includes('sms');
+  const needsContactFallback =
+    (emailDeliveryEnabled && !payload.recipient_email?.trim() && !assignment.recipient_email?.trim()) ||
+    (smsDeliveryEnabled && !payload.recipient_phone?.trim() && !assignment.recipient_phone?.trim());
+  const contactFallbacks = needsContactFallback
+    ? await getContactDeliveryFallbacks(db, assignment.contact_id)
+    : { email: null, phone: null };
+  const portalAllowed =
+    assignment.client_viewable === true ||
+    (portalDeliveryEnabled ? await hasActivePortalAccount(db, assignment.contact_id) : false);
+
+  if (portalDeliveryEnabled && !portalAllowed) {
     throw Object.assign(
-      new Error('This case must be shared with the client before forms can be delivered'),
+      new Error('This client needs portal access or a client-visible case before portal delivery'),
       { statusCode: 400, code: 'validation_error' }
     );
   }
 
-  const emailDeliveryEnabled = includesEmailDelivery(payload.delivery_target);
   const recipientEmail = emailDeliveryEnabled
-    ? payload.recipient_email?.trim() || assignment.recipient_email?.trim() || null
+    ? payload.recipient_email?.trim() || assignment.recipient_email?.trim() || contactFallbacks.email
     : assignment.recipient_email?.trim() || null;
+  const recipientPhone = smsDeliveryEnabled
+    ? payload.recipient_phone?.trim() || assignment.recipient_phone?.trim() || contactFallbacks.phone
+    : assignment.recipient_phone?.trim() || null;
 
   if (emailDeliveryEnabled && !recipientEmail) {
     throw Object.assign(new Error('Recipient email is required for email delivery'), {
@@ -374,63 +578,23 @@ export const sendCaseFormAssignment = async (
       code: 'validation_error',
     });
   }
-
-  const rawToken = emailDeliveryEnabled ? crypto.randomBytes(24).toString('base64url') : null;
-  const tokenHash = rawToken ? hashData(rawToken) : null;
-  const expiresAt = emailDeliveryEnabled ? resolveExpiryDate(assignment, payload.expires_in_days) : null;
-  const sentAt = new Date();
-
-  const refreshed = await repository.withTransaction(async (client) => {
-    await repository.revokeAccessTokens(client, assignment.id);
-
-    if (emailDeliveryEnabled && recipientEmail && tokenHash && expiresAt) {
-      await repository.createAccessToken(client, {
-        assignmentId: assignment.id,
-        caseId: assignment.case_id,
-        contactId: assignment.contact_id,
-        recipientEmail,
-        tokenHash,
-        expiresAt,
-        userId,
-      });
-    }
-
-    const updatedAssignment = await repository.updateAssignment(client, assignment.id, {
-      recipientEmail,
-      status: 'sent',
-      deliveryTarget: payload.delivery_target,
-      userId,
+  if (smsDeliveryEnabled && !recipientPhone) {
+    throw Object.assign(new Error('Recipient phone is required for SMS delivery'), {
+      statusCode: 400,
+      code: 'validation_error',
     });
-    await repository.markAssignmentSent(client, assignment.id);
-    await createLifecycleNote(
-      client,
-      assignment.case_id,
-      noteContent(
-        'sent',
-        assignment.title,
-        [
-          `Delivered via ${formatDeliveryTargetLabel(payload.delivery_target)}.`,
-          emailDeliveryEnabled && recipientEmail ? `Recipient: ${recipientEmail}.` : null,
-        ]
-          .filter(Boolean)
-          .join(' ')
-      ),
-      userId || null
-    );
+  }
 
-    return {
-      ...updatedAssignment,
-      recipient_email: recipientEmail,
-      status: 'sent' as const,
-      delivery_target: payload.delivery_target,
-      sent_at: sentAt,
-      updated_at: sentAt,
-    };
-  });
+  const secureLinkDeliveryEnabled = emailDeliveryEnabled || smsDeliveryEnabled;
+  const rawToken = secureLinkDeliveryEnabled ? crypto.randomBytes(24).toString('base64url') : null;
+  const tokenHash = rawToken ? hashData(rawToken) : null;
+  const expiresAt = secureLinkDeliveryEnabled ? resolveExpiryDate(assignment, payload.expires_in_days) : null;
+  const sentAt = new Date();
+  const legacyDeliveryTarget = deriveLegacyDeliveryTarget(deliveryChannels);
+  const accessLink = rawToken ? buildAccessLinkUrl(rawToken) : null;
 
-  if (emailDeliveryEnabled && recipientEmail && rawToken && expiresAt) {
-    const accessLink = buildAccessLinkUrl(rawToken);
-    await sendMail({
+  if (emailDeliveryEnabled && recipientEmail && accessLink && expiresAt) {
+    const mailSent = await sendMail({
       to: recipientEmail,
       subject: `Please complete your form: ${assignment.title}`,
       text: [
@@ -455,11 +619,104 @@ export const sendCaseFormAssignment = async (
         .filter(Boolean)
         .join(''),
     });
+    if (!mailSent) {
+      throw Object.assign(new Error('Email delivery failed'), {
+        statusCode: 502,
+        code: 'email_delivery_failed',
+      });
+    }
   }
+
+  if (smsDeliveryEnabled && recipientPhone && accessLink && expiresAt) {
+    const smsResult = await sendSms({
+      to: recipientPhone,
+      body: [
+        `Please complete your form: ${assignment.title}`,
+        accessLink,
+        `This secure link expires on ${expiresAt.toISOString()}.`,
+      ].join('\n'),
+    });
+    if (!smsResult.success) {
+      throw Object.assign(new Error(smsResult.error || 'SMS delivery failed'), {
+        statusCode: 502,
+        code: 'sms_delivery_failed',
+      });
+    }
+  }
+
+  const refreshed = await repository.withTransaction(async (client) => {
+    await repository.revokeAccessTokens(client, assignment.id);
+
+    if (secureLinkDeliveryEnabled && tokenHash && expiresAt) {
+      await repository.createAccessToken(client, {
+        assignmentId: assignment.id,
+        caseId: assignment.case_id,
+        contactId: assignment.contact_id,
+        recipientEmail: recipientEmail || null,
+        recipientPhone: recipientPhone || null,
+        deliveryChannel: emailDeliveryEnabled ? 'email' : 'sms',
+        tokenHash,
+        expiresAt,
+        userId,
+      });
+    }
+
+    const updatedAssignment = await repository.updateAssignment(client, assignment.id, {
+      recipientEmail,
+      recipientPhone,
+      status: 'sent',
+      deliveryTarget: legacyDeliveryTarget,
+      deliveryChannels,
+      userId,
+    });
+    await repository.markAssignmentSent(client, assignment.id);
+    await repository.createAssignmentEvent(client, {
+      assignmentId: assignment.id,
+      caseId: assignment.case_id,
+      contactId: assignment.contact_id,
+      accountId: assignment.account_id || null,
+      eventType: 'opened',
+      actorType: 'staff',
+      actorUserId: userId || null,
+      metadata: {
+        delivery_channels: deliveryChannels.join(','),
+        email_requested: emailDeliveryEnabled ? 1 : 0,
+        sms_requested: smsDeliveryEnabled ? 1 : 0,
+        portal_requested: portalDeliveryEnabled ? 1 : 0,
+      },
+    });
+    await createLifecycleNote(
+      client,
+      assignment.case_id,
+      noteContent(
+        'opened to client',
+        assignment.title,
+        [
+          `Delivered via ${formatDeliveryChannelsLabel(deliveryChannels)}.`,
+          emailDeliveryEnabled && recipientEmail ? `Recipient: ${recipientEmail}.` : null,
+          smsDeliveryEnabled && recipientPhone ? `SMS: ${recipientPhone}.` : null,
+        ]
+          .filter(Boolean)
+          .join(' ')
+      ),
+      userId || null
+    );
+
+    return {
+      ...updatedAssignment,
+      recipient_email: recipientEmail,
+      recipient_phone: recipientPhone,
+      status: 'sent' as const,
+      delivery_target: legacyDeliveryTarget,
+      delivery_channels: deliveryChannels,
+      sent_at: sentAt,
+      updated_at: sentAt,
+    };
+  });
 
   return {
     ...refreshed,
-    access_link_url: rawToken ? buildAccessLinkUrl(rawToken) : null,
+    access_link_url: accessLink,
   };
 };
 
@@ -493,6 +750,20 @@ export const reviewCaseFormAssignment = async (
       status: reviewPayload.decision,
       notes,
       userId: userId || null,
+    });
+    await repository.createAssignmentEvent(client, {
+      assignmentId: assignment.id,
+      caseId: assignment.case_id,
+      contactId: assignment.contact_id,
+      accountId: assignment.account_id || null,
+      eventType: reviewPayload.decision,
+      actorType: 'staff',
+      actorUserId: userId || null,
+      metadata: {
+        decision: reviewPayload.decision,
+        notes_character_count: notes?.length ?? 0,
+        review_follow_up_id: assignment.review_follow_up_id || null,
+      },
     });
     await createLifecycleNote(
       client,
@@ -575,6 +846,32 @@ export const createStaffCaseFormsFacade = (
     organizationId?: string
   ): Promise<CaseFormDefault> =>
     updateCaseFormDefault(repository, caseTypeId, defaultId, payload, userId, organizationId),
+  listTemplates: (
+    filters: CaseFormTemplateListFilters,
+    organizationId?: string
+  ): Promise<CaseFormDefault[]> =>
+    listCaseFormTemplates(repository, filters, organizationId),
+  createTemplate: (
+    payload: CreateCaseFormDefaultDTO,
+    userId?: string,
+    organizationId?: string
+  ): Promise<CaseFormDefault> =>
+    createCaseFormTemplate(repository, payload, userId, organizationId),
+  autosaveTemplate: (
+    templateId: string,
+    payload: UpdateCaseFormDefaultDTO,
+    userId?: string,
+    organizationId?: string
+  ): Promise<CaseFormDefault> =>
+    autosaveCaseFormTemplate(repository, templateId, payload, userId, organizationId),
+  saveAssignmentAsTemplate: (
+    caseId: string,
+    assignmentId: string,
+    payload: CreateCaseFormDefaultDTO,
+    userId?: string,
+    organizationId?: string
+  ): Promise<CaseFormDefault> =>
+    saveCaseFormAssignmentAsTemplate(repository, db, caseId, assignmentId, payload, userId, organizationId),
   listRecommendedDefaults: (caseId: string, organizationId?: string): Promise<CaseFormDefault[]> =>
     listCaseFormRecommendedDefaults(repository, db, caseId, organizationId),
   listAssignmentsForCase: (caseId: string, organizationId?: string): Promise<CaseFormAssignment[]> =>

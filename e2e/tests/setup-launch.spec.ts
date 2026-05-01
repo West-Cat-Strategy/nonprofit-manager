@@ -142,7 +142,8 @@ const launchCriticalAuthenticatedRoutes: LaunchCriticalAuthenticatedRoute[] = [
   },
   {
     path: '/settings/navigation',
-    contentLocator: (page) => page.locator('main').getByRole('heading', { name: /^Navigation$/, level: 1 }),
+    contentLocator: (page) =>
+      page.locator('main').getByRole('heading', { name: /^(My Navigation|Navigation Settings)$/, level: 1 }),
   },
 ];
 

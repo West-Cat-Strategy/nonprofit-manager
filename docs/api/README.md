@@ -1,6 +1,6 @@
 # API Documentation Index
 
-**Last Updated:** 2026-04-25
+**Last Updated:** 2026-05-01
 
 Use this file as the entry point for active Nonprofit Manager API documentation. When route summaries need confirmation, verify them against [../../backend/src/routes/v2/index.ts](../../backend/src/routes/v2/index.ts) and the mounted module route files under `backend/src/modules/**/routes/`.
 
@@ -18,7 +18,7 @@ For contributor navigation, follow [../../CONTRIBUTING.md](../../CONTRIBUTING.md
 | Cases, People, Tasks, And Engagement | Cases, contacts, accounts, volunteers, tasks, follow-ups, opportunities, team chat, meetings, external service providers | [../features/FEATURE_MATRIX.md](../features/FEATURE_MATRIX.md), [../features/CASE_MANAGEMENT_SYSTEM.md](../features/CASE_MANAGEMENT_SYSTEM.md), [../features/FOLLOW_UP_LIFECYCLE.md](../features/FOLLOW_UP_LIFECYCLE.md) | `/api/v2/cases/*`, `/api/v2/contacts/*`, `/api/v2/accounts/*`, `/api/v2/volunteers/*`, `/api/v2/tasks/*`, `/api/v2/follow-ups/*`, `/api/v2/opportunities/*`, `/api/v2/team-chat/*`, `/api/v2/meetings/*`, `/api/v2/external-service-providers/*` |
 | Reporting & Exports | Report generation, saved reports, scheduled reports, small synchronous exports, async export jobs, templates, analytics exports | [API_REFERENCE_EXPORT.md](API_REFERENCE_EXPORT.md), [../features/REPORTING_GUIDE.md](../features/REPORTING_GUIDE.md) | `/api/v2/reports/*`, `/api/v2/saved-reports/*`, `/api/v2/scheduled-reports/*`, `/api/v2/export/*`, `/api/v2/public/reports/*` |
 | Analytics | Summary, account/contact metrics, trend analysis, anomalies | [openapi.yaml](openapi.yaml) | `/api/v2/analytics/*` |
-| Finance, Payments, And Integrations | Donations, recurring donations, payments, reconciliation, Mailchimp, webhooks, social media, Plausible proxy, provider integrations | [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md), [PAYMENT_PROVIDER_TESTING_GUIDE.md](PAYMENT_PROVIDER_TESTING_GUIDE.md) | `/api/v2/donations/*`, `/api/v2/recurring-donations/*`, `/api/v2/payments/*`, `/api/v2/reconciliation/*`, `/api/v2/mailchimp/*`, `/api/v2/webhooks/*`, `/api/v2/social-media/*`, `/api/v2/plausible/*` |
+| Finance, Payments, And Integrations | Donations, recurring donations, payments, reconciliation, local-first communications, Mailchimp, webhooks, social media, Plausible proxy, provider integrations | [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md), [PAYMENT_PROVIDER_TESTING_GUIDE.md](PAYMENT_PROVIDER_TESTING_GUIDE.md) | `/api/v2/donations/*`, `/api/v2/recurring-donations/*`, `/api/v2/payments/*`, `/api/v2/reconciliation/*`, `/api/v2/communications/*`, `/api/v2/mailchimp/*`, `/api/v2/webhooks/*`, `/api/v2/social-media/*`, `/api/v2/plausible/*` |
 | Publishing And Public Surfaces | Sites, templates, public forms, newsletters, events, case forms, and report snapshots | [../features/TEMPLATE_SYSTEM.md](../features/TEMPLATE_SYSTEM.md) | `/api/v2/sites/*`, `/api/v2/templates/*`, `/api/v2/public/forms/*`, `/api/v2/public/newsletters/*`, `/api/v2/public/events/*`, `/api/v2/public/case-forms/*`, `/api/v2/public/reports/*` |
 | Backup | Admin-triggered backup export | [API_REFERENCE_BACKUP.md](API_REFERENCE_BACKUP.md) | `/api/v2/backup/export` |
 | Intake And Grants | Ingest and grants module routes | [../features/FEATURE_MATRIX.md](../features/FEATURE_MATRIX.md) | `/api/v2/ingest/*`, `/api/v2/grants/*` |
@@ -42,7 +42,8 @@ These route families are mounted by the active v2 registrar:
 - Finance: `/api/v2/donations/*`, `/api/v2/recurring-donations/*`, `/api/v2/reconciliation/*`
 - Payments: `/api/v2/payments/config`, `/api/v2/payments/intents*`, `/api/v2/payments/refunds`, `/api/v2/payments/customers*`, `/api/v2/payments/webhook`
 - Publishing and public surfaces: `/api/v2/sites/*`, `/api/v2/templates/*`, `/api/v2/public/newsletters/*`, `/api/v2/public/forms/*`, `/api/v2/public/case-forms/*`
-- Integrations and providers: `/api/v2/mailchimp/*`, `/api/v2/webhooks/*`, `/api/v2/social-media/*`, `/api/v2/plausible/*`, `/api/v2/ingest/*`
+- Integrations and providers: `/api/v2/communications/*`, `/api/v2/mailchimp/*`, `/api/v2/webhooks/*`, `/api/v2/social-media/*`, `/api/v2/plausible/*`, `/api/v2/ingest/*`
+  Communications route details in [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md#communications-api) describe the local-first campaign and audience workflow. Mailchimp route details in [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md#mailchimp-integration) cover explicit provider compatibility and management surfaces.
 - Grants: `/api/v2/grants/*`
 
 Use the feature-specific docs for request and response details. This file is the navigation layer, not the full endpoint reference.

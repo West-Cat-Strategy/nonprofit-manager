@@ -39,7 +39,7 @@ import {
 } from './shared';
 
 type PublicEventsPort = Pick<EventService, 'listPublicEventsByOwner'>;
-type WebsiteEntriesPort = Pick<WebsiteEntryService, 'listPublicNewsletters'>;
+type WebsiteEntriesPort = Pick<WebsiteEntryService, 'listPublicNewsletters' | 'listPublicBlogEntries'>;
 
 const resolveGridTemplateColumns = (columns: Array<{ width?: string }> | undefined): string => {
   if (!columns || columns.length === 0) {
@@ -92,6 +92,37 @@ export class PublicSiteRenderer {
       >
         ${description ? `<p style="margin: 0; color: var(--npm-muted);">${escapeHtml(description)}</p>` : ''}
         ${fieldsHtml}
+        <button type="submit" class="btn" style="padding: 0.9rem 1rem; border: none; border-radius: 999px; background: var(--npm-primary); color: white; font-weight: 700; cursor: pointer; box-shadow: 0 6px 18px rgba(31, 77, 59, 0.22);">
+          ${escapeHtml(submitText)}
+        </button>
+        <p data-form-status style="margin: 0; min-height: 1.2rem; color: var(--npm-muted); font-size: 0.95rem;"></p>
+      </form>
+    `;
+  }
+
+  private renderPublicActionForm(
+    site: PublishedSite,
+    component: PublishedComponent & { actionSlug?: string },
+    fieldsHtml: string,
+    submitText: string,
+    description?: string
+  ): string {
+    const actionSlug =
+      typeof component.actionSlug === 'string' && component.actionSlug.trim().length > 0
+        ? component.actionSlug.trim()
+        : component.id;
+
+    return `
+      <form
+        class="npm-public-form npm-public-form--${escapeHtml(component.type)}"
+        data-public-site-form="true"
+        action="/api/v2/public/actions/${escapeHtml(site.id)}/${escapeHtml(actionSlug)}/submissions"
+        method="post"
+        style="display: grid; gap: 0.85rem; padding: 1.35rem; border: 1px solid var(--npm-border); border-radius: 18px; background: var(--npm-surface); box-shadow: 0 12px 30px rgba(19, 49, 38, 0.08);"
+      >
+        ${description ? `<p style="margin: 0; color: var(--npm-muted);">${escapeHtml(description)}</p>` : ''}
+        ${fieldsHtml}
+        <label class="npm-checkbox"><input type="checkbox" name="consent" value="true" required /> I agree to be contacted about this request.</label>
         <button type="submit" class="btn" style="padding: 0.9rem 1rem; border: none; border-radius: 999px; background: var(--npm-primary); color: white; font-weight: 700; cursor: pointer; box-shadow: 0 6px 18px rgba(31, 77, 59, 0.22);">
           ${escapeHtml(submitText)}
         </button>
@@ -189,7 +220,7 @@ export class PublicSiteRenderer {
     `;
   }
 
-  private renderNewsletterDetail(entry: WebsiteEntry): string {
+  private renderEntryDetail(entry: WebsiteEntry, emptyLabel = 'content'): string {
     const sanitizedBodyHtml =
       entry.bodyHtml && entry.bodyHtml.trim().length > 0
         ? sanitizeNewsletterHtml(entry.bodyHtml)
@@ -201,7 +232,7 @@ export class PublicSiteRenderer {
           ? `<p>${escapeHtml(entry.body)}</p>`
           : entry.excerpt
             ? `<p>${escapeHtml(entry.excerpt)}</p>`
-            : '<p>No newsletter body is available for this entry.</p>';
+            : `<p>No ${escapeHtml(emptyLabel)} body is available for this entry.</p>`;
 
     return `
       <article class="npm-detail">
@@ -385,6 +416,64 @@ export class PublicSiteRenderer {
             <label class="npm-checkbox"><input type="checkbox" name="urgent" value="true" /> Mark this referral as urgent</label>
           `,
           String(component.submitText || 'Submit Referral'),
+          typeof component.description === 'string' ? component.description : undefined
+        );
+      case 'petition-form':
+        return this.renderPublicActionForm(
+          site,
+          component,
+          `
+            ${typeof component.petitionStatement === 'string' ? `<p>${escapeHtml(component.petitionStatement)}</p>` : ''}
+            <div class="npm-field-grid">
+              <input name="first_name" placeholder="First name" required />
+              <input name="last_name" placeholder="Last name" required />
+            </div>
+            <input name="email" type="email" placeholder="Email" required />
+            ${component.includePhone === true ? '<input name="phone" type="tel" placeholder="Phone" />' : ''}
+            <textarea name="message" rows="4" placeholder="Why are you adding your name?"></textarea>
+          `,
+          String(component.submitText || 'Add my name'),
+          typeof component.description === 'string' ? component.description : undefined
+        );
+      case 'donation-pledge-form':
+        return this.renderPublicActionForm(
+          site,
+          component,
+          `
+            <div class="npm-field-grid">
+              <input name="first_name" placeholder="First name" required />
+              <input name="last_name" placeholder="Last name" required />
+            </div>
+            <input name="email" type="email" placeholder="Email" required />
+            <input name="phone" type="tel" placeholder="Phone" />
+            <input name="amount" type="number" min="1" step="0.01" placeholder="Pledge amount" required />
+            <select name="schedule">
+              <option value="${escapeHtml(String(component.pledgeSchedule || 'one_time'))}">Pledge schedule</option>
+              <option value="one_time">One time</option>
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="annual">Annual</option>
+            </select>
+            <textarea name="message" rows="4" placeholder="Optional note"></textarea>
+          `,
+          String(component.submitText || 'Make pledge'),
+          typeof component.description === 'string' ? component.description : undefined
+        );
+      case 'support-letter-request':
+        return this.renderPublicActionForm(
+          site,
+          component,
+          `
+            <div class="npm-field-grid">
+              <input name="first_name" placeholder="First name" required />
+              <input name="last_name" placeholder="Last name" required />
+            </div>
+            <input name="email" type="email" placeholder="Email" required />
+            ${component.includePhone !== false ? '<input name="phone" type="tel" placeholder="Phone" />' : ''}
+            <input name="purpose" placeholder="What should this letter support?" required />
+            <textarea name="message" rows="5" placeholder="Details staff should consider"></textarea>
+          `,
+          String(component.submitText || 'Request letter'),
           typeof component.description === 'string' ? component.description : undefined
         );
       case 'donation-form':
@@ -608,7 +697,8 @@ export class PublicSiteRenderer {
       }
 
       [data-public-site-form="true"] input,
-      [data-public-site-form="true"] textarea {
+      [data-public-site-form="true"] textarea,
+      [data-public-site-form="true"] select {
         width: 100%;
         padding: 0.8rem 0.9rem;
         border: 1px solid var(--npm-border);
@@ -686,19 +776,27 @@ export class PublicSiteRenderer {
     ) {
       fallbackHtml = this.renderNewsletterCards(runtimeContext.items, runtimeContext.detailPathPattern);
     } else if (runtimeContext.kind === 'newsletterDetail') {
-      fallbackHtml = this.renderNewsletterDetail(runtimeContext.entry);
+      fallbackHtml = this.renderEntryDetail(runtimeContext.entry, 'newsletter');
+    } else if (runtimeContext.kind === 'blogIndex') {
+      fallbackHtml = this.renderNewsletterCards(
+        runtimeContext.items,
+        runtimeContext.detailPathPattern,
+        'No posts are available right now.'
+      );
+    } else if (runtimeContext.kind === 'blogDetail') {
+      fallbackHtml = this.renderEntryDetail(runtimeContext.entry, 'post');
     }
 
     const pageTitle =
       runtimeContext.kind === 'eventDetail'
         ? runtimeContext.event.event_name
-        : runtimeContext.kind === 'newsletterDetail'
+        : runtimeContext.kind === 'newsletterDetail' || runtimeContext.kind === 'blogDetail'
           ? runtimeContext.entry.title
           : page.seo?.title || page.name || site.publishedContent!.seoDefaults.title;
     const description =
       runtimeContext.kind === 'eventDetail'
         ? runtimeContext.event.description || site.publishedContent!.seoDefaults.description
-        : runtimeContext.kind === 'newsletterDetail'
+        : runtimeContext.kind === 'newsletterDetail' || runtimeContext.kind === 'blogDetail'
           ? runtimeContext.entry.excerpt ||
             runtimeContext.entry.seo.description ||
             site.publishedContent!.seoDefaults.description

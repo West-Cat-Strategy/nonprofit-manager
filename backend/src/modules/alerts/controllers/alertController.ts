@@ -185,6 +185,7 @@ export const getAlertInstances = async (
 ): Promise<void> => {
   try {
     const instances = await alertService.getAlertInstances(
+      req.user!.id,
       (req.validatedQuery ?? req.query) as AlertInstanceFiltersInput
     );
     res.json(instances);
@@ -228,7 +229,7 @@ export const resolveAlert = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
-    const instance = await alertService.resolveAlert(id);
+    const instance = await alertService.resolveAlert(id, req.user!.id);
 
     if (!instance) {
       notFoundMessage(res, 'Alert instance not found');

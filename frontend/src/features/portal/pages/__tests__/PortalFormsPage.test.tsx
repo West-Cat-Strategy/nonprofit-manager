@@ -125,17 +125,17 @@ describe('PortalFormsPage', () => {
     );
   });
 
-  it('renders assignment results and uses the assignment packet download routes', async () => {
+  it('renders assignment results and uses the assignment download routes', async () => {
     renderWithProviders(<PortalFormsPage />);
 
     expect(await screen.findByText('Portal Delivery Form')).toBeInTheDocument();
     expect(screen.getAllByText('CASE-001 - Housing Support').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Available in the portal').length).toBeGreaterThan(0);
-    expect(await screen.findByRole('link', { name: /download response packet/i })).toHaveAttribute(
+    expect(await screen.findByRole('link', { name: /download submitted answers/i })).toHaveAttribute(
       'href',
       '/api/v2/portal/forms/assignments/assignment-portal/response-packet'
     );
-    expect(await screen.findByRole('link', { name: /^packet$/i })).toHaveAttribute(
+    expect(await screen.findByRole('link', { name: /receipt/i })).toHaveAttribute(
       'href',
       '/api/v2/portal/forms/assignments/assignment-portal/response-packet'
     );

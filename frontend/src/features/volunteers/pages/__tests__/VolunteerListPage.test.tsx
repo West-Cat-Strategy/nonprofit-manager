@@ -24,7 +24,15 @@ vi.mock('../../../../store/hooks', () => ({
 }));
 
 vi.mock('../../../../features/volunteers/state', () => ({
-  default: (sliceState = { volunteers: [], loading: false, error: null, pagination: { total: 0, page: 1, limit: 20, total_pages: 1 }, filters: {} }) => sliceState,
+  default: (
+    sliceState = {
+      volunteers: [],
+      loading: false,
+      error: null,
+      pagination: { total: 0, page: 1, limit: 20, total_pages: 1 },
+      filters: {},
+    }
+  ) => sliceState,
   fetchVolunteers: (payload: unknown) => ({ type: 'volunteers/fetch', payload }),
   deleteVolunteer: (id: string) => ({ type: 'volunteers/delete', payload: id }),
   setFilters: (payload: unknown) => ({ type: 'volunteers/setFilters', payload }),
@@ -70,7 +78,7 @@ describe('VolunteerList page', () => {
     localStorage.clear();
   });
 
-  it('renders and wires backend import/export request props', () => {
+  it('renders and passes import/export request props', () => {
     renderWithProviders(<VolunteerList />);
 
     expect(screen.getByText('Volunteer List')).toBeInTheDocument();

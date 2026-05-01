@@ -93,7 +93,7 @@ describe('PortalDashboardPage', () => {
     });
   });
 
-  it('renders dashboard sections and persists selected case when opening the workspace', async () => {
+  it('renders dashboard sections and persists selected case when opening a case', async () => {
     renderWithProviders(<PortalDashboardPage />);
 
     expect(await screen.findByText('Resume A Shared Case')).toBeInTheDocument();
@@ -101,7 +101,7 @@ describe('PortalDashboardPage', () => {
     expect(screen.getByText('Welcome Packet')).toBeInTheDocument();
     expect(screen.getByText('Client Orientation • Orientation Session')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('link', { name: /resume case workspace/i }));
+    fireEvent.click(screen.getAllByRole('link', { name: /open case/i })[0]);
 
     await waitFor(() => {
       expect(setSelectedCaseIdMock).toHaveBeenCalledWith('case-1');

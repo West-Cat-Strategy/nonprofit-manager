@@ -346,14 +346,12 @@ test.describe('Persona workflow routes', () => {
     await expect(page.getByRole('heading', { name: /admin hub/i })).toBeVisible();
 
     await page.goto(persona.anchorRouteSequence[1], { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('heading', { name: /^navigation$/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^my navigation$/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /reset to defaults/i })).toBeVisible();
 
     await page.goto(persona.anchorRouteSequence[2], { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('heading', { name: /newsletter campaigns/i })).toBeVisible();
-    await expect(
-      page.getByRole('heading', { name: /newsletter provider not configured/i })
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { name: /communications|newsletter campaigns/i })).toBeVisible();
+    await expect(page.getByText(/mailchimp optional/i)).toBeVisible();
 
     await page.goto(persona.anchorRouteSequence[3], { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('heading', { name: /scheduled reports/i })).toBeVisible();

@@ -6,6 +6,14 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
+import {
+  ArrowDownTrayIcon,
+  BanknotesIcon,
+  ChartBarIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  PlusCircleIcon,
+} from '@heroicons/react/24/outline';
 import type { PaymentMethod, PaymentStatus } from '../../../types/donation';
 import { formatDate, formatCurrency } from '../../../utils/format';
 import {
@@ -30,32 +38,37 @@ import {
 } from '../utils/taxReceipts';
 
 const donationActionLinkClass =
-  'inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] bg-[var(--app-accent)] px-4 py-2 text-sm font-semibold text-[var(--app-accent-foreground)] shadow-sm transition hover:bg-[var(--app-accent-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-2';
+  'inline-flex items-center justify-center gap-2 rounded-[var(--ui-radius-sm)] bg-[var(--app-accent)] px-4 py-2 text-sm font-semibold text-[var(--app-accent-foreground)] shadow-sm transition duration-150 hover:-translate-y-0.5 hover:bg-[var(--app-accent-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-2';
 const fundraiserWorkflowLinks = [
   {
     title: 'Reports workspace',
     description: 'Start from the fundraiser reporting home.',
     to: '/reports',
+    Icon: ChartBarIcon,
   },
   {
     title: 'Fundraising cadence templates',
     description: 'Open prefiltered stewardship report templates.',
     to: '/reports/templates?category=fundraising&tag=fundraising-cadence',
+    Icon: ClockIcon,
   },
   {
     title: 'Scheduled reports',
     description: 'Review recurring fundraiser exports and delivery windows.',
     to: '/reports/scheduled',
+    Icon: ArrowDownTrayIcon,
   },
   {
     title: 'Opportunity pipeline',
     description: 'Hand off promising donors into the major gifts pipeline.',
     to: '/opportunities',
+    Icon: BanknotesIcon,
   },
   {
     title: 'Communications settings',
     description: 'Tune outreach channels before the next donor touchpoint.',
     to: '/settings/communications',
+    Icon: CheckCircleIcon,
   },
 ] as const;
 
@@ -98,6 +111,7 @@ const DonationList: React.FC = () => {
           description="Track donor contributions, payment status, and official receipt history."
           actions={
             <Link className={donationActionLinkClass} to="/donations/new">
+              <PlusCircleIcon className="h-4 w-4" aria-hidden="true" />
               Record Donation
             </Link>
           }
@@ -114,16 +128,25 @@ const DonationList: React.FC = () => {
           subtitle="Jump from gift intake to stewardship reporting, outreach setup, and pipeline follow-through."
         >
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
-            {fundraiserWorkflowLinks.map((link) => (
-              <Link
-                key={link.to}
-                to={link.to}
-                className="block rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-bg px-3 py-3 transition hover:border-app-accent hover:bg-app-accent-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-2"
-              >
-                <p className="text-sm font-semibold text-app-text">{link.title}</p>
-                <p className="mt-1 text-xs text-app-text-muted">{link.description}</p>
-              </Link>
-            ))}
+            {fundraiserWorkflowLinks.map((link) => {
+              const LinkIcon = link.Icon;
+              return (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className="group block rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-bg px-3 py-3 transition duration-200 hover:-translate-y-0.5 hover:border-app-accent hover:bg-app-accent-soft hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-2"
+                >
+                  <p className="inline-flex items-center gap-2 text-sm font-semibold text-app-text">
+                    <LinkIcon
+                      className="h-4 w-4 text-app-accent transition-transform group-hover:scale-110"
+                      aria-hidden="true"
+                    />
+                    {link.title}
+                  </p>
+                  <p className="mt-1 text-xs text-app-text-muted">{link.description}</p>
+                </Link>
+              );
+            })}
           </div>
         </SectionCard>
 
@@ -149,10 +172,10 @@ const DonationList: React.FC = () => {
             type="button"
             onClick={() => applyPreset('card')}
             className="px-2 py-1 text-xs font-semibold border rounded-md bg-app-accent-soft text-app-accent-text"
-            >
-              Credit Card
-            </button>
-          </div>
+          >
+            Credit Card
+          </button>
+        </div>
         <details
           open={filtersExpanded}
           onToggle={(event) => setFiltersExpanded(event.currentTarget.open)}

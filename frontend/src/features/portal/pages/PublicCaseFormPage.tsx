@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   EmptyState,
@@ -59,6 +59,7 @@ export default function PublicCaseFormPage() {
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<CaseFormAssignmentDetail | null>(null);
   const [draftAnswers, setDraftAnswers] = useState<Record<string, unknown>>({});
+  const draftSnapshotRef = useRef('');
 
   const loadForm = useCallback(async (): Promise<void> => {
     if (!token) {
@@ -74,8 +75,10 @@ export default function PublicCaseFormPage() {
       const nextDetail = await publicCaseFormsApiClient.getForm(token);
       setDetail(nextDetail);
       setDraftAnswers(nextDetail.assignment.current_draft_answers || {});
+      draftSnapshotRef.current = JSON.stringify(nextDetail.assignment.current_draft_answers || {});
     } catch (loadError) {
       setDetail(null);
+      draftSnapshotRef.current = '';
       const message = loadError instanceof Error ? loadError.message : 'Failed to load secure form';
       setError(message);
       showError(message);
@@ -135,6 +138,7 @@ export default function PublicCaseFormPage() {
       const assignment = await publicCaseFormsApiClient.saveDraft(token, {
         answers: draftAnswers,
       });
+      draftSnapshotRef.current = JSON.stringify(draftAnswers);
       setDetail((current) =>
         current
           ? {
@@ -163,6 +167,7 @@ export default function PublicCaseFormPage() {
         client_submission_id: crypto.randomUUID(),
       });
       setDetail(nextDetail);
+      draftSnapshotRef.current = JSON.stringify(nextDetail.assignment.current_draft_answers || draftAnswers);
       showSuccess('Form submitted');
     } catch (submitError) {
       showError(submitError instanceof Error ? submitError.message : 'Failed to submit form');
@@ -193,6 +198,36 @@ export default function PublicCaseFormPage() {
     isUnavailableState || (!loading && error)
       ? getUnavailableCopy(assignmentStatus)
       : null;
+
+  useEffect(() => {
+    if (!token || !assignment || isLockedReceiptState || isUnavailableState || saving) return;
+    const snapshot = JSON.stringify(draftAnswers);
+    if (snapshot === draftSnapshotRef.current) return;
+
+    const timeout = window.setTimeout(() => {
+      void publicCaseFormsApiClient
+        .saveDraft(token, { answers: draftAnswers })
+        .then((updatedAssignment) => {
+          draftSnapshotRef.current = snapshot;
+          setDetail((current) =>
+            current
+              ? {
+                  ...current,
+                  assignment: {
+                    ...current.assignment,
+                    ...updatedAssignment,
+                  },
+                }
+              : current
+          );
+        })
+        .catch(() => {
+          // Manual Save Draft remains available when background autosave cannot complete.
+        });
+    }, 1200);
+
+    return () => window.clearTimeout(timeout);
+  }, [assignment, draftAnswers, isLockedReceiptState, isUnavailableState, saving, token]);
 
   return (
     <PublicPageShell

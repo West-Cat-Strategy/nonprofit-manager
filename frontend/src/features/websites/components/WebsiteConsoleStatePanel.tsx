@@ -1,4 +1,5 @@
 import React from 'react';
+import { ExclamationCircleIcon, InboxIcon, SparklesIcon } from '@heroicons/react/24/outline';
 
 type WebsiteConsoleStateTone = 'loading' | 'empty' | 'error';
 
@@ -19,6 +20,12 @@ const toneClasses: Record<WebsiteConsoleStateTone, string> = {
     'border-rose-300 bg-rose-100 text-rose-950 dark:border-rose-300 dark:bg-rose-950/40 dark:text-rose-50',
 };
 
+const toneIcons: Record<WebsiteConsoleStateTone, typeof SparklesIcon> = {
+  loading: SparklesIcon,
+  empty: InboxIcon,
+  error: ExclamationCircleIcon,
+};
+
 const WebsiteConsoleStatePanel: React.FC<WebsiteConsoleStatePanelProps> = ({
   tone,
   title,
@@ -30,13 +37,19 @@ const WebsiteConsoleStatePanel: React.FC<WebsiteConsoleStatePanelProps> = ({
   <div
     role={tone === 'error' ? 'alert' : 'status'}
     aria-live={tone === 'error' ? 'assertive' : 'polite'}
-    className={`rounded-3xl border px-6 py-5 shadow-sm ${toneClasses[tone]}`}
+    className={`rounded-3xl border px-6 py-5 shadow-sm transition duration-200 ${toneClasses[tone]}`}
   >
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <div className="max-w-3xl">
-        <h2 className="text-base font-semibold text-current">{title}</h2>
-        <p className="mt-2 text-sm text-current/80">{message}</p>
-        {action ? <div className="mt-4">{action}</div> : null}
+      <div className="flex max-w-3xl gap-3">
+        {React.createElement(toneIcons[tone], {
+          className: 'mt-0.5 h-5 w-5 shrink-0',
+          'aria-hidden': true,
+        })}
+        <div>
+          <h2 className="text-base font-semibold text-current">{title}</h2>
+          <p className="mt-2 text-sm text-current/80">{message}</p>
+          {action ? <div className="mt-4">{action}</div> : null}
+        </div>
       </div>
       {onDismiss ? (
         <button

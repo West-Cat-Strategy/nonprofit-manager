@@ -46,12 +46,18 @@ export class PublicSiteRouteResolver {
       if (page.pageType === 'collectionDetail' && page.collection === 'newsletters') {
         return { kind: 'newsletterDetail', page, slug: route.params.slug || route.params.id || '' };
       }
+      if (page.pageType === 'collectionIndex' && page.collection === 'blog') {
+        return { kind: 'blogIndex', page };
+      }
+      if (page.pageType === 'collectionDetail' && page.collection === 'blog') {
+        return { kind: 'blogDetail', page, slug: route.params.slug || route.params.id || '' };
+      }
     }
 
     return null;
   }
 
-  getDetailPathPattern(site: PublishedSite, collection: 'events' | 'newsletters'): string {
+  getDetailPathPattern(site: PublishedSite, collection: 'events' | 'newsletters' | 'blog'): string {
     const detailPage = site.publishedContent?.pages.find(
       (page) => page.pageType === 'collectionDetail' && page.collection === collection
     );

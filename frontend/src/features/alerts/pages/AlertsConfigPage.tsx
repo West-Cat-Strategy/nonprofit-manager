@@ -1,16 +1,18 @@
 /**
- * Alerts Configuration Page
- * Manage analytics alert configurations
+ * Alert Rules Page
+ * Manage analytics alert rules
  */
 
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import ConfirmDialog from '../../../components/ConfirmDialog';
 import {
-  ErrorState,
-  PageHeader,
-  SectionCard,
-} from '../../../components/ui';
+  BellAlertIcon,
+  ClockIcon,
+  ClipboardDocumentListIcon,
+  PlusCircleIcon,
+} from '@heroicons/react/24/outline';
+import ConfirmDialog from '../../../components/ConfirmDialog';
+import { ErrorState, PageHeader, SectionCard } from '../../../components/ui';
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
@@ -54,7 +56,7 @@ const AlertsConfigPage = () => {
   };
 
   const handleDelete = async (id: string) => {
-    const confirmed = await confirm(confirmPresets.delete('Alert Configuration'));
+    const confirmed = await confirm(confirmPresets.delete('Alert rule'));
     if (!confirmed) return;
     await dispatch(deleteAlertConfig(id));
   };
@@ -85,38 +87,41 @@ const AlertsConfigPage = () => {
     <div className="flex flex-wrap gap-2">
       <Link
         to="/alerts/instances"
-        className="inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-border px-4 py-2 text-sm font-semibold text-app-text transition-colors hover:bg-app-hover"
+        className="inline-flex items-center justify-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border px-4 py-2 text-sm font-semibold text-app-text transition-colors hover:bg-app-hover"
       >
-        View triggered alerts
+        <BellAlertIcon className="h-4 w-4" aria-hidden="true" />
+        Active alerts
       </Link>
       <Link
         to="/alerts/history"
-        className="inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-border px-4 py-2 text-sm font-semibold text-app-text transition-colors hover:bg-app-hover"
+        className="inline-flex items-center justify-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border px-4 py-2 text-sm font-semibold text-app-text transition-colors hover:bg-app-hover"
       >
-        Review history
+        <ClockIcon className="h-4 w-4" aria-hidden="true" />
+        Alert history
       </Link>
       <button
         type="button"
         onClick={handleCreate}
-        className="inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-accent bg-app-accent px-4 py-2 text-sm font-semibold text-[var(--app-accent-foreground)] transition-colors hover:bg-app-accent-hover hover:border-app-accent-hover"
+        className="inline-flex items-center justify-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-accent bg-app-accent px-4 py-2 text-sm font-semibold text-[var(--app-accent-foreground)] transition-all duration-150 hover:-translate-y-0.5 hover:bg-app-accent-hover hover:border-app-accent-hover"
       >
-        Create alert
+        <PlusCircleIcon className="h-4 w-4" aria-hidden="true" />
+        Create alert rule
       </button>
     </div>
   );
 
   return (
-    <NeoBrutalistLayout pageTitle="ALERTS">
+    <NeoBrutalistLayout pageTitle="ALERT RULES">
       <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
         <PageHeader
-          title="Alerts"
-          description="Configure alert rules, review live incidents, and keep high-signal thresholds tuned for staff workflows."
+          title="Alert rules"
+          description="Set clear rules for staff-facing alerts, then review active alerts and alert history when a rule fires."
           actions={actions}
         />
 
         <SectionCard
           title="Related workspaces"
-          subtitle="Jump between the alert rules, analytics, reporting, and branding seams while the browser flow is still open."
+          subtitle="Use analytics and reporting to tune the signal behind each alert rule."
         >
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             {relatedWorkspaceLinks.map((link) => (
@@ -125,7 +130,9 @@ const AlertsConfigPage = () => {
                 to={link.to}
                 className="rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface px-4 py-4 shadow-sm transition hover:bg-app-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-2"
               >
-                <span className="block text-sm font-semibold text-app-text-heading">{link.label}</span>
+                <span className="block text-sm font-semibold text-app-text-heading">
+                  {link.label}
+                </span>
                 <span className="mt-2 block text-sm leading-6 text-app-text-muted">
                   {link.description}
                 </span>
@@ -149,9 +156,13 @@ const AlertsConfigPage = () => {
         ) : null}
 
         <SectionCard
-          title="Alert configurations"
+          title="Alert rules"
           subtitle="Create threshold rules for donations, volunteer capacity, event attendance, and case trends."
         >
+          <div className="mb-4 inline-flex items-center gap-2 rounded-[var(--ui-radius-sm)] bg-app-surface-muted px-3 py-2 text-sm text-app-text-muted">
+            <ClipboardDocumentListIcon className="h-4 w-4" aria-hidden="true" />
+            Each rule can notify more than one alert channel.
+          </div>
           <AlertConfigList
             configs={configs}
             loading={loading}

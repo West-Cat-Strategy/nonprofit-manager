@@ -39,11 +39,21 @@ describe('EmailMarketingPage', () => {
     vi.clearAllMocks();
 
     mockedApi.get.mockImplementation((url: string) => {
-      if (url === '/mailchimp/status') {
-        return Promise.resolve({ data: { configured: true } });
+      if (url === '/communications/status') {
+        return Promise.resolve({
+          data: {
+            configured: true,
+            provider: 'local_email',
+            defaultProvider: 'local_email',
+            providers: {
+              local_email: { provider: 'local_email', configured: true, ready: true },
+              mailchimp: { provider: 'mailchimp', configured: false },
+            },
+          },
+        });
       }
 
-      if (url === '/mailchimp/lists') {
+      if (url === '/communications/audiences?scope=provider') {
         return Promise.resolve({
           data: [
             {
@@ -51,20 +61,21 @@ describe('EmailMarketingPage', () => {
               name: 'Main Audience',
               memberCount: 42,
               doubleOptIn: false,
+              provider: 'local_email',
             },
           ],
         });
       }
 
-      if (url === '/mailchimp/campaigns') {
+      if (url === '/communications/campaigns') {
         return Promise.resolve({ data: [] });
       }
 
-      if (url === '/mailchimp/audiences') {
+      if (url === '/communications/audiences?scope=saved') {
         return Promise.resolve({ data: [] });
       }
 
-      if (url === '/mailchimp/campaign-runs') {
+      if (url === '/communications/campaign-runs') {
         return Promise.resolve({ data: [] });
       }
 
@@ -133,7 +144,7 @@ describe('EmailMarketingPage', () => {
     expect(
       screen.getByRole('button', { name: /close campaign creation dialog/i })
     ).toHaveFocus();
-    expect(screen.getByRole('button', { name: /all subscribers/i })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: /all eligible contacts/i })).toHaveAttribute(
       'aria-pressed',
       'true'
     );
@@ -154,17 +165,92 @@ describe('EmailMarketingPage', () => {
     expect(newCampaignButton).toHaveFocus();
   });
 
-  it('uses the email marketing title on the canonical settings route', async () => {
+  it('uses the communications title on the canonical settings route', async () => {
     renderWithProviders(<EmailMarketingPage />, {
       route: '/settings/email-marketing',
     });
 
-    expect(await screen.findByRole('heading', { name: /newsletter campaigns/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /communications/i })).toBeInTheDocument();
+  });
+
+  it('keeps the communications route local-first with a CRM audience and SMTP-gated live actions', async () => {
+    mockedApi.get.mockImplementation((url: string) => {
+      if (url === '/communications/status') {
+        return Promise.resolve({
+          data: {
+            configured: true,
+            provider: 'local_email',
+            defaultProvider: 'local_email',
+            providers: {
+              local_email: {
+                provider: 'local_email',
+                configured: true,
+                ready: false,
+                message: 'SMTP setup required before delivery.',
+              },
+              mailchimp: { provider: 'mailchimp', configured: false },
+            },
+          },
+        });
+      }
+
+      if (url === '/communications/audiences?scope=provider') {
+        return Promise.resolve({ data: [] });
+      }
+
+      if (url === '/communications/campaigns') return Promise.resolve({ data: [] });
+      if (url === '/communications/audiences?scope=saved') return Promise.resolve({ data: [] });
+      if (url === '/communications/campaign-runs') return Promise.resolve({ data: [] });
+      if (url === '/v2/contacts') {
+        return Promise.resolve({
+          data: {
+            success: true,
+            data: { data: [], pagination: { total: 0, page: 1, limit: 25, total_pages: 1 } },
+          },
+        });
+      }
+
+      return Promise.resolve({ data: {} });
+    });
+
+    const user = userEvent.setup();
+    renderWithProviders(<EmailMarketingPage />, {
+      route: '/settings/communications',
+    });
+
+    expect(await screen.findByRole('heading', { name: /communications/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^local email$/i })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    expect(screen.queryByRole('button', { name: /^mailchimp$/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/sync tags/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /new campaign/i }));
+
+    expect(
+      screen.getByRole('option', { name: /crm email audience \(0 eligible contacts\)/i })
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /provider segment/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/all eligible crm contacts in crm email audience/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/smtp setup required/i).length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: /send test email/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /send now/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /save as draft/i })).not.toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText(/schedule send time/i), {
+      target: { value: '2099-05-01T10:00' },
+    });
+    expect(screen.getByRole('button', { name: /schedule campaign/i })).toBeDisabled();
+    expect(mockedApi.post).not.toHaveBeenCalledWith(
+      expect.stringMatching(/^\/mailchimp/),
+      expect.anything()
+    );
   });
 
   it('renders a sandboxed preview for guided-builder campaigns', async () => {
     mockedApi.post.mockImplementation((url: string) => {
-      if (url === '/mailchimp/campaigns/preview') {
+      if (url === '/communications/campaigns/preview') {
         return Promise.resolve({
           data: {
             subject: 'Spring Appeal',
@@ -204,7 +290,7 @@ describe('EmailMarketingPage', () => {
     expect(await screen.findByRole('heading', { name: /campaign preview/i })).toBeInTheDocument();
     expect(screen.getByTitle('Campaign Preview')).toHaveAttribute('sandbox', '');
     expect(mockedApi.post).toHaveBeenCalledWith(
-      '/mailchimp/campaigns/preview',
+      '/communications/campaigns/preview',
       expect.objectContaining({
         title: 'Spring Appeal',
         subject: 'Spring Appeal',
@@ -219,7 +305,7 @@ describe('EmailMarketingPage', () => {
 
   it('passes guided-builder content through campaign creation', async () => {
     mockedApi.post.mockImplementation((url: string) => {
-      if (url === '/mailchimp/campaigns') {
+      if (url === '/communications/campaigns') {
         return Promise.resolve({
           data: {
             id: 'campaign-1',
@@ -233,11 +319,11 @@ describe('EmailMarketingPage', () => {
         });
       }
 
-      if (url === '/mailchimp/audiences') {
+      if (url === '/communications/audiences') {
         return Promise.resolve({ data: [] });
       }
 
-      if (url === '/mailchimp/campaign-runs') {
+      if (url === '/communications/campaign-runs') {
         return Promise.resolve({ data: [] });
       }
 
@@ -268,7 +354,7 @@ describe('EmailMarketingPage', () => {
 
     await waitFor(() => {
       expect(mockedApi.post).toHaveBeenCalledWith(
-        '/mailchimp/campaigns',
+        '/communications/campaigns',
         expect.objectContaining({
           title: 'Spring Appeal',
           subject: 'Spring Appeal',
@@ -303,7 +389,7 @@ describe('EmailMarketingPage', () => {
     }) => void = () => undefined;
 
     mockedApi.post.mockImplementation((url: string) => {
-      if (url === '/mailchimp/campaigns') {
+      if (url === '/communications/campaigns') {
         return new Promise((resolve) => {
           resolveCampaign = resolve;
         });
@@ -353,15 +439,35 @@ describe('EmailMarketingPage', () => {
 
   it('saves selected contacts as a list-tied saved audience with success feedback', async () => {
     mockedApi.get.mockImplementation((url: string) => {
-      if (url === '/mailchimp/status') return Promise.resolve({ data: { configured: true } });
-      if (url === '/mailchimp/lists') {
+      if (url === '/communications/status') {
         return Promise.resolve({
-          data: [{ id: 'list-1', name: 'Main Audience', memberCount: 42, doubleOptIn: false }],
+          data: {
+            configured: true,
+            provider: 'local_email',
+            defaultProvider: 'local_email',
+            providers: {
+              local_email: { provider: 'local_email', configured: true, ready: true },
+              mailchimp: { provider: 'mailchimp', configured: false },
+            },
+          },
         });
       }
-      if (url === '/mailchimp/campaigns') return Promise.resolve({ data: [] });
-      if (url === '/mailchimp/audiences') return Promise.resolve({ data: [] });
-      if (url === '/mailchimp/campaign-runs') {
+      if (url === '/communications/audiences?scope=provider') {
+        return Promise.resolve({
+          data: [
+            {
+              id: 'list-1',
+              name: 'Main Audience',
+              memberCount: 42,
+              doubleOptIn: false,
+              provider: 'local_email',
+            },
+          ],
+        });
+      }
+      if (url === '/communications/campaigns') return Promise.resolve({ data: [] });
+      if (url === '/communications/audiences?scope=saved') return Promise.resolve({ data: [] });
+      if (url === '/communications/campaign-runs') {
         return Promise.resolve({
           data: [
             {
@@ -409,7 +515,7 @@ describe('EmailMarketingPage', () => {
       return Promise.resolve({ data: {} });
     });
     mockedApi.post.mockImplementation((url: string, body: unknown) => {
-      if (url === '/mailchimp/audiences') {
+      if (url === '/communications/audiences') {
         return Promise.resolve({
           data: {
             id: 'audience-1',
@@ -430,7 +536,7 @@ describe('EmailMarketingPage', () => {
       route: '/settings/email-marketing',
       preloadedState: {
         mailchimp: {
-          status: { configured: true },
+          status: { configured: true, provider: 'local_email', defaultProvider: 'local_email' },
           lists: [mainAudience],
           selectedList: mainAudience,
           tags: [],
@@ -451,8 +557,11 @@ describe('EmailMarketingPage', () => {
           savedAudienceCreateError: null,
           isLoadingCampaignRuns: false,
           campaignRunsError: null,
+          campaignRunActionMessage: null,
+          campaignRunActionError: null,
           isCreatingCampaign: false,
           isSendingCampaign: false,
+          isTestingCampaign: false,
           error: null,
         },
         contacts: {
@@ -484,7 +593,7 @@ describe('EmailMarketingPage', () => {
       } as never,
     });
 
-    fireEvent.click(screen.getByRole('checkbox', { name: /select all/i }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /select visible eligible contacts/i }));
     fireEvent.change(screen.getByLabelText(/saved audience name/i), {
       target: { value: 'Spring donors' },
     });
@@ -492,7 +601,7 @@ describe('EmailMarketingPage', () => {
 
     await waitFor(() => {
       expect(mockedApi.post).toHaveBeenCalledWith(
-        '/mailchimp/audiences',
+        '/communications/audiences',
         expect.objectContaining({
           name: 'Spring donors',
           filters: expect.objectContaining({
@@ -506,16 +615,131 @@ describe('EmailMarketingPage', () => {
     expect(await screen.findAllByText(/saved "spring donors"/i)).not.toHaveLength(0);
   });
 
+  it('searches paginated CRM contacts and sends selected provider tags during sync', async () => {
+    mockedApi.get.mockImplementation((url: string, config?: { params?: Record<string, unknown> }) => {
+      if (url === '/communications/status') {
+        return Promise.resolve({
+          data: {
+            configured: true,
+            provider: 'local_email',
+            defaultProvider: 'local_email',
+            providers: {
+              local_email: { provider: 'local_email', configured: true, ready: true },
+              mailchimp: { provider: 'mailchimp', configured: true, accountName: 'Mailchimp Account' },
+            },
+          },
+        });
+      }
+      if (url === '/communications/audiences?scope=provider') {
+        return Promise.resolve({
+          data: [
+            {
+              id: 'list-1',
+              name: 'Main Audience',
+              memberCount: 42,
+              doubleOptIn: false,
+              provider: 'mailchimp',
+            },
+          ],
+        });
+      }
+      if (url === '/communications/campaigns') return Promise.resolve({ data: [] });
+      if (url === '/communications/audiences?scope=saved') return Promise.resolve({ data: [] });
+      if (url === '/communications/campaign-runs') return Promise.resolve({ data: [] });
+      if (url === '/mailchimp/lists/list-1/tags') {
+        return Promise.resolve({ data: [{ id: 1, name: 'newsletter', memberCount: 12 }] });
+      }
+      if (url === '/v2/contacts') {
+        return Promise.resolve({
+          data: {
+            success: true,
+            data: {
+              data: [
+                {
+                  contact_id: 'contact-1',
+                  first_name: 'Ada',
+                  last_name: 'Lovelace',
+                  email: 'ada@example.org',
+                  do_not_email: false,
+                },
+                {
+                  contact_id: 'contact-2',
+                  first_name: 'Grace',
+                  last_name: 'Hopper',
+                  email: 'grace@example.org',
+                  do_not_email: true,
+                },
+              ],
+              pagination: {
+                total: config?.params?.search === 'Ada' ? 1 : 52,
+                page: Number(config?.params?.page || 1),
+                limit: Number(config?.params?.limit || 25),
+                total_pages: config?.params?.search === 'Ada' ? 1 : 3,
+              },
+            },
+          },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+    mockedApi.post.mockResolvedValue({
+      data: { total: 1, added: 1, updated: 0, skipped: 0, errors: 0, results: [] },
+    });
+
+    const user = userEvent.setup();
+    renderWithProviders(<EmailMarketingPage />, {
+      route: '/settings/email-marketing',
+    });
+
+    expect(await screen.findByRole('button', { name: /^local email$/i })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    expect(screen.queryByText(/sync tags/i)).not.toBeInTheDocument();
+    await user.click(await screen.findByRole('button', { name: /^mailchimp$/i }));
+    expect(screen.getByRole('button', { name: /^mailchimp$/i })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    await user.click(await screen.findByText('Main Audience'));
+    await user.type(screen.getByLabelText(/search crm contacts/i), 'Ada');
+
+    await waitFor(() => {
+      expect(mockedApi.get).toHaveBeenCalledWith(
+        '/v2/contacts',
+        expect.objectContaining({
+          params: expect.objectContaining({ page: 1, limit: 25, search: 'Ada' }),
+        })
+      );
+    });
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /ada lovelace/i }));
+    fireEvent.click(await screen.findByRole('checkbox', { name: /newsletter/i }));
+    fireEvent.click(screen.getByRole('button', { name: /sync 1 contact with 1 tag/i }));
+
+    await waitFor(() => {
+      expect(mockedApi.post).toHaveBeenCalledWith(
+        '/mailchimp/sync/bulk',
+        expect.objectContaining({
+          contactIds: ['contact-1'],
+          listId: 'list-1',
+          tags: ['newsletter'],
+        })
+      );
+    });
+    expect(screen.getByText(/do-not-email contacts stay excluded/i)).toBeInTheDocument();
+  });
+
   it('archives saved audiences from the communications workspace', async () => {
     mockedApi.get.mockImplementation((url: string) => {
-      if (url === '/mailchimp/status') return Promise.resolve({ data: { configured: true } });
-      if (url === '/mailchimp/lists') {
+      if (url === '/communications/status') return Promise.resolve({ data: { configured: true, provider: 'local_email', defaultProvider: 'local_email', providers: { local_email: { provider: 'local_email', configured: true, ready: true }, mailchimp: { provider: 'mailchimp', configured: false } } } });
+      if (url === '/communications/audiences?scope=provider') {
         return Promise.resolve({
           data: [{ id: 'list-1', name: 'Main Audience', memberCount: 42, doubleOptIn: false }],
         });
       }
-      if (url === '/mailchimp/campaigns') return Promise.resolve({ data: [] });
-      if (url === '/mailchimp/audiences') {
+      if (url === '/communications/campaigns') return Promise.resolve({ data: [] });
+      if (url === '/communications/audiences?scope=saved') {
         return Promise.resolve({
           data: [
             {
@@ -534,7 +758,7 @@ describe('EmailMarketingPage', () => {
           ],
         });
       }
-      if (url === '/mailchimp/campaign-runs') {
+      if (url === '/communications/campaign-runs') {
         return Promise.resolve({
           data: [
             {
@@ -593,22 +817,22 @@ describe('EmailMarketingPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /archive/i }));
 
     await waitFor(() => {
-      expect(mockedApi.patch).toHaveBeenCalledWith('/mailchimp/audiences/audience-1/archive');
+      expect(mockedApi.patch).toHaveBeenCalledWith('/communications/audiences/audience-1/archive');
     });
-    expect(await screen.findByText(/archived "spring donors"/i)).toBeInTheDocument();
+    expect(await screen.findAllByText(/archived "spring donors"/i)).not.toHaveLength(0);
     expect(screen.queryByText('Spring donors')).not.toBeInTheDocument();
   });
 
   it('sends saved-audience targeting metadata through campaign creation', async () => {
     mockedApi.get.mockImplementation((url: string) => {
-      if (url === '/mailchimp/status') return Promise.resolve({ data: { configured: true } });
-      if (url === '/mailchimp/lists') {
+      if (url === '/communications/status') return Promise.resolve({ data: { configured: true, provider: 'local_email', defaultProvider: 'local_email', providers: { local_email: { provider: 'local_email', configured: true, ready: true }, mailchimp: { provider: 'mailchimp', configured: false } } } });
+      if (url === '/communications/audiences?scope=provider') {
         return Promise.resolve({
           data: [{ id: 'list-1', name: 'Main Audience', memberCount: 42, doubleOptIn: false }],
         });
       }
-      if (url === '/mailchimp/campaigns') return Promise.resolve({ data: [] });
-      if (url === '/mailchimp/audiences') {
+      if (url === '/communications/campaigns') return Promise.resolve({ data: [] });
+      if (url === '/communications/audiences?scope=saved') {
         return Promise.resolve({
           data: [
             {
@@ -640,7 +864,7 @@ describe('EmailMarketingPage', () => {
           ],
         });
       }
-      if (url === '/mailchimp/campaign-runs') {
+      if (url === '/communications/campaign-runs') {
         return Promise.resolve({
           data: [
             {
@@ -677,7 +901,7 @@ describe('EmailMarketingPage', () => {
       return Promise.resolve({ data: {} });
     });
     mockedApi.post.mockImplementation((url: string) => {
-      if (url === '/mailchimp/campaigns') {
+      if (url === '/communications/campaigns') {
         return Promise.resolve({
           data: {
             id: 'campaign-1',
@@ -734,7 +958,7 @@ describe('EmailMarketingPage', () => {
 
     await waitFor(() => {
       expect(mockedApi.post).toHaveBeenCalledWith(
-        '/mailchimp/campaigns',
+        '/communications/campaigns',
         expect.objectContaining({
           includeAudienceId: 'audience-1',
           exclusionAudienceIds: ['audience-2'],
@@ -757,17 +981,72 @@ describe('EmailMarketingPage', () => {
     });
   });
 
+  it('runs campaign preflight review and calls the pending real test-send hook', async () => {
+    mockedApi.post.mockImplementation((url: string) => {
+      if (url === '/communications/campaigns/test-send') {
+        return Promise.resolve({
+          data: {
+            delivered: true,
+            recipients: ['review@example.org'],
+            message: 'Test sent',
+          },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    const user = userEvent.setup();
+    renderWithProviders(<EmailMarketingPage />, {
+      route: '/settings/email-marketing',
+    });
+
+    const newCampaignButton = await screen.findByRole('button', { name: /new campaign/i });
+    await user.click(newCampaignButton);
+
+    fireEvent.change(screen.getByLabelText(/campaign title/i), {
+      target: { value: 'Spring Appeal' },
+    });
+    fireEvent.change(screen.getByLabelText(/subject line/i), {
+      target: { value: 'Spring Appeal' },
+    });
+    fireEvent.change(screen.getByLabelText(/from name/i), {
+      target: { value: 'Community Org' },
+    });
+    fireEvent.change(screen.getByLabelText(/reply-to email/i), {
+      target: { value: 'hello@example.org' },
+    });
+    fireEvent.change(screen.getByLabelText(/test recipients/i), {
+      target: { value: 'review@example.org' },
+    });
+
+    expect(screen.getByText(/preflight review/i)).toBeInTheDocument();
+    expect(screen.getByText(/all eligible crm contacts in main audience/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /send test email/i }));
+
+    await waitFor(() => {
+      expect(mockedApi.post).toHaveBeenCalledWith(
+        '/communications/campaigns/test-send',
+        expect.objectContaining({
+          title: 'Spring Appeal',
+          testRecipients: ['review@example.org'],
+        })
+      );
+    });
+    expect(await screen.findByText(/test email sent for review@example.org/i)).toBeInTheDocument();
+  });
+
   it('shows campaign-run provider segment, suppression, and test-recipient evidence', async () => {
     mockedApi.get.mockImplementation((url: string) => {
-      if (url === '/mailchimp/status') return Promise.resolve({ data: { configured: true } });
-      if (url === '/mailchimp/lists') {
+      if (url === '/communications/status') return Promise.resolve({ data: { configured: true, provider: 'local_email', defaultProvider: 'local_email', providers: { local_email: { provider: 'local_email', configured: true, ready: true }, mailchimp: { provider: 'mailchimp', configured: false } } } });
+      if (url === '/communications/audiences?scope=provider') {
         return Promise.resolve({
           data: [{ id: 'list-1', name: 'Main Audience', memberCount: 42, doubleOptIn: false }],
         });
       }
-      if (url === '/mailchimp/campaigns') return Promise.resolve({ data: [] });
-      if (url === '/mailchimp/audiences') return Promise.resolve({ data: [] });
-      if (url === '/mailchimp/campaign-runs') {
+      if (url === '/communications/campaigns') return Promise.resolve({ data: [] });
+      if (url === '/communications/audiences?scope=saved') return Promise.resolve({ data: [] });
+      if (url === '/communications/campaign-runs') {
         return Promise.resolve({
           data: [
             {
@@ -797,6 +1076,14 @@ describe('EmailMarketingPage', () => {
                 providerLifecycle: {
                   lastWebhookStatus: 'sent',
                 },
+                providerReportSummary: {
+                  emailsSent: 8,
+                  openRate: 0.5,
+                  clickRate: 0.125,
+                  unsubscribes: 1,
+                  bounces: 0,
+                  lastReportedAt: '2026-04-25T02:00:00Z',
+                },
               },
               createdAt: '2026-04-25T00:00:00Z',
               updatedAt: '2026-04-25T00:00:00Z',
@@ -825,12 +1112,112 @@ describe('EmailMarketingPage', () => {
     expect(screen.getByText(/Target snapshot: 2 contacts/i)).toBeInTheDocument();
     expect(screen.getByText(/3 contacts suppressed/i)).toBeInTheDocument();
     expect(screen.getByText(/Provider lifecycle: sent/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Provider summary: 8 sent, 50.0% opens, 12.5% clicks, 1 unsubscribed, 0 bounced/i)
+    ).toBeInTheDocument();
     expect(screen.getByText(/Test recipients: review@example.org/i)).toBeInTheDocument();
+  });
+
+  it('shows campaign-run actions and explicit unsupported cancel and reschedule states', async () => {
+    mockedApi.get.mockImplementation((url: string) => {
+      if (url === '/communications/status') return Promise.resolve({ data: { configured: true, provider: 'local_email', defaultProvider: 'local_email', providers: { local_email: { provider: 'local_email', configured: true, ready: true }, mailchimp: { provider: 'mailchimp', configured: false } } } });
+      if (url === '/communications/audiences?scope=provider') {
+        return Promise.resolve({
+          data: [{ id: 'list-1', name: 'Main Audience', memberCount: 42, doubleOptIn: false }],
+        });
+      }
+      if (url === '/communications/campaigns') return Promise.resolve({ data: [] });
+      if (url === '/communications/audiences?scope=saved') return Promise.resolve({ data: [] });
+      if (url === '/communications/campaign-runs') {
+        return Promise.resolve({
+          data: [
+            {
+              id: 'run-1',
+              provider: 'mailchimp',
+              providerCampaignId: 'campaign-1',
+              title: 'Draft Appeal',
+              listId: 'list-1',
+              includeAudienceId: null,
+              exclusionAudienceIds: [],
+              suppressionSnapshot: [],
+              testRecipients: [],
+              audienceSnapshot: {},
+              requestedSendTime: null,
+              status: 'draft',
+              counts: {},
+              createdAt: '2026-04-25T00:00:00Z',
+              updatedAt: '2026-04-25T00:00:00Z',
+            },
+          ],
+        });
+      }
+      if (url === '/v2/contacts') {
+        return Promise.resolve({
+          data: {
+            success: true,
+            data: { data: [], pagination: { total: 0, page: 1, limit: 25, total_pages: 1 } },
+          },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+    mockedApi.post.mockImplementation((url: string) => {
+      if (
+        url === '/communications/campaign-runs/run-1/send' ||
+        url === '/communications/campaign-runs/run-1/status'
+      ) {
+        return Promise.resolve({
+          data: {
+            success: true,
+            data: {
+              run: {
+                id: 'run-1',
+                provider: 'mailchimp',
+                providerCampaignId: 'campaign-1',
+                title: 'Draft Appeal',
+                listId: 'list-1',
+                includeAudienceId: null,
+                exclusionAudienceIds: [],
+                suppressionSnapshot: [],
+                testRecipients: [],
+                audienceSnapshot: {},
+                requestedSendTime: null,
+                status: 'draft',
+                counts: {},
+                createdAt: '2026-04-25T00:00:00Z',
+                updatedAt: '2026-04-25T00:00:00Z',
+              },
+              action: url.endsWith('/send') ? 'sent' : 'refreshed',
+              message: url.endsWith('/send')
+                ? 'Campaign run sent'
+                : 'Campaign run status refreshed',
+            },
+          },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    const user = userEvent.setup();
+    renderWithProviders(<EmailMarketingPage />, {
+      route: '/settings/email-marketing',
+    });
+
+    expect(await screen.findByText('Draft Appeal')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /refresh run status/i }));
+    await user.click(screen.getByRole('button', { name: /send run now/i }));
+
+    await waitFor(() => {
+      expect(mockedApi.post).toHaveBeenCalledWith('/communications/campaign-runs/run-1/status');
+      expect(mockedApi.post).toHaveBeenCalledWith('/communications/campaign-runs/run-1/send');
+    });
+    expect(screen.getByRole('button', { name: /cancel unsupported/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /reschedule unsupported/i })).toBeDisabled();
   });
 
   it('schedules guided-builder campaigns without calling the immediate send endpoint', async () => {
     mockedApi.post.mockImplementation((url: string) => {
-      if (url === '/mailchimp/campaigns') {
+      if (url === '/communications/campaigns') {
         return Promise.resolve({
           data: {
             id: 'campaign-1',
@@ -877,7 +1264,7 @@ describe('EmailMarketingPage', () => {
 
     await waitFor(() => {
       expect(mockedApi.post).toHaveBeenCalledWith(
-        '/mailchimp/campaigns',
+        '/communications/campaigns',
         expect.objectContaining({
           title: 'Scheduled Appeal',
           subject: 'Scheduled Appeal',
@@ -897,13 +1284,13 @@ describe('EmailMarketingPage', () => {
     });
 
     expect(
-      mockedApi.post.mock.calls.some(([url]) => url === '/mailchimp/campaigns/campaign-1/send')
+      mockedApi.post.mock.calls.some(([url]) => url === '/communications/campaign-runs/campaign-1/send')
     ).toBe(false);
   });
 
   it('strips scheduled time when sending now and calls the immediate send endpoint', async () => {
     mockedApi.post.mockImplementation((url: string) => {
-      if (url === '/mailchimp/campaigns') {
+      if (url === '/communications/campaigns') {
         return Promise.resolve({
           data: {
             id: 'campaign-1',
@@ -917,7 +1304,7 @@ describe('EmailMarketingPage', () => {
         });
       }
 
-      if (url === '/mailchimp/campaigns/campaign-1/send') {
+      if (url === '/communications/campaign-runs/campaign-1/send') {
         return Promise.resolve({ data: { ok: true } });
       }
 
@@ -950,10 +1337,10 @@ describe('EmailMarketingPage', () => {
     await user.click(screen.getByRole('button', { name: /send now/i }));
 
     await waitFor(() => {
-      expect(mockedApi.post).toHaveBeenCalledWith('/mailchimp/campaigns/campaign-1/send');
+      expect(mockedApi.post).toHaveBeenCalledWith('/communications/campaign-runs/campaign-1/send');
     });
 
-    const createCall = mockedApi.post.mock.calls.find(([url]) => url === '/mailchimp/campaigns');
+    const createCall = mockedApi.post.mock.calls.find(([url]) => url === '/communications/campaigns');
     expect(createCall?.[1]).toEqual(
       expect.objectContaining({
         title: 'Immediate Appeal',
@@ -970,11 +1357,11 @@ describe('EmailMarketingPage', () => {
 
   it('labels scheduled campaigns as scheduled instead of sent', async () => {
     mockedApi.get.mockImplementation((url: string) => {
-      if (url === '/mailchimp/status') {
-        return Promise.resolve({ data: { configured: true } });
+      if (url === '/communications/status') {
+        return Promise.resolve({ data: { configured: true, provider: 'local_email', defaultProvider: 'local_email', providers: { local_email: { provider: 'local_email', configured: true, ready: true }, mailchimp: { provider: 'mailchimp', configured: false } } } });
       }
 
-      if (url === '/mailchimp/lists') {
+      if (url === '/communications/audiences?scope=provider') {
         return Promise.resolve({
           data: [
             {
@@ -987,7 +1374,7 @@ describe('EmailMarketingPage', () => {
         });
       }
 
-      if (url === '/mailchimp/campaigns') {
+      if (url === '/communications/campaigns') {
         return Promise.resolve({
           data: [
             {

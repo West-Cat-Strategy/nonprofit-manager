@@ -1,34 +1,38 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import api from '../../../../../services/api';
 import { useApiError } from '../../../../../hooks/useApiError';
 import type { AuditLogPage } from '../types';
 
 export default function AuditLogsSection() {
   const [auditLogPage, setAuditLogPage] = useState<AuditLogPage>({ logs: [], total: 0 });
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const { setFromError } = useApiError({ notify: true });
   const limit = 20;
 
-  useEffect(() => {
-    const fetchLogs = async () => {
-      try {
-        setLoading(true);
-        const response = await api.get(
-          `/admin/audit-logs?limit=${limit}&offset=${page * limit}`
-        );
-        setAuditLogPage(response.data || { logs: [], total: 0 });
-      } catch (error) {
-        setFromError(error, 'Failed to load audit logs');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void fetchLogs();
+  const fetchLogs = useCallback(async () => {
+    try {
+      setLoading(true);
+      setFetchError(null);
+      const response = await api.get(`/admin/audit-logs?limit=${limit}&offset=${page * limit}`);
+      setAuditLogPage(response.data || { logs: [], total: 0 });
+    } catch (error) {
+      setFetchError('Failed to load audit logs');
+      setFromError(error, 'Failed to load audit logs');
+    } finally {
+      setLoading(false);
+    }
   }, [page, setFromError]);
 
+  useEffect(() => {
+    void fetchLogs();
+  }, [fetchLogs]);
+
   const totalPages = Math.max(1, Math.ceil(auditLogPage.total / limit));
+  const latestVisibleEvent = auditLogPage.logs[0] ?? null;
+  const isEmpty = !loading && auditLogPage.logs.length === 0;
+  const hasDisabledState = isEmpty && Boolean(auditLogPage.warning);
 
   return (
     <div className="space-y-6">
@@ -39,12 +43,62 @@ export default function AuditLogsSection() {
             Unified view of system changes, account updates, and admin activity.
           </p>
         </div>
-        {auditLogPage.warning && (
-          <span className="px-3 py-1 bg-app-accent-soft text-app-accent-text border border-app-border text-xs font-bold uppercase">
-            {auditLogPage.warning}
-          </span>
-        )}
+        <button
+          type="button"
+          onClick={() => void fetchLogs()}
+          disabled={loading}
+          className="rounded border border-app-border bg-app-surface px-3 py-2 text-xs font-bold uppercase disabled:opacity-50"
+        >
+          {loading ? 'Refreshing...' : 'Refresh Logs'}
+        </button>
       </div>
+
+      <div className="grid gap-3 md:grid-cols-3">
+        <div className="rounded-lg border border-app-border bg-app-surface px-4 py-3">
+          <p className="text-xs font-bold uppercase text-[var(--app-text-muted)]">Total events</p>
+          <p className="mt-2 text-2xl font-black text-app-text">{auditLogPage.total}</p>
+          <p className="mt-1 text-xs text-[var(--app-text-muted)]">
+            Matching events from the current response.
+          </p>
+        </div>
+        <div className="rounded-lg border border-app-border bg-app-surface px-4 py-3 md:col-span-2">
+          <p className="text-xs font-bold uppercase text-[var(--app-text-muted)]">
+            Latest visible event
+          </p>
+          {latestVisibleEvent ? (
+            <>
+              <p className="mt-2 font-semibold text-app-text">{latestVisibleEvent.summary}</p>
+              <p className="mt-1 text-xs text-[var(--app-text-muted)]">
+                {new Date(latestVisibleEvent.changedAt).toLocaleString()} by{' '}
+                {latestVisibleEvent.changedByEmail || 'System'}
+              </p>
+            </>
+          ) : (
+            <p className="mt-2 text-sm text-[var(--app-text-muted)]">
+              No visible events on this page.
+            </p>
+          )}
+        </div>
+      </div>
+
+      {auditLogPage.warning && (
+        <div className="rounded border border-app-border bg-app-accent-soft px-3 py-2 text-sm font-medium text-app-accent-text">
+          Backend warning: {auditLogPage.warning}
+        </div>
+      )}
+
+      {fetchError && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded border border-app-border bg-app-surface px-4 py-3">
+          <p className="text-sm font-medium text-app-accent-text">{fetchError}</p>
+          <button
+            type="button"
+            onClick={() => void fetchLogs()}
+            className="rounded border border-app-border bg-app-surface-muted px-3 py-1 text-xs font-bold uppercase"
+          >
+            Try Again
+          </button>
+        </div>
+      )}
 
       <div className="rounded-lg border border-app-border bg-app-surface shadow-sm">
         <div className="overflow-x-auto">
@@ -95,9 +149,7 @@ export default function AuditLogsSection() {
                   </td>
                   <td className="p-3">
                     <div className="font-medium text-app-text">{log.summary}</div>
-                    <div className="mt-1 text-sm text-[var(--app-text-muted)]">
-                      {log.details}
-                    </div>
+                    <div className="mt-1 text-sm text-[var(--app-text-muted)]">{log.details}</div>
                     {log.changedFields && log.changedFields.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-2">
                         {log.changedFields.map((field) => (
@@ -120,13 +172,15 @@ export default function AuditLogsSection() {
                   </td>
                 </tr>
               )}
-              {!loading && auditLogPage.logs.length === 0 && (
+              {isEmpty && (
                 <tr>
                   <td
                     colSpan={5}
                     className="p-8 text-center text-[var(--app-text-muted)] font-medium"
                   >
-                    No audit logs found
+                    {hasDisabledState
+                      ? 'Audit logging is disabled or unavailable for this response.'
+                      : 'No audit logs found'}
                   </td>
                 </tr>
               )}

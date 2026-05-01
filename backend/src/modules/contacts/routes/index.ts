@@ -28,11 +28,13 @@ import {
   updateContactRelationshipSchema,
   updateContactPhoneSchema,
   updateContactSchema,
+  upsertStaffContactSuppressionSchema,
   donorProfileSchema,
   uuidSchema,
 } from '@validations/contact';
 import { createContactDirectoryController } from '../controllers/directory.controller';
 import { createContactDonorProfileController } from '../controllers/donorProfile.controller';
+import { createContactSuppressionsController } from '../controllers/suppressions.controller';
 import { followUpController as followUpsController } from '@modules/followUps/controllers/followUps.handlers';
 import { createContactCommunicationsController } from '../controllers/communications.controller';
 import { createContactNotesController } from '../controllers/notes.controller';
@@ -56,6 +58,7 @@ import { ContactEmailsUseCase } from '../usecases/contactEmails.usecase';
 import { ContactRelationshipsUseCase } from '../usecases/contactRelationships.usecase';
 import { ContactDocumentsUseCase } from '../usecases/contactDocuments.usecase';
 import { DonorProfileService } from '../services/donorProfileService';
+import { ContactSuppressionService } from '../services/contactSuppressionService';
 import { piiFieldAccessControl } from '@middleware/piiFieldAccessControl';
 import { services } from '@container/services';
 import { Permission } from '@utils/permissions';
@@ -81,6 +84,13 @@ const importTemplateQuerySchema = z
       .enum(['csv', 'xlsx', 'xslx'])
       .transform((value) => (value === 'xslx' ? 'xlsx' : value))
       .optional(),
+  })
+  .strict();
+
+const updateSuppressionEvidenceSchema = z
+  .object({
+    is_active: z.boolean().optional(),
+    resolved_note: z.string().trim().max(4000).nullable().optional(),
   })
   .strict();
 
@@ -119,6 +129,10 @@ export const createContactsRoutes = (): Router => {
   const donorProfileController = createContactDonorProfileController(
     directoryUseCase,
     new DonorProfileService(pool)
+  );
+  const suppressionsController = createContactSuppressionsController(
+    directoryUseCase,
+    new ContactSuppressionService(pool)
   );
   const requireContactsDataScope = loadDataScope('contacts');
 
@@ -193,6 +207,26 @@ export const createContactsRoutes = (): Router => {
     validateBody(donorProfileSchema),
     requirePermission(Permission.CONTACT_EDIT),
     donorProfileController.updateDonorProfile
+  );
+  scopedRouter.get(
+    '/:id/suppressions',
+    validateParams(z.object({ id: uuidSchema })),
+    requirePermission(Permission.CONTACT_VIEW),
+    suppressionsController.listActiveSuppressions
+  );
+  scopedRouter.post(
+    '/:id/suppressions/staff-dnc',
+    validateParams(z.object({ id: uuidSchema })),
+    validateBody(upsertStaffContactSuppressionSchema),
+    requirePermission(Permission.CONTACT_EDIT),
+    suppressionsController.upsertStaffSuppression
+  );
+  scopedRouter.patch(
+    '/:id/suppressions/:suppressionId',
+    validateParams(z.object({ id: uuidSchema, suppressionId: uuidSchema })),
+    validateBody(updateSuppressionEvidenceSchema),
+    requirePermission(Permission.CONTACT_EDIT),
+    suppressionsController.updateSuppression
   );
   scopedRouter.get(
     '/:id/merge-preview',

@@ -154,10 +154,10 @@ describe('PortalCalendarPage', () => {
     fireEvent.click(screen.getByText('Morning slot'));
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Book slot' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Book time' })).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Book slot' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Book time' }));
 
     await waitFor(() => {
       expect(bookAppointmentSlotMock).toHaveBeenCalledWith('slot-1', { case_id: 'case-1' });

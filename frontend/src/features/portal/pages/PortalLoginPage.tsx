@@ -29,7 +29,7 @@ export default function PortalLogin() {
       highlights={[
         'Secure session-based sign in.',
         'Private view of only staff-shared records.',
-        'Messaging and appointments in one workspace.',
+        'Messaging and appointments in one place.',
       ]}
     >
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-text-muted">Sign in</p>

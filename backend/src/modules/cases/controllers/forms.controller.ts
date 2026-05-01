@@ -89,6 +89,71 @@ export const createCaseFormsController = (useCase: CaseFormsUseCase) => {
     }
   };
 
+  const listTemplates = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const query = getValidatedQuery<{
+        status?: 'draft' | 'published' | 'archived';
+        case_type_id?: string;
+      }>(req);
+      const templates = await useCase.listTemplates(
+        {
+          status: query.status,
+          caseTypeId: query.case_type_id ?? undefined,
+        },
+        getOrganizationId(req)
+      );
+      sendData(res, templates);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  const createTemplate = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const created = await useCase.createTemplate(
+        req.body as CreateCaseFormDefaultDTO,
+        req.user?.id,
+        getOrganizationId(req)
+      );
+      sendData(res, created, 201);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  const autosaveTemplate = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const updated = await useCase.autosaveTemplate(
+        req.params.defaultId,
+        req.body as UpdateCaseFormDefaultDTO,
+        req.user?.id,
+        getOrganizationId(req)
+      );
+      sendData(res, updated);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  const saveAssignmentAsTemplate = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const created = await useCase.saveAssignmentAsTemplate(
+        req.params.id,
+        req.params.assignmentId,
+        req.body as CreateCaseFormDefaultDTO,
+        req.user?.id,
+        getOrganizationId(req)
+      );
+      sendData(res, created, 201);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   const listRecommendedDefaults = async (
     req: AuthRequest,
     res: Response,
@@ -291,6 +356,10 @@ export const createCaseFormsController = (useCase: CaseFormsUseCase) => {
     listDefaults,
     createDefault,
     updateDefault,
+    listTemplates,
+    createTemplate,
+    autosaveTemplate,
+    saveAssignmentAsTemplate,
     listRecommendedDefaults,
     listAssignments: listAssignmentsQuery,
     createAssignment,
