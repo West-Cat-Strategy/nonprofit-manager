@@ -339,6 +339,9 @@ const DonationList: React.FC = () => {
 
                       <div className="mt-3 space-y-1 text-sm text-app-text-muted">
                         <p>Payment: {getPaymentMethodLabel(donation.payment_method)}</p>
+                        {(donation.designation_label || donation.designation) ? (
+                          <p>Designation: {donation.designation_label || donation.designation}</p>
+                        ) : null}
                         <p>
                           Receipt:{' '}
                           {donation.official_tax_receipt_number ||
@@ -454,6 +457,11 @@ const DonationList: React.FC = () => {
                                 {donation.campaign_name}
                               </div>
                             )}
+                            {(donation.designation_label || donation.designation) ? (
+                              <div className="text-xs text-app-text-muted">
+                                {donation.designation_label || donation.designation}
+                              </div>
+                            ) : null}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-semibold text-app-text">

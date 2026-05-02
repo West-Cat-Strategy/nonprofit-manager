@@ -28,6 +28,24 @@ export type RecurringFrequency =
   | 'annually'
   | 'one_time';
 
+export type FundRestrictionType =
+  | 'unrestricted'
+  | 'temporarily_restricted'
+  | 'permanently_restricted'
+  | 'board_designated';
+
+export interface DonationDesignation {
+  designation_id: string;
+  organization_id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  restriction_type: FundRestrictionType;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Donation {
   donation_id: string;
   donation_number: string;
@@ -48,7 +66,11 @@ export interface Donation {
   stripe_subscription_id?: string | null;
   stripe_invoice_id?: string | null;
   campaign_name: string | null;
+  designation_id: string | null;
   designation: string | null;
+  designation_label?: string | null;
+  designation_code?: string | null;
+  designation_restriction_type?: FundRestrictionType | null;
   is_recurring: boolean;
   recurring_frequency: RecurringFrequency | null;
   recurring_plan_status?: string | null;
@@ -87,7 +109,8 @@ export interface CreateDonationDTO {
   stripe_subscription_id?: string;
   stripe_invoice_id?: string;
   campaign_name?: string;
-  designation?: string;
+  designation_id?: string | null;
+  designation?: string | null;
   is_recurring?: boolean;
   recurring_frequency?: RecurringFrequency;
   notes?: string;
@@ -111,7 +134,8 @@ export interface UpdateDonationDTO {
   stripe_subscription_id?: string | null;
   stripe_invoice_id?: string | null;
   campaign_name?: string;
-  designation?: string;
+  designation_id?: string | null;
+  designation?: string | null;
   is_recurring?: boolean;
   recurring_frequency?: RecurringFrequency;
   notes?: string;
@@ -156,6 +180,7 @@ export interface DonationSummary {
   average_donation: number;
   by_payment_method: Record<string, { count: number; amount: number }>;
   by_campaign: Record<string, { count: number; amount: number }>;
+  by_designation: Record<string, { count: number; amount: number; code?: string | null }>;
   recurring_count: number;
   recurring_amount: number;
 }

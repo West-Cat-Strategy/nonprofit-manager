@@ -255,7 +255,14 @@ const RecurringDonationDetailPage: React.FC = () => {
             </div>
             <div>
               <dt className="font-medium text-app-text">Designation</dt>
-              <dd className="text-app-text-muted">{plan.designation || 'None'}</dd>
+              <dd className="text-app-text-muted">
+                {plan.designation_label || plan.designation || 'None'}
+                {plan.designation_restriction_type ? (
+                  <span className="ml-2 text-xs">
+                    {plan.designation_restriction_type.replace(/_/g, ' ')}
+                  </span>
+                ) : null}
+              </dd>
             </div>
             <div>
               <dt className="font-medium text-app-text">Notes</dt>

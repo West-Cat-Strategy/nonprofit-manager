@@ -46,7 +46,8 @@ export const createDonationSchema = z
     is_recurring: z.boolean().optional(),
     recurring_frequency: recurringFrequencySchema.optional(),
     campaign_name: z.string().max(100).optional(),
-    designation: z.string().max(100).optional(),
+    designation_id: uuidSchema.nullable().optional(),
+    designation: z.string().max(100).nullable().optional(),
     notes: z.string().max(500).optional(),
   })
   .superRefine((value, ctx) => {
@@ -82,7 +83,8 @@ export const updateDonationSchema = z.object({
   is_recurring: z.boolean().optional(),
   recurring_frequency: recurringFrequencySchema.optional(),
   campaign_name: z.string().max(100).optional(),
-  designation: z.string().max(100).optional(),
+  designation_id: uuidSchema.nullable().optional(),
+  designation: z.string().max(100).nullable().optional(),
   notes: z.string().max(500).optional(),
   receipt_sent: z.boolean().optional(),
 });

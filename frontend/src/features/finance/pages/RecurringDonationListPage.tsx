@@ -251,6 +251,10 @@ const RecurringDonationListPage: React.FC = () => {
                         <span className="font-medium text-app-text">Campaign:</span>{' '}
                         {plan.campaign_name || 'None'}
                       </p>
+                      <p>
+                        <span className="font-medium text-app-text">Designation:</span>{' '}
+                        {plan.designation_label || plan.designation || 'None'}
+                      </p>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">

@@ -8,12 +8,17 @@ import { emailSchema, isoDateTimeSchema, uuidSchema } from '@validations/shared'
 import * as communicationsController from '../controllers';
 
 const router = Router();
+const publicRouter = Router();
 
 const providerSchema = z.enum(['local_email', 'mailchimp']);
 const listIdSchema = z.string().trim().min(1).optional();
 
 const campaignRunIdParamsSchema = z.object({
   runId: uuidSchema,
+});
+
+const unsubscribeTokenParamsSchema = z.object({
+  token: z.string(),
 });
 
 const providerAudienceParamsSchema = z.object({
@@ -220,8 +225,21 @@ router.post(
   communicationsController.rescheduleCampaignRun
 );
 
+publicRouter.get(
+  '/unsubscribe/:token',
+  validateParams(unsubscribeTokenParamsSchema),
+  communicationsController.getUnsubscribe
+);
+publicRouter.post(
+  '/unsubscribe/:token',
+  validateParams(unsubscribeTokenParamsSchema),
+  communicationsController.postUnsubscribe
+);
+
 export default router;
 
 export const createCommunicationsRoutes = () => router;
+export const createPublicCommunicationsRoutes = () => publicRouter;
 
 export const communicationsV2Routes = createCommunicationsRoutes();
+export const publicCommunicationsV2Routes = createPublicCommunicationsRoutes();

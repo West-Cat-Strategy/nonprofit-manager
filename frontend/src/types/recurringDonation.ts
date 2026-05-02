@@ -1,3 +1,5 @@
+import type { FundRestrictionType } from './donation';
+
 export type RecurringDonationPlanStatus =
   | 'checkout_pending'
   | 'active'
@@ -23,7 +25,11 @@ export interface RecurringDonationPlan {
   interval: 'monthly';
   payment_provider?: 'stripe' | 'paypal' | 'square' | null;
   campaign_name: string | null;
+  designation_id: string | null;
   designation: string | null;
+  designation_label?: string | null;
+  designation_code?: string | null;
+  designation_restriction_type?: FundRestrictionType | null;
   notes: string | null;
   status: RecurringDonationPlanStatus;
   provider_customer_id?: string | null;
@@ -67,6 +73,7 @@ export interface RecurringDonationPlanListPage {
 export interface UpdateRecurringDonationPlanDTO {
   amount?: number;
   campaign_name?: string | null;
+  designation_id?: string | null;
   designation?: string | null;
   notes?: string | null;
 }

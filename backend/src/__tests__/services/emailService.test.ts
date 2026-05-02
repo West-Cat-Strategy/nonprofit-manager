@@ -1,6 +1,10 @@
 import nodemailer from 'nodemailer';
 import pool from '@config/database';
-import { testSmtpConnection } from '@services/emailService';
+import {
+  sendMail,
+  sendNewsletterSignupConfirmationEmail,
+  testSmtpConnection,
+} from '@services/emailService';
 
 jest.mock('nodemailer', () => ({
   __esModule: true,
@@ -26,6 +30,7 @@ describe('emailService.testSmtpConnection', () => {
   const mockQuery = pool.query as jest.Mock;
   const mockCreateTransport = (nodemailer.createTransport as jest.Mock);
   const verifyMock = jest.fn();
+  const sendMailMock = jest.fn();
 
   const makeSettingsRow = (overrides: Partial<Record<string, unknown>> = {}) => ({
     id: 'email-settings-1',
@@ -53,7 +58,66 @@ describe('emailService.testSmtpConnection', () => {
     mockQuery.mockReset();
     mockCreateTransport.mockReset();
     verifyMock.mockReset();
-    mockCreateTransport.mockReturnValue({ verify: verifyMock });
+    sendMailMock.mockReset();
+    mockCreateTransport.mockReturnValue({ verify: verifyMock, sendMail: sendMailMock });
+    delete process.env.API_ORIGIN;
+  });
+
+  it('sends newsletter confirmation links through the API origin', async () => {
+    process.env.API_ORIGIN = 'https://api.example.org/';
+    mockQuery.mockResolvedValueOnce({ rows: [makeSettingsRow()] });
+    sendMailMock.mockResolvedValueOnce({ messageId: 'message-1' });
+
+    await expect(
+      sendNewsletterSignupConfirmationEmail(
+        'ada@example.org',
+        'token with spaces',
+        'Ada',
+        'Neighborhood Mutual Aid'
+      )
+    ).resolves.toBe(true);
+
+    expect(sendMailMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: 'ada@example.org',
+        subject: 'Confirm your Neighborhood Mutual Aid newsletter signup',
+        text: expect.stringContaining(
+          'https://api.example.org/api/v2/public/newsletters/confirm/token%20with%20spaces'
+        ),
+        html: expect.stringContaining(
+          'https://api.example.org/api/v2/public/newsletters/confirm/token%20with%20spaces'
+        ),
+      })
+    );
+  });
+
+  it('forwards custom headers to nodemailer', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [makeSettingsRow()] });
+    sendMailMock.mockResolvedValueOnce({ messageId: 'message-1' });
+
+    await expect(
+      sendMail({
+        to: 'ada@example.org',
+        subject: 'Spring Update',
+        text: 'Hello',
+        html: '<p>Hello</p>',
+        headers: {
+          'List-Unsubscribe': '<https://example.org/unsubscribe/token-1>',
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        },
+      })
+    ).resolves.toBe(true);
+
+    expect(sendMailMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: 'ada@example.org',
+        subject: 'Spring Update',
+        headers: {
+          'List-Unsubscribe': '<https://example.org/unsubscribe/token-1>',
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        },
+      })
+    );
   });
 
   it('returns a STARTTLS hint for wrong-version TLS failures on port 587', async () => {

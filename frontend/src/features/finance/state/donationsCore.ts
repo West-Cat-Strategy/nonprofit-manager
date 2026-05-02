@@ -7,6 +7,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import type {
   Donation,
+  DonationDesignation,
   CreateDonationDTO,
   UpdateDonationDTO,
   DonationFilters,
@@ -39,6 +40,8 @@ interface DonationsState {
   };
   totalAmount: number;
   averageAmount: number;
+  designations: DonationDesignation[];
+  designationsLoading: boolean;
   loading: boolean;
   error: string | null;
 }
@@ -55,6 +58,8 @@ const initialState: DonationsState = {
   },
   totalAmount: 0,
   averageAmount: 0,
+  designations: [],
+  designationsLoading: false,
   loading: false,
   error: null,
 };
@@ -174,6 +179,16 @@ export const fetchDonationSummary = createAsyncThunk(
   }
 );
 
+export const fetchDonationDesignations = createAsyncThunk(
+  'donations/fetchDonationDesignations',
+  async (options?: { includeInactive?: boolean }) => {
+    const response = await api.get<DonationDesignation[]>('/donations/designations', {
+      params: options?.includeInactive ? { include_inactive: 'true' } : undefined,
+    });
+    return response.data;
+  }
+);
+
 const donationsSlice = createSlice({
   name: 'donations',
   initialState,
@@ -202,6 +217,22 @@ const donationsSlice = createSlice({
     );
     builder.addCase(fetchDonations.rejected, (state, action) => {
       handleRejected(state, action, 'Failed to fetch donations');
+    });
+
+    builder.addCase(fetchDonationDesignations.pending, (state) => {
+      state.designationsLoading = true;
+      state.error = null;
+    });
+    builder.addCase(
+      fetchDonationDesignations.fulfilled,
+      (state, action: PayloadAction<DonationDesignation[]>) => {
+        state.designationsLoading = false;
+        state.designations = action.payload;
+      }
+    );
+    builder.addCase(fetchDonationDesignations.rejected, (state, action) => {
+      state.designationsLoading = false;
+      handleRejected(state, action, 'Failed to fetch donation designations');
     });
 
     // Fetch donation by ID

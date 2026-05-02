@@ -7,6 +7,10 @@ import {
   resolveMailchimpCampaignContent,
 } from '@services/template/emailCampaignRenderer';
 import mailchimpService from '@services/mailchimpService';
+import {
+  appendUnsubscribeFooter,
+  buildLocalCampaignUnsubscribeUrl,
+} from './localCampaignUnsubscribeHelpers';
 import type {
   CommunicationAudience,
   CommunicationAudiencePreview,
@@ -106,13 +110,7 @@ export class CommunicationsValidationError extends Error {
 }
 
 const uniqueStrings = (values: readonly string[] = []): string[] =>
-  Array.from(
-    new Set(
-      values
-        .map((value) => value.trim())
-        .filter((value): value is string => value.length > 0)
-    )
-  );
+  Array.from(new Set(values.map((value) => value.trim()).filter((value) => value.length > 0)));
 
 const assertUuidList = (values: readonly string[], label: string): void => {
   const invalid = values.find((value) => !uuidPattern.test(value));
@@ -157,16 +155,9 @@ const mapRunRow = (row: CampaignRunRow): CommunicationCampaignRun => ({
 });
 
 const mapRecipientRow = (row: CampaignRunRecipientRow): CommunicationCampaignRecipient => ({
-  id: row.id,
-  campaignRunId: row.campaign_run_id,
-  contactId: row.contact_id,
-  email: row.email,
-  status: row.status,
-  contactName: row.contact_name,
-  failureMessage: row.failure_message,
-  sentAt: row.sent_at,
-  createdAt: row.created_at,
-  updatedAt: row.updated_at,
+  id: row.id, campaignRunId: row.campaign_run_id, contactId: row.contact_id, email: row.email,
+  status: row.status, contactName: row.contact_name, failureMessage: row.failure_message,
+  sentAt: row.sent_at, createdAt: row.created_at, updatedAt: row.updated_at,
 });
 
 const asMailchimpRequest = (
@@ -1000,11 +991,17 @@ export const sendCampaignRun = async (
   let failed = 0;
   for (const recipient of recipients.rows) {
     try {
+      const unsubscribeUrl = buildLocalCampaignUnsubscribeUrl(run.id, recipient.id, recipient.email);
+      const emailContent = appendUnsubscribeFooter({ html, plainText }, unsubscribeUrl);
       const ok = await sendMail({
         to: recipient.email,
         subject,
-        text: plainText,
-        html,
+        text: emailContent.plainText,
+        html: emailContent.html,
+        headers: {
+          'List-Unsubscribe': `<${unsubscribeUrl}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        },
       });
       if (ok) {
         sent++;

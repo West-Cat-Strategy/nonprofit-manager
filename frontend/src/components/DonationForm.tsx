@@ -9,6 +9,7 @@ import type { Donation, CreateDonationDTO, UpdateDonationDTO } from '../types/do
 import { useUnsavedChangesGuard } from '../hooks/useUnsavedChangesGuard';
 import { fetchAccounts } from '../features/accounts/state';
 import { fetchContacts } from '../features/contacts/state';
+import { fetchDonationDesignations } from '../features/finance/state';
 import type { Account } from '../features/accounts/types/contracts';
 import type { Contact } from '../types/contact';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -163,8 +164,10 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
   const navigate = useNavigate();
   const { accounts, loading: accountsLoading } = useAppSelector((state) => state.accounts.list);
   const { contacts, loading: contactsLoading } = useAppSelector((state) => state.contacts.list);
+  const { designations, designationsLoading } = useAppSelector((state) => state.finance.donations);
   const hasRequestedAccountsRef = useRef(false);
   const hasRequestedContactsRef = useRef(false);
+  const hasRequestedDesignationsRef = useRef(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
@@ -178,6 +181,8 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
     is_recurring: false,
     recurring_frequency: 'one_time' as const,
   });
+  const [selectedDesignationId, setSelectedDesignationId] = useState('');
+  const [newDesignationName, setNewDesignationName] = useState('');
 
   useEffect(() => {
     if (donation) {
@@ -194,11 +199,12 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
         payment_status: donation.payment_status,
         transaction_id: donation.transaction_id || undefined,
         campaign_name: donation.campaign_name || undefined,
-        designation: donation.designation || undefined,
         is_recurring: donation.is_recurring,
         recurring_frequency: donation.recurring_frequency || undefined,
         notes: donation.notes || undefined,
       });
+      setSelectedDesignationId(donation.designation_id || (donation.designation ? '__new' : ''));
+      setNewDesignationName(donation.designation_id ? '' : donation.designation || '');
       setIsDirty(false);
     }
   }, [donation]);
@@ -225,7 +231,25 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
         })
       );
     }
-  }, [accounts.length, accountsLoading, contacts.length, contactsLoading, dispatch]);
+
+    if (
+      !hasRequestedDesignationsRef.current &&
+      !designationsLoading &&
+      (isEdit || designations.length === 0)
+    ) {
+      hasRequestedDesignationsRef.current = true;
+      void dispatch(fetchDonationDesignations({ includeInactive: isEdit }));
+    }
+  }, [
+    accounts.length,
+    accountsLoading,
+    contacts.length,
+    contactsLoading,
+    designations.length,
+    designationsLoading,
+    dispatch,
+    isEdit,
+  ]);
 
   useUnsavedChangesGuard({
     hasUnsavedChanges: isDirty && !loading,
@@ -271,7 +295,27 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
         throw new Error('Select an account or contact before recording the donation');
       }
 
-      await onSubmit(formData);
+      const trimmedDesignation = newDesignationName.trim();
+      const selectedDesignation = designations.find(
+        (designationOption) => designationOption.designation_id === selectedDesignationId
+      );
+      const preserveExistingInactiveDesignation =
+        isEdit &&
+        donation?.designation_id === selectedDesignationId &&
+        selectedDesignationId !== '' &&
+        selectedDesignation?.is_active !== true;
+      const designationPayload = preserveExistingInactiveDesignation
+        ? {}
+        : selectedDesignationId === '__new'
+          ? { designation_id: null, designation: trimmedDesignation || null }
+          : selectedDesignationId
+            ? { designation_id: selectedDesignationId }
+            : { designation_id: null, designation: null };
+
+      await onSubmit({
+        ...formData,
+        ...designationPayload,
+      });
       setIsDirty(false);
       navigate('/donations');
     } catch (err: unknown) {
@@ -295,15 +339,32 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
   const selectedContactMissing =
     Boolean(formData.contact_id) &&
     !sortedContacts.some((contact) => contact.contact_id === formData.contact_id);
+  const selectableDesignations = [...designations]
+    .filter(
+      (designationOption) =>
+        designationOption.is_active || designationOption.designation_id === selectedDesignationId
+    )
+    .sort((left, right) => left.name.localeCompare(right.name));
+  const selectedDesignationMissing =
+    Boolean(selectedDesignationId) &&
+    selectedDesignationId !== '__new' &&
+    !selectableDesignations.some(
+      (designationOption) => designationOption.designation_id === selectedDesignationId
+    );
+  const currentDesignationLabel =
+    donation?.designation_label || donation?.designation || 'Current designation';
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 bg-app-surface shadow-md rounded-lg p-6">
-      {error && <div className="p-4 bg-app-accent-soft text-app-accent-text rounded-md">{error}</div>}
+      {error && (
+        <div className="p-4 bg-app-accent-soft text-app-accent-text rounded-md">{error}</div>
+      )}
 
       <div>
         <h3 className="text-lg font-semibold mb-4">Donor Linkage</h3>
         <p className="mb-4 text-sm text-app-text-muted">
-          Link each manual donation to an account, a contact, or both so donor reporting stays accurate.
+          Link each manual donation to an account, a contact, or both so donor reporting stays
+          accurate.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -358,7 +419,9 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
               ))}
             </select>
             <p className="mt-1 text-xs text-app-text-subtle">
-              {contactsLoading ? 'Loading donor contacts...' : 'Optional when an account is linked.'}
+              {contactsLoading
+                ? 'Loading donor contacts...'
+                : 'Optional when an account is linked.'}
             </p>
           </div>
         </div>
@@ -385,7 +448,9 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
           </div>
 
           <div>
-            <label htmlFor="currency" className="block text-sm font-medium mb-1">Currency</label>
+            <label htmlFor="currency" className="block text-sm font-medium mb-1">
+              Currency
+            </label>
             <input
               type="text"
               id="currency"
@@ -414,7 +479,9 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
           </div>
 
           <div>
-            <label htmlFor="payment_method" className="block text-sm font-medium mb-1">Payment Method</label>
+            <label htmlFor="payment_method" className="block text-sm font-medium mb-1">
+              Payment Method
+            </label>
             <select
               id="payment_method"
               name="payment_method"
@@ -435,7 +502,9 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
           </div>
 
           <div>
-            <label htmlFor="payment_status" className="block text-sm font-medium mb-1">Payment Status</label>
+            <label htmlFor="payment_status" className="block text-sm font-medium mb-1">
+              Payment Status
+            </label>
             <select
               id="payment_status"
               name="payment_status"
@@ -452,7 +521,9 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
           </div>
 
           <div>
-            <label htmlFor="transaction_id" className="block text-sm font-medium mb-1">Transaction ID</label>
+            <label htmlFor="transaction_id" className="block text-sm font-medium mb-1">
+              Transaction ID
+            </label>
             <input
               type="text"
               id="transaction_id"
@@ -470,7 +541,9 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
         <h3 className="text-lg font-semibold mb-4">Campaign & Designation</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label htmlFor="campaign_name" className="block text-sm font-medium mb-1">Campaign Name</label>
+            <label htmlFor="campaign_name" className="block text-sm font-medium mb-1">
+              Campaign Name
+            </label>
             <input
               type="text"
               id="campaign_name"
@@ -483,17 +556,60 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
           </div>
 
           <div>
-            <label htmlFor="designation" className="block text-sm font-medium mb-1">Designation</label>
-            <input
-              type="text"
-              id="designation"
-              name="designation"
-              value={formData.designation || ''}
-              onChange={handleChange}
+            <label htmlFor="designation_id" className="block text-sm font-medium mb-1">
+              Fund Designation
+            </label>
+            <select
+              id="designation_id"
+              name="designation_id"
+              value={selectedDesignationId}
+              onChange={(event) => {
+                setSelectedDesignationId(event.target.value);
+                setIsDirty(true);
+              }}
               className={donationFieldClassName}
-              placeholder="General Operating Fund"
-            />
+            >
+              <option value="">No designation</option>
+              {selectableDesignations.map((designationOption) => (
+                <option
+                  key={designationOption.designation_id}
+                  value={designationOption.designation_id}
+                >
+                  {designationOption.name}
+                  {!designationOption.is_active ? ' (inactive)' : ''}
+                </option>
+              ))}
+              {selectedDesignationMissing ? (
+                <option value={selectedDesignationId}>{currentDesignationLabel} (current)</option>
+              ) : null}
+              <option value="__new">Add a new designation</option>
+            </select>
+            <p className="mt-1 text-xs text-app-text-subtle">
+              {designationsLoading
+                ? 'Loading fund designations...'
+                : 'Typed designations keep finance reporting consistent.'}
+            </p>
           </div>
+
+          {selectedDesignationId === '__new' ? (
+            <div>
+              <label htmlFor="designation" className="block text-sm font-medium mb-1">
+                New Designation Name
+              </label>
+              <input
+                type="text"
+                id="designation"
+                name="designation"
+                value={newDesignationName}
+                onChange={(event) => {
+                  setNewDesignationName(event.target.value);
+                  setIsDirty(true);
+                }}
+                className={donationFieldClassName}
+                placeholder="General Operating Fund"
+              />
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -516,7 +632,9 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
 
           {formData.is_recurring && (
             <div className="max-w-md">
-              <label htmlFor="recurring_frequency" className="block text-sm font-medium mb-1">Frequency</label>
+              <label htmlFor="recurring_frequency" className="block text-sm font-medium mb-1">
+                Frequency
+              </label>
               <select
                 id="recurring_frequency"
                 name="recurring_frequency"
@@ -537,7 +655,9 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
       <div>
         <h3 className="text-lg font-semibold mb-4">Additional Information</h3>
         <div>
-          <label htmlFor="notes" className="block text-sm font-medium mb-1">Notes</label>
+          <label htmlFor="notes" className="block text-sm font-medium mb-1">
+            Notes
+          </label>
           <textarea
             id="notes"
             name="notes"
@@ -559,11 +679,7 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
         >
           Cancel
         </button>
-        <button
-          type="submit"
-          className={primaryButtonClassName}
-          disabled={loading}
-        >
+        <button type="submit" className={primaryButtonClassName} disabled={loading}>
           {loading ? 'Saving...' : isEdit ? 'Update Donation' : 'Record Donation'}
         </button>
       </div>

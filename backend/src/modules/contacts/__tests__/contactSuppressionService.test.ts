@@ -109,4 +109,61 @@ describe('ContactSuppressionService', () => {
     expect(db.query.mock.calls[1][0]).toContain('provider_event_id');
     expect(db.query.mock.calls[2][0]).toContain('SET do_not_email = true');
   });
+
+  it('records local email unsubscribe evidence with system source and syncs do_not_email', async () => {
+    const db = buildDb();
+    db.query
+      .mockResolvedValueOnce({ rows: [{ id: 'contact-1', account_id: 'account-1' }] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'suppression-1',
+            contact_id: 'contact-1',
+            account_id: 'account-1',
+            channel: 'email',
+            reason: 'unsubscribed',
+            source: 'system',
+            source_label: 'Local email unsubscribe',
+            provider: 'local_email',
+            provider_list_id: null,
+            provider_event_id: 'local-email-unsubscribe:run-1:recipient-1:hash-1',
+            provider_event_type: 'unsubscribe',
+            provider_reason: 'one_click_unsubscribe',
+            evidence: { runId: 'run-1', recipientId: 'recipient-1' },
+            notes: 'one_click_unsubscribe',
+            is_active: true,
+            starts_at: null,
+            expires_at: null,
+            created_at: new Date('2026-05-01T12:00:00Z'),
+            updated_at: new Date('2026-05-01T12:00:00Z'),
+            created_by: null,
+            resolved_at: null,
+            resolved_by: null,
+            resolved_note: null,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ rowCount: 1 });
+
+    const service = new ContactSuppressionService(db as never);
+    const result = await service.recordSuppressionEvidence({
+      contactId: 'contact-1',
+      channel: 'email',
+      reason: 'unsubscribed',
+      source: 'system',
+      provider: 'local_email',
+      providerEventId: 'local-email-unsubscribe:run-1:recipient-1:hash-1',
+      providerEventType: 'unsubscribe',
+      providerReason: 'one_click_unsubscribe',
+      preserveDoNotEmail: true,
+      evidence: { runId: 'run-1', recipientId: 'recipient-1' },
+    });
+
+    expect(result?.source).toBe('system');
+    expect(result?.provider).toBe('local_email');
+    expect(db.query.mock.calls[1][0]).toContain(
+      'ON CONFLICT (provider, provider_event_id, contact_id, channel, reason)'
+    );
+    expect(db.query.mock.calls[2][0]).toContain('SET do_not_email = true');
+  });
 });

@@ -5,6 +5,7 @@ import { DonationService } from '@services/donationService';
 import { SiteManagementService } from '@services/publishing/siteManagementService';
 import stripeService from '@services/stripeService';
 import paymentProviderService from '@services/paymentProviderService';
+import { DonationDesignationService } from '@modules/donations/services/donationDesignationService';
 import type {
   RecurringDonationPlan,
   RecurringDonationPlanFilters,
@@ -55,11 +56,13 @@ interface CreatePublicRecurringDonationPlanInput {
 
 export class RecurringDonationService {
   private readonly donationService: DonationService;
+  private readonly designationService: DonationDesignationService;
   private readonly siteManagement: SiteManagementService;
   private readonly syncService: RecurringDonationSyncService;
 
   constructor(private readonly pool: Pool) {
     this.donationService = new DonationService(pool);
+    this.designationService = new DonationDesignationService(pool);
     this.siteManagement = new SiteManagementService(pool);
     this.syncService = new RecurringDonationSyncService(pool, this.donationService);
   }
@@ -163,6 +166,12 @@ export class RecurringDonationService {
       }
     }
 
+    const resolvedDesignation = await this.designationService.resolveDesignationInput({
+      organizationId: input.organizationId || null,
+      userId: input.userId,
+      designationName: input.designation,
+    });
+
     const insertResult = await this.pool.query<{ id: string }>(
       `
         INSERT INTO recurring_donation_plans (
@@ -177,6 +186,7 @@ export class RecurringDonationService {
           currency,
           interval,
           campaign_name,
+          designation_id,
           designation,
           notes,
           status,
@@ -190,8 +200,8 @@ export class RecurringDonationService {
           created_by,
           modified_by
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, 'monthly', $10, $11, $12, 'checkout_pending',
-          $13, $14, $15, $16, $17, $18, $19, $20, $21
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, 'monthly', $10, $11, $12, $13, 'checkout_pending',
+          $14, $15, $16, $17, $18, $19, $20, $21, $22
         )
         RETURNING id
       `,
@@ -206,7 +216,8 @@ export class RecurringDonationService {
         input.amount,
         input.currency.toUpperCase(),
         input.campaignName || null,
-        input.designation || null,
+        resolvedDesignation.designation_id,
+        resolvedDesignation.designation,
         input.notes || null,
         provider,
         customerId,
@@ -444,9 +455,26 @@ export class RecurringDonationService {
     let nextBillingAt = current.next_billing_at;
     const nextCampaignName =
       data.campaign_name === undefined ? current.campaign_name : data.campaign_name;
-    const nextDesignation =
+    let nextDesignationId =
+      data.designation_id === undefined ? current.designation_id : data.designation_id;
+    let nextDesignation =
       data.designation === undefined ? current.designation : data.designation;
     const nextNotes = data.notes === undefined ? current.notes : data.notes;
+
+    if (
+      Object.prototype.hasOwnProperty.call(data, 'designation_id') ||
+      Object.prototype.hasOwnProperty.call(data, 'designation')
+    ) {
+      const resolvedDesignation = await this.designationService.resolveDesignationInput({
+        organizationId,
+        userId,
+        designationId: data.designation_id,
+        designationName: data.designation,
+        allowInactiveDesignationId: current.designation_id,
+      });
+      nextDesignationId = resolvedDesignation.designation_id;
+      nextDesignation = resolvedDesignation.designation;
+    }
 
     if (typeof data.amount === 'number' && data.amount > 0 && data.amount !== current.amount) {
       if (!current.stripe_subscription_id) {
@@ -479,12 +507,13 @@ export class RecurringDonationService {
         UPDATE recurring_donation_plans
         SET amount = $3,
             campaign_name = $4,
-            designation = $5,
-            notes = $6,
-            stripe_price_id = COALESCE($7, stripe_price_id),
-            stripe_product_id = COALESCE($8, stripe_product_id),
-            next_billing_at = COALESCE($9, next_billing_at),
-            modified_by = $10,
+            designation_id = $5,
+            designation = $6,
+            notes = $7,
+            stripe_price_id = COALESCE($8, stripe_price_id),
+            stripe_product_id = COALESCE($9, stripe_product_id),
+            next_billing_at = COALESCE($10, next_billing_at),
+            modified_by = $11,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
           AND organization_id = $2
@@ -495,6 +524,7 @@ export class RecurringDonationService {
         organizationId,
         nextAmount,
         nextCampaignName,
+        nextDesignationId,
         nextDesignation,
         nextNotes,
         stripePriceId,

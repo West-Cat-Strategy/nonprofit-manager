@@ -588,6 +588,20 @@ export const submitPublicWebsiteForm = async (
   }
 };
 
+export const confirmPublicNewsletterSignup = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { token } = (req.validatedParams ?? req.params) as { token: string };
+    const result = await publicWebsiteFormService.confirmNewsletterSignup(token);
+    sendSuccess(res, result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const renderPublishedWebsite = async (
   req: Request,
   res: Response,

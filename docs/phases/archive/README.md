@@ -1,6 +1,6 @@
 # Phase Documentation Archive
 
-**Last Updated:** 2026-05-01
+**Last Updated:** 2026-05-02
 
 Use this directory for historical phase notes, closeout artifacts, and earlier workboard material.
 
@@ -29,6 +29,7 @@ Do not use the files in this archive as the source of truth for current status.
 - [P5_CAMPAIGN_REPORTING_SUPPRESSION_CLOSEOUT_2026-05-01.md](P5_CAMPAIGN_REPORTING_SUPPRESSION_CLOSEOUT_2026-05-01.md)
 - [P5_COMMUNICATIONS_LOCAL_FIRST_CLOSEOUT_2026-05-01.md](P5_COMMUNICATIONS_LOCAL_FIRST_CLOSEOUT_2026-05-01.md)
 - [P5_REFERENCE_IMPROVEMENTS_CLOSEOUT_2026-05-01.md](P5_REFERENCE_IMPROVEMENTS_CLOSEOUT_2026-05-01.md)
+- [P5_LOCAL_CAMPAIGN_UNSUBSCRIBE_CLOSEOUT_2026-05-02.md](P5_LOCAL_CAMPAIGN_UNSUBSCRIBE_CLOSEOUT_2026-05-02.md)
 
 ### Phase 4 Transition And Closeout
 

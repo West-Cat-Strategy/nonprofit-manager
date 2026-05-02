@@ -7,6 +7,7 @@ import {
   getPublicNewsletter,
   listPublicContentEntries,
   listPublicNewsletters,
+  confirmPublicNewsletterSignup,
   submitPublicAction,
   submitPublicWebsiteForm,
 } from '../controllers';
@@ -25,6 +26,10 @@ const newsletterSlugParamsSchema = z.object({
     .min(1)
     .max(255)
     .regex(/^[a-z0-9-]+$/i, 'slug must be a valid path segment'),
+});
+
+const newsletterConfirmationParamsSchema = z.object({
+  token: z.string().trim().min(1).max(512),
 });
 
 const publicNewsletterListQuerySchema = z
@@ -113,6 +118,16 @@ const publicActionSubmissionBodySchema = z
 
 const newslettersRouter = Router();
 newslettersRouter.get('/', validateQuery(publicNewsletterListQuerySchema), listPublicNewsletters);
+newslettersRouter.get(
+  '/confirm/:token',
+  validateParams(newsletterConfirmationParamsSchema),
+  confirmPublicNewsletterSignup
+);
+newslettersRouter.post(
+  '/confirm/:token',
+  validateParams(newsletterConfirmationParamsSchema),
+  confirmPublicNewsletterSignup
+);
 newslettersRouter.get(
   '/:slug',
   validateParams(newsletterSlugParamsSchema),

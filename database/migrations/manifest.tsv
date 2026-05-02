@@ -113,3 +113,5 @@
 113	113_case_form_assignment_events.sql
 114	114_case_form_templates_and_delivery_channels.sql
 115	115_website_public_actions.sql
+116	116_typed_fund_designations.sql
+117	117_local_newsletter_double_opt_in.sql

@@ -11,7 +11,6 @@ import {
   type CreateActivityEventInput,
 } from '@services/activityEventService';
 import { recordPublicIntakeResolutionBestEffort } from '@services/publicIntakeResolutionService';
-import newsletterProviderService from '@services/newsletterProviderService';
 import { paymentProviderService } from '@services/paymentProviderService';
 import { SiteManagementService } from './siteManagementService';
 import {
@@ -31,6 +30,7 @@ import {
   type SupportedPublicWebsiteFormType,
   UUID_PATTERN,
 } from './publicWebsiteFormServiceHelpers';
+import { PublicNewsletterSignupConfirmationService } from './publicNewsletterSignupConfirmationService';
 
 const PUBLIC_FORM_ALLOWED_FIELDS: Record<SupportedPublicWebsiteFormType, ReadonlySet<string>> = {
   'contact-form': new Set(['first_name', 'last_name', 'email', 'phone', 'message']),
@@ -126,10 +126,17 @@ interface PublicWebsiteFormSubmissionOutcome {
 export class PublicWebsiteFormService {
   private readonly siteManagement: SiteManagementService;
   private readonly siteSettings: WebsiteSiteSettingsService;
+  private readonly newsletterSignups: PublicNewsletterSignupConfirmationService;
 
   constructor(private readonly pool: Pool) {
     this.siteManagement = new SiteManagementService(pool);
     this.siteSettings = new WebsiteSiteSettingsService(pool);
+    this.newsletterSignups = new PublicNewsletterSignupConfirmationService(pool, {
+      ensureContact: (site, identity, defaultTags) =>
+        this.ensureContact(site, identity, defaultTags),
+      buildAuditMetadata: (context, extra) => this.buildAuditMetadata(context, extra),
+      getSettingsForSite: (site) => this.siteSettings.getSettingsForSite(site),
+    });
   }
 
   private async findExistingContact(
@@ -307,80 +314,34 @@ export class PublicWebsiteFormService {
   private async handleNewsletterSignup(
     site: PublishedSite,
     component: RenderablePublishedComponent,
-    identity: ContactIdentity
+    identity: ContactIdentity,
+    context: PublicWebsiteFormRequestContext
   ): Promise<PublicWebsiteFormSubmissionOutcome> {
-    const defaultTags = appendUniqueTags((component.defaultTags as string[] | undefined) || [], [
-      'newsletter',
-    ]);
-    const { contactId, created } = await this.ensureContact(site, identity, defaultTags);
-    const settings = await this.siteSettings.getSettingsForSite(site);
-    const destination = newsletterProviderService.resolveNewsletterDestination(settings, {
-      audienceMode:
-        (component.audienceMode as
-          | 'crm'
-          | 'local_email'
-          | 'mailchimp'
-          | 'mautic'
-          | 'both'
-          | undefined) || 'crm',
-      mailchimpListId: component.mailchimpListId as string | undefined,
-      mauticSegmentId: component.mauticSegmentId as string | undefined,
-      defaultTags,
-    });
-    const provider = destination.provider;
-    let mailchimpSynced = false;
-    let newsletterSynced = false;
-    let providerSyncAttempted = false;
-
-    if (destination.shouldSync && destination.audienceId) {
-      providerSyncAttempted = true;
-      const syncResult = await newsletterProviderService.syncNewsletterContact(settings, {
-        contactId,
-        listId: destination.audienceId,
-        tags: destination.tags,
-        provider,
-      });
-      newsletterSynced = Boolean(syncResult.success);
-      mailchimpSynced = provider === 'mailchimp' && Boolean(syncResult.success);
-    }
+    const pendingSignup = await this.newsletterSignups.createPendingSignup(
+      site,
+      component,
+      identity,
+      context
+    );
 
     return {
       result: {
         formType: component.type,
-        message:
-          (component.successMessage as string | undefined) ||
-          'You have been added to the newsletter list.',
-        contactId,
-        mailchimpSynced,
-        newsletterSynced,
-        newsletterProvider: provider,
+        message: pendingSignup.message,
+        mailchimpSynced: false,
+        newsletterSynced: false,
+        newsletterProvider: pendingSignup.provider,
         providerSync: {
-          provider,
-          attempted: providerSyncAttempted,
-          success: newsletterSynced,
-        },
-      },
-      resultEntityType: 'contact',
-      resultEntityId: contactId,
-      contactCreated: created,
-      activity: {
-        organizationId: site.organizationId,
-        siteId: site.id,
-        type: 'newsletter_signup',
-        title: 'Public newsletter signup',
-        description: `${identity.firstName} ${identity.lastName}`.trim(),
-        userName: identity.email || `${identity.firstName} ${identity.lastName}`.trim(),
-        entityType: 'contact',
-        entityId: contactId,
-        metadata: {
-          created,
-          formType: component.type,
-          mailchimpSynced,
-          newsletterSynced,
-          provider,
+          provider: pendingSignup.provider,
+          attempted: false,
+          success: false,
         },
       },
     };
+  }
+
+  async confirmNewsletterSignup(token: string): Promise<PublicWebsiteFormResult> {
+    return this.newsletterSignups.confirmSignup(token);
   }
 
   private async handleVolunteerInterest(
@@ -789,7 +750,7 @@ export class PublicWebsiteFormService {
         () => Promise<PublicWebsiteFormSubmissionOutcome>
       > = {
         'contact-form': () => this.handleContactForm(site, component, identity),
-        'newsletter-signup': () => this.handleNewsletterSignup(site, component, identity),
+        'newsletter-signup': () => this.handleNewsletterSignup(site, component, identity, context),
         'volunteer-interest-form': () =>
           this.handleVolunteerInterest(site, component, identity, publicPayload),
         'referral-form': () => this.handleReferralForm(site, component, identity, publicPayload),

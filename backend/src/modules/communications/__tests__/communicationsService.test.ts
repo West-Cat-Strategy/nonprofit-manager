@@ -33,6 +33,14 @@ jest.mock('@services/mailchimpService', () => ({
   },
 }));
 
+jest.mock('../services/unsubscribeService', () => ({
+  hashUnsubscribeEmail: jest.fn((email: string) => `hash:${email.trim().toLowerCase()}`),
+}));
+
+jest.mock('../services/unsubscribeTokenService', () => ({
+  createLocalUnsubscribeToken: jest.fn(({ recipientId }: { recipientId: string }) => `token:${recipientId}`),
+}));
+
 import pool from '@config/database';
 import { sendMail } from '@services/emailService';
 import mailchimpService from '@services/mailchimpService';
@@ -41,6 +49,9 @@ import * as communicationsService from '../services/communicationsService';
 const mockPool = pool as jest.Mocked<typeof pool>;
 const mockSendMail = sendMail as jest.Mock;
 const mockMailchimpService = mailchimpService as jest.Mocked<typeof mailchimpService>;
+const originalApiOrigin = process.env.API_ORIGIN;
+const originalSiteBaseUrl = process.env.SITE_BASE_URL;
+const originalFrontendUrl = process.env.FRONTEND_URL;
 
 const contactIds = {
   deliverable: '11111111-1111-4111-8111-111111111111',
@@ -158,6 +169,27 @@ const mockPoolBySql = (): void => {
 describe('communicationsService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    process.env.API_ORIGIN = 'https://api.example.org';
+    process.env.SITE_BASE_URL = 'https://site.example.org';
+    process.env.FRONTEND_URL = 'https://frontend.example.org';
+  });
+
+  afterAll(() => {
+    if (originalApiOrigin === undefined) {
+      delete process.env.API_ORIGIN;
+    } else {
+      process.env.API_ORIGIN = originalApiOrigin;
+    }
+    if (originalSiteBaseUrl === undefined) {
+      delete process.env.SITE_BASE_URL;
+    } else {
+      process.env.SITE_BASE_URL = originalSiteBaseUrl;
+    }
+    if (originalFrontendUrl === undefined) {
+      delete process.env.FRONTEND_URL;
+    } else {
+      process.env.FRONTEND_URL = originalFrontendUrl;
+    }
   });
 
   it('previews a local audience while applying do-not-email and active suppression evidence', async () => {
@@ -299,15 +331,29 @@ describe('communicationsService', () => {
 
     expect(result?.action).toBe('sent');
     expect(mockSendMail).toHaveBeenCalledTimes(2);
-    expect(mockSendMail).toHaveBeenCalledWith({
-      to: 'ada@example.org',
-      subject: 'Spring Update',
-      text: 'Hello',
-      html: '<p>Hello</p>',
-    });
+    expect(mockSendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: 'ada@example.org',
+        subject: 'Spring Update',
+        text: expect.stringContaining(
+          'Unsubscribe: https://api.example.org/api/v2/public/communications/unsubscribe/token%3Arecipient-1'
+        ),
+        html: expect.stringContaining(
+          'href="https://api.example.org/api/v2/public/communications/unsubscribe/token%3Arecipient-1"'
+        ),
+        headers: {
+          'List-Unsubscribe':
+            '<https://api.example.org/api/v2/public/communications/unsubscribe/token%3Arecipient-1>',
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        },
+      })
+    );
   });
 
   it('continues sending a local campaign run that is already in sending status', async () => {
+    delete process.env.API_ORIGIN;
+    process.env.SITE_BASE_URL = 'https://site.example.org';
+    process.env.FRONTEND_URL = 'https://frontend.example.org';
     mockPool.query.mockImplementation((query: unknown) => {
       const sql = String(query);
       if (sql.includes('FROM campaign_runs') && sql.includes('WHERE id = $1')) {
@@ -339,12 +385,23 @@ describe('communicationsService', () => {
 
     expect(result?.action).toBe('queued');
     expect(result?.run.status).toBe('sending');
-    expect(mockSendMail).toHaveBeenCalledWith({
-      to: 'ada@example.org',
-      subject: 'Spring Update',
-      text: 'Hello',
-      html: '<p>Hello</p>',
-    });
+    expect(mockSendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: 'ada@example.org',
+        subject: 'Spring Update',
+        text: expect.stringContaining(
+          'Unsubscribe: http://localhost:3000/api/v2/public/communications/unsubscribe/token%3Arecipient-1'
+        ),
+        html: expect.stringContaining(
+          'href="http://localhost:3000/api/v2/public/communications/unsubscribe/token%3Arecipient-1"'
+        ),
+        headers: {
+          'List-Unsubscribe':
+            '<http://localhost:3000/api/v2/public/communications/unsubscribe/token%3Arecipient-1>',
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        },
+      })
+    );
   });
 
   it('keeps a local campaign run failed when no queued recipients remain but failures exist', async () => {

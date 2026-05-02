@@ -50,6 +50,7 @@ const updatePlanSchema = z
   .object({
     amount: z.coerce.number().positive().optional(),
     campaign_name: z.union([z.string().trim().max(255), z.null()]).optional(),
+    designation_id: z.union([uuidSchema, z.null()]).optional(),
     designation: z.union([z.string().trim().max(255), z.null()]).optional(),
     notes: z.union([z.string().trim().max(2000), z.null()]).optional(),
   })

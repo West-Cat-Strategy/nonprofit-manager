@@ -1,6 +1,6 @@
 # Planning & Progress
 
-**Last Updated:** 2026-05-01
+**Last Updated:** 2026-05-02
 
 ## At a Glance
 
@@ -10,10 +10,10 @@
 
 | Snapshot | Value |
 |---|---|
-| Active rows | 4 |
+| Active rows | 6 |
 | In Progress | 0 |
 | Blocked | 0 |
-| Review | 4 |
+| Review | 6 |
 | Ready | 0 |
 | Phase 4 carry-over rows | 0 |
 | Recent thread follow-through rows | 0 |
@@ -39,6 +39,7 @@ Maintenance rules:
 
 | Status | ID | Task | Immediate Next Move |
 |---|---|---|---|
+| _None_ | _None_ | _None_ | No row is currently in progress. |
 
 ### Review Queue
 
@@ -48,6 +49,8 @@ Maintenance rules:
 | Review | P5-T6 | Follow-on backlog: workflow/customization, memberships/appeals, finance/program ops | Keep this row live as the Phase 5 backlog scope-control gate. Use [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md), [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md), and [../development/reference-patterns/P5-T6-reference-repo-consolidation-2026-05-01.md](../development/reference-patterns/P5-T6-reference-repo-consolidation-2026-05-01.md) to reject unscoped implementation; future typed appeals, restrictions, donation batches, memberships, finance breadth, service-site routing, closure continuity, and generic workflow tooling require separate signed-out rows before runtime work starts. |
 | Review | P5-T41 | Case-form template builder, autosave, and SMS/portal/email opening workflow | Implementation is landed with proof in [../validation/P5-T41_CASE_FORM_TEMPLATE_BUILDER_PROOF_2026-05-01.md](../validation/P5-T41_CASE_FORM_TEMPLATE_BUILDER_PROOF_2026-05-01.md). Review the case-form template APIs, migration `114`, staff template/open-form UI, portal/public autosave, Twilio/SMTP delivery behavior, provider-failure retry safety proof, and the remaining frontend builder type-check blocker note before signoff. |
 | Review | P5-T42 | Website public-action expansion | Implementation is landed with proof in [../validation/P5-T42_WEBSITE_PUBLIC_ACTION_EXPANSION_PROOF_2026-05-01.md](../validation/P5-T42_WEBSITE_PUBLIC_ACTION_EXPANSION_PROOF_2026-05-01.md). Review migration `115`, public action APIs, blog/campaign content entries, petition/pledge/support-letter submission behavior, staff forms-console action panel, public runtime action blocks, standalone public-site route parity, focused tests, Docker smoke proof, and the noted follow-on approval-count polish. |
+| Review | P5-T44 | Typed fund designation and restriction registry | Implementation is landed with proof in [../validation/P5-T44_TYPED_FUND_DESIGNATIONS_PROOF_2026-05-02.md](../validation/P5-T44_TYPED_FUND_DESIGNATIONS_PROOF_2026-05-02.md). Review migration `116`, typed designation API/service behavior, donation and recurring-plan linkage, reporting-safe labels, recurring invoice propagation, finance UI updates, focused tests, type-checks, policy checks, manifest parity, and the Docker-dependent `make db-verify` blocker. |
+| Review | P5-T45 | Double opt-in for public newsletter signup | Implementation is landed with proof in [../validation/P5-T45_NEWSLETTER_DOUBLE_OPT_IN_PROOF_2026-05-02.md](../validation/P5-T45_NEWSLETTER_DOUBLE_OPT_IN_PROOF_2026-05-02.md). Review migration `117`, pending/confirmed signup state, hashed confirmation tokens, generic public signup/confirmation responses, confirmation email links, CRM/provider handoff after confirmation, focused tests, type-checks, policy checks, manifest parity, and the Docker-dependent `make db-verify` blocker. |
 
 ### Ready Queue
 
@@ -65,6 +68,9 @@ Maintenance rules:
 
 - Proof-complete and already archived rows have been removed from the live board: `P5-T2A`, `P5-T2B`, `P5-T2C`, `P5-T2D`, `P5-T3`, `P5-T4`, `P5-T5`, `P5-T6A`, `P5-T6B`, `P5-T6C`, `P5-T6C1`, `P5-T6D`, `P5-T7`, `P5-T8`, `P5-T9`, `P5-T10`, and `P5-T11`.
 - `P5-T6` remains live as a scope-control gate for later Phase 5 backlog work. Use [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md) and [../development/reference-patterns/P5-T6-reference-repo-consolidation-2026-05-01.md](../development/reference-patterns/P5-T6-reference-repo-consolidation-2026-05-01.md) to keep `borrow now`, `queue for P5-T6`, and `reject` decisions explicit; typed appeals, restrictions, donation batches, memberships, finance breadth, service-site routing, closure continuity, and generic workflow tooling require separate signed-out runtime rows.
+- `P5-T45` is in review with proof in [../validation/P5-T45_NEWSLETTER_DOUBLE_OPT_IN_PROOF_2026-05-02.md](../validation/P5-T45_NEWSLETTER_DOUBLE_OPT_IN_PROOF_2026-05-02.md). It adds local pending/confirmed signup state, generic public responses, confirmation email, and a public confirmation endpoint before CRM/provider sync. It does not widen into marketing automation, tracking pixels, preference centers, Mailchimp parity rewrites, reusable segment builders, memberships, appeals, or finance work.
+- `P5-T44` is in review with proof in [../validation/P5-T44_TYPED_FUND_DESIGNATIONS_PROOF_2026-05-02.md](../validation/P5-T44_TYPED_FUND_DESIGNATIONS_PROOF_2026-05-02.md). Review migration `116`, typed finance designation registry behavior, donation and recurring-plan linkage, reporting-safe labels, recurring invoice propagation, and Docker-dependent `make db-verify` blocker; do not widen into donation batches, memberships, pledges, soft credits, transparent public finance snapshots, maker-checker approval workflows, full GL/fiscal-host parity, or generic workflow tooling.
+- `P5-T43` is signed off and archived in [archive/P5_LOCAL_CAMPAIGN_UNSUBSCRIBE_CLOSEOUT_2026-05-02.md](archive/P5_LOCAL_CAMPAIGN_UNSUBSCRIBE_CLOSEOUT_2026-05-02.md), with proof in [../validation/P5-T43_LOCAL_CAMPAIGN_UNSUBSCRIBE_PROOF_2026-05-01.md](../validation/P5-T43_LOCAL_CAMPAIGN_UNSUBSCRIBE_PROOF_2026-05-01.md). It added local SMTP campaign unsubscribe and `List-Unsubscribe` support without opening broader marketing automation, tracking, Mailchimp parity, preference-center, fundraising, membership, or finance scope.
 - `P5-T37`, `P5-T38`, and `P5-T39` are signed off and archived in [archive/P5_REFERENCE_IMPROVEMENTS_CLOSEOUT_2026-05-01.md](archive/P5_REFERENCE_IMPROVEMENTS_CLOSEOUT_2026-05-01.md), with proof in [../validation/P5-T37_T39_REFERENCE_IMPROVEMENTS_PROOF_2026-05-01.md](../validation/P5-T37_T39_REFERENCE_IMPROVEMENTS_PROOF_2026-05-01.md). They added local campaign queue controls, staff-only case-form evidence events, scheduled-report health, and audit-log health polish without widening into deferred `P5-T6` backlog scope.
 - `P5-T40` is in review after the focused UI/UX plain-language cleanup across eligible non-case/non-people pages. Review [../validation/P5-T40_UI_UX_PLAIN_LANGUAGE_AUDIT_2026-05-01.md](../validation/P5-T40_UI_UX_PLAIN_LANGUAGE_AUDIT_2026-05-01.md) for the implemented alerts/notifications, portal, admin/settings, staff insights/program-page, iconography, motion, and validation proof; do not widen into cases or people/contact/account implementation surfaces during signoff.
 - `P5-T41` is in review with proof in [../validation/P5-T41_CASE_FORM_TEMPLATE_BUILDER_PROOF_2026-05-01.md](../validation/P5-T41_CASE_FORM_TEMPLATE_BUILDER_PROOF_2026-05-01.md). Review the existing-module implementation, migration `114`, reference-only OSS provenance, and the unrelated backend publishing/frontend builder type-check blockers before signoff.
@@ -90,11 +96,55 @@ Maintenance rules:
 - The current hardening and reassessment migrations `103` through `110` cover saved audiences/campaign runs, public-intake resolution audit, queue view definitions, portal escalations, donor profiles, case reassessment cycles, case-form revision requests, and communication suppression governance; keep `make db-verify` in the validation path whenever those contracts or manifest/initdb parity change.
 - `P5-T36` is signed off and archived in [archive/P5_COMMUNICATIONS_LOCAL_FIRST_CLOSEOUT_2026-05-01.md](archive/P5_COMMUNICATIONS_LOCAL_FIRST_CLOSEOUT_2026-05-01.md). `P5-T6` remains the only live row.
 - `P5-T37`, `P5-T38`, and `P5-T39` are signed off and archived in [archive/P5_REFERENCE_IMPROVEMENTS_CLOSEOUT_2026-05-01.md](archive/P5_REFERENCE_IMPROVEMENTS_CLOSEOUT_2026-05-01.md). `P5-T6` remains in review as the scope-control gate and is not an implementation row.
+- `P5-T43` is signed off and archived in [archive/P5_LOCAL_CAMPAIGN_UNSUBSCRIBE_CLOSEOUT_2026-05-02.md](archive/P5_LOCAL_CAMPAIGN_UNSUBSCRIBE_CLOSEOUT_2026-05-02.md). `P5-T6` remains the scope-control gate for any broader communications/fundraising work.
+- `P5-T44` is in review as the typed fund designation/restriction foundation recommended by the May 2 reference-repo triage. The row is intentionally prerequisite-only: typed designation records, donation/recurring-plan linkage, reporting-safe labels, focused donation/recurring-plan proof, and database verification when Docker is available.
+
+## Review Row: P5-T45 Double Opt-In Newsletter Signup
+
+- Goal: require a local confirmation step before public newsletter signups create/update CRM newsletter state or sync to an external newsletter provider.
+- Owned paths: `database/migrations/117_local_newsletter_double_opt_in.sql`, `database/migrations/manifest.tsv`, `database/initdb/000_init.sql`, `backend/src/services/publishing/publicWebsiteFormService.ts`, `backend/src/services/emailService.ts`, `backend/src/modules/publishing/routes/public.ts`, `backend/src/modules/publishing/controllers/**`, focused publishing/newsletter backend tests, `docs/validation/**`, and this workboard.
+- Forbidden scope: marketing automation, tracking pixels, bounce/complaint ingestion, preference-center UI, Mailchimp parity rewrites, reusable segment builders, typed appeals, memberships, donation batches, finance snapshots, and generic workflow tooling.
+- Disposition: `Review`; implementation proof is recorded in [../validation/P5-T45_NEWSLETTER_DOUBLE_OPT_IN_PROOF_2026-05-02.md](../validation/P5-T45_NEWSLETTER_DOUBLE_OPT_IN_PROOF_2026-05-02.md).
+- Expected remaining proof: `make db-verify` remains blocked until Docker is reachable at `/Users/bryan/.docker/run/docker.sock`; focused tests, type-checks, policy checks, manifest policy, and backend lint passed during the May 2 implementation pass.
+
+## Review Row: P5-T44 Typed Fund Designations
+
+- Goal: replace free-text designation usage in donations and recurring donation plans with organization-scoped typed designation records while preserving existing donation creation, editing, listing, summary, recurring sync, and tax receipt behavior.
+- Disposition: `Review`; implementation proof is recorded in [../validation/P5-T44_TYPED_FUND_DESIGNATIONS_PROOF_2026-05-02.md](../validation/P5-T44_TYPED_FUND_DESIGNATIONS_PROOF_2026-05-02.md).
+- Expected remaining proof: `make db-verify` remains blocked until Docker is reachable at `/Users/bryan/.docker/run/docker.sock`; focused tests, type-checks, policy checks, and manifest policy passed during the May 2 review pass.
 
 ## Coordination
 
 - Update this file before editing tracked work.
 - Keep one active task per agent by default unless a coordinated exception is documented here.
+- Coordinated exception, 2026-05-01: `P5-T43` is split across local unsubscribe contract, email header/footer, and lead-owned docs/validation lanes while `P5-T6` remains review-only scope control.
+  Lead: Codex
+  Backend lanes: `unsubscribe-contract`, `email-unsubscribe-headers`
+  Other lanes: `lead-docs-validation`
+  Integration owner: Codex
+- Lane: `unsubscribe-contract`
+  Goal: add signed stateless local campaign recipient unsubscribe tokens, unauthenticated `/api/v2/public/communications/unsubscribe/:token` GET/POST behavior, generic no-leak responses, and local-email suppression evidence recording.
+  Owned paths: `backend/src/modules/communications/**`, `backend/src/modules/contacts/services/contactSuppressionService.ts`, `backend/src/types/contact.ts`, focused communications and contact suppression backend tests
+  Forbidden shared paths: Mailchimp adapter rewrites, database migrations/initdb/manifest, frontend UI, docs except lead integration
+  Expected tests: focused communications service/route tests, contact suppression tests, route validation policy, v2 ownership policy, and `cd backend && npm run type-check`
+  Handoff notes: confirm invalid/repeated tokens do not leak contact existence and valid tokens sync `contacts.do_not_email`.
+  Docs ownership: lead
+  Disposition: `In review; proof refreshed in P5-T43_LOCAL_CAMPAIGN_UNSUBSCRIBE_PROOF_2026-05-01.md with API-only origin, registrar, and token-hardening coverage`
+- Lane: `email-unsubscribe-headers`
+  Goal: add per-recipient unsubscribe footer links and SMTP `List-Unsubscribe` / `List-Unsubscribe-Post` headers for local campaign sends.
+  Owned paths: `backend/src/modules/communications/services/communicationsService.ts`, `backend/src/services/emailService.ts`, `backend/src/__tests__/services/emailService.test.ts`, focused communications send tests
+  Forbidden shared paths: public unsubscribe route/controller, contact suppression service, Mailchimp adapter rewrites, database files, frontend UI, docs/proof files
+  Expected tests: focused local campaign send test, email service header pass-through test, and `cd backend && npm run type-check`
+  Handoff notes: summarize API-only URL base selection, Docker dev `API_ORIGIN`, and footer/header behavior.
+  Docs ownership: lead
+  Disposition: `In review; proof refreshed in P5-T43_LOCAL_CAMPAIGN_UNSUBSCRIBE_PROOF_2026-05-01.md with Docker dev API-origin proof`
+- Lane: `lead-docs-validation`
+  Goal: keep the workboard current, add `P5-T43` proof, record pass/fail validation honestly, and move the row to `Review` after implementation proof.
+  Owned paths: `docs/phases/planning-and-progress.md`, `docs/validation/**`, docs indexes as needed
+  Forbidden shared paths: runtime code except integration conflict resolution after worker handoff
+  Expected tests: focused worker-reported tests, backend type-check, route/v2 policy checks, `make db-verify`, docs checks, and `git diff --check`
+  Docs ownership: lead
+  Disposition: `In review; Docker-dependent validation blocked by unavailable local Docker socket`
 - Coordinated exception, 2026-05-01: `P5-T40` is split across backend alert scope, alerts/notifications UI, portal UI, admin/settings UI, staff-page UI, and lead-owned docs/validation while cases and people/contact/account implementation surfaces stay out of scope.
   Lead: Codex
   Backend lane: `alerts-scope-contract`
@@ -773,3 +823,5 @@ No live Phase 4 carry-over rows remain. Proof for the retired rows now lives in 
 | ID | Task | Status | Owner | Next Step / Blocker | Evidence |
 |---|---|---|---|---|---|
 | P5-T6 | Follow-on backlog: workflow/customization, memberships/appeals, finance/program ops | Review | Codex | Keep live as the Phase 5 backlog scope-control gate: use the capability packet, backlog synthesis, and May 1 reference consolidation to reject unscoped implementation, and require separate signed-out rows for typed appeals, restrictions, donation batches, memberships, finance breadth, service-site routing, closure continuity, local communications follow-through, or generic workflow tooling. | [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md), [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md), [../development/reference-patterns/P5-T6-reference-repo-consolidation-2026-05-01.md](../development/reference-patterns/P5-T6-reference-repo-consolidation-2026-05-01.md), [archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md), [archive/P5_RUNTIME_REVIEW_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_RUNTIME_REVIEW_CLOSEOUT_BATCH_2026-04-25.md) |
+| P5-T44 | Typed fund designation and restriction registry | Review | Codex | Review migration `116`, typed designation API/service behavior, donation and recurring-plan linkage, reporting-safe labels, recurring invoice propagation, finance UI behavior, focused tests, type-checks, policy checks, manifest parity, and the Docker-dependent `make db-verify` blocker. | [../validation/P5-T44_TYPED_FUND_DESIGNATIONS_PROOF_2026-05-02.md](../validation/P5-T44_TYPED_FUND_DESIGNATIONS_PROOF_2026-05-02.md) |
+| P5-T45 | Double opt-in for public newsletter signup | Review | Codex | Review migration `117`, pending/confirmed signup state, hashed confirmation tokens, generic public signup/confirmation responses, confirmation email links, CRM/provider handoff after confirmation, focused tests, type-checks, policy checks, manifest parity, and the Docker-dependent `make db-verify` blocker. | [../validation/P5-T45_NEWSLETTER_DOUBLE_OPT_IN_PROOF_2026-05-02.md](../validation/P5-T45_NEWSLETTER_DOUBLE_OPT_IN_PROOF_2026-05-02.md) |

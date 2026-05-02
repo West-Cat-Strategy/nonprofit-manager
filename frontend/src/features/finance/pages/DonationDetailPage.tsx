@@ -323,10 +323,17 @@ const DonationDetail: React.FC = () => {
                     <dd className="text-sm text-app-text">{donation.campaign_name}</dd>
                   </div>
                 )}
-                {donation.designation && (
+                {(donation.designation_label || donation.designation) && (
                   <div>
                     <dt className="text-sm font-medium text-app-text-muted">Designation</dt>
-                    <dd className="text-sm text-app-text">{donation.designation}</dd>
+                    <dd className="text-sm text-app-text">
+                      {donation.designation_label || donation.designation}
+                      {donation.designation_restriction_type ? (
+                        <span className="ml-2 text-xs text-app-text-muted">
+                          {donation.designation_restriction_type.replace(/_/g, ' ')}
+                        </span>
+                      ) : null}
+                    </dd>
                   </div>
                 )}
               </dl>

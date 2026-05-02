@@ -226,12 +226,14 @@ export class RecurringDonationSyncService {
           stripe_subscription_id: invoice.subscription,
           stripe_invoice_id: invoice.id,
           campaign_name: plan.campaign_name || undefined,
+          designation_id: plan.designation_id || undefined,
           designation: plan.designation || undefined,
           is_recurring: true,
           recurring_frequency: 'monthly',
           notes: plan.notes || undefined,
         },
-        actorId
+        actorId,
+        plan.organization_id || plan.account_id || null
       );
     }
 

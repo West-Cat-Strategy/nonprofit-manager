@@ -23,7 +23,11 @@ const state = {
           currency: 'CAD',
           interval: 'monthly' as const,
           campaign_name: 'Monthly donors',
+          designation_id: 'designation-1',
           designation: 'General fund',
+          designation_label: 'General Fund',
+          designation_code: 'general-fund',
+          designation_restriction_type: 'unrestricted' as const,
           notes: null,
           status: 'active' as const,
           stripe_customer_id: 'cus_1',
@@ -81,6 +85,7 @@ describe('RecurringDonationListPage', () => {
 
     expect(screen.getByRole('heading', { name: 'Recurring Donations' })).toBeInTheDocument();
     expect(screen.getByText('Ada Lovelace')).toBeInTheDocument();
+    expect(screen.getByText('General Fund')).toBeInTheDocument();
     expect(dispatchMock).toHaveBeenCalledWith({
       type: 'recurringDonations/fetch',
       payload: {

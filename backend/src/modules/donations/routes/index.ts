@@ -62,6 +62,12 @@ router.get(
  */
 router.get('/summary', donationController.getDonationSummary);
 
+router.get(
+  '/designations',
+  validateQuery(z.object({ include_inactive: z.enum(['true', 'false']).optional() })),
+  donationController.listDesignations
+);
+
 /**
  * GET /api/donations/:id
  * Get donation by ID

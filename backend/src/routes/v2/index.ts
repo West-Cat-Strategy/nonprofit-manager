@@ -29,7 +29,7 @@ import { externalServiceProvidersV2Routes } from '@modules/externalServiceProvid
 import { ingestV2Routes } from '@modules/ingest';
 import { invitationsV2Routes } from '@modules/invitations';
 import { mailchimpV2Routes } from '@modules/mailchimp';
-import { communicationsV2Routes } from '@modules/communications';
+import { communicationsV2Routes, publicCommunicationsV2Routes } from '@modules/communications';
 import { meetingsV2Routes } from '@modules/meetings';
 import { paymentsV2Routes } from '@modules/payments';
 import { recurringDonationsV2Routes } from '@modules/recurringDonations';
@@ -96,6 +96,7 @@ mountV2Routes('/export', exportV2Routes);
 mountV2Routes('/invitations', invitationsV2Routes);
 mountV2Routes('/mailchimp', mailchimpV2Routes);
 mountV2Routes('/communications', communicationsV2Routes);
+mountV2Routes('/public/communications', publicCommunicationsV2Routes);
 mountV2Routes('/payments', paymentsV2Routes);
 mountV2Routes('/public/events', publicEventsV2Routes);
 mountV2Routes('/public/newsletters', publicPublishingV2Routes);

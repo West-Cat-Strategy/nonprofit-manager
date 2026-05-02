@@ -236,10 +236,23 @@ describe('DonationService', () => {
       const mockCreatedDonation = {
         donation_id: 'new-uuid',
         campaign_name: 'Summer 2024',
+        designation_id: 'designation-1',
         designation: 'Building Fund',
       };
 
-      mockQuery.mockResolvedValueOnce({ rows: [mockCreatedDonation] });
+      mockQuery
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 'designation-1',
+              name: 'Building Fund',
+              code: 'building-fund',
+              restriction_type: 'unrestricted',
+            },
+          ],
+        })
+        .mockResolvedValueOnce({ rows: [mockCreatedDonation] });
 
       const result = await donationService.createDonation(
         {
@@ -253,7 +266,9 @@ describe('DonationService', () => {
       );
 
       expect(result.campaign_name).toBe('Summer 2024');
+      expect(result.designation_id).toBe('designation-1');
       expect(result.designation).toBe('Building Fund');
+      expect(mockQuery).toHaveBeenCalledTimes(3);
     });
   });
 
@@ -355,6 +370,13 @@ describe('DonationService', () => {
           { campaign_name: null, count: '25', amount: '2500.00' },
         ],
       });
+      // Mock designation query
+      mockQuery.mockResolvedValueOnce({
+        rows: [
+          { designation_name: 'Building Fund', designation_code: 'building-fund', count: '10', amount: '1000.00' },
+          { designation_name: 'unrestricted', designation_code: null, count: '40', amount: '4000.00' },
+        ],
+      });
 
       const result = await donationService.getDonationSummary();
 
@@ -366,6 +388,8 @@ describe('DonationService', () => {
       expect(result.by_payment_method.credit_card.count).toBe(30);
       expect(result.by_campaign).toHaveProperty('Summer 2024');
       expect(result.by_campaign.unrestricted.count).toBe(25);
+      expect(result.by_designation).toHaveProperty('Building Fund');
+      expect(result.by_designation['Building Fund'].code).toBe('building-fund');
     });
 
     it('should apply date filters to summary', async () => {
@@ -374,11 +398,12 @@ describe('DonationService', () => {
           rows: [{ total_amount: '1000.00', total_count: '10', average_donation: '100.00', recurring_count: '2', recurring_amount: '200.00' }],
         })
         .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [] });
 
       await donationService.getDonationSummary({ start_date: '2024-01-01', end_date: '2024-12-31' });
 
-      expect(mockQuery).toHaveBeenCalledTimes(3);
+      expect(mockQuery).toHaveBeenCalledTimes(4);
       const summaryCall = mockQuery.mock.calls[0];
       expect(summaryCall[1]).toContain('2024-01-01');
       expect(summaryCall[1]).toContain('2024-12-31');

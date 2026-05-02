@@ -60,6 +60,7 @@ export interface SendMailOptions {
   subject: string;
   text: string;
   html: string;
+  headers?: Record<string, string>;
   attachments?: Array<{
     filename: string;
     content: Buffer | string;
@@ -187,6 +188,7 @@ export async function sendMail(options: SendMailOptions): Promise<boolean> {
       subject: options.subject,
       text: options.text,
       html: options.html,
+      headers: options.headers,
       attachments: options.attachments,
     });
     const recipients = Array.isArray(options.to) ? options.to.join(', ') : options.to;
@@ -196,6 +198,46 @@ export async function sendMail(options: SendMailOptions): Promise<boolean> {
     logger.error('Failed to send email', { error, to: options.to });
     return false;
   }
+}
+
+const getPublicApiBaseUrl = (): string =>
+  (process.env.API_ORIGIN || 'http://localhost:3000').replace(/\/+$/, '');
+
+const escapeHtml = (value: string): string =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+export async function sendNewsletterSignupConfirmationEmail(
+  to: string,
+  token: string,
+  firstName: string,
+  siteName: string
+): Promise<boolean> {
+  const confirmationUrl = `${getPublicApiBaseUrl()}/api/v2/public/newsletters/confirm/${encodeURIComponent(token)}`;
+  const safeFirstName = firstName.trim() || 'there';
+  const safeSiteName = siteName.trim() || 'our newsletter';
+
+  return sendMail({
+    to,
+    subject: `Confirm your ${safeSiteName} newsletter signup`,
+    text: [
+      `Hi ${safeFirstName},`,
+      '',
+      `Please confirm that you want to receive ${safeSiteName} updates:`,
+      confirmationUrl,
+      '',
+      'If you did not request this, you can ignore this email.',
+    ].join('\n'),
+    html: [
+      `<p>Hi ${escapeHtml(safeFirstName)},</p>`,
+      `<p>Please confirm that you want to receive ${escapeHtml(safeSiteName)} updates.</p>`,
+      `<p><a href="${escapeHtml(confirmationUrl)}">Confirm newsletter signup</a></p>`,
+      '<p>If you did not request this, you can ignore this email.</p>',
+    ].join(''),
+  });
 }
 
 /**

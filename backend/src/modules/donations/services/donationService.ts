@@ -19,6 +19,7 @@ import {
 import { resolveSort } from '@utils/queryHelpers';
 import type { DataScopeFilter } from '@app-types/dataScope';
 import { activityEventService } from '@services/activityEventService';
+import { DonationDesignationService } from './donationDesignationService';
 
 type QueryValue = string | number | boolean | Date | null | string[];
 
@@ -29,7 +30,11 @@ import {
 } from './donationServiceSQL';
 
 export class DonationService {
-  constructor(private pool: Pool) {}
+  private readonly designationService: DonationDesignationService;
+
+  constructor(private pool: Pool) {
+    this.designationService = new DonationDesignationService(pool);
+  }
 
   private async hasOfficialTaxReceiptCoverage(donationId: string): Promise<boolean> {
     const result = await this.pool.query<{ receipt_id: string }>(
@@ -110,6 +115,8 @@ export class DonationService {
         d.donation_number ILIKE $${paramCount} OR 
         d.campaign_name ILIKE $${paramCount} OR
         d.designation ILIKE $${paramCount} OR
+        fd.name ILIKE $${paramCount} OR
+        fd.code ILIKE $${paramCount} OR
         d.transaction_id ILIKE $${paramCount}
       )`);
       params.push(`%${search}%`);
@@ -202,6 +209,7 @@ export class DonationService {
         COALESCE(SUM(amount), 0) as total_amount,
         COALESCE(AVG(amount), 0) as average_amount
       FROM donations d
+      LEFT JOIN fund_designations fd ON d.designation_id = fd.id
       ${whereClause}
     `;
     const summaryResult = await this.pool.query(summaryQuery, params);
@@ -235,6 +243,7 @@ export class DonationService {
       LEFT JOIN accounts a ON d.account_id = a.id
       LEFT JOIN contacts c ON d.contact_id = c.id
       LEFT JOIN recurring_donation_plans rdp ON d.recurring_plan_id = rdp.id
+      LEFT JOIN fund_designations fd ON d.designation_id = fd.id
       ${DONATION_TAX_RECEIPT_JOIN}
       ${whereClause}
       ORDER BY ${sortColumn} ${sortOrder}
@@ -270,6 +279,7 @@ export class DonationService {
       LEFT JOIN accounts a ON d.account_id = a.id
       LEFT JOIN contacts c ON d.contact_id = c.id
       LEFT JOIN recurring_donation_plans rdp ON d.recurring_plan_id = rdp.id
+      LEFT JOIN fund_designations fd ON d.designation_id = fd.id
       ${DONATION_TAX_RECEIPT_JOIN}
       WHERE d.id = $1
     `;
@@ -304,7 +314,11 @@ export class DonationService {
   /**
    * Create new donation
    */
-  async createDonation(donationData: CreateDonationDTO, userId: string): Promise<Donation> {
+  async createDonation(
+    donationData: CreateDonationDTO,
+    userId: string,
+    organizationId?: string | null
+  ): Promise<Donation> {
     const {
       account_id,
       contact_id,
@@ -323,6 +337,7 @@ export class DonationService {
       stripe_subscription_id,
       stripe_invoice_id,
       campaign_name,
+      designation_id,
       designation,
       is_recurring = false,
       recurring_frequency,
@@ -334,17 +349,24 @@ export class DonationService {
       throw new Error('Either account_id or contact_id must be provided');
     }
 
+    const resolvedDesignation = await this.designationService.resolveDesignationInput({
+      organizationId: organizationId || account_id || null,
+      userId,
+      designationId: designation_id,
+      designationName: designation,
+    });
+
     const query = `
       INSERT INTO donations (
         donation_number, account_id, contact_id, recurring_plan_id, amount, currency, donation_date,
         payment_method, payment_status, transaction_id, payment_provider, provider_transaction_id,
         provider_checkout_session_id, provider_subscription_id, provider_customer_id,
-        stripe_subscription_id, stripe_invoice_id, campaign_name, designation, is_recurring,
+        stripe_subscription_id, stripe_invoice_id, campaign_name, designation_id, designation, is_recurring,
         recurring_frequency, notes, created_by, modified_by
       )
       VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
-        $19, $20, $21, $22, $23, $24
+        $19, $20, $21, $22, $23, $24, $25
       )
       RETURNING 
         ${DONATION_RETURNING_COLUMNS}
@@ -374,7 +396,8 @@ export class DonationService {
           stripe_subscription_id || null,
           stripe_invoice_id || null,
           campaign_name || null,
-          designation || null,
+          resolvedDesignation.designation_id,
+          resolvedDesignation.designation,
           is_recurring,
           recurring_frequency || null,
           notes || null,
@@ -429,7 +452,8 @@ export class DonationService {
   async updateDonation(
     donationId: string,
     donationData: UpdateDonationDTO,
-    userId: string
+    userId: string,
+    organizationId?: string | null
   ): Promise<Donation> {
     if (
       donationData.payment_status &&
@@ -446,8 +470,70 @@ export class DonationService {
     const fields: string[] = [];
     const values: QueryValue[] = [];
     let paramCount = 1;
+    const updateData: UpdateDonationDTO = { ...donationData };
+    const designationTouched =
+      Object.prototype.hasOwnProperty.call(donationData, 'designation_id') ||
+      Object.prototype.hasOwnProperty.call(donationData, 'designation');
+    const donorLinkageTouched =
+      Object.prototype.hasOwnProperty.call(donationData, 'account_id') ||
+      Object.prototype.hasOwnProperty.call(donationData, 'contact_id');
 
-    Object.entries(donationData).forEach(([key, value]) => {
+    if (designationTouched) {
+      let currentDesignationId: string | null = null;
+      if (donationData.designation_id) {
+        const currentDesignation = await this.pool.query<{ designation_id: string | null }>(
+          `SELECT designation_id FROM donations WHERE id = $1 LIMIT 1`,
+          [donationId]
+        );
+        currentDesignationId = currentDesignation.rows[0]?.designation_id ?? null;
+      }
+
+      const resolvedDesignation = await this.designationService.resolveDesignationInput({
+        organizationId,
+        userId,
+        designationId: donationData.designation_id,
+        designationName: donationData.designation,
+        allowInactiveDesignationId: currentDesignationId,
+      });
+      updateData.designation_id = resolvedDesignation.designation_id;
+      updateData.designation = resolvedDesignation.designation;
+    }
+
+    if (donorLinkageTouched && !designationTouched) {
+      const currentDesignation = await this.pool.query<{
+        designation_id: string | null;
+        designation_org_id: string | null;
+        target_org_id: string | null;
+      }>(
+        `
+          SELECT
+            d.designation_id,
+            fd.organization_id AS designation_org_id,
+            COALESCE($2::uuid, $3::uuid, next_contact.account_id, d.account_id, current_contact.account_id) AS target_org_id
+          FROM donations d
+          LEFT JOIN contacts current_contact ON current_contact.id = d.contact_id
+          LEFT JOIN contacts next_contact ON next_contact.id = $4::uuid
+          LEFT JOIN fund_designations fd ON fd.id = d.designation_id
+          WHERE d.id = $1
+          LIMIT 1
+        `,
+        [
+          donationId,
+          organizationId || null,
+          donationData.account_id || null,
+          donationData.contact_id || null,
+        ]
+      );
+      const current = currentDesignation.rows[0];
+      if (
+        current?.designation_id &&
+        (!current.target_org_id || current.designation_org_id !== current.target_org_id)
+      ) {
+        updateData.designation_id = null;
+      }
+    }
+
+    Object.entries(updateData).forEach(([key, value]) => {
       if (value !== undefined) {
         fields.push(`${key} = $${paramCount}`);
         values.push(value);
@@ -521,43 +607,43 @@ export class DonationService {
 
     // Apply same filters as getDonations
     if (filters.account_id) {
-      conditions.push(`account_id = $${paramCount}`);
+      conditions.push(`d.account_id = $${paramCount}`);
       params.push(filters.account_id);
       paramCount++;
     }
 
     if (filters.contact_id) {
-      conditions.push(`contact_id = $${paramCount}`);
+      conditions.push(`d.contact_id = $${paramCount}`);
       params.push(filters.contact_id);
       paramCount++;
     }
 
     if (filters.start_date) {
-      conditions.push(`donation_date >= $${paramCount}`);
+      conditions.push(`d.donation_date >= $${paramCount}`);
       params.push(filters.start_date);
       paramCount++;
     }
 
     if (filters.end_date) {
-      conditions.push(`donation_date <= $${paramCount}`);
+      conditions.push(`d.donation_date <= $${paramCount}`);
       params.push(filters.end_date);
       paramCount++;
     }
 
     if (scope?.accountIds && scope.accountIds.length > 0) {
-      conditions.push(`account_id = ANY($${paramCount}::uuid[])`);
+      conditions.push(`d.account_id = ANY($${paramCount}::uuid[])`);
       params.push(scope.accountIds);
       paramCount++;
     }
 
     if (scope?.contactIds && scope.contactIds.length > 0) {
-      conditions.push(`contact_id = ANY($${paramCount}::uuid[])`);
+      conditions.push(`d.contact_id = ANY($${paramCount}::uuid[])`);
       params.push(scope.contactIds);
       paramCount++;
     }
 
     if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
-      conditions.push(`created_by = ANY($${paramCount}::uuid[])`);
+      conditions.push(`d.created_by = ANY($${paramCount}::uuid[])`);
       params.push(scope.createdByUserIds);
     }
 
@@ -571,7 +657,7 @@ export class DonationService {
         COALESCE(AVG(amount), 0) as average_donation,
         COALESCE(SUM(CASE WHEN is_recurring THEN 1 ELSE 0 END), 0) as recurring_count,
         COALESCE(SUM(CASE WHEN is_recurring THEN amount ELSE 0 END), 0) as recurring_amount
-      FROM donations
+      FROM donations d
       ${whereClause}
     `;
 
@@ -584,7 +670,7 @@ export class DonationService {
         payment_method,
         COUNT(*) as count,
         SUM(amount) as amount
-      FROM donations
+      FROM donations d
       ${whereClause}
       GROUP BY payment_method
     `;
@@ -604,7 +690,7 @@ export class DonationService {
         campaign_name,
         COUNT(*) as count,
         SUM(amount) as amount
-      FROM donations
+      FROM donations d
       ${whereClause}
       GROUP BY campaign_name
     `;
@@ -618,6 +704,28 @@ export class DonationService {
       };
     });
 
+    const designationQuery = `
+      SELECT
+        COALESCE(fd.name, d.designation, 'unrestricted') as designation_name,
+        fd.code as designation_code,
+        COUNT(*) as count,
+        SUM(amount) as amount
+      FROM donations d
+      LEFT JOIN fund_designations fd ON d.designation_id = fd.id
+      ${whereClause}
+      GROUP BY COALESCE(fd.name, d.designation, 'unrestricted'), fd.code
+    `;
+
+    const designationResult = await this.pool.query(designationQuery, params);
+    const by_designation: Record<string, { count: number; amount: number; code?: string | null }> = {};
+    designationResult.rows.forEach((row) => {
+      by_designation[row.designation_name || 'unrestricted'] = {
+        count: parseInt(row.count),
+        amount: parseFloat(row.amount),
+        code: row.designation_code || null,
+      };
+    });
+
     return {
       total_amount: parseFloat(summary.total_amount),
       total_count: parseInt(summary.total_count),
@@ -626,6 +734,7 @@ export class DonationService {
       recurring_amount: parseFloat(summary.recurring_amount),
       by_payment_method,
       by_campaign,
+      by_designation,
     };
   }
 }

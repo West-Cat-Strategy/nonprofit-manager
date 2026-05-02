@@ -57,9 +57,9 @@ interface CommunicationFatiguePolicyRow {
 interface ProviderSuppressionEvidenceRequest {
   contactId: string;
   channel: 'email';
-  reason: 'mailchimp_unsubscribe' | 'mailchimp_cleaned';
-  source: 'mailchimp_webhook';
-  provider: 'mailchimp';
+  reason: 'mailchimp_unsubscribe' | 'mailchimp_cleaned' | 'unsubscribed';
+  source: 'mailchimp_webhook' | 'system';
+  provider: 'mailchimp' | 'local_email';
   providerListId?: string | null;
   providerEventId?: string | null;
   providerEventType: 'unsubscribe' | 'cleaned';
@@ -240,7 +240,7 @@ export class ContactSuppressionService {
         request.channel,
         request.reason,
         request.source,
-        'Mailchimp webhook',
+        request.provider === 'mailchimp' ? 'Mailchimp webhook' : 'Local email unsubscribe',
         request.provider,
         request.providerListId ?? null,
         request.providerEventId ?? null,

@@ -23,6 +23,7 @@ import { sendError, sendSuccess } from '@modules/shared/http/envelope';
 import { requireActiveOrganizationSafe } from '@services/authGuardService';
 
 const donationService = services.donation;
+const donationDesignationService = services.donationDesignation;
 const taxReceiptService = services.taxReceipt;
 
 export class DonationController {
@@ -82,7 +83,11 @@ export class DonationController {
       const donationData: CreateDonationDTO = req.body;
       const userId = req.user!.id;
 
-      const donation = await donationService.createDonation(donationData, userId);
+      const donation = await donationService.createDonation(
+        donationData,
+        userId,
+        req.organizationId || req.accountId || req.tenantId || null
+      );
       sendSuccess(res, donation, 201);
     } catch (error) {
       next(error);
@@ -97,7 +102,12 @@ export class DonationController {
       const donationData: UpdateDonationDTO = req.body;
       const userId = req.user!.id;
 
-      const donation = await donationService.updateDonation(req.params.id, donationData, userId);
+      const donation = await donationService.updateDonation(
+        req.params.id,
+        donationData,
+        userId,
+        req.organizationId || req.accountId || req.tenantId || null
+      );
 
       if (!donation) {
         notFound(res, 'Donation');
@@ -156,6 +166,32 @@ export class DonationController {
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
       const summary = await donationService.getDonationSummary(filters, scope);
       sendSuccess(res, summary);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async listDesignations(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const orgResult = await requireActiveOrganizationSafe(req);
+      if (!orgResult.ok) {
+        sendError(
+          res,
+          orgResult.error.code.toUpperCase(),
+          orgResult.error.message,
+          orgResult.error.statusCode,
+          undefined,
+          req.correlationId
+        );
+        return;
+      }
+
+      const includeInactive = req.query.include_inactive === 'true';
+      const designations = await donationDesignationService.listDesignations(
+        orgResult.data.organizationId,
+        includeInactive
+      );
+      sendSuccess(res, designations);
     } catch (error) {
       next(error);
     }

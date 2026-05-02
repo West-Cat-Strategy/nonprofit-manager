@@ -137,6 +137,10 @@ jest.mock('@services/newsletterProviderService', () => ({
   },
 }));
 
+jest.mock('@services/emailService', () => ({
+  sendNewsletterSignupConfirmationEmail: jest.fn(),
+}));
+
 jest.mock('@services/publishing/publicSubmissionService', () => ({
   __mocks: {
     beginSubmission: jest.fn(),
@@ -235,6 +239,10 @@ const activityEventsModule = jest.requireMock('@services/activityEventService') 
   __mocks: {
     recordEvent: jest.Mock;
   };
+};
+
+const emailServiceModule = jest.requireMock('@services/emailService') as {
+  sendNewsletterSignupConfirmationEmail: jest.Mock;
 };
 
 describe('PublicWebsiteFormService', () => {
@@ -345,6 +353,7 @@ describe('PublicWebsiteFormService', () => {
     newsletterProviderModule.default.resolveNewsletterProvider.mockReset();
     newsletterProviderModule.default.resolveNewsletterDestination.mockReset();
     newsletterProviderModule.default.syncNewsletterContact.mockReset();
+    emailServiceModule.sendNewsletterSignupConfirmationEmail.mockReset();
     publicSubmissionModule.__mocks.beginSubmission.mockReset();
     publicSubmissionModule.__mocks.markAccepted.mockReset();
     publicSubmissionModule.__mocks.markRejected.mockReset();
@@ -357,9 +366,10 @@ describe('PublicWebsiteFormService', () => {
     publicSubmissionModule.__mocks.markAccepted.mockResolvedValue(undefined);
     publicSubmissionModule.__mocks.markRejected.mockResolvedValue(undefined);
     activityEventsModule.__mocks.recordEvent.mockResolvedValue(undefined);
+    emailServiceModule.sendNewsletterSignupConfirmationEmail.mockResolvedValue(true);
   });
 
-  it('stores newsletter signups as CRM contacts by default without provider sync', async () => {
+  it('stores newsletter signups as pending confirmations before CRM contact creation', async () => {
     const site = {
       ...baseSite,
       publishedContent: {
@@ -386,7 +396,6 @@ describe('PublicWebsiteFormService', () => {
       },
     };
 
-    servicesModule.__mocks.createContact.mockResolvedValue({ contact_id: 'contact-1' });
     newsletterProviderModule.default.resolveNewsletterDestination.mockReturnValue({
       provider: 'local_email',
       audienceId: null,
@@ -400,13 +409,27 @@ describe('PublicWebsiteFormService', () => {
       email: 'Ada@example.com',
     });
 
-    expect(servicesModule.__mocks.createContact).toHaveBeenCalledWith(
-      expect.objectContaining({
-        account_id: 'org-1',
-        email: 'ada@example.com',
-        tags: ['website', 'newsletter'],
-      }),
-      'owner-1'
+    expect(servicesModule.__mocks.createContact).not.toHaveBeenCalled();
+    expect(emailServiceModule.sendNewsletterSignupConfirmationEmail).toHaveBeenCalledWith(
+      'ada@example.com',
+      expect.any(String),
+      'Ada',
+      'Neighborhood Mutual Aid'
+    );
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO newsletter_signup_confirmations'),
+      expect.arrayContaining([
+        'site-1',
+        'org-1',
+        'newsletter-1',
+        'ada@example.com',
+        'ada@example.com',
+        'Ada',
+        'Lovelace',
+        'local_email',
+        null,
+        ['website', 'newsletter'],
+      ])
     );
     expect(newsletterProviderModule.default.resolveNewsletterDestination).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -423,7 +446,6 @@ describe('PublicWebsiteFormService', () => {
     expect(result).toEqual({
       formType: 'newsletter-signup',
       message: 'You are in.',
-      contactId: 'contact-1',
       mailchimpSynced: false,
       newsletterSynced: false,
       newsletterProvider: 'local_email',
@@ -435,7 +457,7 @@ describe('PublicWebsiteFormService', () => {
     });
   });
 
-  it('syncs newsletter signups through Mautic when the provider is set to Mautic', async () => {
+  it('defers Mautic newsletter sync until the signup is confirmed', async () => {
     const site = {
       ...baseSite,
       publishedContent: {
@@ -464,7 +486,6 @@ describe('PublicWebsiteFormService', () => {
       },
     };
 
-    servicesModule.__mocks.createContact.mockResolvedValue({ contact_id: 'contact-1' });
     newsletterProviderModule.default.resolveNewsletterProvider.mockReturnValue('mautic');
     newsletterProviderModule.default.resolveNewsletterDestination.mockReturnValue({
       provider: 'mautic',
@@ -485,6 +506,72 @@ describe('PublicWebsiteFormService', () => {
       email: 'Ada@example.com',
     });
 
+    expect(newsletterProviderModule.default.syncNewsletterContact).not.toHaveBeenCalled();
+    expect(emailServiceModule.sendNewsletterSignupConfirmationEmail).toHaveBeenCalledWith(
+      'ada@example.com',
+      expect.any(String),
+      'Ada',
+      'Neighborhood Mutual Aid'
+    );
+    expect(result).toEqual({
+      formType: 'newsletter-signup',
+      message: 'You are in.',
+      mailchimpSynced: false,
+      newsletterSynced: false,
+      newsletterProvider: 'mautic',
+      providerSync: {
+        attempted: false,
+        provider: 'mautic',
+        success: false,
+      },
+    });
+  });
+
+  it('confirms pending newsletter signups and then performs provider handoff', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'confirmation-1',
+            site_id: 'site-1',
+            organization_id: 'org-1',
+            user_id: 'user-1',
+            owner_user_id: 'owner-1',
+            site_name: 'Neighborhood Mutual Aid',
+            form_key: 'newsletter-1',
+            email: 'ada@example.com',
+            email_normalized: 'ada@example.com',
+            first_name: 'Ada',
+            last_name: 'Lovelace',
+            provider: 'mautic',
+            audience_id: 'seg-42',
+            tags: ['website', 'newsletter'],
+            source_metadata: {},
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] });
+    servicesModule.__mocks.createContact.mockResolvedValue({ contact_id: 'contact-1' });
+    newsletterProviderModule.default.syncNewsletterContact.mockResolvedValue({
+      contactId: 'contact-1',
+      email: 'ada@example.com',
+      success: true,
+      action: 'added',
+    });
+
+    const result = await service.confirmNewsletterSignup('confirmation-token');
+
+    expect(servicesModule.__mocks.createContact).toHaveBeenCalledWith(
+      expect.objectContaining({
+        account_id: 'org-1',
+        email: 'ada@example.com',
+        tags: ['website', 'newsletter'],
+      }),
+      'owner-1'
+    );
     expect(newsletterProviderModule.default.syncNewsletterContact).toHaveBeenCalledWith(
       expect.objectContaining({
         newsletter: expect.any(Object),
@@ -496,9 +583,13 @@ describe('PublicWebsiteFormService', () => {
         provider: 'mautic',
       }
     );
+    expect(mockQuery).toHaveBeenLastCalledWith(
+      expect.stringContaining('UPDATE newsletter_signup_confirmations'),
+      expect.arrayContaining(['confirmation-1', 'contact-1'])
+    );
     expect(result).toEqual({
       formType: 'newsletter-signup',
-      message: 'You are in.',
+      message: 'If this confirmation link is valid, your newsletter signup is confirmed.',
       contactId: 'contact-1',
       mailchimpSynced: false,
       newsletterSynced: true,
@@ -507,6 +598,25 @@ describe('PublicWebsiteFormService', () => {
         attempted: true,
         provider: 'mautic',
         success: true,
+      },
+    });
+  });
+
+  it('returns a no-leak confirmation response for invalid or expired newsletter tokens', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+
+    const result = await service.confirmNewsletterSignup('invalid-token');
+
+    expect(servicesModule.__mocks.createContact).not.toHaveBeenCalled();
+    expect(newsletterProviderModule.default.syncNewsletterContact).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      formType: 'newsletter-signup',
+      message: 'If this confirmation link is valid, your newsletter signup is confirmed.',
+      newsletterSynced: false,
+      providerSync: {
+        attempted: false,
+        provider: 'local_email',
+        success: false,
       },
     });
   });

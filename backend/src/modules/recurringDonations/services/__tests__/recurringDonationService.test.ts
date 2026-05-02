@@ -52,6 +52,10 @@ jest.mock('@services/paymentProviderService', () => ({
   },
 }));
 
+jest.mock('../recurringDonationSyncService', () => ({
+  RecurringDonationSyncService: jest.fn().mockImplementation(() => ({})),
+}));
+
 jest.mock('../recurringDonationHelpers', () => ({
   FRONTEND_URL: 'https://frontend.example',
   PLAN_SELECT: 'rdp.id',
@@ -94,7 +98,11 @@ const basePlan = {
   provider_customer_id: 'cust-1',
   stripe_customer_id: null,
   campaign_name: null,
+  designation_id: null,
   designation: null,
+  designation_label: null,
+  designation_code: null,
+  designation_restriction_type: null,
   notes: null,
   next_billing_at: '2026-05-01T00:00:00.000Z',
   organization_id: 'org-1',
@@ -201,6 +209,48 @@ describe('RecurringDonationService', () => {
       'paypal-customer',
       'https://public.example/return',
       'paypal'
+    );
+  });
+
+  it('preserves the current inactive designation on metadata-only plan edits', async () => {
+    mockGetPlanByWhere
+      .mockResolvedValueOnce({
+        ...basePlan,
+        designation_id: 'designation-1',
+        designation: 'Legacy Building Fund',
+      } as Awaited<ReturnType<typeof getPlanByWhere>>)
+      .mockResolvedValueOnce({
+        ...basePlan,
+        designation_id: 'designation-1',
+        designation: 'Legacy Building Fund',
+      } as Awaited<ReturnType<typeof getPlanByWhere>>);
+
+    mockQuery
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'designation-1',
+            name: 'Legacy Building Fund',
+            code: 'legacy-building-fund',
+            restriction_type: 'temporarily_restricted',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [{ id: 'plan-1' }] });
+
+    await service.updatePlan('org-1', 'plan-1', 'user-1', {
+      designation_id: 'designation-1',
+    });
+
+    expect(mockQuery).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('FROM fund_designations'),
+      ['designation-1', 'org-1', 'designation-1']
+    );
+    expect(mockQuery).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('UPDATE recurring_donation_plans'),
+      expect.arrayContaining(['designation-1', 'Legacy Building Fund'])
     );
   });
 });

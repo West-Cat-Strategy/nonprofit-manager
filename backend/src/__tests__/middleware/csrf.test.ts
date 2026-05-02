@@ -205,4 +205,88 @@ describe('csrf middleware', () => {
     expect(next.mock.calls[0][0]).toBeInstanceOf(Error);
     expect((next.mock.calls[0][0] as Error).message).toBe('invalid csrf token');
   });
+
+  it('allows unauthenticated public communications one-click POST without a CSRF token', async () => {
+    const { csrfMiddleware } = await loadCsrfModule();
+
+    const req = createRequest({
+      path: '/api/v2/public/communications/unsubscribe/signed-token',
+      originalUrl: '/api/v2/public/communications/unsubscribe/signed-token',
+      cookies: {},
+      headers: {
+        'user-agent': 'Mailbox/1.0',
+      },
+    });
+    const res = createResponse();
+    const next = jest.fn();
+
+    csrfMiddleware(req, res, next);
+
+    expect(next).toHaveBeenCalledWith();
+    expect(mockDoubleCsrfProtection).not.toHaveBeenCalled();
+  });
+
+  it('keeps CSRF protection on other public communications POST paths', async () => {
+    const { csrfMiddleware } = await loadCsrfModule();
+
+    const req = createRequest({
+      path: '/api/v2/public/communications/preferences',
+      originalUrl: '/api/v2/public/communications/preferences',
+      cookies: {},
+      headers: {
+        'user-agent': 'Mozilla/5.0',
+      },
+    });
+    const res = createResponse();
+    const next = jest.fn();
+
+    csrfMiddleware(req, res, next);
+
+    expect(mockDoubleCsrfProtection).toHaveBeenCalledTimes(1);
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(next.mock.calls[0][0]).toBeInstanceOf(Error);
+    expect((next.mock.calls[0][0] as Error).message).toBe('invalid csrf token');
+  });
+
+  it('allows public newsletter confirmation POST without a CSRF token', async () => {
+    const { csrfMiddleware } = await loadCsrfModule();
+
+    const req = createRequest({
+      path: '/api/v2/public/newsletters/confirm/signed-token',
+      originalUrl: '/api/v2/public/newsletters/confirm/signed-token',
+      cookies: {},
+      headers: {
+        'user-agent': 'Mailbox/1.0',
+      },
+    });
+    const res = createResponse();
+    const next = jest.fn();
+
+    csrfMiddleware(req, res, next);
+
+    expect(next).toHaveBeenCalledWith();
+    expect(mockDoubleCsrfProtection).not.toHaveBeenCalled();
+  });
+
+  it('keeps CSRF protection on other public newsletter POST paths', async () => {
+    const { csrfMiddleware } = await loadCsrfModule();
+
+    const req = createRequest({
+      path: '/api/v2/public/newsletters/preferences',
+      originalUrl: '/api/v2/public/newsletters/preferences',
+      cookies: {},
+      headers: {
+        'user-agent': 'Mozilla/5.0',
+      },
+    });
+    const res = createResponse();
+    const next = jest.fn();
+
+    csrfMiddleware(req, res, next);
+
+    expect(mockDoubleCsrfProtection).toHaveBeenCalledTimes(1);
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(next.mock.calls[0][0]).toBeInstanceOf(Error);
+    expect((next.mock.calls[0][0] as Error).message).toBe('invalid csrf token');
+  });
 });

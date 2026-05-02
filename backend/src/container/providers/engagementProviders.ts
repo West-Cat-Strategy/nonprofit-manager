@@ -4,6 +4,7 @@ import { CaseService } from '@services/caseService';
 import { ContactRoleService } from '@services/contactRoleService';
 import { ContactService } from '@services/contactService';
 import { DonationService } from '@services/donationService';
+import { DonationDesignationService } from '@modules/donations/services/donationDesignationService';
 import { TaskService } from '@services/taskService';
 import { VolunteerService } from '@services/volunteerService';
 import { EventService } from '@modules/events/services/eventService';
@@ -12,6 +13,7 @@ import { RecurringDonationService } from '@modules/recurringDonations/services/r
 
 export interface EngagementProviders {
   readonly donation: DonationService;
+  readonly donationDesignation: DonationDesignationService;
   readonly taxReceipt: TaxReceiptService;
   readonly recurringDonation: RecurringDonationService;
   readonly task: TaskService;
@@ -25,6 +27,7 @@ export interface EngagementProviders {
 
 export function createEngagementProviders(dbPool: Pool): EngagementProviders {
   let donationService: DonationService | null = null;
+  let donationDesignationService: DonationDesignationService | null = null;
   let taxReceiptService: TaxReceiptService | null = null;
   let recurringDonationService: RecurringDonationService | null = null;
   let taskService: TaskService | null = null;
@@ -41,6 +44,12 @@ export function createEngagementProviders(dbPool: Pool): EngagementProviders {
         donationService = new DonationService(dbPool);
       }
       return donationService;
+    },
+    get donationDesignation() {
+      if (!donationDesignationService) {
+        donationDesignationService = new DonationDesignationService(dbPool);
+      }
+      return donationDesignationService;
     },
     get taxReceipt() {
       if (!taxReceiptService) {

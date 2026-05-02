@@ -15,6 +15,7 @@ x-backend-dev-env: &backend-dev-env
   # "configured" before failing live status probes.
   MAILCHIMP_API_KEY: ${DEV_MAILCHIMP_API_KEY:-}
   MAILCHIMP_SERVER_PREFIX: ${DEV_MAILCHIMP_SERVER_PREFIX:-}
+  API_ORIGIN: ${DEV_API_ORIGIN:-http://localhost:${DEV_BACKEND_PORT:-8004}}
   SITE_BASE_URL: ${DEV_SITE_BASE_URL:-http://sites.localhost}
 
 x-workspace-build-contexts: &workspace-build-contexts
