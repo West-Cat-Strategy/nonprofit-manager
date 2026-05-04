@@ -48,14 +48,22 @@ case "$mode" in
     ;;
 esac
 
+changed_files=()
+
 if [[ -z "$files_arg" ]]; then
   if [[ -n "$base" ]]; then
-    mapfile -t changed_files < <(git -C "$PROJECT_ROOT" diff --name-only "${base}...HEAD")
+    while IFS= read -r file; do
+      [[ -n "$file" ]] && changed_files+=("$file")
+    done < <(git -C "$PROJECT_ROOT" diff --name-only "${base}...HEAD")
   else
-    mapfile -t changed_files < <(git -C "$PROJECT_ROOT" diff --name-only HEAD~1...HEAD 2>/dev/null || true)
+    while IFS= read -r file; do
+      [[ -n "$file" ]] && changed_files+=("$file")
+    done < <(git -C "$PROJECT_ROOT" diff --name-only HEAD~1...HEAD 2>/dev/null || true)
   fi
 else
-  mapfile -t changed_files < <(printf '%s\n' "$files_arg" | tr ' ' '\n' | sed '/^$/d')
+  while IFS= read -r file; do
+    [[ -n "$file" ]] && changed_files+=("$file")
+  done < <(printf '%s\n' "$files_arg" | tr ' ' '\n' | sed '/^$/d')
 fi
 
 if [[ ${#changed_files[@]} -eq 0 ]]; then
@@ -175,7 +183,7 @@ for file in "${changed_files[@]}"; do
       has_runtime_orchestration=1
       has_tooling_contracts=1
       ;;
-    Makefile|package.json|package-lock.json|tsconfig*.json|docker-compose*.yml|docker-compose*.yaml|contracts/*|scripts/ci.sh|scripts/deploy.sh|scripts/e2e-*.sh|scripts/select-checks.sh|scripts/tests/*|backend/scripts/run-*.sh)
+    Makefile|package.json|package-lock.json|tsconfig*.json|docker-compose*.yml|docker-compose*.yaml|contracts/*|scripts/ci.sh|scripts/deploy.sh|scripts/e2e-*.sh|scripts/select-checks.sh|scripts/verify.sh|scripts/verify-pr.sh|scripts/tests/*|backend/scripts/run-*.sh)
       has_runtime_orchestration=1
       has_tooling_contracts=1
       case "$file" in
@@ -197,11 +205,13 @@ add_command() {
   local command="$1"
   local existing
 
-  for existing in "${commands[@]}"; do
-    if [[ "$existing" == "$command" ]]; then
-      return
-    fi
-  done
+  if [[ ${#commands[@]} -gt 0 ]]; then
+    for existing in "${commands[@]}"; do
+      if [[ "$existing" == "$command" ]]; then
+        return
+      fi
+    done
+  fi
 
   commands+=("$command")
 }
