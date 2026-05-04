@@ -1,6 +1,6 @@
 # Planning & Progress
 
-**Last Updated:** 2026-05-02
+**Last Updated:** 2026-05-04
 
 ## At a Glance
 
@@ -10,9 +10,9 @@
 
 | Snapshot | Value |
 |---|---|
-| Active rows | 6 |
-| In Progress | 0 |
-| Blocked | 0 |
+| Active rows | 18 |
+| In Progress | 11 |
+| Blocked | 1 |
 | Review | 6 |
 | Ready | 0 |
 | Phase 4 carry-over rows | 0 |
@@ -39,7 +39,17 @@ Maintenance rules:
 
 | Status | ID | Task | Immediate Next Move |
 |---|---|---|---|
-| _None_ | _None_ | _None_ | No row is currently in progress. |
+| In Progress | P5-T62 | Meeting minutes draft preview flow | Replace the `Draft Minutes` console/alert placeholder with in-app markdown preview, copy, and download behavior. |
+| In Progress | P5-T63 | Fence preview bootstrap auth modes | Remove fake-authenticated staff/portal bootstrap modes so production-style builds cannot synthesize users. |
+| In Progress | P5-T64 | Mailchimp campaign-run cancel/reschedule contract cleanup | Convert Mailchimp cancel/reschedule success-with-`unsupported` behavior into explicit unsupported responses. |
+| In Progress | P5-T65 | Outcomes report `programId` contract cleanup | Remove unsupported `programId` from outcomes report validation/types/docs and reject the parameter. |
+| In Progress | P5-T67 | Retire or re-home legacy verification scripts | Align legacy verification scripts/docs with current `make` and selector contracts. |
+| In Progress | P5-T70 | Local campaign failed-recipient retry policy | Add operator-triggered local-email failed-recipient retry without marketing automation scope. |
+| In Progress | P5-T71 | Public workflow browser proof sweep | Add focused browser proof for managed forms, public event registration, donation checkout, and public action blocks. |
+| In Progress | P5-T72 | Support-letter approval delivery/download polish | Add staff-facing support-letter approval artifact preview/download/copy behavior without email delivery. |
+| In Progress | P5-T73 | Public event and self-referral operational snapshots | Add narrow staff-facing operational snapshots for public event waitlist/check-in and self-referral status. |
+| In Progress | P5-T74 | Recurring donation provider-management parity | Gate non-Stripe recurring donation management mutations with client-safe provider-specific responses. |
+| In Progress | P5-T76 | Browser telemetry and operator metrics next slice | Add frontend-only browser-session operator diagnostics for route/bootstrap failures. |
 
 ### Review Queue
 
@@ -62,13 +72,14 @@ Maintenance rules:
 
 | Status | ID | Task | Immediate Next Move |
 |---|---|---|---|
-| _None_ | _None_ | _None_ | No row is currently blocked. |
+| Blocked | P5-T75 | Auth alias deprecation gate | Time-gated compatibility retirement: before the June 17, 2026 blocker checkpoint, verify alias telemetry ratios/exceptions and publish or defer the cutoff; no snake_case alias removal ships before July 1, 2026 and only after [../security/AUTH_ALIAS_DEPRECATION_CHECKLIST.md](../security/AUTH_ALIAS_DEPRECATION_CHECKLIST.md) is satisfied. |
 
 ### Ready Next
 
 - Proof-complete and already archived rows have been removed from the live board: `P5-T2A`, `P5-T2B`, `P5-T2C`, `P5-T2D`, `P5-T3`, `P5-T4`, `P5-T5`, `P5-T6A`, `P5-T6B`, `P5-T6C`, `P5-T6C1`, `P5-T6D`, `P5-T7`, `P5-T8`, `P5-T9`, `P5-T10`, and `P5-T11`.
 - `P5-T6` remains live as a scope-control gate for later Phase 5 backlog work. Use [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md) and [../development/reference-patterns/P5-T6-reference-repo-consolidation-2026-05-01.md](../development/reference-patterns/P5-T6-reference-repo-consolidation-2026-05-01.md) to keep `borrow now`, `queue for P5-T6`, and `reject` decisions explicit; typed appeals, restrictions, donation batches, memberships, finance breadth, service-site routing, closure continuity, and generic workflow tooling require separate signed-out runtime rows.
 - `P5-T45` is in review with proof in [../validation/P5-T45_NEWSLETTER_DOUBLE_OPT_IN_PROOF_2026-05-02.md](../validation/P5-T45_NEWSLETTER_DOUBLE_OPT_IN_PROOF_2026-05-02.md). It adds local pending/confirmed signup state, generic public responses, confirmation email, and a public confirmation endpoint before CRM/provider sync. It does not widen into marketing automation, tracking pixels, preference centers, Mailchimp parity rewrites, reusable segment builders, memberships, appeals, or finance work.
+- `P5-T62`, `P5-T63`, `P5-T64`, `P5-T65`, `P5-T67`, `P5-T70`, `P5-T71`, `P5-T72`, `P5-T73`, `P5-T74`, and `P5-T76` are in progress as the May 4 ready-row batch. This coordinated implementation must keep `P5-T6` review-only and `P5-T75` blocked on the calendar/telemetry gate.
 - `P5-T44` is in review with proof in [../validation/P5-T44_TYPED_FUND_DESIGNATIONS_PROOF_2026-05-02.md](../validation/P5-T44_TYPED_FUND_DESIGNATIONS_PROOF_2026-05-02.md). Review migration `116`, typed finance designation registry behavior, donation and recurring-plan linkage, reporting-safe labels, recurring invoice propagation, and Docker-dependent `make db-verify` blocker; do not widen into donation batches, memberships, pledges, soft credits, transparent public finance snapshots, maker-checker approval workflows, full GL/fiscal-host parity, or generic workflow tooling.
 - `P5-T43` is signed off and archived in [archive/P5_LOCAL_CAMPAIGN_UNSUBSCRIBE_CLOSEOUT_2026-05-02.md](archive/P5_LOCAL_CAMPAIGN_UNSUBSCRIBE_CLOSEOUT_2026-05-02.md), with proof in [../validation/P5-T43_LOCAL_CAMPAIGN_UNSUBSCRIBE_PROOF_2026-05-01.md](../validation/P5-T43_LOCAL_CAMPAIGN_UNSUBSCRIBE_PROOF_2026-05-01.md). It added local SMTP campaign unsubscribe and `List-Unsubscribe` support without opening broader marketing automation, tracking, Mailchimp parity, preference-center, fundraising, membership, or finance scope.
 - `P5-T37`, `P5-T38`, and `P5-T39` are signed off and archived in [archive/P5_REFERENCE_IMPROVEMENTS_CLOSEOUT_2026-05-01.md](archive/P5_REFERENCE_IMPROVEMENTS_CLOSEOUT_2026-05-01.md), with proof in [../validation/P5-T37_T39_REFERENCE_IMPROVEMENTS_PROOF_2026-05-01.md](../validation/P5-T37_T39_REFERENCE_IMPROVEMENTS_PROOF_2026-05-01.md). They added local campaign queue controls, staff-only case-form evidence events, scheduled-report health, and audit-log health polish without widening into deferred `P5-T6` backlog scope.
@@ -117,6 +128,44 @@ Maintenance rules:
 
 - Update this file before editing tracked work.
 - Keep one active task per agent by default unless a coordinated exception is documented here.
+- Coordinated exception, 2026-05-04: `P5-T62`, `P5-T63`, `P5-T64`, `P5-T65`, `P5-T67`, `P5-T70`, `P5-T71`, `P5-T72`, `P5-T73`, `P5-T74`, and `P5-T76` are implemented as a clean-worktree ready-row batch. The dirty `main` checkout remains untouched; `P5-T6` stays review-only scope control, and `P5-T75` stays blocked on the June 17, 2026 telemetry checkpoint and July 1, 2026 earliest enforcement date.
+  Lead: Codex
+  Frontend lanes: `meetings-bootstrap-preview`
+  Backend lanes: `mailchimp-outcomes-recurring-contracts`, `local-campaign-retry`
+  Tooling/browser-proof lanes: `verification-browser-proof`
+  Public/operator lanes: `support-event-selfreferral-telemetry`
+  Integration owner: Codex
+  Proof: row-local validation notes under `docs/validation/**` plus final command synthesis in this workboard.
+- Lane: `meetings-bootstrap-preview`
+  Goal: replace the meeting minutes placeholder with in-app markdown preview/copy/download behavior and remove fake-authenticated bootstrap modes.
+  Owned paths: `frontend/src/features/meetings/**`, `frontend/src/services/bootstrap/**`, `frontend/.env.example`, focused frontend tests
+  Forbidden shared paths: backend auth/session behavior, backend meeting generation, database migrations, route catalog rewrites, docs except lead integration
+  Expected tests: focused meeting detail and bootstrap tests, `cd frontend && npm run type-check`, `cd frontend && npm run lint`, and `git diff --check`
+  Docs ownership: lead
+- Lane: `mailchimp-outcomes-recurring-contracts`
+  Goal: make Mailchimp cancel/reschedule explicitly unsupported, remove unsupported outcomes `programId`, and gate non-Stripe recurring donation management mutations with 400-level responses.
+  Owned paths: `backend/src/modules/mailchimp/**`, `backend/src/modules/communications/**` only for Mailchimp facade behavior, `backend/src/modules/reports/**`, `backend/src/validations/outcomeImpact.ts`, `backend/src/types/outcomes.ts`, `frontend/src/types/outcomes.ts`, `backend/src/modules/recurringDonations/**`, focused backend tests, API docs if contract wording changes
+  Forbidden shared paths: local campaign retry semantics, frontend recurring donation redesign, database migrations, broad provider rewrites, docs except lead integration
+  Expected tests: focused Mailchimp/communications, outcomes report, and recurring donation tests, `cd backend && npm run type-check`, touched-file lint where practical, and `git diff --check`
+  Docs ownership: lead
+- Lane: `verification-browser-proof`
+  Goal: re-home legacy verification wrappers onto current `make`/selector contracts and add focused browser proof for the public workflow follow-up.
+  Owned paths: `scripts/verify.sh`, `scripts/verify-pr.sh`, `docs/verification/VERIFICATION_SYSTEM.md`, `scripts/README.md`, `scripts/tests/tooling-contracts.test.cjs`, focused E2E specs/fixtures, validation proof notes
+  Forbidden shared paths: runtime app behavior, hosted CI reinstatement, broad E2E wrapper rewrites, deployment scripts, public runtime feature changes
+  Expected tests: `make test-tooling`, `./scripts/select-checks.sh --mode fast`, focused Playwright proof, `make check-links`, and `git diff --check`
+  Docs ownership: lead
+- Lane: `local-campaign-retry`
+  Goal: add operator-triggered failed-recipient retry for local-email campaign runs by requeueing failed recipients, clearing failure messages, and recording retry metadata in existing run counts.
+  Owned paths: `backend/src/modules/communications/**`, focused communications tests, optional API docs for the new staff action
+  Forbidden shared paths: Mailchimp parity, tracking pixels, marketing automation, public APIs beyond the staff communications route, frontend UI unless needed for existing operator visibility, database migrations unless unavoidable
+  Expected tests: focused communications service/route tests, `cd backend && npm run type-check`, route validation policy if route shape changes, and `git diff --check`
+  Docs ownership: lead
+- Lane: `support-event-selfreferral-telemetry`
+  Goal: add support-letter approval artifact preview/download/copy, narrow public event/self-referral operational snapshots, and frontend-only browser-session operator diagnostics.
+  Owned paths: publishing/public-action staff review seams, support-letter frontend UI, public event/self-referral selected frontend/backend seams, telemetry-facing frontend bootstrap or route surfaces, focused tests
+  Forbidden shared paths: petition counts, public dashboards, workflow/queue infrastructure, broad admin table rewrites, backend telemetry API contracts, database migrations, donation checkout changes, generic analytics surfaces
+  Expected tests: focused support-letter/public-event/self-referral/telemetry tests, relevant type-checks, frontend lint where touched, and `git diff --check`
+  Docs ownership: lead
 - Coordinated exception, 2026-05-01: `P5-T43` is split across local unsubscribe contract, email header/footer, and lead-owned docs/validation lanes while `P5-T6` remains review-only scope control.
   Lead: Codex
   Backend lanes: `unsubscribe-contract`, `email-unsubscribe-headers`
