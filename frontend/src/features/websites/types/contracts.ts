@@ -3,6 +3,7 @@ import type {
   CreatePublicActionRequest,
   PublicAction,
   PublicActionSubmission,
+  PublicActionSupportLetterArtifact,
   SiteKind,
   UpdateWebsiteEntryRequest,
   UpdatePublicActionRequest,
@@ -524,5 +525,6 @@ export type WebsiteEntryCreateRequest = Omit<CreateWebsiteEntryRequest, 'siteId'
 export type WebsiteEntryUpdateRequest = UpdateWebsiteEntryRequest;
 export type WebsitePublicAction = PublicAction;
 export type WebsitePublicActionSubmission = PublicActionSubmission;
+export type WebsitePublicActionSupportLetterArtifact = PublicActionSupportLetterArtifact;
 export type WebsitePublicActionCreateRequest = CreatePublicActionRequest;
 export type WebsitePublicActionUpdateRequest = UpdatePublicActionRequest;

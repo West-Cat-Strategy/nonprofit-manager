@@ -928,6 +928,24 @@ export interface PublicActionSubmission {
   updatedAt: string;
 }
 
+export interface PublicActionSupportLetterArtifact {
+  id: string;
+  organizationId: string;
+  siteId: string;
+  actionId: string;
+  submissionId: string;
+  contactId?: string | null;
+  templateVersion: string;
+  letterTitle: string;
+  letterBody: string;
+  approvalStatus: 'draft' | 'approved' | 'sent' | 'rejected';
+  generatedMetadata: Record<string, unknown>;
+  approvedAt?: string | null;
+  approvedBy?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface CreatePublicActionRequest {
   actionType: PublicActionType;
   status?: PublicActionStatus;

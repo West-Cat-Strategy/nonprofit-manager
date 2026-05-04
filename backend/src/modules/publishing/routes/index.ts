@@ -36,6 +36,12 @@ const sitePublicActionParamsSchema = z.object({
   actionId: uuidSchema,
 });
 
+const sitePublicActionSubmissionParamsSchema = z.object({
+  siteId: uuidSchema,
+  actionId: uuidSchema,
+  submissionId: uuidSchema,
+});
+
 const siteVersionParamsSchema = z.object({
   siteId: uuidSchema,
   version: z.string().min(1),
@@ -442,6 +448,13 @@ router.get(
   ...withOrganizationContext,
   validateParams(sitePublicActionParamsSchema),
   publishingController.listSitePublicActionSubmissions
+);
+
+router.get(
+  '/:siteId/actions/:actionId/submissions/:submissionId/support-letter',
+  ...withOrganizationContext,
+  validateParams(sitePublicActionSubmissionParamsSchema),
+  publishingController.getSitePublicActionSupportLetterArtifact
 );
 
 router.get(

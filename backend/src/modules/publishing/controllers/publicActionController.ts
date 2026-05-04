@@ -140,6 +140,30 @@ export const exportSitePublicActionSubmissions = async (
   }
 };
 
+export const getSitePublicActionSupportLetterArtifact = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const result = await publicActionService.getSupportLetterArtifact(
+      req.params.siteId,
+      req.params.actionId,
+      req.params.submissionId,
+      req.user!.id,
+      req.organizationId
+    );
+    if (!result) {
+      notFoundMessage(res, 'Support letter artifact not found');
+      return;
+    }
+    sendSuccess(res, result);
+  } catch (error) {
+    if (handleKnownError(res, error)) return;
+    next(error);
+  }
+};
+
 export const submitPublicAction = async (
   req: Request,
   res: Response,
