@@ -209,6 +209,11 @@ router.post(
   communicationsController.sendCampaignRun
 );
 router.post(
+  '/campaign-runs/:runId/retry-failed',
+  validateParams(campaignRunIdParamsSchema),
+  communicationsController.retryFailedCampaignRunRecipients
+);
+router.post(
   '/campaign-runs/:runId/status',
   validateParams(campaignRunIdParamsSchema),
   communicationsController.refreshCampaignRunStatus

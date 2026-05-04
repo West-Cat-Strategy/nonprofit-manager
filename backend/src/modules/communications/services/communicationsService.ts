@@ -11,6 +11,8 @@ import {
   appendUnsubscribeFooter,
   buildLocalCampaignUnsubscribeUrl,
 } from './localCampaignUnsubscribeHelpers';
+import { retryFailedCampaignRunRecipients, unsupportedMailchimpRunAction } from './campaignRunActionService';
+export { retryFailedCampaignRunRecipients } from './campaignRunActionService';
 import type {
   CommunicationAudience,
   CommunicationAudiencePreview,
@@ -1089,10 +1091,10 @@ export const cancelCampaignRun = async (
     return null;
   }
   if (run.provider === 'mailchimp') {
-    return mailchimpService.cancelCampaignRun(
-      runId,
-      requesterScopeAccountIds
-    ) as Promise<CommunicationCampaignActionResult | null>;
+    return unsupportedMailchimpRunAction(
+      run,
+      'Mailchimp campaign cancellation is not supported by the communications facade'
+    );
   }
   if (!['draft', 'scheduled', 'sending'].includes(run.status)) {
     throw new CommunicationsValidationError(`Campaign run cannot be canceled from ${run.status} status`);
@@ -1135,10 +1137,10 @@ export const rescheduleCampaignRun = async (
     return null;
   }
   if (run.provider === 'mailchimp') {
-    return mailchimpService.rescheduleCampaignRun(
-      runId,
-      requesterScopeAccountIds
-    ) as Promise<CommunicationCampaignActionResult | null>;
+    return unsupportedMailchimpRunAction(
+      run,
+      'Mailchimp campaign rescheduling is not supported by the communications facade'
+    );
   }
   if (!['draft', 'scheduled'].includes(run.status)) {
     throw new CommunicationsValidationError(`Campaign run cannot be rescheduled from ${run.status} status`);
@@ -1294,6 +1296,7 @@ export default {
   sendCampaignRun,
   cancelCampaignRun,
   rescheduleCampaignRun,
+  retryFailedCampaignRunRecipients,
   refreshCampaignRunStatus,
   sendCampaignTest,
 };
