@@ -375,6 +375,8 @@ router.post(
   mailchimpController.refreshCampaignRunStatus
 );
 
+// Mailchimp cancel/reschedule management is intentionally unsupported by this
+// provider route and returns 405 from the controller/service contract.
 router.post(
   '/campaign-runs/:runId/cancel',
   validateParams(campaignRunIdParamsSchema),
