@@ -66,6 +66,7 @@ import {
   recordCampaignLifecycleWebhook,
   updateCampaignRunStatus,
 } from './mailchimpCampaignRuns';
+import { UnsupportedMailchimpCampaignRunActionError } from './mailchimpCampaignRunActionErrors';
 import { recordContactSuppressionEvidence as recordContactSuppressionEvidenceForContact } from '@modules/contacts/services/contactSuppressionService';
 
 export {
@@ -77,6 +78,7 @@ export {
   listSavedAudiences,
   recordCampaignLifecycleWebhook,
 } from './mailchimpCampaignRuns';
+export { UnsupportedMailchimpCampaignRunActionError } from './mailchimpCampaignRunActionErrors';
 
 const CONTACT_SELECT_QUERY = `SELECT id AS contact_id, account_id, first_name, last_name, email, phone,
         address_line1, address_line2, city, state_province, postal_code, country,
@@ -897,11 +899,10 @@ export async function cancelCampaignRun(
     return null;
   }
 
-  return {
-    run,
-    action: 'unsupported',
-    message: 'Mailchimp campaign cancellation is not supported by this backend contract yet',
-  };
+  throw new UnsupportedMailchimpCampaignRunActionError(
+    'Mailchimp campaign cancellation is not supported by this backend contract yet',
+    'cancel'
+  );
 }
 
 export async function rescheduleCampaignRun(
@@ -913,11 +914,10 @@ export async function rescheduleCampaignRun(
     return null;
   }
 
-  return {
-    run,
-    action: 'unsupported',
-    message: 'Mailchimp campaign rescheduling is not supported by this backend contract yet',
-  };
+  throw new UnsupportedMailchimpCampaignRunActionError(
+    'Mailchimp campaign rescheduling is not supported by this backend contract yet',
+    'reschedule'
+  );
 }
 
 async function recordMailchimpContactSuppressionEvidence(

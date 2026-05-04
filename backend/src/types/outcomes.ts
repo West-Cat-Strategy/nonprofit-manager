@@ -82,7 +82,6 @@ export interface OutcomeReportFilters {
   interactionType?: 'note' | 'email' | 'call' | 'meeting' | 'update' | 'status_change' | 'other';
   bucket: 'week' | 'month';
   includeNonReportable?: boolean;
-  programId?: string;
   source?: OutcomeReportSourceFilter;
 }
 

@@ -106,7 +106,6 @@ export interface OutcomesReportData {
 export interface OutcomesReportFilters {
   from: string;
   to: string;
-  programId?: string;
   staffId?: string;
   interactionType?: 'note' | 'email' | 'call' | 'meeting' | 'update' | 'status_change' | 'other';
   bucket?: 'week' | 'month';
