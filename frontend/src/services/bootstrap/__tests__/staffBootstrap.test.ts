@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../api', () => ({
   default: {
@@ -25,6 +25,10 @@ import {
 } from '../../userPreferencesService';
 
 describe('staffBootstrap', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     window.history.pushState({}, '', '/');
@@ -269,6 +273,20 @@ describe('staffBootstrap', () => {
     const snapshot = await getStaffBootstrapSnapshot({ forceRefresh: true });
 
     expect(api.get).not.toHaveBeenCalled();
+    expect(snapshot).toMatchObject({
+      status: 'anonymous',
+      user: null,
+      organizationId: null,
+    });
+  });
+
+  it('ignores the retired authenticated env mode and cannot synthesize a staff user', async () => {
+    vi.stubEnv('VITE_UI_STAFF_BOOTSTRAP_MODE', 'authenticated');
+    vi.mocked(api.get).mockRejectedValue(new Error('still anonymous'));
+
+    const snapshot = await getStaffBootstrapSnapshot({ forceRefresh: true });
+
+    expect(api.get).toHaveBeenCalledWith('/auth/bootstrap');
     expect(snapshot).toMatchObject({
       status: 'anonymous',
       user: null,

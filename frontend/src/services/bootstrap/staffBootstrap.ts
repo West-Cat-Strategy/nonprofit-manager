@@ -35,18 +35,6 @@ type StaffBootstrapResponse = {
 };
 
 const STAFF_BOOTSTRAP_TTL_MS = 60_000;
-const staffBootstrapMode = import.meta.env.VITE_UI_STAFF_BOOTSTRAP_MODE as
-  | 'anonymous'
-  | 'authenticated'
-  | undefined;
-const mockStaffUser: User = {
-  id: 'ui-preview-staff',
-  email: 'preview.staff@example.org',
-  firstName: 'Preview',
-  lastName: 'Staff',
-  role: 'admin',
-  profilePicture: null,
-};
 
 let cachedSnapshot: StaffBootstrapSnapshot | null = null;
 let inFlightSnapshot: Promise<StaffBootstrapSnapshot> | null = null;
@@ -175,28 +163,6 @@ const fetchStaffBootstrapSnapshot = async (): Promise<StaffBootstrapSnapshot> =>
       workspaceModules: createDefaultWorkspaceModuleSettings(),
       fetchedAt: Date.now(),
     };
-  }
-
-  if (staffBootstrapMode === 'anonymous') {
-    return {
-      status: 'anonymous',
-      user: null,
-      organizationId: null,
-      branding: null,
-      preferences: null,
-      workspaceModules: createDefaultWorkspaceModuleSettings(),
-      fetchedAt: Date.now(),
-    };
-  }
-
-  if (staffBootstrapMode === 'authenticated') {
-    return buildAuthenticatedSnapshot({
-      user: mockStaffUser,
-      organizationId: null,
-      branding: null,
-      preferences: null,
-      workspaceModules: createDefaultWorkspaceModuleSettings(),
-    });
   }
 
   try {
