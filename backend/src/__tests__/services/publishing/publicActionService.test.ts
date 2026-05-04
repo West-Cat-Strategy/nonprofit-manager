@@ -163,9 +163,7 @@ describe('PublicActionService', () => {
       }),
       'owner-1'
     );
-    expect(mockQuery.mock.calls[4][0]).toContain(
-      'INSERT INTO website_public_action_submissions'
-    );
+    expect(mockQuery.mock.calls[4][0]).toContain('INSERT INTO website_public_action_submissions');
     expect(mockQuery.mock.calls[4][1]).toEqual(
       expect.arrayContaining(['idem-1', '/petition', 'visitor-1', 'session-1', 'vitest'])
     );
@@ -279,6 +277,54 @@ describe('PublicActionService', () => {
         'Housing support letter',
         'Dear reviewer, Sam Rivera needs rental assistance.',
       ])
+    );
+  });
+
+  it('retrieves support-letter artifacts for staff review without delivery side effects', async () => {
+    siteManagementModule.__mocks.getSite.mockResolvedValue(baseSite);
+    mockQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          id: '77777777-7777-4777-8777-777777777777',
+          organization_id: baseSite.organizationId,
+          site_id: baseSite.id,
+          action_id: '33333333-3333-4333-8333-333333333333',
+          submission_id: '44444444-4444-4444-8444-444444444444',
+          contact_id: '55555555-5555-4555-8555-555555555555',
+          template_version: 'housing-v1',
+          letter_title: 'Housing support letter',
+          letter_body: 'Dear reviewer, Sam Rivera needs rental assistance.',
+          approval_status: 'draft',
+          generated_metadata: { templateVersion: 'housing-v1' },
+          approved_at: null,
+          approved_by: null,
+          created_at: now,
+          updated_at: now,
+        },
+      ],
+    });
+
+    const artifact = await service.getSupportLetterArtifact(
+      baseSite.id,
+      '33333333-3333-4333-8333-333333333333',
+      '44444444-4444-4444-8444-444444444444',
+      'user-1',
+      baseSite.organizationId
+    );
+
+    expect(siteManagementModule.__mocks.getSite).toHaveBeenCalledWith(
+      baseSite.id,
+      'user-1',
+      baseSite.organizationId
+    );
+    expect(mockQuery.mock.calls[0][0]).toContain('FROM website_support_letters');
+    expect(artifact).toEqual(
+      expect.objectContaining({
+        id: '77777777-7777-4777-8777-777777777777',
+        letterTitle: 'Housing support letter',
+        letterBody: 'Dear reviewer, Sam Rivera needs rental assistance.',
+        approvalStatus: 'draft',
+      })
     );
   });
 });

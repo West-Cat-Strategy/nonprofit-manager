@@ -21,6 +21,7 @@ import type {
   WebsitePublicAction,
   WebsitePublicActionCreateRequest,
   WebsitePublicActionSubmission,
+  WebsitePublicActionSupportLetterArtifact,
   WebsitePublicActionUpdateRequest,
   WebsiteSearchParams,
   WebsiteSitesResponse,
@@ -99,6 +100,18 @@ export class WebsitesApiClient {
   ): Promise<WebsitePublicActionSubmission[]> {
     return api
       .get<WebsitePublicActionSubmission[]>(`/sites/${siteId}/actions/${actionId}/submissions`)
+      .then((response) => response.data);
+  }
+
+  getPublicActionSupportLetterArtifact(
+    siteId: string,
+    actionId: string,
+    submissionId: string
+  ): Promise<WebsitePublicActionSupportLetterArtifact> {
+    return api
+      .get<WebsitePublicActionSupportLetterArtifact>(
+        `/sites/${siteId}/actions/${actionId}/submissions/${submissionId}/support-letter`
+      )
       .then((response) => response.data);
   }
 

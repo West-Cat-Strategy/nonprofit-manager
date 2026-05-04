@@ -7,18 +7,16 @@ vi.mock('../../api', () => ({
 }));
 
 import api from '../../api';
-import {
-  __resetBrandingCacheForTests,
-  getBrandingCachedSync,
-} from '../../brandingService';
+import { __resetBrandingCacheForTests, getBrandingCachedSync } from '../../brandingService';
 import {
   clearWorkspaceModuleAccessCache,
   getWorkspaceModuleAccessCachedSync,
 } from '../../workspaceModuleAccessService';
+import { clearStaffBootstrapSnapshot, getStaffBootstrapSnapshot } from '../staffBootstrap';
 import {
-  clearStaffBootstrapSnapshot,
-  getStaffBootstrapSnapshot,
-} from '../staffBootstrap';
+  clearBrowserSessionDiagnostics,
+  getBrowserSessionDiagnostics,
+} from '../../browserSessionDiagnostics';
 import {
   __resetUserPreferencesCacheForTests,
   getUserPreferencesCachedSync,
@@ -33,7 +31,9 @@ describe('staffBootstrap', () => {
     vi.clearAllMocks();
     window.history.pushState({}, '', '/');
     window.localStorage.clear();
+    window.sessionStorage.clear();
     clearStaffBootstrapSnapshot();
+    clearBrowserSessionDiagnostics();
     clearWorkspaceModuleAccessCache();
     __resetBrandingCacheForTests();
     __resetUserPreferencesCacheForTests();
@@ -252,6 +252,23 @@ describe('staffBootstrap', () => {
       preferences: {},
     });
     expect(getUserPreferencesCachedSync()).toEqual({});
+  });
+
+  it('records browser-session diagnostics when the staff bootstrap probe fails', async () => {
+    vi.mocked(api.get).mockRejectedValueOnce(new Error('bootstrap offline'));
+
+    const snapshot = await getStaffBootstrapSnapshot({ forceRefresh: true });
+
+    expect(snapshot.status).toBe('anonymous');
+    expect(getBrowserSessionDiagnostics()).toEqual([
+      expect.objectContaining({
+        area: 'bootstrap',
+        event: 'staff_bootstrap_failed',
+        severity: 'warning',
+        message: 'bootstrap offline',
+        path: '/',
+      }),
+    ]);
   });
 
   it('skips the staff bootstrap probe on demo routes', async () => {

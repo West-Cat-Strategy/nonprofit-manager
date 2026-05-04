@@ -13,6 +13,7 @@ import { setUserPreferencesCached, type UserPreferences } from '../userPreferenc
 import {
   setWorkspaceModuleAccessCached,
 } from '../workspaceModuleAccessService';
+import { recordBrowserSessionDiagnostic } from '../browserSessionDiagnostics';
 
 export type BootstrapStatus = 'authenticated' | 'anonymous';
 
@@ -175,7 +176,16 @@ const fetchStaffBootstrapSnapshot = async (): Promise<StaffBootstrapSnapshot> =>
       preferences: normalizeStartupPreferences(payload.preferences),
       workspaceModules: normalizeStartupWorkspaceModules(payload.workspaceModules),
     });
-  } catch {
+  } catch (error) {
+    recordBrowserSessionDiagnostic({
+      area: 'bootstrap',
+      event: 'staff_bootstrap_failed',
+      severity: 'warning',
+      message: error instanceof Error ? error.message : 'Staff bootstrap request failed.',
+      details: {
+        endpoint: '/auth/bootstrap',
+      },
+    });
     return {
       status: 'anonymous',
       user: null,

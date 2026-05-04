@@ -98,6 +98,10 @@ describe('EventList page', () => {
         })
       );
     });
+    expect(screen.getByText('Public event operations')).toBeInTheDocument();
+    expect(screen.getByText('public occurrences')).toBeInTheDocument();
+    expect(screen.getByText('waitlist enabled')).toBeInTheDocument();
+    expect(screen.getByText('pending check-ins')).toBeInTheDocument();
   });
 
   it('defaults the agenda to the first visible occurrence when the month is set without a date', async () => {
@@ -107,7 +111,7 @@ describe('EventList page', () => {
         <LocationProbe />
       </>,
       {
-      route: '/events?month=2026-05',
+        route: '/events?month=2026-05',
       }
     );
 
