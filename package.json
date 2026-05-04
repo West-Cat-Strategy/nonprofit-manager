@@ -44,6 +44,6 @@
     "vite": "^8.0.10"
   },
   "devDependencies": {
-    "knip": "^6.6.3"
+    "knip": "^6.7.0"
   }
 }
