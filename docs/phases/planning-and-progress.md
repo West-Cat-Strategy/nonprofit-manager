@@ -11,9 +11,9 @@
 | Snapshot | Value |
 |---|---|
 | Active rows | 18 |
-| In Progress | 11 |
+| In Progress | 0 |
 | Blocked | 1 |
-| Review | 6 |
+| Review | 17 |
 | Ready | 0 |
 | Phase 4 carry-over rows | 0 |
 | Recent thread follow-through rows | 0 |
@@ -39,17 +39,7 @@ Maintenance rules:
 
 | Status | ID | Task | Immediate Next Move |
 |---|---|---|---|
-| In Progress | P5-T62 | Meeting minutes draft preview flow | Replace the `Draft Minutes` console/alert placeholder with in-app markdown preview, copy, and download behavior. |
-| In Progress | P5-T63 | Fence preview bootstrap auth modes | Remove fake-authenticated staff/portal bootstrap modes so production-style builds cannot synthesize users. |
-| In Progress | P5-T64 | Mailchimp campaign-run cancel/reschedule contract cleanup | Convert Mailchimp cancel/reschedule success-with-`unsupported` behavior into explicit unsupported responses. |
-| In Progress | P5-T65 | Outcomes report `programId` contract cleanup | Remove unsupported `programId` from outcomes report validation/types/docs and reject the parameter. |
-| In Progress | P5-T67 | Retire or re-home legacy verification scripts | Align legacy verification scripts/docs with current `make` and selector contracts. |
-| In Progress | P5-T70 | Local campaign failed-recipient retry policy | Add operator-triggered local-email failed-recipient retry without marketing automation scope. |
-| In Progress | P5-T71 | Public workflow browser proof sweep | Add focused browser proof for managed forms, public event registration, donation checkout, and public action blocks. |
-| In Progress | P5-T72 | Support-letter approval delivery/download polish | Add staff-facing support-letter approval artifact preview/download/copy behavior without email delivery. |
-| In Progress | P5-T73 | Public event and self-referral operational snapshots | Add narrow staff-facing operational snapshots for public event waitlist/check-in and self-referral status. |
-| In Progress | P5-T74 | Recurring donation provider-management parity | Gate non-Stripe recurring donation management mutations with client-safe provider-specific responses. |
-| In Progress | P5-T76 | Browser telemetry and operator metrics next slice | Add frontend-only browser-session operator diagnostics for route/bootstrap failures. |
+| _None_ | _None_ | _None_ | No row is currently in progress. |
 
 ### Review Queue
 
@@ -61,6 +51,17 @@ Maintenance rules:
 | Review | P5-T42 | Website public-action expansion | Implementation is landed with proof in [../validation/P5-T42_WEBSITE_PUBLIC_ACTION_EXPANSION_PROOF_2026-05-01.md](../validation/P5-T42_WEBSITE_PUBLIC_ACTION_EXPANSION_PROOF_2026-05-01.md). Review migration `115`, public action APIs, blog/campaign content entries, petition/pledge/support-letter submission behavior, staff forms-console action panel, public runtime action blocks, standalone public-site route parity, focused tests, Docker smoke proof, and the noted follow-on approval-count polish. |
 | Review | P5-T44 | Typed fund designation and restriction registry | Implementation is landed with proof in [../validation/P5-T44_TYPED_FUND_DESIGNATIONS_PROOF_2026-05-02.md](../validation/P5-T44_TYPED_FUND_DESIGNATIONS_PROOF_2026-05-02.md). Review migration `116`, typed designation API/service behavior, donation and recurring-plan linkage, reporting-safe labels, recurring invoice propagation, finance UI updates, focused tests, type-checks, policy checks, manifest parity, and the Docker-dependent `make db-verify` blocker. |
 | Review | P5-T45 | Double opt-in for public newsletter signup | Implementation is landed with proof in [../validation/P5-T45_NEWSLETTER_DOUBLE_OPT_IN_PROOF_2026-05-02.md](../validation/P5-T45_NEWSLETTER_DOUBLE_OPT_IN_PROOF_2026-05-02.md). Review migration `117`, pending/confirmed signup state, hashed confirmation tokens, generic public signup/confirmation responses, confirmation email links, CRM/provider handoff after confirmation, focused tests, type-checks, policy checks, manifest parity, and the Docker-dependent `make db-verify` blocker. |
+| Review | P5-T62 | Meeting minutes draft preview flow | Implementation is landed with proof in [../validation/P5_READY_ROW_BATCH_PROOF_2026-05-04.md](../validation/P5_READY_ROW_BATCH_PROOF_2026-05-04.md). Review the in-app markdown preview, copy/download actions, and focused meeting tests. |
+| Review | P5-T63 | Fence preview bootstrap auth modes | Implementation is landed with proof in [../validation/P5_READY_ROW_BATCH_PROOF_2026-05-04.md](../validation/P5_READY_ROW_BATCH_PROOF_2026-05-04.md). Review removal of fake staff/portal authenticated bootstrap modes and production-style bootstrap tests. |
+| Review | P5-T64 | Mailchimp campaign-run cancel/reschedule contract cleanup | Implementation is landed with proof in [../validation/P5_READY_ROW_BATCH_PROOF_2026-05-04.md](../validation/P5_READY_ROW_BATCH_PROOF_2026-05-04.md). Review explicit unsupported/405 behavior across Mailchimp and communications campaign-run actions. |
+| Review | P5-T65 | Outcomes report `programId` contract cleanup | Implementation is landed with proof in [../validation/P5_READY_ROW_BATCH_PROOF_2026-05-04.md](../validation/P5_READY_ROW_BATCH_PROOF_2026-05-04.md). Review removal of unsupported `programId` filters from validation/types/docs. |
+| Review | P5-T67 | Retire or re-home legacy verification scripts | Implementation is landed with proof in [../validation/P5-T67_T71_READY_TOOLING_BROWSER_PROOF_2026-05-03.md](../validation/P5-T67_T71_READY_TOOLING_BROWSER_PROOF_2026-05-03.md) and [../validation/P5_READY_ROW_BATCH_PROOF_2026-05-04.md](../validation/P5_READY_ROW_BATCH_PROOF_2026-05-04.md). Review compatibility wrappers and selector routing. |
+| Review | P5-T70 | Local campaign failed-recipient retry policy | Implementation is landed with proof in [../validation/P5_READY_ROW_BATCH_PROOF_2026-05-04.md](../validation/P5_READY_ROW_BATCH_PROOF_2026-05-04.md). Review operator-triggered failed-recipient retry, requeue metadata, and no automatic send behavior. |
+| Review | P5-T71 | Public workflow browser proof sweep | Implementation is landed with proof in [../validation/P5-T67_T71_READY_TOOLING_BROWSER_PROOF_2026-05-03.md](../validation/P5-T67_T71_READY_TOOLING_BROWSER_PROOF_2026-05-03.md) and [../validation/P5_READY_ROW_BATCH_PROOF_2026-05-04.md](../validation/P5_READY_ROW_BATCH_PROOF_2026-05-04.md). Review focused Chromium browser proof for managed forms, public event registration, donation checkout, and public action blocks. |
+| Review | P5-T72 | Support-letter approval delivery/download polish | Implementation is landed with proof in [../validation/P5_READY_ROW_BATCH_PROOF_2026-05-04.md](../validation/P5_READY_ROW_BATCH_PROOF_2026-05-04.md). Review support-letter artifact preview, copy, and download behavior without email delivery. |
+| Review | P5-T73 | Public event and self-referral operational snapshots | Implementation is landed with proof in [../validation/P5_READY_ROW_BATCH_PROOF_2026-05-04.md](../validation/P5_READY_ROW_BATCH_PROOF_2026-05-04.md). Review narrow event waitlist/check-in and self-referral status snapshots. |
+| Review | P5-T74 | Recurring donation provider-management parity | Implementation is landed with proof in [../validation/P5_READY_ROW_BATCH_PROOF_2026-05-04.md](../validation/P5_READY_ROW_BATCH_PROOF_2026-05-04.md). Review non-Stripe management gates and client-safe 400 responses. |
+| Review | P5-T76 | Browser telemetry and operator metrics next slice | Implementation is landed with proof in [../validation/P5_READY_ROW_BATCH_PROOF_2026-05-04.md](../validation/P5_READY_ROW_BATCH_PROOF_2026-05-04.md). Review frontend-only browser-session diagnostics for route/bootstrap failures. |
 
 ### Ready Queue
 
@@ -79,7 +80,7 @@ Maintenance rules:
 - Proof-complete and already archived rows have been removed from the live board: `P5-T2A`, `P5-T2B`, `P5-T2C`, `P5-T2D`, `P5-T3`, `P5-T4`, `P5-T5`, `P5-T6A`, `P5-T6B`, `P5-T6C`, `P5-T6C1`, `P5-T6D`, `P5-T7`, `P5-T8`, `P5-T9`, `P5-T10`, and `P5-T11`.
 - `P5-T6` remains live as a scope-control gate for later Phase 5 backlog work. Use [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md) and [../development/reference-patterns/P5-T6-reference-repo-consolidation-2026-05-01.md](../development/reference-patterns/P5-T6-reference-repo-consolidation-2026-05-01.md) to keep `borrow now`, `queue for P5-T6`, and `reject` decisions explicit; typed appeals, restrictions, donation batches, memberships, finance breadth, service-site routing, closure continuity, and generic workflow tooling require separate signed-out runtime rows.
 - `P5-T45` is in review with proof in [../validation/P5-T45_NEWSLETTER_DOUBLE_OPT_IN_PROOF_2026-05-02.md](../validation/P5-T45_NEWSLETTER_DOUBLE_OPT_IN_PROOF_2026-05-02.md). It adds local pending/confirmed signup state, generic public responses, confirmation email, and a public confirmation endpoint before CRM/provider sync. It does not widen into marketing automation, tracking pixels, preference centers, Mailchimp parity rewrites, reusable segment builders, memberships, appeals, or finance work.
-- `P5-T62`, `P5-T63`, `P5-T64`, `P5-T65`, `P5-T67`, `P5-T70`, `P5-T71`, `P5-T72`, `P5-T73`, `P5-T74`, and `P5-T76` are in progress as the May 4 ready-row batch. This coordinated implementation must keep `P5-T6` review-only and `P5-T75` blocked on the calendar/telemetry gate.
+- `P5-T62`, `P5-T63`, `P5-T64`, `P5-T65`, `P5-T67`, `P5-T70`, `P5-T71`, `P5-T72`, `P5-T73`, `P5-T74`, and `P5-T76` are in review with proof in [../validation/P5_READY_ROW_BATCH_PROOF_2026-05-04.md](../validation/P5_READY_ROW_BATCH_PROOF_2026-05-04.md). This coordinated implementation kept `P5-T6` review-only and `P5-T75` blocked on the calendar/telemetry gate.
 - `P5-T44` is in review with proof in [../validation/P5-T44_TYPED_FUND_DESIGNATIONS_PROOF_2026-05-02.md](../validation/P5-T44_TYPED_FUND_DESIGNATIONS_PROOF_2026-05-02.md). Review migration `116`, typed finance designation registry behavior, donation and recurring-plan linkage, reporting-safe labels, recurring invoice propagation, and Docker-dependent `make db-verify` blocker; do not widen into donation batches, memberships, pledges, soft credits, transparent public finance snapshots, maker-checker approval workflows, full GL/fiscal-host parity, or generic workflow tooling.
 - `P5-T43` is signed off and archived in [archive/P5_LOCAL_CAMPAIGN_UNSUBSCRIBE_CLOSEOUT_2026-05-02.md](archive/P5_LOCAL_CAMPAIGN_UNSUBSCRIBE_CLOSEOUT_2026-05-02.md), with proof in [../validation/P5-T43_LOCAL_CAMPAIGN_UNSUBSCRIBE_PROOF_2026-05-01.md](../validation/P5-T43_LOCAL_CAMPAIGN_UNSUBSCRIBE_PROOF_2026-05-01.md). It added local SMTP campaign unsubscribe and `List-Unsubscribe` support without opening broader marketing automation, tracking, Mailchimp parity, preference-center, fundraising, membership, or finance scope.
 - `P5-T37`, `P5-T38`, and `P5-T39` are signed off and archived in [archive/P5_REFERENCE_IMPROVEMENTS_CLOSEOUT_2026-05-01.md](archive/P5_REFERENCE_IMPROVEMENTS_CLOSEOUT_2026-05-01.md), with proof in [../validation/P5-T37_T39_REFERENCE_IMPROVEMENTS_PROOF_2026-05-01.md](../validation/P5-T37_T39_REFERENCE_IMPROVEMENTS_PROOF_2026-05-01.md). They added local campaign queue controls, staff-only case-form evidence events, scheduled-report health, and audit-log health polish without widening into deferred `P5-T6` backlog scope.
