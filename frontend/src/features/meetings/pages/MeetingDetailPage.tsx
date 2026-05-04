@@ -3,6 +3,8 @@ import {
   ArrowLeftIcon,
   CalendarDaysIcon,
   ClipboardDocumentCheckIcon,
+  ClipboardDocumentIcon,
+  ArrowDownTrayIcon,
   DocumentTextIcon,
   MapPinIcon,
   PencilSquareIcon,
@@ -17,10 +19,25 @@ import { useMeetingDetailPage } from '../hooks/useMeetingDetailPage';
 import { LoadingState, ErrorState } from '../../../components/ui/State';
 
 const MeetingDetailPage: React.FC = () => {
-  const { meeting, loading, error, onEdit, onBack, generateMinutes } = useMeetingDetailPage();
+  const {
+    meeting,
+    loading,
+    error,
+    minutesDraftMarkdown,
+    minutesDraftStatus,
+    minutesDraftMessage,
+    onEdit,
+    onBack,
+    generateMinutes,
+    copyMinutesDraft,
+    downloadMinutesDraft,
+  } = useMeetingDetailPage();
 
   if (loading) return <LoadingState />;
   if (error || !meeting) return <ErrorState message={error || 'Meeting not found'} />;
+
+  const hasMinutesDraft = Boolean(minutesDraftMarkdown);
+  const isGeneratingMinutes = minutesDraftStatus === 'generating';
 
   return (
     <NeoBrutalistLayout pageTitle={meeting.meeting.title}>
@@ -41,9 +58,9 @@ const MeetingDetailPage: React.FC = () => {
             <PencilSquareIcon className="mr-2 inline h-5 w-5" aria-hidden="true" />
             Edit Meeting
           </BrutalButton>
-          <BrutalButton variant="success" onClick={generateMinutes}>
+          <BrutalButton variant="success" onClick={generateMinutes} disabled={isGeneratingMinutes}>
             <DocumentTextIcon className="mr-2 inline h-5 w-5" aria-hidden="true" />
-            Draft Minutes
+            {isGeneratingMinutes ? 'Drafting...' : 'Draft Minutes'}
           </BrutalButton>
         </div>
       </div>
@@ -91,6 +108,44 @@ const MeetingDetailPage: React.FC = () => {
               )}
             </div>
           </BrutalCard>
+
+          {(hasMinutesDraft || minutesDraftMessage) && (
+            <BrutalCard>
+              <div className="p-6">
+                <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <h2 className="text-2xl font-black uppercase">Minutes Draft Preview</h2>
+                    {minutesDraftMessage && (
+                      <p
+                        className="mt-2 text-sm font-bold"
+                        role={minutesDraftStatus === 'error' ? 'alert' : 'status'}
+                        aria-live="polite"
+                      >
+                        {minutesDraftMessage}
+                      </p>
+                    )}
+                  </div>
+                  {hasMinutesDraft && (
+                    <div className="flex flex-wrap gap-3">
+                      <BrutalButton variant="secondary" size="sm" onClick={copyMinutesDraft}>
+                        <ClipboardDocumentIcon className="mr-2 inline h-4 w-4" aria-hidden="true" />
+                        Copy
+                      </BrutalButton>
+                      <BrutalButton variant="secondary" size="sm" onClick={downloadMinutesDraft}>
+                        <ArrowDownTrayIcon className="mr-2 inline h-4 w-4" aria-hidden="true" />
+                        Download Markdown
+                      </BrutalButton>
+                    </div>
+                  )}
+                </div>
+                {hasMinutesDraft && (
+                  <pre className="max-h-[28rem] overflow-auto whitespace-pre-wrap border-2 border-[var(--app-border)] bg-[var(--app-surface)] p-4 text-sm leading-6 shadow-[4px_4px_0px_var(--shadow-color)]">
+                    {minutesDraftMarkdown}
+                  </pre>
+                )}
+              </div>
+            </BrutalCard>
+          )}
         </div>
 
         {/* Right Column: Info & Action Items */}
