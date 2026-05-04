@@ -498,3 +498,60 @@ test('db-at-rest validation can load required production values from an env file
 
   assert.equal(result.status, 0, result.stderr);
 });
+
+test('verify compatibility wrapper prints selector-backed commands without running them', () => {
+  const result = run('bash', [
+    'scripts/verify.sh',
+    '--mode',
+    'fast',
+    '--files',
+    'scripts/verify.sh docs/verification/VERIFICATION_SYSTEM.md',
+    '--print-only',
+  ]);
+
+  assert.equal(result.status, 0, result.stderr);
+
+  const commands = result.stdout.trim().split('\n').filter(Boolean);
+  assert.deepEqual(commands, [
+    'make check-links',
+    'make test-tooling',
+    'make test-e2e-docker-smoke',
+  ]);
+});
+
+test('PR verification compatibility wrapper delegates gh file lists to selector', () => {
+  const tempDir = createTempDir();
+  const fakeGhPath = path.join(tempDir, 'gh');
+  fs.writeFileSync(
+    fakeGhPath,
+    [
+      '#!/usr/bin/env bash',
+      'set -euo pipefail',
+      'if [[ "$1" == "pr" && "$2" == "diff" && "$3" == "123" && "$4" == "--name-only" ]]; then',
+      '  printf "%s\\n" "e2e/tests/public-browser-proof.spec.ts" "scripts/verify-pr.sh"',
+      '  exit 0',
+      'fi',
+      'echo "unexpected gh invocation: $*" >&2',
+      'exit 1',
+      '',
+    ].join('\n')
+  );
+  fs.chmodSync(fakeGhPath, 0o755);
+
+  const result = run(
+    'bash',
+    ['scripts/verify-pr.sh', '123', '--mode', 'fast', '--print-only'],
+    {
+      PATH: `${tempDir}${path.delimiter}${process.env.PATH || ''}`,
+    }
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+
+  const commands = result.stdout.trim().split('\n').filter(Boolean);
+  assert.deepEqual(commands, [
+    'make test-tooling',
+    'cd e2e && npm run test:smoke',
+    'make test-e2e-docker-smoke',
+  ]);
+});
