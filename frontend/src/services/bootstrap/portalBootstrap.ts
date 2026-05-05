@@ -19,15 +19,6 @@ type PortalBootstrapResponse = {
 
 const PORTAL_BOOTSTRAP_TTL_MS = 60_000;
 const PORTAL_BOOTSTRAP_STORAGE_KEY = 'portal_bootstrap_snapshot';
-const portalBootstrapMode = import.meta.env.VITE_UI_PORTAL_BOOTSTRAP_MODE as
-  | 'anonymous'
-  | 'authenticated'
-  | undefined;
-const mockPortalUser: PortalUser = {
-  id: 'ui-preview-portal',
-  email: 'preview.portal@example.org',
-  contactId: null,
-};
 
 let cachedSnapshot: PortalBootstrapSnapshot | null = null;
 let inFlightSnapshot: Promise<PortalBootstrapSnapshot> | null = null;
@@ -136,22 +127,6 @@ const fetchPortalBootstrapSnapshot = async (): Promise<PortalBootstrapSnapshot> 
     return {
       status: 'anonymous',
       user: null,
-      fetchedAt: Date.now(),
-    };
-  }
-
-  if (portalBootstrapMode === 'anonymous') {
-    return {
-      status: 'anonymous',
-      user: null,
-      fetchedAt: Date.now(),
-    };
-  }
-
-  if (portalBootstrapMode === 'authenticated') {
-    return {
-      status: 'authenticated',
-      user: mockPortalUser,
       fetchedAt: Date.now(),
     };
   }

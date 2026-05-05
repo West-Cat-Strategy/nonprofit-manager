@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../api', () => ({
   default: {
@@ -7,29 +7,33 @@ vi.mock('../../api', () => ({
 }));
 
 import api from '../../api';
-import {
-  __resetBrandingCacheForTests,
-  getBrandingCachedSync,
-} from '../../brandingService';
+import { __resetBrandingCacheForTests, getBrandingCachedSync } from '../../brandingService';
 import {
   clearWorkspaceModuleAccessCache,
   getWorkspaceModuleAccessCachedSync,
 } from '../../workspaceModuleAccessService';
+import { clearStaffBootstrapSnapshot, getStaffBootstrapSnapshot } from '../staffBootstrap';
 import {
-  clearStaffBootstrapSnapshot,
-  getStaffBootstrapSnapshot,
-} from '../staffBootstrap';
+  clearBrowserSessionDiagnostics,
+  getBrowserSessionDiagnostics,
+} from '../../browserSessionDiagnostics';
 import {
   __resetUserPreferencesCacheForTests,
   getUserPreferencesCachedSync,
 } from '../../userPreferencesService';
 
 describe('staffBootstrap', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     window.history.pushState({}, '', '/');
     window.localStorage.clear();
+    window.sessionStorage.clear();
     clearStaffBootstrapSnapshot();
+    clearBrowserSessionDiagnostics();
     clearWorkspaceModuleAccessCache();
     __resetBrandingCacheForTests();
     __resetUserPreferencesCacheForTests();
@@ -250,6 +254,23 @@ describe('staffBootstrap', () => {
     expect(getUserPreferencesCachedSync()).toEqual({});
   });
 
+  it('records browser-session diagnostics when the staff bootstrap probe fails', async () => {
+    vi.mocked(api.get).mockRejectedValueOnce(new Error('bootstrap offline'));
+
+    const snapshot = await getStaffBootstrapSnapshot({ forceRefresh: true });
+
+    expect(snapshot.status).toBe('anonymous');
+    expect(getBrowserSessionDiagnostics()).toEqual([
+      expect.objectContaining({
+        area: 'bootstrap',
+        event: 'staff_bootstrap_failed',
+        severity: 'warning',
+        message: 'bootstrap offline',
+        path: '/',
+      }),
+    ]);
+  });
+
   it('skips the staff bootstrap probe on demo routes', async () => {
     window.history.pushState({}, '', '/demo/dashboard');
 
@@ -269,6 +290,20 @@ describe('staffBootstrap', () => {
     const snapshot = await getStaffBootstrapSnapshot({ forceRefresh: true });
 
     expect(api.get).not.toHaveBeenCalled();
+    expect(snapshot).toMatchObject({
+      status: 'anonymous',
+      user: null,
+      organizationId: null,
+    });
+  });
+
+  it('ignores the retired authenticated env mode and cannot synthesize a staff user', async () => {
+    vi.stubEnv('VITE_UI_STAFF_BOOTSTRAP_MODE', 'authenticated');
+    vi.mocked(api.get).mockRejectedValue(new Error('still anonymous'));
+
+    const snapshot = await getStaffBootstrapSnapshot({ forceRefresh: true });
+
+    expect(api.get).toHaveBeenCalledWith('/auth/bootstrap');
     expect(snapshot).toMatchObject({
       status: 'anonymous',
       user: null,

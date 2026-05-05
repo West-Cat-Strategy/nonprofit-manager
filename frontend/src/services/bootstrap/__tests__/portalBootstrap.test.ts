@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../portalApi', () => ({
   default: {
@@ -14,6 +14,10 @@ import {
 } from '../portalBootstrap';
 
 describe('portalBootstrap', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     window.history.pushState({}, '', '/');
@@ -85,6 +89,19 @@ describe('portalBootstrap', () => {
     expect(await getPortalBootstrapSnapshot({ forceRefresh: false })).toMatchObject({
       status: 'authenticated',
       user: fallbackUser,
+    });
+  });
+
+  it('ignores the retired authenticated env mode and cannot synthesize a portal user', async () => {
+    vi.stubEnv('VITE_UI_PORTAL_BOOTSTRAP_MODE', 'authenticated');
+    vi.mocked(portalApi.get).mockRejectedValue(new Error('still anonymous'));
+
+    const snapshot = await getPortalBootstrapSnapshot({ forceRefresh: true });
+
+    expect(portalApi.get).toHaveBeenCalledWith('/portal/auth/bootstrap');
+    expect(snapshot).toMatchObject({
+      status: 'anonymous',
+      user: null,
     });
   });
 });

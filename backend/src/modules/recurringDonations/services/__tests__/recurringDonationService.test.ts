@@ -128,9 +128,41 @@ describe('RecurringDonationService', () => {
       service.updatePlan('org-1', 'plan-1', 'user-1', {
         amount: 30,
       })
-    ).rejects.toThrow('Amount changes are only supported for Stripe recurring plans in this release');
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      message: 'Recurring donation amount changes are only supported for Stripe plans in this release',
+    });
 
     expect(mockStripeService.createMonthlyPrice).not.toHaveBeenCalled();
+    expect(mockQuery).not.toHaveBeenCalled();
+  });
+
+  it('rejects non-Stripe cancel and reactivate management mutations before provider calls', async () => {
+    mockGetPlanByWhere
+      .mockResolvedValueOnce({
+        ...basePlan,
+        payment_provider: 'paypal',
+        provider_subscription_id: 'paypal-sub-1',
+        stripe_subscription_id: null,
+      } as Awaited<ReturnType<typeof getPlanByWhere>>)
+      .mockResolvedValueOnce({
+        ...basePlan,
+        payment_provider: 'square',
+        provider_subscription_id: 'square-sub-1',
+        stripe_subscription_id: null,
+      } as Awaited<ReturnType<typeof getPlanByWhere>>);
+
+    await expect(service.cancelPlan('org-1', 'plan-1', 'user-1')).rejects.toMatchObject({
+      statusCode: 400,
+      message: 'Recurring donation cancellation is only supported for Stripe plans in this release',
+    });
+
+    await expect(service.reactivatePlan('org-1', 'plan-1', 'user-1')).rejects.toMatchObject({
+      statusCode: 400,
+      message: 'Recurring donation reactivation is only supported for Stripe plans in this release',
+    });
+
+    expect(mockStripeService.setSubscriptionCancelAtPeriodEnd).not.toHaveBeenCalled();
     expect(mockQuery).not.toHaveBeenCalled();
   });
 

@@ -9,6 +9,7 @@ import {
   WebsiteConsoleStatePanel,
   WebsiteConsoleUrlAction,
 } from '../components';
+import PublicActionSubmissionsPanel from '../components/PublicActionSubmissionsPanel';
 import { websitesApiClient } from '../api/websitesApiClient';
 import useWebsiteOverviewLoader from '../hooks/useWebsiteOverviewLoader';
 import {
@@ -29,6 +30,7 @@ import {
 import type {
   WebsitePublicAction,
   WebsitePublicActionSubmission,
+  WebsitePublicActionSupportLetterArtifact,
   WebsiteFormDefinition,
   WebsiteFormOperationalConfig,
   WebsiteIntegrationStatus,
@@ -122,6 +124,12 @@ const WebsiteFormsPage: React.FC = () => {
   const [selectedPublicActionId, setSelectedPublicActionId] = useState<string | null>(null);
   const [publicActionDraft, setPublicActionDraft] = useState(emptyPublicActionDraft);
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [supportLetterArtifact, setSupportLetterArtifact] =
+    useState<WebsitePublicActionSupportLetterArtifact | null>(null);
+  const [supportLetterArtifactLoadingId, setSupportLetterArtifactLoadingId] = useState<
+    string | null
+  >(null);
+  const [supportLetterCopyNotice, setSupportLetterCopyNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (!siteId) return;
@@ -174,12 +182,27 @@ const WebsiteFormsPage: React.FC = () => {
     () => publicActions.find((action) => action.id === selectedPublicActionId) ?? null,
     [publicActions, selectedPublicActionId]
   );
+  const selfReferralSnapshot = useMemo(() => {
+    const selfReferralActions = publicActions.filter(
+      (action) => action.actionType === 'self_referral'
+    );
+    return {
+      actions: selfReferralActions.length,
+      published: selfReferralActions.filter((action) => action.status === 'published').length,
+      reviewableSubmissions: selfReferralActions.reduce(
+        (total, action) => total + action.submissionCount,
+        0
+      ),
+    };
+  }, [publicActions]);
 
   useEffect(() => {
     if (!siteId || !selectedPublicActionId) {
       setPublicActionSubmissions([]);
       return;
     }
+    setSupportLetterArtifact(null);
+    setSupportLetterCopyNotice(null);
     websitesApiClient
       .listPublicActionSubmissions(siteId, selectedPublicActionId)
       .then(setPublicActionSubmissions)
@@ -260,6 +283,49 @@ const WebsiteFormsPage: React.FC = () => {
     }
   };
 
+  const previewSupportLetterArtifact = async (submissionId: string) => {
+    if (!siteId || !selectedPublicActionId) return;
+    setSupportLetterCopyNotice(null);
+    setSupportLetterArtifactLoadingId(submissionId);
+    try {
+      const artifact = await websitesApiClient.getPublicActionSupportLetterArtifact(
+        siteId,
+        selectedPublicActionId,
+        submissionId
+      );
+      setSupportLetterArtifact(artifact);
+    } catch {
+      setNotice({ tone: 'error', message: 'Failed to load support letter artifact.' });
+    } finally {
+      setSupportLetterArtifactLoadingId(null);
+    }
+  };
+
+  const copySupportLetterArtifact = async () => {
+    if (!supportLetterArtifact || !navigator.clipboard?.writeText) return;
+    await navigator.clipboard.writeText(supportLetterArtifact.letterBody);
+    setSupportLetterCopyNotice('Letter copied.');
+  };
+
+  const downloadSupportLetterArtifact = () => {
+    if (!supportLetterArtifact) return;
+    const blob = new Blob(
+      [`${supportLetterArtifact.letterTitle}\n\n${supportLetterArtifact.letterBody}`],
+      { type: 'text/plain;charset=utf-8' }
+    );
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${
+      supportLetterArtifact.letterTitle
+        .replace(/[^a-z0-9]+/gi, '-')
+        .replace(/^-+|-+$/g, '')
+        .toLowerCase() || 'support-letter'
+    }.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (!siteId) {
     return null;
   }
@@ -328,6 +394,32 @@ const WebsiteFormsPage: React.FC = () => {
               <span className="rounded-full bg-app-surface-muted px-3 py-1">
                 {publicActions.filter((action) => action.status === 'published').length} published
               </span>
+            </div>
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-app-border bg-app-surface-muted p-4">
+            <div className="text-xs uppercase tracking-[0.18em]">
+              Self-referral status
+            </div>
+            <div className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
+              <div>
+                <div className="text-2xl font-semibold">
+                  {selfReferralSnapshot.actions}
+                </div>
+                <div>self-referral actions</div>
+              </div>
+              <div>
+                <div className="text-2xl font-semibold">
+                  {selfReferralSnapshot.published}
+                </div>
+                <div>published</div>
+              </div>
+              <div>
+                <div className="text-2xl font-semibold">
+                  {selfReferralSnapshot.reviewableSubmissions}
+                </div>
+                <div>reviewable submissions</div>
+              </div>
             </div>
           </div>
 
@@ -484,36 +576,18 @@ const WebsiteFormsPage: React.FC = () => {
               )}
 
               {selectedPublicAction ? (
-                <div className="rounded-2xl border border-app-border bg-app-surface-muted p-4">
-                  <h3 className="text-sm font-semibold text-app-text">
-                    Recent submissions for {selectedPublicAction.title}
-                  </h3>
-                  <div className="mt-3 space-y-2">
-                    {publicActionSubmissions.length === 0 ? (
-                      <p className="text-sm text-app-text-muted">
-                        No submissions have been recorded for this action yet.
-                      </p>
-                    ) : (
-                      publicActionSubmissions.slice(0, 5).map((submission) => (
-                        <div
-                          key={submission.id}
-                          className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-app-surface px-3 py-2 text-sm"
-                        >
-                          <span className="font-medium text-app-text">
-                            {submission.reviewStatus}
-                          </span>
-                          <span className="text-app-text-muted">
-                            {submission.sourceEntityType || 'submission'}{' '}
-                            {submission.duplicateOfSubmissionId ? 'duplicate' : ''}
-                          </span>
-                          <span className="text-xs text-app-text-subtle">
-                            {new Date(submission.submittedAt).toLocaleString()}
-                          </span>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
+                <PublicActionSubmissionsPanel
+                  selectedPublicAction={selectedPublicAction}
+                  submissions={publicActionSubmissions}
+                  supportLetterArtifact={supportLetterArtifact}
+                  supportLetterArtifactLoadingId={supportLetterArtifactLoadingId}
+                  supportLetterCopyNotice={supportLetterCopyNotice}
+                  onPreviewSupportLetter={(submissionId) =>
+                    void previewSupportLetterArtifact(submissionId)
+                  }
+                  onCopySupportLetter={() => void copySupportLetterArtifact()}
+                  onDownloadSupportLetter={downloadSupportLetterArtifact}
+                />
               ) : null}
             </div>
           </div>

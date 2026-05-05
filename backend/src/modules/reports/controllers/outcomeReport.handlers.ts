@@ -6,7 +6,7 @@ import {
   sendUnauthorized,
 } from '@services/authGuardService';
 import { Permission } from '@utils/permissions';
-import { serverError, validationError } from '@utils/responseHelpers';
+import { serverError } from '@utils/responseHelpers';
 import * as outcomeReportService from '../services/outcomesReportService';
 import type { OutcomeReportFilters } from '@app-types/outcomes';
 import { sendSuccess } from '@modules/shared/http/envelope';
@@ -33,7 +33,6 @@ export const getOutcomesReport = async (req: AuthRequest, res: Response): Promis
     const query = (req.validatedQuery ?? req.query) as {
       from: string;
       to: string;
-      programId?: string;
       staffId?: string;
       source?: 'all' | 'interaction' | 'event';
       interactionType?: OutcomeReportFilters['interactionType'];
@@ -43,13 +42,6 @@ export const getOutcomesReport = async (req: AuthRequest, res: Response): Promis
 
     const isAdmin = req.user?.role === 'admin';
 
-    if (query.programId) {
-      validationError(res, {
-        programId: 'programId is not supported by the current case interaction schema',
-      });
-      return;
-    }
-
     if (query.includeNonReportable && !isAdmin) {
       sendForbidden(res, 'Only admins can include non-reportable outcomes');
       return;
@@ -58,7 +50,6 @@ export const getOutcomesReport = async (req: AuthRequest, res: Response): Promis
     const filters: OutcomeReportFilters = {
       from: query.from,
       to: query.to,
-      programId: query.programId,
       staffId: query.staffId,
       source: query.source || 'all',
       interactionType: query.interactionType,

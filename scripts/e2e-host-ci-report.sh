@@ -68,12 +68,14 @@ run_slice() {
   local slice_dir="$RUN_DIR/$slice_name"
   local slice_html_dir="$slice_dir/playwright-report"
   local slice_json_file="$slice_dir/test-results.json"
+  local slice_key
+  slice_key="$(printf '%s' "$slice_name" | tr '[:lower:]' '[:upper:]')"
 
   if [[ "$DRY_RUN" == "1" ]]; then
-    printf 'SLICE_%s_DIR=%s\n' "${slice_name^^}" "$slice_dir"
-    printf 'SLICE_%s_HTML=%s\n' "${slice_name^^}" "$slice_html_dir"
-    printf 'SLICE_%s_JSON=%s\n' "${slice_name^^}" "$slice_json_file"
-    printf 'SLICE_%s_COMMAND=%s\n' "${slice_name^^}" "$*"
+    printf 'SLICE_%s_DIR=%s\n' "$slice_key" "$slice_dir"
+    printf 'SLICE_%s_HTML=%s\n' "$slice_key" "$slice_html_dir"
+    printf 'SLICE_%s_JSON=%s\n' "$slice_key" "$slice_json_file"
+    printf 'SLICE_%s_COMMAND=%s\n' "$slice_key" "$*"
     return 0
   fi
 

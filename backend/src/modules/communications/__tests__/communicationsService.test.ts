@@ -571,24 +571,132 @@ describe('communicationsService', () => {
     expect(result?.run.requestedSendTime).toBe(nextSendTime);
   });
 
-  it('preserves unsupported Mailchimp cancel behavior through the communications facade', async () => {
+  it('requeues failed local campaign recipients for operator-triggered retry', async () => {
+    mockPool.query.mockImplementation((query: unknown) => {
+      const sql = String(query);
+      if (sql.includes('FROM campaign_runs') && sql.includes('WHERE id = $1')) {
+        return Promise.resolve({
+          rows: [
+            {
+              ...baseRunRow,
+              status: 'failed',
+              counts: { failedRecipientCount: 2, sentRecipientCount: 3 },
+              failure_message: 'One or more local email recipients failed',
+            },
+          ],
+          rowCount: 1,
+        });
+      }
+      if (
+        sql.includes('UPDATE campaign_run_recipients') &&
+        sql.includes("status = 'queued'") &&
+        sql.includes('provider_message_id = NULL') &&
+        sql.includes('failure_message = NULL') &&
+        sql.includes('sent_at = NULL')
+      ) {
+        return Promise.resolve({
+          rows: [{ id: 'recipient-1' }, { id: 'recipient-2' }],
+          rowCount: 2,
+        });
+      }
+      if (sql.includes('UPDATE campaign_runs') && sql.includes('lastFailedRecipientRetry')) {
+        return Promise.resolve({
+          rows: [
+            {
+              ...baseRunRow,
+              status: 'sending',
+              counts: {
+                sentRecipientCount: 3,
+                failedRecipientCount: 0,
+                queuedRecipientCount: 2,
+                failedRecipientRetryCount: 1,
+                lastFailedRecipientRetry: {
+                  source: 'operator',
+                  requeuedRecipientCount: 2,
+                },
+              },
+              failure_message: null,
+            },
+          ],
+          rowCount: 1,
+        });
+      }
+      return Promise.resolve({ rows: [], rowCount: 0 });
+    });
+
+    const result = await communicationsService.retryFailedCampaignRunRecipients(baseRunRow.id);
+
+    expect(result?.action).toBe('queued');
+    expect(result?.message).toMatch(/send the campaign run again/i);
+    expect(result?.run.status).toBe('sending');
+    expect(result?.run.counts).toEqual(
+      expect.objectContaining({
+        failedRecipientCount: 0,
+        queuedRecipientCount: 2,
+        failedRecipientRetryCount: 1,
+      })
+    );
+    expect(mockSendMail).not.toHaveBeenCalled();
+  });
+
+  it('surfaces unsupported Mailchimp retry behavior through the communications facade without delegating', async () => {
     const mailchimpRun = {
       ...baseRunRow,
       provider: 'mailchimp',
       provider_campaign_id: 'campaign-1',
     };
-    const unsupported = {
-      run: { ...mailchimpRun, provider: 'mailchimp', providerCampaignId: 'campaign-1' },
-      action: 'unsupported',
-      message: 'Mailchimp campaign cancellation is not supported by this backend contract yet',
+    mockPool.query.mockResolvedValue({ rows: [mailchimpRun], rowCount: 1 });
+
+    const result = await communicationsService.retryFailedCampaignRunRecipients(baseRunRow.id);
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        action: 'unsupported',
+        message: 'Failed-recipient retry is only supported for local email campaign runs',
+      })
+    );
+    expect(mockMailchimpService.cancelCampaignRun).not.toHaveBeenCalled();
+    expect(mockMailchimpService.rescheduleCampaignRun).not.toHaveBeenCalled();
+  });
+
+  it('preserves unsupported Mailchimp cancel behavior through the communications facade without delegating', async () => {
+    const mailchimpRun = {
+      ...baseRunRow,
+      provider: 'mailchimp',
+      provider_campaign_id: 'campaign-1',
     };
     mockPool.query.mockResolvedValue({ rows: [mailchimpRun], rowCount: 1 });
-    mockMailchimpService.cancelCampaignRun.mockResolvedValue(unsupported as never);
 
     const result = await communicationsService.cancelCampaignRun(baseRunRow.id);
 
-    expect(result).toBe(unsupported);
-    expect(mockMailchimpService.cancelCampaignRun).toHaveBeenCalledWith(baseRunRow.id, undefined);
+    expect(result).toEqual(
+      expect.objectContaining({
+        action: 'unsupported',
+        message: 'Mailchimp campaign cancellation is not supported by the communications facade',
+      })
+    );
+    expect(mockMailchimpService.cancelCampaignRun).not.toHaveBeenCalled();
+  });
+
+  it('preserves unsupported Mailchimp reschedule behavior through the communications facade without delegating', async () => {
+    const mailchimpRun = {
+      ...baseRunRow,
+      provider: 'mailchimp',
+      provider_campaign_id: 'campaign-1',
+    };
+    mockPool.query.mockResolvedValue({ rows: [mailchimpRun], rowCount: 1 });
+
+    const result = await communicationsService.rescheduleCampaignRun(baseRunRow.id, {
+      sendTime: new Date('2026-05-02T15:30:00Z'),
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        action: 'unsupported',
+        message: 'Mailchimp campaign rescheduling is not supported by the communications facade',
+      })
+    );
+    expect(mockMailchimpService.rescheduleCampaignRun).not.toHaveBeenCalled();
   });
 
   it('delegates explicit Mailchimp campaign creation to the existing Mailchimp service', async () => {

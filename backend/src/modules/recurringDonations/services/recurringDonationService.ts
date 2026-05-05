@@ -54,6 +54,42 @@ interface CreatePublicRecurringDonationPlanInput {
   userAgent?: string | null;
 }
 
+export class RecurringDonationManagementError extends Error {
+  readonly statusCode = 400;
+  readonly code = 'bad_request';
+
+  constructor(message: string) {
+    super(message);
+    this.name = 'RecurringDonationManagementError';
+  }
+}
+
+const getPlanPaymentProvider = (plan: Pick<RecurringDonationPlan, 'payment_provider'>): PaymentProvider =>
+  plan.payment_provider || 'stripe';
+
+const assertStripeManagementSupported = (
+  plan: Pick<RecurringDonationPlan, 'payment_provider'>,
+  action: 'amount changes' | 'cancellation' | 'reactivation'
+): void => {
+  const provider = getPlanPaymentProvider(plan);
+  if (provider !== 'stripe') {
+    const verb = action === 'amount changes' ? 'are' : 'is';
+    throw new RecurringDonationManagementError(
+      `Recurring donation ${action} ${verb} only supported for Stripe plans in this release`
+    );
+  }
+};
+
+function assertStripeSubscriptionConnected<T extends Pick<RecurringDonationPlan, 'stripe_subscription_id'>>(
+  plan: T
+): asserts plan is T & { stripe_subscription_id: string } {
+  if (!plan.stripe_subscription_id) {
+    throw new RecurringDonationManagementError(
+      'Recurring donation plan is not yet connected to a Stripe subscription'
+    );
+  }
+}
+
 export class RecurringDonationService {
   private readonly donationService: DonationService;
   private readonly designationService: DonationDesignationService;
@@ -445,8 +481,8 @@ export class RecurringDonationService {
       return null;
     }
 
-    if (current.payment_provider && current.payment_provider !== 'stripe' && typeof data.amount === 'number' && data.amount !== current.amount) {
-      throw new Error('Amount changes are only supported for Stripe recurring plans in this release');
+    if (typeof data.amount === 'number' && data.amount !== current.amount) {
+      assertStripeManagementSupported(current, 'amount changes');
     }
 
     let nextAmount = current.amount;
@@ -477,9 +513,7 @@ export class RecurringDonationService {
     }
 
     if (typeof data.amount === 'number' && data.amount > 0 && data.amount !== current.amount) {
-      if (!current.stripe_subscription_id) {
-        throw new Error('Recurring donation plan is not yet connected to a Stripe subscription');
-      }
+      assertStripeSubscriptionConnected(current);
 
       const price = await stripeService.createMonthlyPrice({
         amount: Math.round(data.amount * 100),
@@ -547,9 +581,8 @@ export class RecurringDonationService {
       return null;
     }
 
-    if (!current.stripe_subscription_id) {
-      throw new Error('Recurring donation plan is not yet connected to a Stripe subscription');
-    }
+    assertStripeManagementSupported(current, 'cancellation');
+    assertStripeSubscriptionConnected(current);
 
     const subscription = await stripeService.setSubscriptionCancelAtPeriodEnd(
       current.stripe_subscription_id,
@@ -591,9 +624,8 @@ export class RecurringDonationService {
       return null;
     }
 
-    if (!current.stripe_subscription_id) {
-      throw new Error('Recurring donation plan is not yet connected to a Stripe subscription');
-    }
+    assertStripeManagementSupported(current, 'reactivation');
+    assertStripeSubscriptionConnected(current);
 
     const subscription = await stripeService.setSubscriptionCancelAtPeriodEnd(
       current.stripe_subscription_id,

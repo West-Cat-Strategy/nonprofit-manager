@@ -10,6 +10,7 @@ import type {
   PublicActionSubmission,
   PublicActionSubmissionRequest,
   PublicActionSubmissionResult,
+  PublicActionSupportLetterArtifact,
   PublicActionType,
   UpdatePublicActionRequest,
 } from '@app-types/websiteBuilder';
@@ -83,6 +84,24 @@ const mapSubmissionRow = (row: Record<string, unknown>): PublicActionSubmission 
   sessionId: (row.session_id as string | null) || null,
   referrer: (row.referrer as string | null) || null,
   submittedAt: new Date(row.submitted_at as string).toISOString(),
+  createdAt: new Date(row.created_at as string).toISOString(),
+  updatedAt: new Date(row.updated_at as string).toISOString(),
+});
+
+const mapSupportLetterRow = (row: Record<string, unknown>): PublicActionSupportLetterArtifact => ({
+  id: row.id as string,
+  organizationId: row.organization_id as string,
+  siteId: row.site_id as string,
+  actionId: row.action_id as string,
+  submissionId: row.submission_id as string,
+  contactId: (row.contact_id as string | null) || null,
+  templateVersion: row.template_version as string,
+  letterTitle: row.letter_title as string,
+  letterBody: row.letter_body as string,
+  approvalStatus: row.approval_status as PublicActionSupportLetterArtifact['approvalStatus'],
+  generatedMetadata: (row.generated_metadata as Record<string, unknown> | null) || {},
+  approvedAt: toIso(row.approved_at),
+  approvedBy: (row.approved_by as string | null) || null,
   createdAt: new Date(row.created_at as string).toISOString(),
   updatedAt: new Date(row.updated_at as string).toISOString(),
 });
@@ -283,6 +302,28 @@ export class PublicActionService {
         .join(',')
     );
     return `${header.join(',')}\n${rows.join('\n')}`;
+  }
+
+  async getSupportLetterArtifact(
+    siteId: string,
+    actionId: string,
+    submissionId: string,
+    userId: string,
+    organizationId?: string
+  ): Promise<PublicActionSupportLetterArtifact | null> {
+    await this.requireOwnedSite(siteId, userId, organizationId);
+    const result = await this.pool.query(
+      `SELECT sl.*
+       FROM website_support_letters sl
+       INNER JOIN website_public_action_submissions s ON s.id = sl.submission_id
+       WHERE sl.site_id = $1
+         AND sl.action_id = $2
+         AND sl.submission_id = $3
+         AND s.action_type = 'support_letter_request'
+       LIMIT 1`,
+      [siteId, actionId, submissionId]
+    );
+    return result.rows[0] ? mapSupportLetterRow(result.rows[0]) : null;
   }
 
   private async findExistingContact(

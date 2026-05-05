@@ -26,6 +26,10 @@ const apiMocks = vi.hoisted(() => ({
   createPublicAction: vi.fn(),
   updatePublicAction: vi.fn(),
   listPublicActionSubmissions: vi.fn(),
+  getPublicActionSupportLetterArtifact: vi.fn(),
+  getPublicActionSubmissionsExportUrl: vi.fn(
+    (siteId: string, actionId: string) => `/api/v2/sites/${siteId}/actions/${actionId}/export`
+  ),
 }));
 
 const overview = {
@@ -179,6 +183,23 @@ describe('WebsiteFormsPage', () => {
         createdAt: '2026-05-01T00:00:00.000Z',
         updatedAt: '2026-05-01T00:00:00.000Z',
       },
+      {
+        id: 'action-3',
+        organizationId: 'org-1',
+        siteId: 'site-1',
+        actionType: 'self_referral',
+        status: 'published',
+        slug: 'get-help',
+        title: 'Get Help',
+        description: null,
+        settings: {},
+        confirmationMessage: null,
+        publishedAt: '2026-05-01T00:00:00.000Z',
+        closedAt: null,
+        submissionCount: 4,
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:00:00.000Z',
+      },
     ]);
     apiMocks.listPublicActionSubmissions.mockResolvedValue([
       {
@@ -240,6 +261,23 @@ describe('WebsiteFormsPage', () => {
         updatedAt: '2026-05-01T00:00:00.000Z',
       })
     );
+    apiMocks.getPublicActionSupportLetterArtifact.mockResolvedValue({
+      id: 'letter-1',
+      organizationId: 'org-1',
+      siteId: 'site-1',
+      actionId: 'action-support-letter',
+      submissionId: 'submission-support-letter',
+      contactId: 'contact-1',
+      templateVersion: 'housing-v1',
+      letterTitle: 'Housing support letter',
+      letterBody: 'Dear reviewer, Sam Rivera needs rental assistance.',
+      approvalStatus: 'draft',
+      generatedMetadata: { templateVersion: 'housing-v1' },
+      approvedAt: null,
+      approvedBy: null,
+      createdAt: '2026-05-01T00:00:00.000Z',
+      updatedAt: '2026-05-01T00:00:00.000Z',
+    });
     dispatchMock.mockImplementation((action: { type?: string }) =>
       Promise.resolve({ type: `${action.type}/fulfilled`, payload: action })
     );
@@ -257,6 +295,8 @@ describe('WebsiteFormsPage', () => {
     expect(screen.getByText('Connected forms')).toBeInTheDocument();
     expect(await screen.findByText('Public actions')).toBeInTheDocument();
     expect(screen.getByText('Save the Library')).toBeInTheDocument();
+    expect(screen.getByText('Self-referral status')).toBeInTheDocument();
+    expect(screen.getByText('reviewable submissions')).toBeInTheDocument();
     expect(screen.getByText('Managed form launch verification')).toBeInTheDocument();
     expect(screen.getByText(/Public form: Contact \/ referral/i)).toBeInTheDocument();
     const homeSection = screen.getByRole('heading', { name: 'Home' }).closest('section');
@@ -361,6 +401,92 @@ describe('WebsiteFormsPage', () => {
       });
     });
     expect(screen.getByText('Public action created.')).toBeInTheDocument();
+  });
+
+  it('previews, copies, and downloads support-letter artifacts without sending email', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+    const createObjectUrl = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:letter');
+    const revokeObjectUrl = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    const clickAnchor = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => undefined);
+
+    apiMocks.listPublicActions.mockResolvedValue([
+      {
+        id: 'action-support-letter',
+        organizationId: 'org-1',
+        siteId: 'site-1',
+        actionType: 'support_letter_request',
+        status: 'published',
+        slug: 'housing-letter',
+        title: 'Housing Letters',
+        description: null,
+        settings: {},
+        confirmationMessage: null,
+        publishedAt: '2026-05-01T00:00:00.000Z',
+        closedAt: null,
+        submissionCount: 1,
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:00:00.000Z',
+      },
+    ]);
+    apiMocks.listPublicActionSubmissions.mockResolvedValue([
+      {
+        id: 'submission-support-letter',
+        organizationId: 'org-1',
+        siteId: 'site-1',
+        actionId: 'action-support-letter',
+        actionType: 'support_letter_request',
+        reviewStatus: 'new',
+        contactId: 'contact-1',
+        sourceEntityType: 'submission',
+        sourceEntityId: null,
+        duplicateOfSubmissionId: null,
+        consent: {},
+        payloadRedacted: {},
+        generatedArtifact: {},
+        pagePath: '/letters',
+        visitorId: null,
+        sessionId: null,
+        referrer: null,
+        submittedAt: '2026-05-01T00:00:00.000Z',
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:00:00.000Z',
+      },
+    ]);
+
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Preview letter' }));
+
+    expect(apiMocks.getPublicActionSupportLetterArtifact).toHaveBeenCalledWith(
+      'site-1',
+      'action-support-letter',
+      'submission-support-letter'
+    );
+    expect(await screen.findByText('Housing support letter')).toBeInTheDocument();
+    expect(
+      screen.getByText('Dear reviewer, Sam Rivera needs rental assistance.')
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy letter' }));
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith('Dear reviewer, Sam Rivera needs rental assistance.');
+    });
+    expect(screen.getByText('Letter copied.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Download' }));
+    expect(createObjectUrl).toHaveBeenCalled();
+    expect(clickAnchor).toHaveBeenCalled();
+    expect(revokeObjectUrl).toHaveBeenCalledWith('blob:letter');
+
+    createObjectUrl.mockRestore();
+    revokeObjectUrl.mockRestore();
+    clickAnchor.mockRestore();
   });
 });
 

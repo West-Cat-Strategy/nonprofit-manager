@@ -1611,5 +1611,55 @@ describe('MailchimpService', () => {
       });
       expect(countsPatch.providerMetrics).toBeUndefined();
     });
+
+    it('rejects cancel and reschedule as explicit unsupported provider actions', async () => {
+      const runRow = {
+        id: '11111111-1111-4111-8111-111111111111',
+        provider: 'mailchimp',
+        provider_campaign_id: 'campaign-123',
+        title: 'Scoped Campaign',
+        list_id: 'list-123',
+        include_audience_id: null,
+        exclusion_audience_ids: [],
+        suppression_snapshot: [],
+        test_recipients: [],
+        audience_snapshot: {},
+        requested_send_time: null,
+        status: 'scheduled',
+        counts: {},
+        scope_account_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+        failure_message: null,
+        requested_by: null,
+        created_at: new Date('2024-01-15T10:00:00Z'),
+        updated_at: new Date('2024-01-15T10:00:00Z'),
+      };
+      (mockPool.query as jest.Mock)
+        .mockResolvedValueOnce({ rows: [runRow] })
+        .mockResolvedValueOnce({ rows: [runRow] });
+
+      await expect(
+        mailchimpService.cancelCampaignRun(
+          '11111111-1111-4111-8111-111111111111',
+          ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa']
+        )
+      ).rejects.toMatchObject({
+        code: 'method_not_allowed',
+        statusCode: 405,
+        action: 'cancel',
+      });
+
+      await expect(
+        mailchimpService.rescheduleCampaignRun(
+          '11111111-1111-4111-8111-111111111111',
+          ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa']
+        )
+      ).rejects.toMatchObject({
+        code: 'method_not_allowed',
+        statusCode: 405,
+        action: 'reschedule',
+      });
+
+      expect(mockMailchimp.campaigns.send).not.toHaveBeenCalled();
+    });
   });
 });

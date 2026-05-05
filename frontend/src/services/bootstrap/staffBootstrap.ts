@@ -13,6 +13,7 @@ import { setUserPreferencesCached, type UserPreferences } from '../userPreferenc
 import {
   setWorkspaceModuleAccessCached,
 } from '../workspaceModuleAccessService';
+import { recordBrowserSessionDiagnostic } from '../browserSessionDiagnostics';
 
 export type BootstrapStatus = 'authenticated' | 'anonymous';
 
@@ -35,18 +36,6 @@ type StaffBootstrapResponse = {
 };
 
 const STAFF_BOOTSTRAP_TTL_MS = 60_000;
-const staffBootstrapMode = import.meta.env.VITE_UI_STAFF_BOOTSTRAP_MODE as
-  | 'anonymous'
-  | 'authenticated'
-  | undefined;
-const mockStaffUser: User = {
-  id: 'ui-preview-staff',
-  email: 'preview.staff@example.org',
-  firstName: 'Preview',
-  lastName: 'Staff',
-  role: 'admin',
-  profilePicture: null,
-};
 
 let cachedSnapshot: StaffBootstrapSnapshot | null = null;
 let inFlightSnapshot: Promise<StaffBootstrapSnapshot> | null = null;
@@ -177,28 +166,6 @@ const fetchStaffBootstrapSnapshot = async (): Promise<StaffBootstrapSnapshot> =>
     };
   }
 
-  if (staffBootstrapMode === 'anonymous') {
-    return {
-      status: 'anonymous',
-      user: null,
-      organizationId: null,
-      branding: null,
-      preferences: null,
-      workspaceModules: createDefaultWorkspaceModuleSettings(),
-      fetchedAt: Date.now(),
-    };
-  }
-
-  if (staffBootstrapMode === 'authenticated') {
-    return buildAuthenticatedSnapshot({
-      user: mockStaffUser,
-      organizationId: null,
-      branding: null,
-      preferences: null,
-      workspaceModules: createDefaultWorkspaceModuleSettings(),
-    });
-  }
-
   try {
     const response = await api.get<ApiEnvelope<StaffBootstrapResponse>>('/auth/bootstrap');
     const payload = unwrapApiData(response.data) as StaffBootstrapResponse;
@@ -209,7 +176,16 @@ const fetchStaffBootstrapSnapshot = async (): Promise<StaffBootstrapSnapshot> =>
       preferences: normalizeStartupPreferences(payload.preferences),
       workspaceModules: normalizeStartupWorkspaceModules(payload.workspaceModules),
     });
-  } catch {
+  } catch (error) {
+    recordBrowserSessionDiagnostic({
+      area: 'bootstrap',
+      event: 'staff_bootstrap_failed',
+      severity: 'warning',
+      message: error instanceof Error ? error.message : 'Staff bootstrap request failed.',
+      details: {
+        endpoint: '/auth/bootstrap',
+      },
+    });
     return {
       status: 'anonymous',
       user: null,
