@@ -75,6 +75,11 @@ describe('AuditLogsSection', () => {
     await flushAuditLogLoad();
 
     expect(screen.getByRole('heading', { name: /audit logs/i })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Date' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Actor' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Event' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Target' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Details' })).toBeInTheDocument();
     expect(mockedApi.get).toHaveBeenCalled();
     expect(screen.getAllByText('Updated contact record').length).toBeGreaterThan(0);
     expect(screen.getByText('42')).toBeInTheDocument();
@@ -88,6 +93,61 @@ describe('AuditLogsSection', () => {
     expect(screen.getAllByText('Created donation').length).toBeGreaterThan(0);
     expect(mockedApi.get).toHaveBeenCalledTimes(2);
     expect(mockedApi.get).toHaveBeenLastCalledWith('/admin/audit-logs?limit=20&offset=0');
+  });
+
+  it('keeps server pagination offsets while rendering the dense grid', async () => {
+    const user = userEvent.setup();
+    mockedApi.get
+      .mockResolvedValueOnce({
+        data: {
+          logs: [auditLog],
+          total: 41,
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          logs: [{ ...auditLog, id: 'audit-2', summary: 'Deleted stale invitation' }],
+          total: 41,
+        },
+      });
+
+    renderWithProviders(<AuditLogsSection />);
+    await flushAuditLogLoad();
+
+    expect(screen.getByText(/page 1 of 3/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /previous/i })).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: /next/i }));
+    await flushAuditLogLoad();
+
+    expect(mockedApi.get).toHaveBeenLastCalledWith('/admin/audit-logs?limit=20&offset=20');
+    expect(screen.getByText(/page 2 of 3/i)).toBeInTheDocument();
+    expect(screen.getAllByText('Deleted stale invitation').length).toBeGreaterThan(0);
+  });
+
+  it('wraps long user-agent and detail text inside dense table cells', async () => {
+    mockedApi.get.mockResolvedValueOnce({
+      data: {
+        logs: [
+          {
+            ...auditLog,
+            userAgent:
+              'Mozilla/5.0 AdminOpsVeryLongUserAgentTokenWithoutNaturalBreaks/2026.05.03 PortalAuditTableOverflowProbe',
+            details:
+              'Changed values with a deliberately-long-unbroken-token-for-table-overflow-regression-proof-portal-admin-audit-log-details',
+          },
+        ],
+        total: 1,
+      },
+    });
+
+    renderWithProviders(<AuditLogsSection />);
+    await flushAuditLogLoad();
+
+    expect(screen.getByTestId('audit-log-user-agent')).toHaveClass('break-words');
+    expect(screen.getByTestId('audit-log-user-agent')).toHaveClass('max-w-56');
+    expect(screen.getByTestId('audit-log-details')).toHaveClass('break-words');
+    expect(screen.getByTestId('audit-log-details')).toHaveClass('whitespace-pre-wrap');
   });
 
   it('uses the warning response as the empty or disabled state', async () => {

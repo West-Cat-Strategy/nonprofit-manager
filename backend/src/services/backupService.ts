@@ -17,13 +17,29 @@ interface TableColumnInfo {
   isNullable: boolean;
 }
 
-const DEFAULT_SECRET_FIELDS: Record<string, string[]> = {
+export const DEFAULT_SECRET_FIELDS: Record<string, string[]> = {
   users: ['password_hash', 'mfa_totp_secret_enc', 'mfa_totp_pending_secret_enc'],
   portal_users: ['password_hash'],
+  portal_signup_requests: ['password_hash'],
+  user_webauthn_challenges: ['challenge'],
+  pending_registration_webauthn_challenges: ['challenge'],
+  password_reset_tokens: ['token_hash'],
   portal_password_reset_tokens: ['token_hash'],
   portal_admins: ['password_hash'],
+  api_keys: ['key_hash'],
+  email_settings: ['smtp_pass_encrypted', 'imap_pass_encrypted'],
+  twilio_settings: ['auth_token_encrypted'],
+  social_media_org_settings: ['app_secret_encrypted', 'access_token_encrypted'],
+  social_media_pages: ['page_access_token_encrypted'],
+  webhook_endpoints: ['secret'],
   user_invitations: ['token'],
   portal_invitations: ['token'],
+  case_form_access_tokens: ['token_hash'],
+  event_registrations: ['check_in_token'],
+  newsletter_signup_confirmations: ['token_hash'],
+  recurring_donation_plans: ['public_management_token_hash'],
+  saved_reports: ['public_token'],
+  saved_report_public_snapshots: ['token'],
 };
 
 const EXPORT_CHUNK_SIZE = 1000;

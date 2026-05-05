@@ -27,8 +27,6 @@ jest.mock('@services/mailchimpService', () => ({
     createCampaign: jest.fn(),
     sendCampaignRun: jest.fn(),
     refreshCampaignRunStatus: jest.fn(),
-    cancelCampaignRun: jest.fn(),
-    rescheduleCampaignRun: jest.fn(),
     sendDraftCampaignTest: jest.fn(),
   },
 }));
@@ -41,10 +39,17 @@ jest.mock('../services/unsubscribeTokenService', () => ({
   createLocalUnsubscribeToken: jest.fn(({ recipientId }: { recipientId: string }) => `token:${recipientId}`),
 }));
 
+jest.mock('../services/browserViewTokenService', () => ({
+  createLocalCampaignBrowserViewToken: jest.fn(
+    ({ runId }: { runId: string }) => `view-token:${runId}`
+  ),
+}));
+
 import pool from '@config/database';
 import { sendMail } from '@services/emailService';
 import mailchimpService from '@services/mailchimpService';
 import * as communicationsService from '../services/communicationsService';
+import { drainDueLocalCampaignRuns } from '../services/localCampaignDrainService';
 
 const mockPool = pool as jest.Mocked<typeof pool>;
 const mockSendMail = sendMail as jest.Mock;
@@ -331,6 +336,16 @@ describe('communicationsService', () => {
 
     expect(result?.action).toBe('sent');
     expect(mockSendMail).toHaveBeenCalledTimes(2);
+    expect(mockSendMail.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        text: expect.stringContaining(
+          'View this email in your browser: https://api.example.org/api/v2/public/communications/view/view-token%3Aaaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+        ),
+        html: expect.stringContaining(
+          'href="https://api.example.org/api/v2/public/communications/view/view-token%3Aaaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"'
+        ),
+      })
+    );
     expect(mockSendMail).toHaveBeenCalledWith(
       expect.objectContaining({
         to: 'ada@example.org',
@@ -385,6 +400,16 @@ describe('communicationsService', () => {
 
     expect(result?.action).toBe('queued');
     expect(result?.run.status).toBe('sending');
+    expect(mockSendMail.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        text: expect.stringContaining(
+          'View this email in your browser: http://localhost:3000/api/v2/public/communications/view/view-token%3Aaaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+        ),
+        html: expect.stringContaining(
+          'href="http://localhost:3000/api/v2/public/communications/view/view-token%3Aaaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"'
+        ),
+      })
+    );
     expect(mockSendMail).toHaveBeenCalledWith(
       expect.objectContaining({
         to: 'ada@example.org',
@@ -445,6 +470,119 @@ describe('communicationsService', () => {
 
     expect(result?.action).toBe('refreshed');
     expect(result?.run.status).toBe('failed');
+    expect(mockSendMail).not.toHaveBeenCalled();
+  });
+
+  it('drains due scheduled local campaign runs through the existing send batch path', async () => {
+    mockPool.query.mockImplementation((query: unknown, values?: unknown[]) => {
+      const sql = String(query);
+      if (sql.includes('WITH stale_recipients AS')) {
+        return Promise.resolve({ rows: [], rowCount: 0 });
+      }
+      if (sql.includes('WITH candidate_runs AS')) {
+        expect(sql).toContain("cr.provider = 'local_email'");
+        expect(sql).toContain("cr.status = 'scheduled'");
+        expect(sql).toContain('cr.requested_send_time <= CURRENT_TIMESTAMP');
+        expect(sql).toContain("cr.status = 'sending'");
+        expect(sql).toContain("crr.status = 'queued'");
+        expect(sql).toContain('FOR UPDATE SKIP LOCKED');
+        expect(values).toEqual([3]);
+        return Promise.resolve({ rows: [{ id: baseRunRow.id }], rowCount: 1 });
+      }
+      if (sql.includes('FROM campaign_runs') && sql.includes('WHERE id = $1')) {
+        return Promise.resolve({
+          rows: [
+            {
+              ...baseRunRow,
+              status: 'scheduled',
+              requested_send_time: new Date('2026-05-02T00:00:00Z'),
+            },
+          ],
+          rowCount: 1,
+        });
+      }
+      if (sql.includes('UPDATE campaign_run_recipients') && sql.includes("SET status = 'sending'")) {
+        return Promise.resolve({
+          rows: [{ id: 'recipient-1', email: 'ada@example.org' }],
+          rowCount: 1,
+        });
+      }
+      if (sql.includes('SELECT COUNT(*)::text AS count')) {
+        return Promise.resolve({ rows: [{ count: '0' }], rowCount: 1 });
+      }
+      if (sql.includes('UPDATE campaign_runs')) {
+        return Promise.resolve({ rows: [{ ...baseRunRow, status: 'sent' }], rowCount: 1 });
+      }
+      return Promise.resolve({ rows: [], rowCount: 0 });
+    });
+    mockSendMail.mockResolvedValue(true);
+
+    const processed = await drainDueLocalCampaignRuns(3);
+
+    expect(processed).toBe(1);
+    expect(mockSendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: 'ada@example.org',
+        subject: 'Spring Update',
+      })
+    );
+  });
+
+  it('continues draining existing sending local campaign runs', async () => {
+    mockPool.query.mockImplementation((query: unknown) => {
+      const sql = String(query);
+      if (sql.includes('WITH stale_recipients AS')) {
+        return Promise.resolve({ rows: [], rowCount: 0 });
+      }
+      if (sql.includes('WITH candidate_runs AS')) {
+        return Promise.resolve({ rows: [{ id: baseRunRow.id }], rowCount: 1 });
+      }
+      if (sql.includes('FROM campaign_runs') && sql.includes('WHERE id = $1')) {
+        return Promise.resolve({
+          rows: [{ ...baseRunRow, status: 'sending' }],
+          rowCount: 1,
+        });
+      }
+      if (sql.includes('UPDATE campaign_run_recipients') && sql.includes("SET status = 'sending'")) {
+        return Promise.resolve({
+          rows: [{ id: 'recipient-1', email: 'ada@example.org' }],
+          rowCount: 1,
+        });
+      }
+      if (sql.includes('SELECT COUNT(*)::text AS count')) {
+        return Promise.resolve({ rows: [{ count: '0' }], rowCount: 1 });
+      }
+      if (sql.includes('UPDATE campaign_runs')) {
+        return Promise.resolve({ rows: [{ ...baseRunRow, status: 'sent' }], rowCount: 1 });
+      }
+      return Promise.resolve({ rows: [], rowCount: 0 });
+    });
+    mockSendMail.mockResolvedValue(true);
+
+    const processed = await drainDueLocalCampaignRuns(1);
+
+    expect(processed).toBe(1);
+    expect(mockSendMail).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not send when no due local runs are claimed', async () => {
+    mockPool.query.mockImplementation((query: unknown) => {
+      const sql = String(query);
+      if (sql.includes('WITH stale_recipients AS')) {
+        return Promise.resolve({ rows: [], rowCount: 0 });
+      }
+      if (sql.includes('WITH candidate_runs AS')) {
+        expect(sql).toContain("cr.provider = 'local_email'");
+        expect(sql).not.toContain("cr.status = 'draft'");
+        expect(sql).toContain('cr.requested_send_time <= CURRENT_TIMESTAMP');
+        return Promise.resolve({ rows: [], rowCount: 0 });
+      }
+      throw new Error(`Unexpected query after empty drain claim: ${sql}`);
+    });
+
+    const processed = await drainDueLocalCampaignRuns(5);
+
+    expect(processed).toBe(0);
     expect(mockSendMail).not.toHaveBeenCalled();
   });
 
@@ -659,7 +797,7 @@ describe('communicationsService', () => {
     expect(mockMailchimpService.rescheduleCampaignRun).not.toHaveBeenCalled();
   });
 
-  it('preserves unsupported Mailchimp cancel behavior through the communications facade without delegating', async () => {
+  it('gates Mailchimp campaign-run cancellation in the communications facade', async () => {
     const mailchimpRun = {
       ...baseRunRow,
       provider: 'mailchimp',
@@ -669,16 +807,15 @@ describe('communicationsService', () => {
 
     const result = await communicationsService.cancelCampaignRun(baseRunRow.id);
 
-    expect(result).toEqual(
-      expect.objectContaining({
-        action: 'unsupported',
-        message: 'Mailchimp campaign cancellation is not supported by the communications facade',
-      })
+    expect(result?.action).toBe('unsupported');
+    expect(result?.run.provider).toBe('mailchimp');
+    expect(result?.message).toBe(
+      'Mailchimp campaign-run cancellation is not implemented by this backend contract.'
     );
-    expect(mockMailchimpService.cancelCampaignRun).not.toHaveBeenCalled();
+    expect(mockMailchimpService.sendCampaignRun).not.toHaveBeenCalled();
   });
 
-  it('preserves unsupported Mailchimp reschedule behavior through the communications facade without delegating', async () => {
+  it('gates Mailchimp campaign-run rescheduling in the communications facade', async () => {
     const mailchimpRun = {
       ...baseRunRow,
       provider: 'mailchimp',
@@ -690,13 +827,12 @@ describe('communicationsService', () => {
       sendTime: new Date('2026-05-02T15:30:00Z'),
     });
 
-    expect(result).toEqual(
-      expect.objectContaining({
-        action: 'unsupported',
-        message: 'Mailchimp campaign rescheduling is not supported by the communications facade',
-      })
+    expect(result?.action).toBe('unsupported');
+    expect(result?.run.provider).toBe('mailchimp');
+    expect(result?.message).toBe(
+      'Mailchimp campaign-run rescheduling is not implemented by this backend contract.'
     );
-    expect(mockMailchimpService.rescheduleCampaignRun).not.toHaveBeenCalled();
+    expect(mockMailchimpService.sendCampaignRun).not.toHaveBeenCalled();
   });
 
   it('delegates explicit Mailchimp campaign creation to the existing Mailchimp service', async () => {

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import AdminQuickActionsBar from '../components/AdminQuickActionsBar';
 import AdminWorkspaceShell from '../components/AdminWorkspaceShell';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
@@ -270,7 +269,6 @@ export default function SocialMediaPage() {
         </div>
       }
     >
-      <AdminQuickActionsBar role="admin" />
       {error ? (
         <div className="rounded-2xl border border-app-accent bg-app-accent-soft px-4 py-3 text-sm text-app-accent-text">
           {error}

@@ -18,22 +18,17 @@ const AppRouteFallback = () => (
 
 function App() {
   const dispatch = useAppDispatch();
-  const uiRedesignEnabled = import.meta.env.VITE_UI_REDESIGN_ENABLED !== 'false';
 
   useEffect(() => {
     dispatch(initializeAuth());
   }, [dispatch]);
 
   useEffect(() => {
-    if (uiRedesignEnabled) {
-      document.body.classList.add('ui-redesign');
-    } else {
-      document.body.classList.remove('ui-redesign');
-    }
+    document.body.classList.add('ui-redesign');
     return () => {
       document.body.classList.remove('ui-redesign');
     };
-  }, [uiRedesignEnabled]);
+  }, []);
 
   return (
     <Router>

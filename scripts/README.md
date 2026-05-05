@@ -1,6 +1,6 @@
 # Script Index
 
-**Last Updated:** 2026-05-03
+**Last Updated:** 2026-05-05
 
 This directory contains the repo-local helpers used by the Makefile, deployment scripts, and docs workflow.
 Prefer the `make` targets when they exist. Call the scripts directly when you need the narrower entrypoint.
@@ -11,6 +11,7 @@ Prefer the `make` targets when they exist. Call the scripts directly when you ne
 |---|---|---|
 | [check-links.sh](check-links.sh) | Validate repo Markdown and HTML links used by the active docs. | `make check-links` |
 | [check-doc-api-versioning.ts](check-doc-api-versioning.ts) | Enforce active-doc `/api/v2` wording and catch stale API-version references. | `make lint-doc-api-versioning` |
+| [check-openapi-contract.ts](check-openapi-contract.ts) | Lint `docs/api/openapi.yaml` for parse errors, local `$ref` integrity, path-parameter coverage, and basic operation shape. | `make lint-openapi` |
 | [ci.sh](ci.sh) | Canonical root CI wrapper that backs the `make ci*` targets and coverage flows. | `make ci` / `make ci-fast` / `make ci-full` / `make ci-unit` / `make test-coverage` / `make test-coverage-full` |
 | [local-release.sh](local-release.sh) | Local-only release gate for CI, security scan, Docker validation, SBOM generation, and optional staging/production deploy handoff. | `make release-check` / `make release-staging` / `make release-production` |
 | [doctor.sh](doctor.sh) | Preflight local runtime prerequisites (Node, Docker, gitleaks, env files). | `make doctor` |
@@ -26,8 +27,8 @@ Prefer the `make` targets when they exist. Call the scripts directly when you ne
 | [deploy.sh](deploy.sh) | Run the local, staging, or production deployment wrapper. | `make deploy-local` / `make deploy-staging` / `make deploy` |
 | [install-git-hooks.sh](install-git-hooks.sh) | Install the repo-managed hooks into Git's resolved hooks path and preserve differing existing hooks unless you pass `--force`. | `make hooks` / `./scripts/install-git-hooks.sh --dry-run` |
 | [select-checks.sh](select-checks.sh) | Suggest a smaller validation set based on changed files, with distinct `fast` and `strict` modes. | `./scripts/select-checks.sh --mode fast` |
-| [verify.sh](verify.sh) | Compatibility wrapper that delegates changed-file check selection to `select-checks.sh` and runs the emitted commands. Supports `--mode`, `--base`, `--files`, and `--print-only`. | Prefer direct `make` targets for known lanes; use `./scripts/verify.sh --print-only` before running an unfamiliar lane |
-| [verify-pr.sh](verify-pr.sh) | Compatibility wrapper that reads a PR file list with `gh pr diff`, delegates to `select-checks.sh`, and runs the emitted commands. Supports `--mode` and `--print-only`. | `./scripts/verify-pr.sh <PR_NUMBER> --print-only`, then rerun without `--print-only` if the selected commands are appropriate |
+| [verify.sh](verify.sh) | Historical reproduction helper for the former broad verifier; default invocation prints the supported Make/selector contract and `--run-legacy` replays the old sequence. | Historical reproduction only; use `make test-tooling`, `./scripts/select-checks.sh --mode fast`, and `make ci-full` for current verification |
+| [verify-pr.sh](verify-pr.sh) | Historical reproduction helper for the former PR-number verifier; default invocation prints the supported Make/selector contract and `--run-legacy` replays the old GitHub CLI checks. | Historical reproduction only; use `make test-tooling`, `./scripts/select-checks.sh --mode fast`, and `make ci-full` for current verification |
 | [e2e-playwright.sh](e2e-playwright.sh) | Apply the repo's standard host or Docker Playwright defaults before delegating to the shared runner, while still honoring explicit runtime overrides such as `BASE_URL`, `API_URL`, and `E2E_*_PORT`. | `e2e` package scripts |
 | [e2e-run-with-lock.sh](e2e-run-with-lock.sh) | Run Playwright with the shared lock plus built-in port safeguards and externally managed HTTP-readiness preflight/retry checks. | `e2e` package scripts |
 | [e2e-host-ci-report.sh](e2e-host-ci-report.sh) | Run the host Playwright CI lane with timestamped archived report artifacts under `tmp/e2e-reports/`, then open the matching preserved report in the background. | `cd e2e && npm run test:ci:report` |
@@ -37,7 +38,7 @@ Prefer the `make` targets when they exist. Call the scripts directly when you ne
 
 The `check-*.ts` scripts are the repo policy gates that back `make lint`, `make quality-baseline`, and the static UI/security reports:
 
-- Backend policy gates: `check-rate-limit-key-policy.ts`, `check-success-envelope-policy.ts`, `check-route-validation-policy.ts`, `check-query-contract-policy.ts`, `check-express-validator-policy.ts`, `check-controller-sql-policy.ts`, `check-auth-guard-policy.ts`, `check-migration-manifest-policy.ts`, `check-duplicate-test-tree.ts`, `check-v2-module-ownership-policy.ts`, `check-module-boundary-policy.ts`, `check-module-route-proxy-policy.ts`, `check-canonical-module-import-policy.ts`, `check-implementation-size-policy.ts`, and the deleted-path guard `check-backend-legacy-controller-wrapper-policy.ts`.
+- Backend policy gates: `check-rate-limit-key-policy.ts`, `check-success-envelope-policy.ts`, `check-route-validation-policy.ts`, `check-query-contract-policy.ts`, `check-express-validator-policy.ts`, `check-controller-sql-policy.ts`, `check-auth-guard-policy.ts`, `check-migration-manifest-policy.ts`, `check-duplicate-test-tree.ts`, `check-openapi-contract.ts`, `check-v2-module-ownership-policy.ts`, `check-module-boundary-policy.ts`, `check-module-route-proxy-policy.ts`, `check-canonical-module-import-policy.ts`, `check-implementation-size-policy.ts`, and the deleted-path guard `check-backend-legacy-controller-wrapper-policy.ts`.
 - Frontend policy gates: `check-frontend-feature-boundary-policy.ts` plus the deleted-path guards `check-frontend-legacy-slice-import-policy.ts` and `check-frontend-legacy-page-path-policy.ts`.
 - Route and UI policy gates: `check-route-integrity.ts`, `check-route-catalog-drift.ts`, and `ui-audit.ts`.
 - Implementation-size ratchet data lives in `baselines/implementation-size.json`.
@@ -76,7 +77,7 @@ make test
 `make test-coverage` is the coverage-focused companion to `make test`: it runs backend and frontend coverage, host Playwright smoke, and the same isolated Docker-backed smoke gate.
 `make test-coverage-full` is the higher-confidence coverage lane: it runs backend and frontend coverage, the host Playwright CI matrix, and the isolated Docker-backed smoke gate.
 The coverage lanes now self-supply the CI Redis URL and backend coverage heap in the wrapper layer. Run them from a clean shell and do not export the full `.env.development` contract into those lanes, because it can override the isolated test DB contract.
-`make test-tooling` runs the targeted tooling-contract regression suite for selector, route-audit, helper-script, and wrapper changes.
+`make test-tooling` runs the targeted tooling-contract regression suite for selector, OpenAPI contract lint, route-audit, helper-script, and wrapper changes.
 For a durable archived host Playwright CI report, use `cd e2e && npm run test:ci:report`; it preserves the run under `tmp/e2e-reports/` instead of reusing `e2e/playwright-report`.
 The full Playwright CI matrix stays gated to the default browser projects; `Mobile Safari` and `Tablet` remain manual/ad hoc projects that you can run explicitly when needed.
 Release-facing changes should use `make release-check`, which runs the full local release gate and writes the CycloneDX SBOM under ignored `tmp/local-release/<timestamp>/`. Use `make release-staging` or `make release-production` when you want the same gate followed by the deploy wrapper; those targets still inherit the deploy script's dry-run default unless `DEPLOY_EXECUTE=1` is set.
@@ -86,6 +87,7 @@ If your change is docs-only, use:
 ```bash
 make check-links
 make lint-doc-api-versioning
+make lint-openapi
 ```
 
 If you need a narrower sequence, ask the selector helper for a recommendation:
@@ -95,4 +97,8 @@ make check-changed --run
 ```
 
 Use `--mode strict` when the change touches shared runtime orchestration, hooks, or runtime-facing docs and you want the selector to broaden into higher-confidence root checks.
+The selector includes committed, dirty, staged, and untracked files unless you pass an explicit `--files` list. Package and lockfile changes route to `npm run knip` plus `make security-audit`; `knip.json` routes to `npm run knip`; OpenAPI changes route to `make lint-openapi`.
 Code and runtime changes should emit at least one behavior-test command. Docs-only changes stay on docs validation.
+
+The legacy `verify.sh` and `verify-pr.sh` scripts are retained only for
+historical reproduction. They are not supported signoff gates for new work.

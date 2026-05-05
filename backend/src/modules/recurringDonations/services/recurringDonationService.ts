@@ -54,41 +54,43 @@ interface CreatePublicRecurringDonationPlanInput {
   userAgent?: string | null;
 }
 
-export class RecurringDonationManagementError extends Error {
-  readonly statusCode = 400;
-  readonly code = 'bad_request';
-
-  constructor(message: string) {
-    super(message);
-    this.name = 'RecurringDonationManagementError';
-  }
-}
-
-const getPlanPaymentProvider = (plan: Pick<RecurringDonationPlan, 'payment_provider'>): PaymentProvider =>
+const getPlanProvider = (plan: RecurringDonationPlan): PaymentProvider =>
   plan.payment_provider || 'stripe';
 
-const assertStripeManagementSupported = (
-  plan: Pick<RecurringDonationPlan, 'payment_provider'>,
-  action: 'amount changes' | 'cancellation' | 'reactivation'
-): void => {
-  const provider = getPlanPaymentProvider(plan);
-  if (provider !== 'stripe') {
-    const verb = action === 'amount changes' ? 'are' : 'is';
-    throw new RecurringDonationManagementError(
-      `Recurring donation ${action} ${verb} only supported for Stripe plans in this release`
-    );
-  }
+const providerLabel = (provider: PaymentProvider): string => {
+  if (provider === 'paypal') return 'PayPal';
+  return provider.charAt(0).toUpperCase() + provider.slice(1);
 };
 
-function assertStripeSubscriptionConnected<T extends Pick<RecurringDonationPlan, 'stripe_subscription_id'>>(
-  plan: T
-): asserts plan is T & { stripe_subscription_id: string } {
-  if (!plan.stripe_subscription_id) {
-    throw new RecurringDonationManagementError(
-      'Recurring donation plan is not yet connected to a Stripe subscription'
+const getProviderSubscriptionId = (plan: RecurringDonationPlan): string | null => {
+  const provider = getPlanProvider(plan);
+  if (provider === 'stripe') {
+    return plan.stripe_subscription_id || plan.provider_subscription_id || null;
+  }
+  return plan.provider_subscription_id || null;
+};
+
+const assertStripeManagedMutation = (
+  plan: RecurringDonationPlan,
+  action: 'amount changes' | 'cancellation' | 'reactivation'
+): string => {
+  const provider = getPlanProvider(plan);
+  const subscriptionId = getProviderSubscriptionId(plan);
+  if (!subscriptionId) {
+    throw new Error(
+      `Recurring donation plan is not yet connected to a ${providerLabel(provider)} subscription`
     );
   }
-}
+
+  if (provider !== 'stripe') {
+    const verb = action === 'amount changes' ? 'are' : 'is';
+    throw new Error(
+      `${providerLabel(provider)} recurring donation ${action} ${verb} not supported in this release; use the provider management portal.`
+    );
+  }
+
+  return subscriptionId;
+};
 
 export class RecurringDonationService {
   private readonly donationService: DonationService;
@@ -481,10 +483,6 @@ export class RecurringDonationService {
       return null;
     }
 
-    if (typeof data.amount === 'number' && data.amount !== current.amount) {
-      assertStripeManagementSupported(current, 'amount changes');
-    }
-
     let nextAmount = current.amount;
     let stripePriceId = current.stripe_price_id;
     let stripeProductId = current.stripe_product_id;
@@ -513,7 +511,7 @@ export class RecurringDonationService {
     }
 
     if (typeof data.amount === 'number' && data.amount > 0 && data.amount !== current.amount) {
-      assertStripeSubscriptionConnected(current);
+      const subscriptionId = assertStripeManagedMutation(current, 'amount changes');
 
       const price = await stripeService.createMonthlyPrice({
         amount: Math.round(data.amount * 100),
@@ -526,7 +524,7 @@ export class RecurringDonationService {
       });
 
       const subscription = await stripeService.updateSubscriptionPrice(
-        current.stripe_subscription_id,
+        subscriptionId,
         price.id
       );
 
@@ -581,11 +579,10 @@ export class RecurringDonationService {
       return null;
     }
 
-    assertStripeManagementSupported(current, 'cancellation');
-    assertStripeSubscriptionConnected(current);
+    const subscriptionId = assertStripeManagedMutation(current, 'cancellation');
 
     const subscription = await stripeService.setSubscriptionCancelAtPeriodEnd(
-      current.stripe_subscription_id,
+      subscriptionId,
       true
     );
 
@@ -624,11 +621,10 @@ export class RecurringDonationService {
       return null;
     }
 
-    assertStripeManagementSupported(current, 'reactivation');
-    assertStripeSubscriptionConnected(current);
+    const subscriptionId = assertStripeManagedMutation(current, 'reactivation');
 
     const subscription = await stripeService.setSubscriptionCancelAtPeriodEnd(
-      current.stripe_subscription_id,
+      subscriptionId,
       false
     );
 

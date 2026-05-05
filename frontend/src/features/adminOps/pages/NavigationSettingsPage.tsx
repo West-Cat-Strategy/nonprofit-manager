@@ -10,7 +10,6 @@ import { useNavigationPreferences } from '../../../hooks/useNavigationPreference
 import { isAdminRole } from '../../auth/state/roleNormalization';
 import { useAppSelector } from '../../../store/hooks';
 import { getAdminSettingsPath } from '../adminRoutePaths';
-import AdminQuickActionsBar from '../components/AdminQuickActionsBar';
 import AdminWorkspaceShell from '../components/AdminWorkspaceShell';
 
 export default function NavigationSettings() {
@@ -93,7 +92,6 @@ export default function NavigationSettings() {
       description="Choose your staff menu order, pinned shortcuts, and visible workspace modules."
       currentPath={location.pathname}
     >
-      <AdminQuickActionsBar role="admin" />
       <div className="bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
         <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted">
           <div className="flex flex-wrap items-center justify-between gap-3">

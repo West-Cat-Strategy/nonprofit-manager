@@ -107,6 +107,40 @@ describe('AdminPanelNav', () => {
     expect(screen.getByRole('link', { name: /appointments/i })).toHaveClass('bg-app-accent');
   });
 
+  it('renders compact navigation for smaller admin workspaces', () => {
+    renderWithProviders(
+      <AdminPanelNav
+        currentPath="/settings/admin/portal/appointments"
+        mode="portal"
+        variant="compact"
+      />,
+      {
+        preloadedState: {
+          auth: {
+            user: {
+              id: 'user-1',
+              email: 'admin@example.com',
+              firstName: 'Admin',
+              lastName: 'User',
+              role: 'admin',
+            },
+            isAuthenticated: true,
+            authLoading: false,
+            loading: false,
+          },
+        },
+      }
+    );
+
+    const selector = screen.getByRole('combobox', { name: /portal ops/i });
+    expect(selector).toHaveValue('portal-admin-appointments');
+    expect(screen.getByRole('link', { name: /conversations/i })).toHaveAttribute(
+      'href',
+      '/settings/admin/portal/conversations'
+    );
+    expect(screen.getByLabelText(/portal ops shortcuts/i).className).toContain('overflow-x-auto');
+  });
+
   it('highlights the canonical admin settings entry for canonical section locations', () => {
     renderWithProviders(<AdminPanelNav currentPath="/settings/admin/users" />, {
       route: '/settings/admin/users',

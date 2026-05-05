@@ -158,13 +158,8 @@ const fetchPortalBootstrapSnapshot = async (): Promise<PortalBootstrapSnapshot> 
 
 export const getPortalBootstrapSnapshot = async (options?: {
   forceRefresh?: boolean;
-  fallbackUser?: PortalUser | null;
 }): Promise<PortalBootstrapSnapshot> => {
   const forceRefresh = options?.forceRefresh === true;
-
-  if (options?.fallbackUser) {
-    return setPortalBootstrapSnapshot(options.fallbackUser);
-  }
 
   if (!forceRefresh && cachedSnapshot && isFresh(cachedSnapshot)) {
     return cachedSnapshot;

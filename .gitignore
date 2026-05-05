@@ -77,6 +77,7 @@ id_ed25519
 # Testing and reports
 # ==============================
 coverage/
+backend/test_output*.txt
 frontend/test_output*.txt
 test-results/
 test-results.json

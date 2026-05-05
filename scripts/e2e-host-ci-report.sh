@@ -41,6 +41,10 @@ timestamp() {
   date -u +"%Y%m%dT%H%M%SZ"
 }
 
+uppercase() {
+  printf '%s' "$1" | tr '[:lower:]' '[:upper:]'
+}
+
 resolve_report_root() {
   local report_root="${E2E_REPORT_ROOT:-tmp/e2e-reports}"
 
@@ -68,14 +72,14 @@ run_slice() {
   local slice_dir="$RUN_DIR/$slice_name"
   local slice_html_dir="$slice_dir/playwright-report"
   local slice_json_file="$slice_dir/test-results.json"
-  local slice_key
-  slice_key="$(printf '%s' "$slice_name" | tr '[:lower:]' '[:upper:]')"
+  local slice_env_name
+  slice_env_name="$(uppercase "$slice_name")"
 
   if [[ "$DRY_RUN" == "1" ]]; then
-    printf 'SLICE_%s_DIR=%s\n' "$slice_key" "$slice_dir"
-    printf 'SLICE_%s_HTML=%s\n' "$slice_key" "$slice_html_dir"
-    printf 'SLICE_%s_JSON=%s\n' "$slice_key" "$slice_json_file"
-    printf 'SLICE_%s_COMMAND=%s\n' "$slice_key" "$*"
+    printf 'SLICE_%s_DIR=%s\n' "$slice_env_name" "$slice_dir"
+    printf 'SLICE_%s_HTML=%s\n' "$slice_env_name" "$slice_html_dir"
+    printf 'SLICE_%s_JSON=%s\n' "$slice_env_name" "$slice_json_file"
+    printf 'SLICE_%s_COMMAND=%s\n' "$slice_env_name" "$*"
     return 0
   fi
 

@@ -5,6 +5,7 @@ import {
   listQueueViewDefinitions,
   upsertQueueViewDefinition,
 } from '@services/queueViewDefinitionService';
+import { getDashboardWorkqueueSummary } from '../services/workqueueSummaryService';
 
 jest.mock('@middleware/domains/auth', () => {
   const actual = jest.requireActual('@middleware/domains/auth');
@@ -30,6 +31,10 @@ jest.mock('@services/queueViewDefinitionService', () => ({
   upsertQueueViewDefinition: jest.fn(),
 }));
 
+jest.mock('../services/workqueueSummaryService', () => ({
+  getDashboardWorkqueueSummary: jest.fn(),
+}));
+
 import { createDashboardRoutes } from '../routes';
 
 const mockListQueueViewDefinitions = listQueueViewDefinitions as jest.MockedFunction<
@@ -38,14 +43,26 @@ const mockListQueueViewDefinitions = listQueueViewDefinitions as jest.MockedFunc
 const mockUpsertQueueViewDefinition = upsertQueueViewDefinition as jest.MockedFunction<
   typeof upsertQueueViewDefinition
 >;
+const mockGetDashboardWorkqueueSummary = getDashboardWorkqueueSummary as jest.MockedFunction<
+  typeof getDashboardWorkqueueSummary
+>;
 
-const buildApp = (userId?: string) => {
+const buildApp = (
+  user?: { id: string; role?: string },
+  organizationId?: string
+) => {
   const app = express();
   app.use(express.json());
 
-  if (userId) {
+  if (user) {
     app.use((req, _res, next) => {
-      (req as Request & { user?: { id: string } }).user = { id: userId };
+      (req as Request & {
+        accountId?: string;
+        organizationId?: string;
+        user?: { id: string; role?: string };
+      }).user = user;
+      (req as Request & { accountId?: string; organizationId?: string }).organizationId =
+        organizationId;
       next();
     });
   }
@@ -88,7 +105,7 @@ describe('dashboard workbench queue view routes', () => {
 
   it('lists owner-scoped workbench queue views for the dashboard surface', async () => {
     mockListQueueViewDefinitions.mockResolvedValueOnce([workbenchQueueView]);
-    const app = buildApp('user-1');
+    const app = buildApp({ id: 'user-1' });
 
     const response = await request(app).get('/api/v2/dashboard/queue-views').expect(200);
 
@@ -111,7 +128,7 @@ describe('dashboard workbench queue view routes', () => {
 
   it('forces dashboard-saved queue views onto the workbench surface and scope', async () => {
     mockUpsertQueueViewDefinition.mockResolvedValueOnce(workbenchQueueView);
-    const app = buildApp('user-1');
+    const app = buildApp({ id: 'user-1' });
 
     const response = await request(app)
       .post('/api/v2/dashboard/queue-views')
@@ -132,5 +149,52 @@ describe('dashboard workbench queue view routes', () => {
       })
     );
     expect(response.body.data.surface).toBe('workbench');
+  });
+
+  it('keeps workqueue summaries behind dashboard authentication', async () => {
+    const app = buildApp();
+
+    const response = await request(app).get('/api/v2/dashboard/workqueue-summary').expect(401);
+
+    expect(response.body.success).toBe(false);
+    expect(mockGetDashboardWorkqueueSummary).not.toHaveBeenCalled();
+  });
+
+  it('returns permission-filtered workqueue summaries for the authenticated dashboard user', async () => {
+    mockGetDashboardWorkqueueSummary.mockResolvedValueOnce([
+      {
+        id: 'intake_resolution',
+        label: 'Intake resolution',
+        count: 2,
+        detail: '2 portal signup requests need contact matching.',
+        permissionScope: ['admin:users'],
+        primaryAction: {
+          label: 'Resolve portal signups',
+          href: '/settings/admin/portal/access',
+        },
+      },
+    ]);
+    const app = buildApp({ id: 'user-1', role: 'admin' }, 'account-1');
+
+    const response = await request(app)
+      .get('/api/v2/dashboard/workqueue-summary')
+      .expect(200);
+
+    expect(mockGetDashboardWorkqueueSummary).toHaveBeenCalledWith({
+      userId: 'user-1',
+      role: 'admin',
+      roles: undefined,
+      organizationId: 'account-1',
+    });
+    expect(response.body).toMatchObject({
+      success: true,
+      data: [
+        {
+          id: 'intake_resolution',
+          count: 2,
+          primaryAction: { href: '/settings/admin/portal/access' },
+        },
+      ],
+    });
   });
 });

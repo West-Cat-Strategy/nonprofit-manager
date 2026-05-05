@@ -8,7 +8,9 @@ import {
 } from '@services/template/emailCampaignRenderer';
 import mailchimpService from '@services/mailchimpService';
 import {
+  appendBrowserViewLink,
   appendUnsubscribeFooter,
+  buildLocalCampaignBrowserViewUrl,
   buildLocalCampaignUnsubscribeUrl,
 } from './localCampaignUnsubscribeHelpers';
 import { retryFailedCampaignRunRecipients, unsupportedMailchimpRunAction } from './campaignRunActionService';
@@ -106,14 +108,11 @@ const LOCAL_BATCH_LIMIT = 50;
 const LOCAL_AUDIENCE_ID = 'local_email:crm';
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
 export class CommunicationsValidationError extends Error {
   statusCode = 400;
 }
-
 const uniqueStrings = (values: readonly string[] = []): string[] =>
   Array.from(new Set(values.map((value) => value.trim()).filter((value) => value.length > 0)));
-
 const assertUuidList = (values: readonly string[], label: string): void => {
   const invalid = values.find((value) => !uuidPattern.test(value));
   if (invalid) {
@@ -991,10 +990,11 @@ export const sendCampaignRun = async (
 
   let sent = 0;
   let failed = 0;
+  const browserViewUrl = buildLocalCampaignBrowserViewUrl(run.id);
   for (const recipient of recipients.rows) {
     try {
       const unsubscribeUrl = buildLocalCampaignUnsubscribeUrl(run.id, recipient.id, recipient.email);
-      const emailContent = appendUnsubscribeFooter({ html, plainText }, unsubscribeUrl);
+      const emailContent = appendUnsubscribeFooter(appendBrowserViewLink({ html, plainText }, browserViewUrl), unsubscribeUrl);
       const ok = await sendMail({
         to: recipient.email,
         subject,
@@ -1093,7 +1093,7 @@ export const cancelCampaignRun = async (
   if (run.provider === 'mailchimp') {
     return unsupportedMailchimpRunAction(
       run,
-      'Mailchimp campaign cancellation is not supported by the communications facade'
+      'Mailchimp campaign-run cancellation is not implemented by this backend contract.'
     );
   }
   if (!['draft', 'scheduled', 'sending'].includes(run.status)) {
@@ -1139,7 +1139,7 @@ export const rescheduleCampaignRun = async (
   if (run.provider === 'mailchimp') {
     return unsupportedMailchimpRunAction(
       run,
-      'Mailchimp campaign rescheduling is not supported by the communications facade'
+      'Mailchimp campaign-run rescheduling is not implemented by this backend contract.'
     );
   }
   if (!['draft', 'scheduled'].includes(run.status)) {

@@ -1,4 +1,5 @@
 import type { PublishedPage, PublishedSite, PublishedTheme } from '@app-types/publishing';
+import type { PublicAction } from '@app-types/websiteBuilder';
 import { PublicSiteRenderer } from '@modules/publishing/services/publicSiteRuntime/renderer';
 import { PublicSiteRouteResolver } from '@modules/publishing/services/publicSiteRuntime/routeResolver';
 
@@ -137,6 +138,27 @@ const buildSite = (page: PublishedPage): PublishedSite =>
     },
   }) as PublishedSite;
 
+const buildPublicAction = (overrides: Partial<PublicAction> = {}): PublicAction => ({
+  id: 'action-1',
+  organizationId: 'org-1',
+  siteId: 'site-1',
+  pageId: null,
+  componentId: null,
+  actionType: 'petition_signature',
+  status: 'published',
+  slug: 'save-the-library',
+  title: 'Save the Library',
+  description: null,
+  settings: {},
+  confirmationMessage: null,
+  publishedAt: '2026-05-01T00:00:00.000Z',
+  closedAt: null,
+  submissionCount: 12,
+  createdAt: '2026-05-01T00:00:00.000Z',
+  updatedAt: '2026-05-01T00:00:00.000Z',
+  ...overrides,
+});
+
 describe('PublicSiteRenderer', () => {
   it('renders nested public forms inside columns with runtime bindings', async () => {
     const page = buildPage();
@@ -267,14 +289,67 @@ describe('PublicSiteRenderer', () => {
       new PublicSiteRouteResolver()
     );
 
-    const html = await renderer.renderPage(site, page, { kind: 'static' });
+    const html = await renderer.renderPage(site, page, {
+      kind: 'static',
+      publicActions: [buildPublicAction()],
+    });
 
     expect(html).toContain(
       'action="/api/v2/public/actions/site-1/save-the-library/submissions"'
     );
+    expect(html).toContain('data-public-action-count="petition-signatures"');
+    expect(html).toContain('12 signatures');
     expect(html).toContain('name="consent"');
     expect(html).toContain('Keep the public library open.');
     expect(html).not.toContain('/api/v2/public/forms/site-1/petition-block/submit');
+  });
+
+  it('hides petition signature counts when the action block opts out', async () => {
+    const page: PublishedPage = {
+      id: 'page-petition',
+      slug: 'petition',
+      name: 'Petition',
+      isHomepage: false,
+      pageType: 'static',
+      routePattern: '/petition',
+      seo: {
+        title: 'Add your name',
+        description: 'Support the campaign.',
+      },
+      sections: [
+        {
+          id: 'petition-section',
+          name: 'Petition form',
+          components: [
+            {
+              id: 'petition-block',
+              type: 'petition-form',
+              actionSlug: 'save-the-library',
+              showSignatureCount: false,
+              petitionStatement: 'Keep the public library open.',
+              submitText: 'Add my name',
+            },
+          ],
+        },
+      ],
+    } as PublishedPage;
+    const site = buildSite(page);
+    const renderer = new PublicSiteRenderer(
+      { listPublicEventsByOwner: jest.fn() } as never,
+      { listPublicNewsletters: jest.fn() } as never,
+      new PublicSiteRouteResolver()
+    );
+
+    const html = await renderer.renderPage(site, page, {
+      kind: 'static',
+      publicActions: [buildPublicAction()],
+    });
+
+    expect(html).toContain(
+      'action="/api/v2/public/actions/site-1/save-the-library/submissions"'
+    );
+    expect(html).not.toContain('data-public-action-count="petition-signatures"');
+    expect(html).not.toContain('12 signatures');
   });
 
   it('renders blog archive fallback cards and blog detail metadata', async () => {

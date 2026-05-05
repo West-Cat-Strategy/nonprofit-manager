@@ -1,6 +1,6 @@
 import type { Response } from 'express';
 import type { AuthRequest } from '@middleware/auth';
-import { createCampaign } from '../mailchimpController';
+import { cancelCampaignRun, createCampaign, rescheduleCampaignRun } from '../mailchimpController';
 
 type MockMailchimpService = {
   isMailchimpConfigured: jest.Mock;
@@ -25,6 +25,8 @@ const mockMailchimpService = jest.requireMock('../../services/mailchimpService')
 
 const createResponse = (): Response =>
   ({
+    getHeader: jest.fn(),
+    setHeader: jest.fn().mockReturnThis(),
     status: jest.fn().mockReturnThis(),
     json: jest.fn().mockReturnThis(),
   } as unknown as Response);
@@ -95,5 +97,47 @@ describe('mailchimpController', () => {
     );
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith(campaign);
+  });
+
+  it('returns 405 for campaign-run cancellation without calling the service', async () => {
+    const res = createResponse();
+
+    await cancelCampaignRun(
+      createRequest({
+        params: { runId: '11111111-1111-4111-8111-111111111111' },
+      }),
+      res
+    );
+
+    expect(mockMailchimpService.createCampaign).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(405);
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      error: {
+        code: 'method_not_allowed',
+        message: 'Mailchimp campaign-run cancellation is not implemented by this backend contract.',
+      },
+    });
+  });
+
+  it('returns 405 for campaign-run rescheduling without calling the service', async () => {
+    const res = createResponse();
+
+    await rescheduleCampaignRun(
+      createRequest({
+        params: { runId: '11111111-1111-4111-8111-111111111111' },
+      }),
+      res
+    );
+
+    expect(mockMailchimpService.createCampaign).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(405);
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      error: {
+        code: 'method_not_allowed',
+        message: 'Mailchimp campaign-run rescheduling is not implemented by this backend contract.',
+      },
+    });
   });
 });

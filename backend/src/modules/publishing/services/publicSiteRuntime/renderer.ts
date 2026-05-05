@@ -11,7 +11,7 @@ import type {
   PublishedTheme,
   RenderablePublishedComponent,
 } from '@app-types/publishing';
-import type { WebsiteEntry } from '@app-types/websiteBuilder';
+import type { PublicAction, PublicActionType, WebsiteEntry } from '@app-types/websiteBuilder';
 import type { WebsiteEntryService } from '@services/publishing/websiteEntryService';
 import {
   buildSeoMeta,
@@ -105,7 +105,8 @@ export class PublicSiteRenderer {
     component: PublishedComponent & { actionSlug?: string },
     fieldsHtml: string,
     submitText: string,
-    description?: string
+    description?: string,
+    countHtml: string = ''
   ): string {
     const actionSlug =
       typeof component.actionSlug === 'string' && component.actionSlug.trim().length > 0
@@ -121,6 +122,7 @@ export class PublicSiteRenderer {
         style="display: grid; gap: 0.85rem; padding: 1.35rem; border: 1px solid var(--npm-border); border-radius: 18px; background: var(--npm-surface); box-shadow: 0 12px 30px rgba(19, 49, 38, 0.08);"
       >
         ${description ? `<p style="margin: 0; color: var(--npm-muted);">${escapeHtml(description)}</p>` : ''}
+        ${countHtml}
         ${fieldsHtml}
         <label class="npm-checkbox"><input type="checkbox" name="consent" value="true" required /> I agree to be contacted about this request.</label>
         <button type="submit" class="btn" style="padding: 0.9rem 1rem; border: none; border-radius: 999px; background: var(--npm-primary); color: white; font-weight: 700; cursor: pointer; box-shadow: 0 6px 18px rgba(31, 77, 59, 0.22);">
@@ -129,6 +131,41 @@ export class PublicSiteRenderer {
         <p data-form-status style="margin: 0; min-height: 1.2rem; color: var(--npm-muted); font-size: 0.95rem;"></p>
       </form>
     `;
+  }
+
+  private getPublicActionForComponent(
+    component: PublishedComponent & { actionSlug?: string },
+    context: RuntimeContext,
+    actionType: PublicActionType
+  ): PublicAction | undefined {
+    const actionSlug =
+      typeof component.actionSlug === 'string' && component.actionSlug.trim().length > 0
+        ? component.actionSlug.trim()
+        : component.id;
+
+    return (context.publicActions || []).find(
+      (action) => action.actionType === actionType && action.slug === actionSlug
+    );
+  }
+
+  private renderPetitionSignatureCount(
+    component: PublishedComponent & { actionSlug?: string; showSignatureCount?: boolean },
+    context: RuntimeContext
+  ): string {
+    if (component.showSignatureCount === false) {
+      return '';
+    }
+
+    const action = this.getPublicActionForComponent(component, context, 'petition_signature');
+    if (!action) {
+      return '';
+    }
+
+    const label = `${action.submissionCount} ${
+      action.submissionCount === 1 ? 'signature' : 'signatures'
+    }`;
+
+    return `<p class="npm-public-action-count" data-public-action-count="petition-signatures" style="margin: 0; color: var(--npm-muted); font-size: 0.95rem; font-weight: 700;">${escapeHtml(label)}</p>`;
   }
 
   private renderEventCards(
@@ -433,7 +470,8 @@ export class PublicSiteRenderer {
             <textarea name="message" rows="4" placeholder="Why are you adding your name?"></textarea>
           `,
           String(component.submitText || 'Add my name'),
-          typeof component.description === 'string' ? component.description : undefined
+          typeof component.description === 'string' ? component.description : undefined,
+          this.renderPetitionSignatureCount(component, context)
         );
       case 'donation-pledge-form':
         return this.renderPublicActionForm(

@@ -15,6 +15,7 @@ interface SignupRequestIdRow {
 
 interface PortalSignupResolutionRow {
   contact_id: string | null;
+  account_id: string | null;
   resolution_status: PortalSignupResolutionStatus;
 }
 
@@ -60,6 +61,7 @@ export type PortalSignupResolutionStatus = 'resolved' | 'needs_contact_resolutio
 
 export interface PortalSignupContactResolution {
   contactId: string | null;
+  accountId: string | null;
   resolutionStatus: PortalSignupResolutionStatus;
 }
 
@@ -92,7 +94,7 @@ export const resolvePortalSignupContact = async (input: {
   phone?: string;
 }): Promise<PortalSignupContactResolution> => {
   const result = await pool.query<PortalSignupResolutionRow>(
-    `SELECT contact_id, resolution_status
+    `SELECT contact_id, account_id, resolution_status
      FROM public.portal_resolve_signup_request($1, $2, $3, $4)`,
     [input.firstName, input.lastName, input.email, input.phone || null]
   );
@@ -102,8 +104,8 @@ export const resolvePortalSignupContact = async (input: {
     throw new Error('Portal signup resolution bridge returned no row');
   }
 
-  let accountId: string | null = null;
-  if (row.contact_id) {
+  let accountId: string | null = row.account_id ?? null;
+  if (row.contact_id && !accountId) {
     try {
       const accountResult = await pool.query<{ account_id: string | null }>(
         'SELECT account_id FROM contacts WHERE id = $1',
@@ -144,6 +146,7 @@ export const resolvePortalSignupContact = async (input: {
 
   return {
     contactId: row.contact_id,
+    accountId,
     resolutionStatus: row.resolution_status,
   };
 };
@@ -163,6 +166,7 @@ export const findPendingSignupRequestIdByEmail = async (email: string): Promise<
 
 export const createPortalSignupRequest = async (input: {
   contactId: string | null;
+  accountId?: string | null;
   email: string;
   passwordHash: string;
   firstName: string;
@@ -173,6 +177,7 @@ export const createPortalSignupRequest = async (input: {
   const result = await pool.query<SignupRequestIdRow>(
     `INSERT INTO portal_signup_requests (
        contact_id,
+       account_id,
        email,
        password_hash,
        first_name,
@@ -181,10 +186,11 @@ export const createPortalSignupRequest = async (input: {
        status,
        resolution_status
      )
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
      RETURNING id`,
     [
       input.contactId,
+      input.accountId ?? null,
       input.email,
       input.passwordHash,
       input.firstName,

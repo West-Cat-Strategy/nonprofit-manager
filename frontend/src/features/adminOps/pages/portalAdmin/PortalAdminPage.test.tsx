@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PortalAdminPage from './PortalAdminPage';
 
@@ -7,6 +7,7 @@ let currentPath = '/settings/admin/portal/access';
 
 const usePortalSettingsMock = vi.fn();
 const portalAdminRealtimeMock = vi.fn();
+const accessPanelMock = vi.fn(() => <div>panel:access</div>);
 
 vi.mock('react-router-dom', () => ({
   useLocation: () => ({
@@ -94,7 +95,7 @@ vi.mock('../../../../components/ConfirmDialog', () => ({
 }));
 
 vi.mock('./panels/AccessPanel', () => ({
-  default: () => <div>panel:access</div>,
+  default: (props: unknown) => accessPanelMock(props),
 }));
 
 vi.mock('./panels/UsersPanel', () => ({
@@ -115,7 +116,9 @@ vi.mock('./panels/SlotsPanel', () => ({
 
 const createPortalSettingsState = () => ({
   portalRequests: [],
+  portalRequestsError: null,
   portalInvitations: [],
+  portalInvitationsError: null,
   portalInviteEmail: '',
   setPortalInviteEmail: vi.fn(),
   setPortalInviteContactId: vi.fn(),
@@ -123,10 +126,12 @@ const createPortalSettingsState = () => ({
   portalLoading: false,
   portalUsers: [],
   portalUsersLoading: false,
+  portalUsersError: null,
   portalUserSearch: '',
   setPortalUserSearch: vi.fn(),
   portalUserActivity: [],
   portalActivityLoading: false,
+  portalActivityError: null,
   selectedPortalUser: null,
   portalResetTarget: null,
   setPortalResetTarget: vi.fn(),
@@ -146,6 +151,7 @@ const createPortalSettingsState = () => ({
   setSelectedPortalContact: vi.fn(),
   portalAppointments: [],
   portalAppointmentsLoading: false,
+  portalAppointmentsError: null,
   portalAppointmentsPagination: {
     page: 1,
     limit: 25,
@@ -246,6 +252,27 @@ describe('PortalAdminPage', () => {
     portalAdminRealtimeMock.mockReturnValue(createPortalAdminRealtimeState());
   });
 
+  it('passes manual contact approval payloads through the page wrapper', async () => {
+    const portalState = createPortalSettingsState();
+    usePortalSettingsMock.mockReturnValue(portalState);
+    currentPath = '/settings/admin/portal/access';
+
+    render(<PortalAdminPage panel="access" />);
+
+    const props = accessPanelMock.mock.calls[0]?.[0] as {
+      onApproveRequest: (id: string, payload?: { contact_id: string }) => Promise<void>;
+    };
+
+    await act(async () => {
+      await props.onApproveRequest('request-1', { contact_id: 'contact-1' });
+    });
+
+    expect(portalState.handleApprovePortalRequest).toHaveBeenCalledWith('request-1', {
+      contact_id: 'contact-1',
+    });
+    expect(portalState.refreshPortalData).toHaveBeenCalled();
+  });
+
   it.each([
     [
       'access',
@@ -303,4 +330,47 @@ describe('PortalAdminPage', () => {
       );
     }
   );
+
+  it('marks triage metrics as loading or failed instead of clean empty queues', () => {
+    usePortalSettingsMock.mockReturnValue({
+      ...createPortalSettingsState(),
+      portalLoading: true,
+      portalRequestsError:
+        'Could not load signup requests. Refresh before treating this queue as empty.',
+      portalAppointmentsLoading: true,
+      portalAppointmentsError:
+        'Could not load appointment inbox. Refresh before treating this queue as empty.',
+    });
+    portalAdminRealtimeMock.mockReturnValue({
+      ...createPortalAdminRealtimeState(),
+      portalConversationsLoading: true,
+    });
+
+    render(<PortalAdminPage panel="appointments" />);
+
+    expect(screen.getAllByText('Load failed')).toHaveLength(3);
+    expect(screen.getByText('Loading')).toBeInTheDocument();
+    expect(screen.getAllByText('Refresh before treating this queue as empty.')).toHaveLength(3);
+    expect(screen.getByText('Checking the latest portal data.')).toBeInTheDocument();
+    expect(screen.queryByText('No requested items loaded')).not.toBeInTheDocument();
+    expect(screen.queryByText('No loaded threads')).not.toBeInTheDocument();
+  });
+
+  it('promotes realtime conversation and slot failures into triage metric failures', () => {
+    render(<PortalAdminPage panel="conversations" />);
+
+    const realtimeOptions = portalAdminRealtimeMock.mock.calls[0]?.[0] as {
+      notifyError: (error: unknown, fallback: string) => void;
+    };
+
+    act(() => {
+      realtimeOptions.notifyError(new Error('offline'), 'Failed to load portal conversations');
+      realtimeOptions.notifyError(new Error('offline'), 'Failed to load appointment slots');
+    });
+
+    expect(screen.getAllByText('Load failed')).toHaveLength(2);
+    expect(screen.getAllByText('Refresh before treating this queue as empty.')).toHaveLength(2);
+    expect(screen.queryByText('No loaded threads')).not.toBeInTheDocument();
+    expect(screen.queryByText('No loaded slots')).not.toBeInTheDocument();
+  });
 });

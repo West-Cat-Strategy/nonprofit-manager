@@ -14,9 +14,8 @@ import type {
   SiteAnalyticsRecord,
   AnalyticsEventType,
 } from '@app-types/publishing';
+import { buildPublicSiteUrl } from './publicSiteUrlService';
 
-// Base URL for published sites (configurable via environment)
-const SITE_BASE_URL = process.env.SITE_BASE_URL || 'https://sites.westcat.ca';
 const PUBLISHED_SITE_SELECT_COLUMNS = `
   id,
   user_id,
@@ -502,21 +501,7 @@ export class SiteManagementService {
    * Get the primary URL for a site
    */
   getSiteUrl(site: PublishedSite): string {
-    if (site.customDomain) {
-      return `https://${site.customDomain}`;
-    }
-    if (site.subdomain) {
-      try {
-        const baseUrl = new URL(SITE_BASE_URL);
-        baseUrl.hostname = baseUrl.hostname.startsWith('sites.')
-          ? baseUrl.hostname.replace(/^sites\./, `${site.subdomain}.`)
-          : `${site.subdomain}.${baseUrl.hostname}`;
-        return baseUrl.toString().replace(/\/$/, '');
-      } catch {
-        return `${SITE_BASE_URL.replace('sites.', `${site.subdomain}.`)}`;
-      }
-    }
-    return `${SITE_BASE_URL}/${site.id}`;
+    return buildPublicSiteUrl(site);
   }
 
   /**

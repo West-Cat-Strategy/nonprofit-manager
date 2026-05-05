@@ -1,7 +1,7 @@
 import React from 'react';
 import { ExclamationCircleIcon, InboxIcon, SparklesIcon } from '@heroicons/react/24/outline';
 
-type WebsiteConsoleStateTone = 'loading' | 'empty' | 'error';
+type WebsiteConsoleStateTone = 'loading' | 'empty' | 'warning' | 'error';
 
 interface WebsiteConsoleStatePanelProps {
   tone: WebsiteConsoleStateTone;
@@ -16,6 +16,8 @@ const toneClasses: Record<WebsiteConsoleStateTone, string> = {
   loading:
     'border-app-border bg-app-surface-elevated text-app-text dark:border-sky-300 dark:bg-sky-950/40 dark:text-sky-50',
   empty: 'border-dashed border-app-border bg-app-surface text-app-text-muted',
+  warning:
+    'border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-300 dark:bg-amber-950/40 dark:text-amber-50',
   error:
     'border-rose-300 bg-rose-100 text-rose-950 dark:border-rose-300 dark:bg-rose-950/40 dark:text-rose-50',
 };
@@ -23,6 +25,7 @@ const toneClasses: Record<WebsiteConsoleStateTone, string> = {
 const toneIcons: Record<WebsiteConsoleStateTone, typeof SparklesIcon> = {
   loading: SparklesIcon,
   empty: InboxIcon,
+  warning: ExclamationCircleIcon,
   error: ExclamationCircleIcon,
 };
 

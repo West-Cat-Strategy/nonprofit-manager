@@ -1,89 +1,78 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-
-mode="strict"
-base=""
-files_arg=""
-print_only=0
-
-usage() {
-  cat <<'EOF'
-Usage: scripts/verify.sh [--mode fast|strict] [--base <ref>] [--files "<file list>"] [--print-only]
-
-Compatibility wrapper for the retired broad verifier. The current contract is:
-  1. ask scripts/select-checks.sh for the changed-file validation set
-  2. run the emitted make/package commands in order
-
-Use --print-only to inspect the selected commands without running them.
-EOF
-}
+run_legacy="${NONPROFIT_MANAGER_RUN_LEGACY_VERIFY:-0}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --mode)
-      mode="${2:-}"
-      shift 2
-      ;;
-    --base)
-      base="${2:-}"
-      shift 2
-      ;;
-    --files)
-      files_arg="${2:-}"
-      shift 2
-      ;;
-    --print-only|--dry-run)
-      print_only=1
+    --run-legacy)
+      run_legacy=1
       shift
       ;;
     -h|--help)
-      usage
+      cat <<'EOF'
+Usage: scripts/verify.sh [--run-legacy]
+
+Historical reproduction helper for the former broad verification script.
+Supported verification now flows through Make and the selector:
+  make test-tooling
+  ./scripts/select-checks.sh --mode fast
+  make ci-full
+
+Pass --run-legacy, or set NONPROFIT_MANAGER_RUN_LEGACY_VERIFY=1, to replay
+the old command sequence for historical comparison.
+EOF
       exit 0
       ;;
     *)
       echo "Unknown argument: $1" >&2
-      usage >&2
       exit 2
       ;;
   esac
 done
 
-selector_args=(--mode "$mode")
-if [[ -n "$base" ]]; then
-  selector_args+=(--base "$base")
-fi
-if [[ -n "$files_arg" ]]; then
-  selector_args+=(--files "$files_arg")
+if [[ "$run_legacy" != "1" ]]; then
+  cat <<'EOF'
+=== historical verifier re-homed ===
+
+scripts/verify.sh is kept only as a historical reproduction helper.
+It is not the supported repository verification contract.
+
+Use the current supported entry points instead:
+  make test-tooling
+  ./scripts/select-checks.sh --mode fast
+  make ci-full
+
+To replay the old broad verifier intentionally, run:
+  ./scripts/verify.sh --run-legacy
+EOF
+  exit 1
 fi
 
-commands=()
-while IFS= read -r command; do
-  [[ -n "$command" ]] && commands+=("$command")
-done < <("$SCRIPT_DIR/select-checks.sh" "${selector_args[@]}")
-
-if [[ "$print_only" -eq 1 ]]; then
-  if [[ ${#commands[@]} -gt 0 ]]; then
-    printf '%s\n' "${commands[@]}"
-  fi
-  exit 0
-fi
-
-echo "=== nonprofit-manager verification compatibility wrapper ==="
-echo "Mode: $mode"
-if [[ -n "$base" ]]; then
-  echo "Base: $base"
-fi
+echo "=== nonprofit-manager legacy verification replay ==="
 echo
-
-if [[ ${#commands[@]} -gt 0 ]]; then
-  for command in "${commands[@]}"; do
-    echo ">>> $command"
-    (cd "$PROJECT_ROOT" && bash -lc "$command")
-  done
-fi
-
+echo "1. Git state"
+git status --short
 echo
-echo "=== verification complete ==="
+echo "2. Tooling"
+command -v node >/dev/null && node --version
+command -v npm >/dev/null && npm --version
+command -v docker >/dev/null && docker --version || true
+echo
+echo "3. Legacy root gates"
+make lint
+make typecheck
+make ci-unit
+echo
+echo "4. Backend tests"
+make test-backend
+echo
+echo "5. Frontend tests"
+make test-frontend
+echo
+echo "6. E2E smoke"
+cd e2e
+npm run test:smoke
+cd ..
+echo
+echo "=== legacy verification replay complete ==="

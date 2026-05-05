@@ -165,6 +165,21 @@ export class PublicActionService {
     return result.rows.map((row) => mapActionRow(row));
   }
 
+  async listPublishedActionsForSite(site: PublishedSite): Promise<PublicAction[]> {
+    const result = await this.pool.query(
+      `SELECT a.*,
+              COUNT(s.id)::int AS submission_count
+       FROM website_public_actions a
+       LEFT JOIN website_public_action_submissions s ON s.action_id = a.id
+       WHERE a.site_id = $1
+         AND a.status = 'published'
+       GROUP BY a.id
+       ORDER BY a.created_at DESC`,
+      [site.id]
+    );
+    return result.rows.map((row) => mapActionRow(row));
+  }
+
   async createAction(
     siteId: string,
     userId: string,

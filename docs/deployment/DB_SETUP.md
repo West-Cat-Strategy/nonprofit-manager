@@ -215,11 +215,12 @@ Do not run individual `database/migrations/NNN_*.sql` files directly. The canoni
 
 Seed behavior differs by file. None of these files run during the default bootstrap:
 
-- `database/seeds/003_mock_data.sql` includes users (default login: `admin@westcat.ca` / `password123`).
+- `database/seeds/003_mock_data.sql` includes users (default login: `admin@example.com` / `password123`).
 - `database/seeds/004_mock_data_no_users.sql` preserves first-time setup behavior (`/setup`).
 - `database/seeds/005_kingdom_hearts_mock_data.sql` is a themed optional demo bundle.
-- `database/seeds/001_default_users.sql` is placeholder-oriented and not the recommended dev seed path.
 - `database/seeds/008_outcome_definitions.sql` provides starter outcome definitions and is loaded by the default bootstrap path.
+
+The retired `database/seeds/001_default_users.sql` placeholder seed is not a supported setup path. It contained a non-runnable password hash and was removed so it cannot be mistaken for a valid admin bootstrap. Use first-time setup for real local admins, `003_mock_data.sql` for explicit demo users, or `004_mock_data_no_users.sql` when you need demo data without users.
 
 ### Docker Environment
 
@@ -244,9 +245,9 @@ psql -U postgres -d nonprofit_manager -c "SELECT id, email, role FROM users;"
 ```
 
 **Expected Default Users:**
-- `admin@westcat.ca` (role: admin)
-- `manager@westcat.ca` (role: manager)
-- `staff@westcat.ca` (role: user)
+- `admin@example.com` (role: admin)
+- `manager@example.com` (role: manager)
+- `staff@example.com` (role: user)
 
 **Default Password for seeded users:** `password123`
 

@@ -14,6 +14,7 @@ import {
 import { publicSiteRuntimeService } from '../services/publicSiteRuntimeService';
 import { siteCacheService } from '@services/siteCacheService';
 import { escapeHtml } from '@services/site-generator/escapeHtml';
+import { getSiteKeyFromPublicHostname } from '@services/publishing/publicSiteUrlService';
 
 const normalizeLimit = (value: unknown, fallback: number): number => {
   const parsed = typeof value === 'number' ? value : Number.parseInt(String(value || ''), 10);
@@ -326,6 +327,14 @@ const resolvePublishedSiteFromRequest = async (
 ) => {
   if (explicitSiteKey) {
     return publicWebsiteFormService.resolveSiteByKey(explicitSiteKey);
+  }
+
+  const publicHostSiteKey = getSiteKeyFromPublicHostname(req.hostname);
+  if (publicHostSiteKey) {
+    const byPublicHost = await publicWebsiteFormService.resolveSiteByKey(publicHostSiteKey);
+    if (byPublicHost) {
+      return byPublicHost;
+    }
   }
 
   const subdomain = req.subdomains?.[0];

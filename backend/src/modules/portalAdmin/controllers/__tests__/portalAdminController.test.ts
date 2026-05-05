@@ -7,6 +7,7 @@ import {
   createPortalInvitation,
   listPortalSignupRequests,
   listPortalUsers,
+  rejectPortalSignupRequest,
   resetPortalUserPassword,
   updatePortalUserStatus,
 } from '../portalAdminController';
@@ -99,12 +100,14 @@ const mockSendSuccess = sendSuccess as jest.MockedFunction<typeof sendSuccess>;
 const createRequest = (overrides: Partial<AuthRequest> = {}): AuthRequest =>
   ({
     user: { id: 'admin-1' },
+    organizationId: 'account-1',
+    accountId: 'account-1',
     body: {},
     params: {},
     query: {},
     validatedQuery: {},
     ...overrides,
-  } as AuthRequest);
+  }) as AuthRequest;
 
 const createResponse = (): Response => ({}) as Response;
 const createNext = (): NextFunction => jest.fn();
@@ -138,10 +141,30 @@ describe('portalAdminController account-management flows', () => {
 
     await listPortalSignupRequests(req, res, next);
 
-    expect(mockQuery).toHaveBeenCalledWith(
-      expect.stringContaining('psr.resolution_status')
-    );
+    expect(mockQuery).toHaveBeenCalledWith(expect.stringContaining('psr.resolution_status'), [
+      'account-1',
+    ]);
+    expect(mockQuery.mock.calls[0][0]).toContain('$1::uuid IS NOT NULL');
+    expect(mockQuery.mock.calls[0][0]).toContain('psr.account_id = $1');
+    expect(mockQuery.mock.calls[0][0]).toContain('scope_contact.account_id = $1');
     expect(mockSendSuccess).toHaveBeenCalledWith(res, { requests: rows });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('falls back to account_id when scoping portal signup request lists', async () => {
+    const req = createRequest({
+      organizationId: undefined,
+      accountId: 'fallback-account',
+    });
+    const res = createResponse();
+    const next = createNext();
+
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+
+    await listPortalSignupRequests(req, res, next);
+
+    expect(mockQuery).toHaveBeenCalledWith(expect.any(String), ['fallback-account']);
+    expect(mockSendSuccess).toHaveBeenCalledWith(res, { requests: [] });
     expect(next).not.toHaveBeenCalled();
   });
 
@@ -273,8 +296,9 @@ describe('portalAdminController account-management flows', () => {
     expect(mockQuery).toHaveBeenNthCalledWith(
       2,
       expect.stringContaining('AND lower(email) = lower($2)'),
-      ['contact-2', 'portal@example.com']
+      ['contact-2', 'portal@example.com', 'account-1']
     );
+    expect(mockQuery.mock.calls[1][0]).toContain('AND account_id = $3');
     expect(mockQuery).toHaveBeenNthCalledWith(
       4,
       expect.stringContaining('INSERT INTO portal_users'),
@@ -289,6 +313,49 @@ describe('portalAdminController account-management flows', () => {
       message: 'Portal request approved',
       portalUser: { id: 'portal-user-2', email: 'portal@example.com', contact_id: 'contact-2' },
     });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('treats out-of-scope signup approval as not found', async () => {
+    const req = createRequest({
+      params: { id: 'signup-other-account' },
+      organizationId: 'account-1',
+    });
+    const res = createResponse();
+    const next = createNext();
+
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+
+    await approvePortalSignupRequest(req, res, next);
+
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.stringContaining('psr.account_id = $2'),
+      ['signup-other-account', 'account-1']
+    );
+    expect(mockNotFoundMessage).toHaveBeenCalledWith(res, 'Signup request not found');
+    expect(mockSendSuccess).not.toHaveBeenCalled();
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('treats out-of-scope signup rejection as not found', async () => {
+    const req = createRequest({
+      params: { id: 'signup-reject-other-account' },
+      organizationId: 'account-1',
+      body: { notes: 'Not enough information' },
+    });
+    const res = createResponse();
+    const next = createNext();
+
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+
+    await rejectPortalSignupRequest(req, res, next);
+
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.stringContaining('psr.account_id = $2'),
+      ['signup-reject-other-account', 'account-1']
+    );
+    expect(mockNotFoundMessage).toHaveBeenCalledWith(res, 'Signup request not found');
+    expect(mockSendSuccess).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
   });
 
@@ -332,10 +399,7 @@ describe('portalAdminController account-management flows', () => {
 
     await listPortalUsers(req, res, next);
 
-    expect(mockQuery).toHaveBeenCalledWith(
-      expect.stringContaining('WHERE ('),
-      ['%Alice%']
-    );
+    expect(mockQuery).toHaveBeenCalledWith(expect.stringContaining('WHERE ('), ['%Alice%']);
     expect(mockSendSuccess).toHaveBeenCalledWith(res, { users: rows });
     expect(next).not.toHaveBeenCalled();
   });

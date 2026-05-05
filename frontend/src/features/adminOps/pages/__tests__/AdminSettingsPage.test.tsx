@@ -73,7 +73,8 @@ vi.mock('../../../../services/api', () => ({
       if (url === '/admin/roles') return Promise.resolve({ data: { roles: [] } });
       if (url === '/admin/permissions') return Promise.resolve({ data: { permissions: [] } });
       if (url === '/admin/groups') return Promise.resolve({ data: { groups: [] } });
-      if (url === '/admin/organization-accounts') return Promise.resolve({ data: { organizationAccounts: [] } });
+      if (url === '/admin/organization-accounts')
+        return Promise.resolve({ data: { organizationAccounts: [] } });
       return Promise.resolve({ data: {} });
     }),
   },
@@ -102,7 +103,13 @@ vi.mock('../adminSettings/sections/BrandingSection', () => ({
   default: () => <div>Branding Section</div>,
 }));
 vi.mock('../adminSettings/sections/UsersSection', () => ({
-  default: ({ onGoToRoles, onGoToGroups }: { onGoToRoles: () => void; onGoToGroups: () => void }) => (
+  default: ({
+    onGoToRoles,
+    onGoToGroups,
+  }: {
+    onGoToRoles: () => void;
+    onGoToGroups: () => void;
+  }) => (
     <div>
       <div>Users Section</div>
       <button type="button" onClick={onGoToRoles}>
@@ -135,16 +142,12 @@ vi.mock('../adminSettings/sections/CommunicationsSection', () => ({
 vi.mock('../adminSettings/sections/TwilioSettingsSection', () => ({
   default: () => <div>Messaging Section</div>,
 }));
-vi.mock(
-  '../adminSettings/sections/RegistrationSettingsSection',
-  () => ({ default: () => <div>Registration Section</div> })
-);
-vi.mock(
-  '../adminSettings/sections/OutcomeDefinitionsSection',
-  () => ({
-    default: () => <div>Outcomes Section</div>,
-  })
-);
+vi.mock('../adminSettings/sections/RegistrationSettingsSection', () => ({
+  default: () => <div>Registration Section</div>,
+}));
+vi.mock('../adminSettings/sections/OutcomeDefinitionsSection', () => ({
+  default: () => <div>Outcomes Section</div>,
+}));
 vi.mock('../adminSettings/sections/PortalSection', () => ({
   default: () => (
     <div>
@@ -157,10 +160,7 @@ vi.mock('../adminSettings/sections/PortalSection', () => ({
 vi.mock('../adminSettings/components/UserSecurityModal', () => ({
   default: () => null,
 }));
-vi.mock(
-  '../adminSettings/components/PortalResetPasswordModal',
-  () => ({ default: () => null })
-);
+vi.mock('../adminSettings/components/PortalResetPasswordModal', () => ({ default: () => null }));
 
 const LocationProbe = () => {
   const location = useLocation();
@@ -253,13 +253,13 @@ describe('AdminSettings page', () => {
     });
   });
 
-  it('auto-enables advanced mode for direct advanced-section links', async () => {
+  it('keeps high-impact sections discoverable for direct advanced-section links', async () => {
     renderAdminSettings('/settings/admin/audit_logs');
 
     await waitFor(() => {
       expect(screen.getByText('Audit Section')).toBeInTheDocument();
     });
-    expect(screen.getByRole('button', { name: /hide advanced/i })).toBeInTheDocument();
+    expect(screen.getByText(/high-impact tools stay labeled/i)).toBeInTheDocument();
   });
 
   it('ignores the removed section local-storage key', async () => {

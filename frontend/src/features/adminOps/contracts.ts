@@ -176,6 +176,7 @@ export interface PortalSignupRequest {
   id: string;
   email: string;
   status: string;
+  resolution_status?: 'resolved' | 'needs_contact_resolution' | string | null;
   requested_at: string;
   reviewed_at?: string | null;
   contact_id?: string | null;

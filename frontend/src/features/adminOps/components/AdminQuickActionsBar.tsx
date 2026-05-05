@@ -27,9 +27,9 @@ export default function AdminQuickActionsBar({
   if (compact) {
     return (
       <div className={classNames('space-y-1', className)} data-testid="admin-quick-actions-compact">
-        <p className="px-3 pt-2 text-xs font-semibold uppercase tracking-wide text-app-text-subtle">
+        <h3 className="px-3 pt-2 text-xs font-semibold uppercase tracking-wide text-app-text-subtle">
           Admin Quick Actions
-        </p>
+        </h3>
         {visibleActions.map((action) => (
           <Link
             key={action.id}
@@ -50,12 +50,17 @@ export default function AdminQuickActionsBar({
 
   return (
     <section
-      className={classNames('rounded-lg border border-app-border bg-app-surface p-4 shadow-sm', className)}
+      className={classNames(
+        'rounded-lg border border-app-border bg-app-surface p-4 shadow-sm',
+        className
+      )}
       aria-label="Admin quick actions"
       data-testid="admin-quick-actions"
     >
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-app-text-heading">Quick Actions</h3>
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-app-text-heading">
+          Quick Actions
+        </h3>
         <span className="text-xs text-app-text-subtle">Role-aware shortcuts</span>
       </div>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">

@@ -84,14 +84,23 @@ deploy_production_like() {
     compose_files+=("$PROJECT_ROOT/docker-compose.caddy.yml")
   fi
 
+  if [[ -z "${SITE_BASE_URL:-}" ]]; then
+    if [[ "$MODE" == "production" ]]; then
+      export SITE_BASE_URL="https://$caddy_public_site_domain"
+    else
+      export SITE_BASE_URL="http://$caddy_public_site_domain"
+    fi
+  fi
+  export PUBLIC_SITE_API_ORIGIN="${PUBLIC_SITE_API_ORIGIN:-$SITE_BASE_URL}"
+
   if [[ "${DEPLOY_EXECUTE:-0}" != "1" ]]; then
     echo "Deployment mode '$MODE' validated."
     echo "Set DEPLOY_EXECUTE=1 to run the deployment command."
     echo "Planned command:"
     if [[ -n "$caddy_backend_upstream" ]]; then
-      echo "  RUNTIME_ENV_FILE=$env_file DEPLOY_USE_HOST_CADDY=$use_host_caddy CADDY_DOMAIN=$caddy_domain CADDY_PUBLIC_SITE_DOMAIN=$caddy_public_site_domain CADDY_BACKEND_UPSTREAM=$caddy_backend_upstream CADDY_FRONTEND_UPSTREAM=$caddy_frontend_upstream CADDY_PUBLIC_SITE_UPSTREAM=$caddy_public_site_upstream ${COMPOSE_CMD[*]} -p $compose_project --env-file $env_file"
+      echo "  RUNTIME_ENV_FILE=$env_file DEPLOY_USE_HOST_CADDY=$use_host_caddy SITE_BASE_URL=$SITE_BASE_URL PUBLIC_SITE_API_ORIGIN=$PUBLIC_SITE_API_ORIGIN CADDY_DOMAIN=$caddy_domain CADDY_PUBLIC_SITE_DOMAIN=$caddy_public_site_domain CADDY_BACKEND_UPSTREAM=$caddy_backend_upstream CADDY_FRONTEND_UPSTREAM=$caddy_frontend_upstream CADDY_PUBLIC_SITE_UPSTREAM=$caddy_public_site_upstream ${COMPOSE_CMD[*]} -p $compose_project --env-file $env_file"
     else
-      echo "  RUNTIME_ENV_FILE=$env_file DEPLOY_USE_HOST_CADDY=$use_host_caddy CADDY_DOMAIN=$caddy_domain CADDY_PUBLIC_SITE_DOMAIN=$caddy_public_site_domain ${COMPOSE_CMD[*]} -p $compose_project --env-file $env_file"
+      echo "  RUNTIME_ENV_FILE=$env_file DEPLOY_USE_HOST_CADDY=$use_host_caddy SITE_BASE_URL=$SITE_BASE_URL PUBLIC_SITE_API_ORIGIN=$PUBLIC_SITE_API_ORIGIN CADDY_DOMAIN=$caddy_domain CADDY_PUBLIC_SITE_DOMAIN=$caddy_public_site_domain ${COMPOSE_CMD[*]} -p $compose_project --env-file $env_file"
     fi
     for compose_file in "${compose_files[@]}"; do
       echo "    -f $compose_file"
@@ -102,6 +111,8 @@ deploy_production_like() {
 
   if [[ -n "$caddy_backend_upstream" ]]; then
     RUNTIME_ENV_FILE="$env_file" \
+    SITE_BASE_URL="$SITE_BASE_URL" \
+    PUBLIC_SITE_API_ORIGIN="$PUBLIC_SITE_API_ORIGIN" \
     CADDY_DOMAIN="$caddy_domain" \
     CADDY_PUBLIC_SITE_DOMAIN="$caddy_public_site_domain" \
     CADDY_BACKEND_UPSTREAM="$caddy_backend_upstream" \
@@ -110,6 +121,8 @@ deploy_production_like() {
     compose_with_project_files "$compose_project" "${compose_files[@]}" -- --env-file "$env_file" up -d --build --remove-orphans
   else
     RUNTIME_ENV_FILE="$env_file" \
+    SITE_BASE_URL="$SITE_BASE_URL" \
+    PUBLIC_SITE_API_ORIGIN="$PUBLIC_SITE_API_ORIGIN" \
     CADDY_DOMAIN="$caddy_domain" \
     CADDY_PUBLIC_SITE_DOMAIN="$caddy_public_site_domain" \
     compose_with_project_files "$compose_project" "${compose_files[@]}" -- --env-file "$env_file" up -d --build --remove-orphans

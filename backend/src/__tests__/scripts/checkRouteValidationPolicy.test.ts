@@ -1,3 +1,4 @@
+import fs from 'fs';
 import { analyzeRouteValidationSource } from '../../../../scripts/check-route-validation-policy.ts';
 
 describe('check-route-validation-policy', () => {
@@ -21,6 +22,24 @@ describe('check-route-validation-policy', () => {
 
     expect(result.issues).toEqual([]);
     expect(result.routeDefinitionCount).toBe(1);
+  });
+
+  it('keeps public-site analytics writes behind the focused public limiter', () => {
+    const publicSiteSource = fs.readFileSync(
+      '/Users/bryan/projects/nonprofit-manager/backend/src/public-site.ts',
+      'utf8'
+    );
+    const result = analyzeRouteValidationSource(
+      '/Users/bryan/projects/nonprofit-manager/backend/src/public-site.ts',
+      publicSiteSource,
+      'entrypoint'
+    );
+
+    expect(result.issues).toEqual([]);
+    expect(result.routeDefinitionCount).toBe(1);
+    expect(publicSiteSource).toMatch(
+      /app\.post\(\s*['"]\/api\/v2\/sites\/:siteId\/track['"],\s*publicSiteAnalyticsLimiterMiddleware,\s*validateParams/s
+    );
   });
 
   it('still flags route files without validation middleware', () => {

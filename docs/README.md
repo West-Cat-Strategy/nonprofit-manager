@@ -1,6 +1,6 @@
 # Documentation Home
 
-**Last Updated:** 2026-05-01
+**Last Updated:** 2026-05-05
 
 Welcome to the Nonprofit Manager documentation hub. Use this file to find the live contributor workflow, runtime docs, feature inventory, tracked persona canon, and historical archives without mixing current planning with older closeout material. Tracked `*.example` env files are templates; copied live `.env*` and deploy override files stay local-only and ignored. Inside `.codex`, only the three canonical persona and benchmark `references/**` trees are versioned.
 
@@ -36,7 +36,7 @@ If the task is tracked or resumed, open [**Planning and Progress**](phases/plann
 | Historical phase material | [phases/archive/README.md](phases/archive/README.md) | Use for provenance, not current status |
 | Runtime setup and ports | [development/GETTING_STARTED.md](development/GETTING_STARTED.md) | Docker, direct app, public-site, worker, and Playwright runtime contracts |
 | Validation and testing | [testing/TESTING.md](testing/TESTING.md) | Active test-command selection map |
-| Verification scripts | [verification/VERIFICATION_SYSTEM.md](verification/VERIFICATION_SYSTEM.md) | Legacy/broad verifier entrypoints that still exist under `scripts/` |
+| Historical verification helpers | [verification/VERIFICATION_SYSTEM.md](verification/VERIFICATION_SYSTEM.md) | Legacy verifier reproduction notes; active validation uses [testing/TESTING.md](testing/TESTING.md), `make`, and `scripts/select-checks.sh` |
 | Validation and audit artifacts | [validation/README.md](validation/README.md) | Audit snapshots, remediation trackers, and validation references |
 | Persona and benchmark detail | [../.codex/skills/nonprofit-manager-persona-analysis/references/source-map.md](../.codex/skills/nonprofit-manager-persona-analysis/references/source-map.md) | Canonical detailed layer for persona analysis, persona validation, and benchmark synthesis |
 | Retained reference patterns | [development/reference-patterns/README.md](development/reference-patterns/README.md) | Preserved adoption specs, pattern catalogs, and check matrices |
@@ -100,7 +100,7 @@ If the task is tracked or resumed, open [**Planning and Progress**](phases/plann
 - [Testing Guide](testing/TESTING.md)
 - [Integration Test Guide](testing/INTEGRATION_TEST_GUIDE.md)
 - [Component Testing](testing/COMPONENT_TESTING.md)
-- [Verification System](verification/VERIFICATION_SYSTEM.md)
+- [Historical Verification Helpers](verification/VERIFICATION_SYSTEM.md)
 - [Playwright E2E Guide](../e2e/README.md)
 - [Testing Archive](testing/archive/README.md)
 - [Validation And Audit Index](validation/README.md)

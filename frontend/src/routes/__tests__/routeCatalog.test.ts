@@ -51,7 +51,7 @@ describe('routeCatalog matching', () => {
         current: Boolean(current),
       }))
     ).toEqual([
-      { label: 'Newsletter Campaigns', current: false },
+      { label: 'Communications', current: false },
       { label: 'Newsletter Campaigns', current: true },
     ]);
     expect(
@@ -60,7 +60,7 @@ describe('routeCatalog matching', () => {
         current: Boolean(current),
       }))
     ).toEqual([
-      { label: 'Newsletter Campaigns', current: false },
+      { label: 'Communications', current: false },
       { label: 'Newsletter Campaigns', current: true },
     ]);
   });
@@ -77,7 +77,11 @@ describe('routeCatalog matching', () => {
     expect(isRouteCatalogEntryEnabled(teamChat, { VITE_TEAM_CHAT_ENABLED: 'true' })).toBe(true);
     expect(isRouteCatalogEntryEnabled(teamChat, { VITE_TEAM_CHAT_ENABLED: 'false' })).toBe(false);
     expect(
-      isRouteCatalogEntryEnabled(cases, {}, { ...createDefaultWorkspaceModuleSettings(), cases: false })
+      isRouteCatalogEntryEnabled(
+        cases,
+        {},
+        { ...createDefaultWorkspaceModuleSettings(), cases: false }
+      )
     ).toBe(false);
   });
 
@@ -85,7 +89,12 @@ describe('routeCatalog matching', () => {
     const portalAdminEntries = getAdminNavigationEntries('portal');
 
     expect(portalAdminEntries.length).toBeGreaterThan(0);
-    expect(portalAdminEntries.every((entry, index, entries) => index === 0 || entries[index - 1].adminNav.order <= entry.adminNav.order)).toBe(true);
+    expect(
+      portalAdminEntries.every(
+        (entry, index, entries) =>
+          index === 0 || entries[index - 1].adminNav.order <= entry.adminNav.order
+      )
+    ).toBe(true);
   });
 
   it('matches canonical and dynamic routes', () => {
@@ -124,8 +133,7 @@ describe('routeCatalog matching', () => {
     );
     expect(matchRouteCatalogEntry('/volunteers')?.id).toBe('volunteers');
     expect(
-      matchRouteCatalogEntry('/volunteers/11111111-1111-4111-8111-111111111111/assignments/new')
-        ?.id
+      matchRouteCatalogEntry('/volunteers/11111111-1111-4111-8111-111111111111/assignments/new')?.id
     ).toBe('volunteer-assignment-create');
   });
 

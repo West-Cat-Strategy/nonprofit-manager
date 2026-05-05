@@ -22,7 +22,7 @@ describe('portalAuthService', () => {
 
   it('returns a resolved contact when the signup bridge finds a single normalized-email match', async () => {
     mockQuery.mockResolvedValueOnce({
-      rows: [{ contact_id: 'contact-1', resolution_status: 'resolved' }],
+      rows: [{ contact_id: 'contact-1', account_id: 'account-1', resolution_status: 'resolved' }],
     }).mockResolvedValueOnce({ rows: [{ id: 'resolution-1' }] });
 
     const result = await resolvePortalSignupContact({
@@ -33,18 +33,19 @@ describe('portalAuthService', () => {
 
     expect(result).toEqual({
       contactId: 'contact-1',
+      accountId: 'account-1',
       resolutionStatus: 'resolved',
     });
     expect(mockQuery).toHaveBeenCalledWith(
-      `SELECT contact_id, resolution_status
+      `SELECT contact_id, account_id, resolution_status
      FROM public.portal_resolve_signup_request($1, $2, $3, $4)`,
       ['Client', 'One', 'client@example.com', null]
     );
   });
 
-  it('returns a resolved contact when the signup bridge creates a new contact for a no-match email', async () => {
+  it('returns a manual-resolution result when the signup bridge finds no matching contact', async () => {
     mockQuery.mockResolvedValueOnce({
-      rows: [{ contact_id: 'contact-2', resolution_status: 'resolved' }],
+      rows: [{ contact_id: null, account_id: 'account-1', resolution_status: 'needs_contact_resolution' }],
     }).mockResolvedValueOnce({ rows: [{ id: 'resolution-2' }] });
 
     const result = await resolvePortalSignupContact({
@@ -55,11 +56,12 @@ describe('portalAuthService', () => {
     });
 
     expect(result).toEqual({
-      contactId: 'contact-2',
-      resolutionStatus: 'resolved',
+      contactId: null,
+      accountId: 'account-1',
+      resolutionStatus: 'needs_contact_resolution',
     });
     expect(mockQuery).toHaveBeenCalledWith(
-      `SELECT contact_id, resolution_status
+      `SELECT contact_id, account_id, resolution_status
      FROM public.portal_resolve_signup_request($1, $2, $3, $4)`,
       ['New', 'Client', 'newclient@example.com', '5551234567']
     );
@@ -67,7 +69,7 @@ describe('portalAuthService', () => {
 
   it('returns an unresolved signup result when multiple contacts share the email', async () => {
     mockQuery.mockResolvedValueOnce({
-      rows: [{ contact_id: null, resolution_status: 'needs_contact_resolution' }],
+      rows: [{ contact_id: null, account_id: 'account-1', resolution_status: 'needs_contact_resolution' }],
     }).mockResolvedValueOnce({ rows: [{ id: 'resolution-3' }] });
 
     await expect(
@@ -78,6 +80,7 @@ describe('portalAuthService', () => {
       })
     ).resolves.toEqual({
       contactId: null,
+      accountId: 'account-1',
       resolutionStatus: 'needs_contact_resolution',
     });
   });
@@ -85,7 +88,7 @@ describe('portalAuthService', () => {
   it('does not fail signup resolution when intake audit logging fails', async () => {
     mockQuery
       .mockResolvedValueOnce({
-        rows: [{ contact_id: 'contact-1', resolution_status: 'resolved' }],
+        rows: [{ contact_id: 'contact-1', account_id: 'account-1', resolution_status: 'resolved' }],
       })
       .mockRejectedValueOnce(new Error('audit insert failed'));
 
@@ -97,6 +100,7 @@ describe('portalAuthService', () => {
       })
     ).resolves.toEqual({
       contactId: 'contact-1',
+      accountId: 'account-1',
       resolutionStatus: 'resolved',
     });
   });
@@ -106,6 +110,7 @@ describe('portalAuthService', () => {
 
     const requestId = await createPortalSignupRequest({
       contactId: 'contact-1',
+      accountId: 'account-1',
       email: 'client@example.com',
       passwordHash: 'hash',
       firstName: 'Client',
@@ -118,6 +123,7 @@ describe('portalAuthService', () => {
     expect(mockQuery).toHaveBeenCalledWith(
       `INSERT INTO portal_signup_requests (
        contact_id,
+       account_id,
        email,
        password_hash,
        first_name,
@@ -126,9 +132,19 @@ describe('portalAuthService', () => {
        status,
        resolution_status
      )
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
      RETURNING id`,
-      ['contact-1', 'client@example.com', 'hash', 'Client', 'One', '5551234567', 'pending', 'resolved']
+      [
+        'contact-1',
+        'account-1',
+        'client@example.com',
+        'hash',
+        'Client',
+        'One',
+        '5551234567',
+        'pending',
+        'resolved',
+      ]
     );
   });
 

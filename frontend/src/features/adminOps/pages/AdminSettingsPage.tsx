@@ -11,7 +11,6 @@ import { useUnsavedChangesGuard } from '../../../hooks/useUnsavedChangesGuard';
 import { useBranding } from '../../../contexts/BrandingContext';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import useConfirmDialog from '../../../hooks/useConfirmDialog';
-import AdminQuickActionsBar from '../components/AdminQuickActionsBar';
 import AdminWorkspaceShell from '../components/AdminWorkspaceShell';
 import PortalOperationsCard from './adminSettings/components/PortalOperationsCard';
 import AdminSettingsSectionNav from './adminSettings/components/AdminSettingsSectionNav';
@@ -118,7 +117,6 @@ export default function AdminSettings() {
     visibleTabMap,
     visibleTabGroups,
     setActiveSection,
-    handleToggleAdvancedSettings,
     handleTabKeyDown,
   } = useAdminSettingsRouteState({
     showAdvancedSettings,
@@ -402,16 +400,13 @@ export default function AdminSettings() {
       <AdminSettingsSectionNav
         activeSection={activeSection}
         activeGroupLabel={activeGroup?.label}
-        showAdvancedSettings={showAdvancedSettings}
         activeTabLabel={activeTab.label}
         visibleTabGroups={visibleTabGroups}
         visibleTabMap={visibleTabMap}
         onSelectSection={setActiveSection}
-        onToggleAdvancedSettings={handleToggleAdvancedSettings}
         onTabKeyDown={handleTabKeyDown}
       />
 
-      <AdminQuickActionsBar role="admin" />
       <PortalOperationsCard />
 
       <section

@@ -1,12 +1,12 @@
 # Theme System Documentation
 
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-05-04
 
 Use this doc when you are changing theme tokens, selector metadata, or shared shell presentation. Start with [ui/README.md](ui/README.md) for the active UI-doc map and [ui/archive/README.md](ui/archive/README.md) for dated audit evidence. For frontend runtime ownership, use [../frontend/README.md](../frontend/README.md).
 
 ## Overview
 
-The app supports 6 stable theme IDs with light/dark mode handling and a feature-flagged redesign layer.
+The app supports 6 stable theme IDs with light/dark mode handling and the current redesign presentation layer.
 
 | Theme ID | Label | Short Label | Personality |
 | --- | --- | --- |
@@ -25,7 +25,7 @@ The redesign does not create a parallel theme system. It keeps the existing engi
 
 - `frontend/src/theme/themeRegistry.ts` owns theme metadata and previews.
 - `frontend/src/index.css` owns token values and the `body.ui-redesign` presentation layer.
-- `VITE_UI_REDESIGN_ENABLED` controls rollout.
+- `frontend/src/App.tsx` applies the redesign layer at startup.
 
 ## Token Layer
 
@@ -102,7 +102,7 @@ Treat those artifacts as evidence snapshots, not as the source of truth for curr
 
 ## Migration Rules
 
-1. Keep theme IDs, persistence keys, and rollout flags stable.
+1. Keep theme IDs and persistence keys stable.
 2. Prefer semantic token classes over raw Tailwind palette utilities.
 3. Use the shared shell/components before inventing new route-level wrappers.
 4. Do not add new inline style blocks unless the value is dynamic geometry or a third-party rendering constraint.

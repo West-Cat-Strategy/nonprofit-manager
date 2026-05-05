@@ -348,7 +348,28 @@ describe('WebsitePublishingPage', () => {
 
     renderPage();
 
-    expect(screen.getByRole('button', { name: 'Open live site' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Open public website' })).toBeDisabled();
+  });
+
+  it('surfaces placeholder public-site destinations as unconfigured', () => {
+    mockOverview = {
+      ...overview,
+      site: {
+        ...overview.site,
+        primaryUrl: 'https://mutual-aid.sites.example.org',
+      },
+      deployment: {
+        primaryUrl: 'https://mutual-aid.sites.example.org',
+        previewUrl: 'https://mutual-aid.sites.example.org?preview=true&version=v1',
+        domainStatus: 'configured',
+        sslStatus: 'active',
+      },
+    };
+
+    renderPage();
+
+    expect(screen.getByText('Public-site destination needs configuration')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open public website' })).toBeDisabled();
   });
 });
 

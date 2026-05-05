@@ -80,6 +80,7 @@ export const portalSignup = async (
 
     const requestId = await portalAuthService.createPortalSignupRequest({
       contactId: signupResolution.contactId,
+      accountId: signupResolution.accountId,
       email,
       passwordHash: hashedPassword,
       firstName: payload.firstName,

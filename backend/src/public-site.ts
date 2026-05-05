@@ -17,6 +17,7 @@ import { correlationIdMiddleware, CORRELATION_ID_HEADER } from './middleware/cor
 import { metricsMiddleware, metricsRouter } from './middleware/metrics';
 import { legacyApiTombstoneMiddleware } from './middleware/legacyApiTombstone';
 import { validateBody, validateParams } from './middleware/zodValidation';
+import { publicSiteAnalyticsLimiterMiddleware } from '@middleware/domains/platform';
 import {
   createCorsOptionsDelegate,
   resolveTrustProxy,
@@ -187,6 +188,7 @@ app.use('/api/v2/public/forms', publicWebsiteFormsV2Routes);
 app.use('/api/v2/public/actions', publicWebsiteActionsV2Routes);
 app.post(
   '/api/v2/sites/:siteId/track',
+  publicSiteAnalyticsLimiterMiddleware,
   validateParams(siteIdParamsSchema),
   validateBody(analyticsTrackSchema),
   recordAnalytics

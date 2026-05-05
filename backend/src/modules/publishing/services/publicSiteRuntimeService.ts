@@ -2,6 +2,7 @@ import { Pool } from 'pg';
 import dbPool from '@config/database';
 import type { PublishedSite } from '@app-types/publishing';
 import { EventService } from '@modules/events/services/eventService';
+import { PublicActionService } from '@services/publishing/publicActionService';
 import { WebsiteEntryService, websiteEntryService } from '@services/publishing/websiteEntryService';
 import { WebsiteSiteSettingsService } from '@services/publishing/siteSettingsService';
 import { PublicSiteRenderableSiteBuilder } from './publicSiteRuntime/renderableSiteBuilder';
@@ -18,11 +19,12 @@ export class PublicSiteRuntimeService {
   constructor(pool: Pool) {
     const events = new EventService(pool);
     const entries: WebsiteEntryService = websiteEntryService;
+    const actions = new PublicActionService(pool);
     const siteSettings = new WebsiteSiteSettingsService(pool);
 
     this.routeResolver = new PublicSiteRouteResolver();
     this.builder = new PublicSiteRenderableSiteBuilder(siteSettings);
-    this.contextLoader = new PublicSiteRuntimeContextLoader(events, entries, this.routeResolver);
+    this.contextLoader = new PublicSiteRuntimeContextLoader(events, entries, actions, this.routeResolver);
     this.renderer = new PublicSiteRenderer(events, entries, this.routeResolver);
   }
 

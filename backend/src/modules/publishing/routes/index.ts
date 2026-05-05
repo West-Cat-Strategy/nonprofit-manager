@@ -6,6 +6,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
+import { publicSiteAnalyticsLimiterMiddleware } from '@middleware/domains/platform';
 import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import * as publishingController from '../controllers';
@@ -776,6 +777,7 @@ router.get('/admin/cache/profiles', publishingController.getPerformanceCacheCont
 // Record analytics event (called from published sites)
 router.post(
   '/:siteId/track',
+  publicSiteAnalyticsLimiterMiddleware,
   validateParams(siteIdParamsSchema),
   validateBody(analyticsTrackSchema),
   publishingController.recordAnalytics

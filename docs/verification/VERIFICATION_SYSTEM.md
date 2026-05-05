@@ -1,24 +1,24 @@
-# Verification System
-This repository uses `make` targets and selector-backed compatibility wrappers,
-not a project bible.
+# Historical Verification Helpers
 
-## Entry points
-- `make lint`, `make typecheck`, `make test`, and the narrower package/test
-  targets in `scripts/README.md` are the supported verification contracts.
-- `./scripts/select-checks.sh --mode fast` prints the smallest safe check set
-  for the changed files. Use `--mode strict` for shared runtime
-  orchestration, hooks, or higher-confidence handoff proof.
-- `./scripts/verify.sh` is a supported compatibility wrapper around
-  `select-checks.sh`. It runs the selected commands in order, and accepts
-  `--print-only` for safe inspection.
-- `./scripts/verify-pr.sh <PR_NUMBER>` is a supported compatibility wrapper for
-  PR file lists. It reads changed files through `gh pr diff`, delegates to
-  `select-checks.sh`, and runs the selected commands in order. Use
-  `--print-only` before running an unfamiliar PR lane.
+This directory is retained for reproducing older verification notes. It is not
+the active verification contract.
 
-## Historical note
+## Supported Verification Contract
 
-Older verification notes may mention a broad, bespoke `verify.sh` sequence or a
-PR-number-specific `verify-pr.sh`. Those flows are historical. Keep them as
-reproduction context only; current work should use the Makefile targets directly
-or the selector-backed wrappers above.
+Use the local Make and selector entry points for current work:
+
+- `make test-tooling` for selector, OpenAPI, route-audit, helper-script, and wrapper contract changes.
+- `./scripts/select-checks.sh --mode fast` for a scoped recommendation from the current changed-file set.
+- `make ci-full` for the broad host/full local gate.
+
+See [../testing/TESTING.md](../testing/TESTING.md) for the active test-command
+map and [../../scripts/README.md](../../scripts/README.md) for the helper-script
+index.
+
+## Reproduction Helpers
+
+- `../../scripts/verify.sh` is a historical reproduction helper for the former broad verifier. By default it prints the current supported contract; pass `--run-legacy` to replay the old sequence.
+- `../../scripts/verify-pr.sh` is a historical reproduction helper for the former PR-number verifier. By default it prints the current supported contract; pass `--run-legacy` to replay the old GitHub CLI metadata and file-presence checks.
+
+Do not use these scripts as signoff gates for new work. Record new validation
+proof against the Make and selector commands above.

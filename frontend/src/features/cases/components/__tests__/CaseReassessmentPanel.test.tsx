@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import CaseReassessmentPanel from '../CaseReassessmentPanel';
 import { casesApiClient } from '../../api/casesApiClient';
 
@@ -60,6 +60,25 @@ const reassessment = {
   updated_at: '2031-12-01T00:00:00.000Z',
 };
 
+const todayDate = (): Date => {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  return date;
+};
+
+const addDays = (date: Date, days: number): Date => {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+};
+
+const toDateInput = (date: Date): string =>
+  [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-');
+
 describe('CaseReassessmentPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -76,6 +95,10 @@ describe('CaseReassessmentPanel', () => {
     });
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('shows current reassessment state and opens the create form', async () => {
     render(<CaseReassessmentPanel caseId="case-1" defaultOwnerUserId="owner-1" />);
 
@@ -88,6 +111,67 @@ describe('CaseReassessmentPanel', () => {
     expect(screen.getByLabelText(/^title$/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/due date/i)).toBeInTheDocument();
     expect(screen.queryByLabelText(/owner user id/i)).not.toBeInTheDocument();
+  });
+
+  it('surfaces overdue reassessment cues for staff follow-through', async () => {
+    const today = todayDate();
+
+    vi.mocked(casesApiClient.listCaseReassessments).mockResolvedValue([
+      {
+        ...reassessment,
+        earliest_review_date: toDateInput(addDays(today, -10)),
+        due_date: toDateInput(addDays(today, -5)),
+        latest_review_date: toDateInput(addDays(today, 5)),
+      },
+    ]);
+
+    render(<CaseReassessmentPanel caseId="case-1" defaultOwnerUserId="owner-1" />);
+
+    expect(await screen.findByText('Overdue')).toBeInTheDocument();
+    expect(screen.getByText('Overdue by 5 days')).toBeInTheDocument();
+    expect(
+      screen.getByText('Complete the reassessment or update the due date before closing the case plan.')
+    ).toBeInTheDocument();
+  });
+
+  it('surfaces open review-window cues before the due date', async () => {
+    const today = todayDate();
+
+    vi.mocked(casesApiClient.listCaseReassessments).mockResolvedValue([
+      {
+        ...reassessment,
+        earliest_review_date: toDateInput(addDays(today, -5)),
+        due_date: toDateInput(addDays(today, 5)),
+        latest_review_date: toDateInput(addDays(today, 10)),
+      },
+    ]);
+
+    render(<CaseReassessmentPanel caseId="case-1" />);
+
+    expect(await screen.findByText('In window')).toBeInTheDocument();
+    expect(screen.getByText('Review window open; due in 5 days')).toBeInTheDocument();
+    expect(screen.getByText(/Latest review date is/)).toBeInTheDocument();
+  });
+
+  it('keeps recent completed reassessment evidence visible', async () => {
+    vi.mocked(casesApiClient.listCaseReassessments).mockResolvedValue([
+      {
+        ...reassessment,
+        id: 'reassessment-completed',
+        status: 'completed',
+        completion_summary: 'Housing plan reviewed',
+        completed_at: '2032-01-16T10:00:00.000Z',
+      },
+    ]);
+
+    render(<CaseReassessmentPanel caseId="case-1" />);
+
+    expect(await screen.findByText('Recent reassessment history')).toBeInTheDocument();
+    expect(screen.getByText(/Completed .*2032/)).toBeInTheDocument();
+    expect(screen.getAllByText('Housing plan reviewed').length).toBeGreaterThan(0);
+    expect(
+      screen.getByText((_, node) => node?.textContent === 'Completion: Housing plan reviewed')
+    ).toBeInTheDocument();
   });
 
   it('requires an outcome when completing a reassessment', async () => {

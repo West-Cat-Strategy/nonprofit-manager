@@ -231,6 +231,11 @@ router.post(
 );
 
 publicRouter.get(
+  '/view/:token',
+  validateParams(unsubscribeTokenParamsSchema),
+  communicationsController.getBrowserView
+);
+publicRouter.get(
   '/unsubscribe/:token',
   validateParams(unsubscribeTokenParamsSchema),
   communicationsController.getUnsubscribe

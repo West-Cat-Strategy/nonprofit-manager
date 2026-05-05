@@ -14,6 +14,7 @@ import type {
   DnsRecord,
 } from '@app-types/publishing';
 import { SiteManagementService } from './siteManagementService';
+import { buildPublicSiteCnameTarget } from './publicSiteUrlService';
 
 const resolveCname = promisify(dns.resolveCname);
 const resolveTxt = promisify(dns.resolveTxt);
@@ -62,7 +63,7 @@ export class CustomDomainService {
       dnsRecords.push({
         type: 'CNAME',
         name: domain,
-        value: `${site.subdomain || site.id}.sites.westcat.ca`,
+        value: buildPublicSiteCnameTarget(site),
         verified: false,
       });
     } else {
@@ -75,7 +76,7 @@ export class CustomDomainService {
       dnsRecords.push({
         type: 'CNAME',
         name: domain,
-        value: `${site.subdomain || site.id}.sites.westcat.ca`,
+        value: buildPublicSiteCnameTarget(site),
         verified: false,
       });
     }

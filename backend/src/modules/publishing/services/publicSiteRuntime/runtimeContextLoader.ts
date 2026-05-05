@@ -1,5 +1,7 @@
 import type { EventService } from '@modules/events/services/eventService';
 import type { PublishedSite } from '@app-types/publishing';
+import type { PublicAction } from '@app-types/websiteBuilder';
+import type { PublicActionService } from '@services/publishing/publicActionService';
 import type { WebsiteEntryService } from '@services/publishing/websiteEntryService';
 import { PublicSiteRouteResolver } from './routeResolver';
 import {
@@ -16,15 +18,19 @@ type WebsiteEntriesPort = Pick<
   | 'listPublicBlogEntries'
   | 'getPublicBlogEntryBySlug'
 >;
+type PublicActionsPort = Pick<PublicActionService, 'listPublishedActionsForSite'>;
 
 export class PublicSiteRuntimeContextLoader {
   constructor(
     private readonly events: PublicEventsPort,
     private readonly entries: WebsiteEntriesPort,
+    private readonly actions: PublicActionsPort,
     private readonly routeResolver: PublicSiteRouteResolver
   ) {}
 
   async loadContext(site: PublishedSite, resolved: ResolvedRoute): Promise<RuntimeContext | null> {
+    const publicActions: PublicAction[] = await this.actions.listPublishedActionsForSite(site);
+
     if (resolved.kind === 'eventsIndex') {
       return {
         kind: 'eventsIndex',
@@ -37,6 +43,7 @@ export class PublicSiteRuntimeContextLoader {
           })
         ).items,
         detailPathPattern: this.routeResolver.getDetailPathPattern(site, 'events'),
+        publicActions,
       };
     }
 
@@ -50,6 +57,7 @@ export class PublicSiteRuntimeContextLoader {
         kind: 'eventDetail',
         event,
         detailPathPattern: this.routeResolver.getDetailPathPattern(site, 'events'),
+        publicActions,
       };
     }
 
@@ -64,6 +72,7 @@ export class PublicSiteRuntimeContextLoader {
           })
         ).items,
         detailPathPattern: this.routeResolver.getDetailPathPattern(site, 'newsletters'),
+        publicActions,
       };
     }
 
@@ -77,6 +86,7 @@ export class PublicSiteRuntimeContextLoader {
         kind: 'newsletterDetail',
         entry,
         detailPathPattern: this.routeResolver.getDetailPathPattern(site, 'newsletters'),
+        publicActions,
       };
     }
 
@@ -91,6 +101,7 @@ export class PublicSiteRuntimeContextLoader {
           })
         ).items,
         detailPathPattern: this.routeResolver.getDetailPathPattern(site, 'blog'),
+        publicActions,
       };
     }
 
@@ -104,9 +115,10 @@ export class PublicSiteRuntimeContextLoader {
         kind: 'blogDetail',
         entry,
         detailPathPattern: this.routeResolver.getDetailPathPattern(site, 'blog'),
+        publicActions,
       };
     }
 
-    return { kind: 'static' };
+    return { kind: 'static', publicActions };
   }
 }

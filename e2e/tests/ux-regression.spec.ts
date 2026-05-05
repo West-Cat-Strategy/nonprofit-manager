@@ -882,6 +882,96 @@ test.describe("UI/UX regression flows", () => {
     ).toBeVisible();
     await expectNoHorizontalOverflow(authenticatedPage, "/settings/navigation");
 
+    await ensureEffectiveAdminLoginViaAPI(authenticatedPage);
+    const adminResponsiveChecks: Array<{
+      path: string;
+      heading: RegExp;
+      action: RegExp;
+      expectPortalTriage?: boolean;
+    }> = [
+      {
+        path: "/settings/admin/dashboard",
+        heading: /admin hub|admin settings/i,
+        action: /invite user|refresh status/i,
+      },
+      {
+        path: "/settings/admin/portal/access",
+        heading: /portal ops|client portal access/i,
+        action: /refresh/i,
+        expectPortalTriage: true,
+      },
+      {
+        path: "/settings/admin/portal/users",
+        heading: /portal ops|portal users/i,
+        action: /refresh/i,
+        expectPortalTriage: true,
+      },
+      {
+        path: "/settings/admin/portal/conversations",
+        heading: /portal ops|portal conversations/i,
+        action: /refresh conversations/i,
+        expectPortalTriage: true,
+      },
+      {
+        path: "/settings/admin/portal/appointments",
+        heading: /portal ops|appointment inbox/i,
+        action: /refresh inbox/i,
+        expectPortalTriage: true,
+      },
+      {
+        path: "/settings/admin/portal/slots",
+        heading: /portal ops|appointment slots/i,
+        action: /refresh slots/i,
+        expectPortalTriage: true,
+      },
+      {
+        path: "/settings/api",
+        heading: /api settings|api & webhooks/i,
+        action: /add webhook/i,
+      },
+      {
+        path: "/settings/backup",
+        heading: /data backup/i,
+        action: /download backup/i,
+      },
+    ];
+
+    for (const check of adminResponsiveChecks) {
+      const routeState = await gotoAdminRouteWithFallback(
+        authenticatedPage,
+        check.path,
+        check.heading,
+      );
+      if (routeState === "redirected") {
+        continue;
+      }
+
+      await expect(
+        authenticatedPage.getByRole("heading", { name: check.heading }).first(),
+      ).toBeVisible();
+      await expect(
+        authenticatedPage
+          .getByRole("combobox", { name: /admin workspaces|portal ops/i })
+          .first(),
+      ).toBeVisible();
+      if (check.expectPortalTriage) {
+        await expect(
+          authenticatedPage.getByRole("heading", { name: /portal triage/i }),
+        ).toBeVisible();
+      }
+      const actionButtons = authenticatedPage.getByRole("button", {
+        name: check.action,
+      });
+      const actionLinks = authenticatedPage.getByRole("link", {
+        name: check.action,
+      });
+      expect(
+        (await actionButtons.count()) + (await actionLinks.count()),
+        `Expected ${check.action.toString()} on ${check.path}`,
+      ).toBeGreaterThan(0);
+      await expectNoHorizontalOverflow(authenticatedPage, check.path);
+    }
+
     expectNoRuntimeIssues("mobile staff route coverage", runtimeIssues);
     runtimeIssues.detach();
   });

@@ -115,3 +115,6 @@
 115	115_website_public_actions.sql
 116	116_typed_fund_designations.sql
 117	117_local_newsletter_double_opt_in.sql
+118	118_case_closure_checklists.sql
+119	119_worker_scheduler_health.sql
+120	120_portal_signup_manual_no_match.sql

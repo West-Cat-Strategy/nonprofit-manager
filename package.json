@@ -9,6 +9,8 @@
     "e2e"
   ],
   "scripts": {
+    "audit": "npm audit --workspaces --include-workspace-root --audit-level=moderate",
+    "audit:prod": "npm audit --omit=dev --workspaces --include-workspace-root --audit-level=moderate",
     "build": "make build",
     "clean-local": "make clean-local",
     "knip": "knip --config knip.json --include files,dependencies,unlisted,unresolved,binaries",
@@ -16,6 +18,9 @@
     "sbom": "npm sbom --sbom-format cyclonedx",
     "test": "make test",
     "typecheck": "make typecheck"
+  },
+  "engines": {
+    "node": ">=20.19.0"
   },
   "overrides": {
     "ajv": "^6.14.0",
@@ -44,6 +49,7 @@
     "vite": "^8.0.10"
   },
   "devDependencies": {
-    "knip": "^6.6.3"
+    "knip": "^6.6.3",
+    "yaml": "^2.8.3"
   }
 }

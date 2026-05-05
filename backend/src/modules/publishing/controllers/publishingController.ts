@@ -19,6 +19,7 @@ import { guardWithRole } from '@services/authGuardService';
 import { extractPagination } from '@utils/queryHelpers';
 import { sendSuccess } from '@modules/shared/http/envelope';
 import { getCacheControlHeader, siteCacheService } from '@services/siteCacheService';
+import { getSiteKeyFromPublicHostname } from '@services/publishing/publicSiteUrlService';
 
 const parseIntQuery = (value: unknown, fallback: number): number => {
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -38,6 +39,12 @@ const resolvePublishedSiteFromRequest = async (req: Request) => {
   if (subdomain) {
     const siteBySubdomain = await publishingService.getSiteBySubdomain(subdomain);
     if (siteBySubdomain) return siteBySubdomain;
+  }
+
+  const publicHostSiteKey = getSiteKeyFromPublicHostname(req.hostname);
+  if (publicHostSiteKey) {
+    const siteByPublicHost = await publishingService.getSiteBySubdomain(publicHostSiteKey);
+    if (siteByPublicHost) return siteByPublicHost;
   }
 
   return publishingService.getSiteByDomain(req.hostname);

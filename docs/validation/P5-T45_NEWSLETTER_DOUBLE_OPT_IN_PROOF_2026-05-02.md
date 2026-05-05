@@ -50,6 +50,28 @@ node scripts/check-auth-guard-policy.ts
 node scripts/check-migration-manifest-policy.ts
 ```
 
+Verification refresh, 2026-05-03:
+
+```bash
+cd backend && npx jest --runTestsByPath src/__tests__/services/publishing/publicWebsiteFormService.test.ts src/__tests__/services/emailService.test.ts src/__tests__/middleware/csrf.test.ts --runInBand
+cd backend && npm run type-check
+cd backend && npm run lint
+node scripts/check-migration-manifest-policy.ts
+make lint-route-validation
+make lint-v2-module-ownership
+node scripts/check-auth-guard-policy.ts
+```
+
+The refresh confirmed the pending-only public signup behavior, confirmation email link generation, generic invalid-token response, CRM/provider handoff after valid confirmation, CSRF exception limited to newsletter confirmation POST, route validation, v2 ownership, auth-guard policy, and migration manifest policy.
+
+Database verification recovery, 2026-05-03:
+
+```bash
+make db-verify
+```
+
+The recovery pass found Docker Desktop's configured socket path (`/Users/bryan/.docker/run/docker.sock`) missing while `/var/run/docker.sock` pointed to it. Opening Docker Desktop restored the socket, and `make db-verify` then passed manifest/initdb parity, isolated test database, canonical migration order, foreign key, starter row, app-role/RLS, superseded-index, and audit partition checks.
+
 Related review-row proof re-run:
 
 ```bash
@@ -59,6 +81,5 @@ cd frontend && npm test -- --run src/components/__tests__/DonationForm.test.tsx 
 
 Known validation notes:
 
-- `make db-verify` is blocked before database verification starts because Docker is unavailable at `/Users/bryan/.docker/run/docker.sock`.
 - Direct focused Jest emits the existing `--localstorage-file` warning while still passing.
 - Public intake resolution audit best-effort logging emits expected connection-refused noise in the mocked public website form tests; the tests still pass.

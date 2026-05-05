@@ -1,20 +1,9 @@
 import express from 'express';
 import request from 'supertest';
 
-const mailchimpServiceMocks = {
-  cancelCampaignRun: jest.fn(),
-  rescheduleCampaignRun: jest.fn(),
-};
-
 jest.mock('../../modules/mailchimp/services/mailchimpService', () => ({
-  UnsupportedMailchimpCampaignRunActionError: class UnsupportedMailchimpCampaignRunActionError extends Error {
-    readonly statusCode = 405;
-    readonly code = 'method_not_allowed';
-  },
   mailchimpService: {
-    cancelCampaignRun: (...args: unknown[]) => mailchimpServiceMocks.cancelCampaignRun(...args),
-    rescheduleCampaignRun: (...args: unknown[]) =>
-      mailchimpServiceMocks.rescheduleCampaignRun(...args),
+    isMailchimpConfigured: jest.fn(() => true),
   },
 }));
 
@@ -42,12 +31,6 @@ describe('mailchimp campaign run unsupported provider actions', () => {
   });
 
   it('returns 405 for cancel instead of a successful unsupported action payload', async () => {
-    mailchimpServiceMocks.cancelCampaignRun.mockRejectedValueOnce({
-      statusCode: 405,
-      code: 'method_not_allowed',
-      message: 'Mailchimp campaign cancellation is not supported by this backend contract yet',
-    });
-
     const response = await request(buildApp())
       .post('/api/v2/mailchimp/campaign-runs/11111111-1111-4111-8111-111111111111/cancel')
       .send({})
@@ -57,19 +40,12 @@ describe('mailchimp campaign run unsupported provider actions', () => {
       success: false,
       error: {
         code: 'method_not_allowed',
-        message: 'Mailchimp campaign cancellation is not supported by this backend contract yet',
+        message: 'Mailchimp campaign-run cancellation is not implemented by this backend contract.',
       },
     });
-    expect(mailchimpServiceMocks.cancelCampaignRun).toHaveBeenCalledTimes(1);
   });
 
   it('returns 405 for reschedule instead of a successful unsupported action payload', async () => {
-    mailchimpServiceMocks.rescheduleCampaignRun.mockRejectedValueOnce({
-      statusCode: 405,
-      code: 'method_not_allowed',
-      message: 'Mailchimp campaign rescheduling is not supported by this backend contract yet',
-    });
-
     const response = await request(buildApp())
       .post('/api/v2/mailchimp/campaign-runs/11111111-1111-4111-8111-111111111111/reschedule')
       .send({})
@@ -79,9 +55,8 @@ describe('mailchimp campaign run unsupported provider actions', () => {
       success: false,
       error: {
         code: 'method_not_allowed',
-        message: 'Mailchimp campaign rescheduling is not supported by this backend contract yet',
+        message: 'Mailchimp campaign-run rescheduling is not implemented by this backend contract.',
       },
     });
-    expect(mailchimpServiceMocks.rescheduleCampaignRun).toHaveBeenCalledTimes(1);
   });
 });

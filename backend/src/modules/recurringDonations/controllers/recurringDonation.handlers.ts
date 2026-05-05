@@ -34,30 +34,18 @@ const ensurePermission = (req: AuthRequest, res: Response, permission: Permissio
 };
 
 const handleServiceError = (res: Response, error: unknown, fallbackMessage: string): void => {
-  const message =
-    error instanceof Error
-      ? error.message
-      : typeof (error as { message?: unknown })?.message === 'string'
-        ? (error as { message: string }).message
-        : fallbackMessage;
-  const statusCode =
-    typeof error === 'object' && error !== null
-      ? (error as { statusCode?: number }).statusCode
-      : undefined;
-  if (statusCode && statusCode >= 400 && statusCode < 500) {
-    badRequest(res, message);
-    return;
-  }
-
+  const message = error instanceof Error ? error.message : fallbackMessage;
   const normalized = message.toLowerCase();
-  if (
+  const likelyClientError =
     normalized.includes('invalid') ||
     normalized.includes('not found') ||
     normalized.includes('missing') ||
     normalized.includes('must') ||
+    normalized.includes('not yet connected') ||
     normalized.includes('not supported') ||
-    normalized.includes('only supported')
-  ) {
+    normalized.includes('only supported');
+
+  if (likelyClientError) {
     badRequest(res, message);
     return;
   }

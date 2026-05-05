@@ -133,11 +133,12 @@ describe('WebsitesListPage', () => {
       '/websites/site-1/builder'
     );
     expect(screen.getByText('Showing 21-40 of 42 websites.')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Preview' })).toHaveAttribute(
+    expect(screen.getByText(/Public-site URL:/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Public site' })).toHaveAttribute(
       'href',
       'https://preview.mutualaid.org'
     );
-    expect(screen.getByRole('link', { name: 'Preview' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Public site' })).toHaveAttribute(
       'rel',
       'noopener noreferrer'
     );

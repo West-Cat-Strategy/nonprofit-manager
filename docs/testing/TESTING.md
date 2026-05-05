@@ -1,6 +1,6 @@
 # Testing Guide
 
-**Last Updated:** 2026-04-29
+**Last Updated:** 2026-05-05
 
 This file is the active test command map for nonprofit-manager. Use [../../CONTRIBUTING.md](../../CONTRIBUTING.md) for contributor workflow and [../development/GETTING_STARTED.md](../development/GETTING_STARTED.md) for runtime setup and ports; use this file when you need to choose the right validation command.
 
@@ -15,6 +15,7 @@ CI/CD is local-only. GitHub remains the repository host, but tracked GitHub Acti
 | Backend Jest integration workflow | Active, scoped | [INTEGRATION_TEST_GUIDE.md](INTEGRATION_TEST_GUIDE.md) |
 | Playwright runtime wrappers and browser contracts | Active, scoped | [../../e2e/README.md](../../e2e/README.md) |
 | Dark-mode accessibility audit flow | Active, focused | [DARK_MODE_ACCESSIBILITY_AUDIT.md](DARK_MODE_ACCESSIBILITY_AUDIT.md) |
+| Legacy verifier reproduction notes | Historical only | [../verification/VERIFICATION_SYSTEM.md](../verification/VERIFICATION_SYSTEM.md) |
 | Historical testing references | Historical only | [archive/README.md](archive/README.md) |
 
 ## Test Layers
@@ -29,8 +30,8 @@ CI/CD is local-only. GitHub remains the repository host, but tracked GitHub Acti
 | Backend unit/integration | `cd backend && npm test` / `cd backend && npm test -- src/__tests__/integration` | `npm test` still prepares the CI-style test DB before running Jest. Plain backend `npx jest ...` runs in `NODE_ENV=test` now inherit the same isolated test DB contract (`127.0.0.1:8012/nonprofit_manager_test`, `postgres/postgres`) when `DB_*` is not explicitly set. |
 | Frontend unit/component | `cd frontend && npm test -- --run` | Frontend uses Vitest |
 | E2E | `cd e2e && npm test` | Wrapper-driven host commands use the Playwright-managed `5173/3001` contract; `npm run test:docker*` default to the externally managed Docker contract on `8005/8004`, and `make test-e2e-docker-smoke` provisions an isolated Docker smoke stack on `18005/18004`. For the broader Docker review lane, the externally managed backend must also be launched with `NODE_ENV=test`, `DEV_BYPASS_REGISTRATION_POLICY_IN_TEST=true`, and `DEV_BYPASS_MFA_FOR_TESTS=true`; the wrapper cannot retrofit those backend env flags onto an already-running stack. Docker dev/review stacks now keep Mailchimp unconfigured by default unless you explicitly set `DEV_MAILCHIMP_API_KEY` and `DEV_MAILCHIMP_SERVER_PREFIX`, which prevents placeholder `.env.development` values from turning route-health checks into false `500`s. The Docker-only fresh-workspace MFA proof remains a separate direct-run lane with `BYPASS_MFA_FOR_TESTS=false`. `Mobile Safari` and `Tablet` are available as manual/ad hoc `--project` runs, not CI-gated projects. Use `E2E_RUNNER_ACTION=kill` only when you intentionally want a targeted rerun to take ownership of the shared Playwright lock. |
-| Docs validation | `make check-links` | Use for any docs change; add `make lint-doc-api-versioning` when API wording/examples or versioned API docs changed |
-| Tooling regression coverage | `make test-tooling` | Targeted contract suite for route-audit, selector, helper-script, and wrapper changes |
+| Docs validation | `make check-links` | Use for any docs change; add `make lint-doc-api-versioning` when API wording/examples or versioned API docs changed; add `make lint-openapi` when `docs/api/openapi.yaml` changed |
+| Tooling regression coverage | `make test-tooling` | Targeted contract suite for route-audit, OpenAPI contract lint, selector, helper-script, and wrapper changes |
 
 ## Local Release Gates
 
@@ -46,7 +47,8 @@ Use `make release-check` for release-facing proof and before cutting a deploy ca
 
 | Context | Frontend | Backend | Notes |
 |---------|----------|---------|-------|
-| Docker development | `8005` | `8004` | Started with `make dev` |
+| Docker development, lean | `8005` | `8004` | Started with `make dev-lite`; omits public-site/Caddy for daily API/app work |
+| Docker development, full | `8005` | `8004` | Started with `make dev`; includes public-site on `8006` |
 | Direct backend runtime | n/a | `3000` | `cd backend && npm run dev` |
 | E2E harness | `5173` | `3001` | Started by Playwright |
 | Docker-backed E2E (manual dev stack) | `8005` | `8004` | Start with `make docker-up-dev`, then run `cd e2e && npm run test:docker*` |
@@ -87,12 +89,16 @@ make test-tooling
 `make ci-full` also runs the production build step and `make security-audit` after the full coverage lane.
 
 `make ci-unit` remains a relaxed, non-gating developer signal for backend/frontend unit coverage only. It is useful for quick local feedback, but it is not the repo's full coverage acceptance path.
-`make test-tooling` is the targeted regression suite for selector, route-catalog audit, wrapper, and shell-helper contract changes.
+`make test-tooling` is the targeted regression suite for selector, OpenAPI contract lint, route-catalog audit, wrapper, and shell-helper contract changes.
+The old `scripts/verify.sh` and `scripts/verify-pr.sh` entrypoints are retained only as historical reproduction helpers and are not current signoff gates.
 
 ## Security And Policy Checks
 
 - `make lint` runs package linting plus the shared policy gates, including route validation, auth guards, rate-limit key policy, migration manifest policy, route catalog drift, implementation-size, and deleted-path guards.
-- `make security-audit` runs npm audit across the workspace packages.
+- `make lint-openapi` validates `docs/api/openapi.yaml` locally for YAML parse errors, local `$ref` integrity, route path-parameter coverage, and basic operation/response shape.
+- `make security-audit` runs `npm run audit:prod`, the local production-dependency audit across the root and workspace packages.
+- `npm run audit` is the broader local dependency audit including dev dependencies.
+- `npm run knip` is the local dead-code/dependency routing check. The selector emits it for package, lockfile, or `knip.json` changes.
 - `make security-scan` runs the audit lane plus secret scanning when `gitleaks` is available locally.
 - `make ci-full` includes `make security-audit`, but it does not replace the broader `make security-scan` lane when secret-scan evidence is required.
 - GitHub security settings should keep Dependabot alerts/security updates, secret scanning, push protection, and validity checks enabled when available for the repo plan.
@@ -158,6 +164,8 @@ This slice proves the current website/public-runtime contract without widening i
 - `tests/public-website.spec.ts`: public runtime rendering and submission behavior for the published managed form plus the existing public website slices
 
 Pair that command with `make check-links` when the same task updates website or testing docs.
+
+When the change touches the public-site container connection, pair the host slice with a Docker/Caddy config check and, when the local stack is available, a browser proof against `http://<site-subdomain>.sites.localhost`. That proof exercises the `public-site` or `public-site-dev` container as the serving surface while keeping public action submissions same-origin under `/api/v2/public/*`.
 
 ## Targeted Local-First Communications Proof
 
@@ -267,6 +275,7 @@ When the change set does not justify the full suite, use the repo selector:
 ```
 
 Use `--mode strict` when the change touches shared runtime orchestration, Docker/test wrappers, hooks, or runtime-facing docs and you want the selector to broaden into higher-confidence root checks.
+The selector includes committed changes, staged changes, dirty tracked files, and untracked files by default. Pass `--files "<file list>"` when you need to test a planned or synthetic file set instead of the current worktree.
 Run the emitted commands in order.
 Code and runtime changes should include at least one behavior-test command; docs-only changes stay on `make check-links` unless API wording/examples changed.
 

@@ -3,16 +3,23 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { meetingsApiClient } from '../api/meetingsApiClient';
 import type { MeetingDetail } from '../types/meeting';
 
-type MinutesDraftStatus = 'idle' | 'generating' | 'ready' | 'copied' | 'downloaded' | 'error';
-
-const getMinutesDraftFilename = (meeting: MeetingDetail | null, id: string | undefined): string => {
-  const title = meeting?.meeting.title || (id ? `meeting-${id}` : 'meeting');
-  const slug = title
+const slugifyForFilename = (value: string): string => {
+  const slug = value
+    .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 
-  return `${slug || 'meeting'}-minutes-draft.md`;
+  return slug || 'meeting';
+};
+
+const buildMinutesDraftFilename = (meetingDetail: MeetingDetail | null): string => {
+  if (!meetingDetail) return 'meeting-minutes-draft.md';
+
+  const date = meetingDetail.meeting.starts_at.slice(0, 10) || 'undated';
+  const title = slugifyForFilename(meetingDetail.meeting.title);
+
+  return `${date}-${title}-minutes-draft.md`;
 };
 
 export const useMeetingDetailPage = () => {
@@ -21,8 +28,9 @@ export const useMeetingDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [minutesDraftMarkdown, setMinutesDraftMarkdown] = useState<string | null>(null);
-  const [minutesDraftStatus, setMinutesDraftStatus] = useState<MinutesDraftStatus>('idle');
-  const [minutesDraftMessage, setMinutesDraftMessage] = useState<string | null>(null);
+  const [minutesDraftLoading, setMinutesDraftLoading] = useState(false);
+  const [minutesDraftError, setMinutesDraftError] = useState<string | null>(null);
+  const [minutesDraftCopied, setMinutesDraftCopied] = useState(false);
   const navigate = useNavigate();
 
   const fetchDetail = useCallback(async () => {
@@ -54,74 +62,78 @@ export const useMeetingDetailPage = () => {
 
   const generateMinutes = async () => {
     if (!id) return;
+
     try {
-      setMinutesDraftStatus('generating');
-      setMinutesDraftMessage(null);
+      setMinutesDraftLoading(true);
+      setMinutesDraftError(null);
+      setMinutesDraftCopied(false);
       const { markdown } = await meetingsApiClient.generateMinutesDraft(id);
       setMinutesDraftMarkdown(markdown);
-      setMinutesDraftStatus('ready');
-      setMinutesDraftMessage('Minutes draft ready for review.');
     } catch {
-      setMinutesDraftStatus('error');
-      setMinutesDraftMessage('Failed to generate minutes draft.');
+      setMinutesDraftError('Failed to generate minutes draft');
+    } finally {
+      setMinutesDraftLoading(false);
     }
   };
 
   const copyMinutesDraft = async () => {
     if (!minutesDraftMarkdown) return;
 
-    if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
-      setMinutesDraftStatus('error');
-      setMinutesDraftMessage('Clipboard is not available in this browser.');
+    if (!navigator.clipboard?.writeText) {
+      setMinutesDraftError('Clipboard copy is not available in this browser');
       return;
     }
 
     try {
       await navigator.clipboard.writeText(minutesDraftMarkdown);
-      setMinutesDraftStatus('copied');
-      setMinutesDraftMessage('Minutes markdown copied.');
+      setMinutesDraftCopied(true);
+      setMinutesDraftError(null);
     } catch {
-      setMinutesDraftStatus('error');
-      setMinutesDraftMessage('Failed to copy minutes markdown.');
+      setMinutesDraftCopied(false);
+      setMinutesDraftError('Failed to copy minutes draft');
     }
   };
 
   const downloadMinutesDraft = () => {
-    if (!minutesDraftMarkdown || typeof document === 'undefined') return;
-
-    const url = window.URL.createObjectURL(
-      new Blob([minutesDraftMarkdown], { type: 'text/markdown;charset=utf-8' })
-    );
+    if (!minutesDraftMarkdown) return;
 
     try {
+      const blob = new Blob([minutesDraftMarkdown], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
+
       link.href = url;
-      link.download = getMinutesDraftFilename(meeting, id);
+      link.download = buildMinutesDraftFilename(meeting);
       document.body.appendChild(link);
       link.click();
       link.remove();
-      setMinutesDraftStatus('downloaded');
-      setMinutesDraftMessage('Minutes markdown download started.');
+      URL.revokeObjectURL(url);
+      setMinutesDraftError(null);
     } catch {
-      setMinutesDraftStatus('error');
-      setMinutesDraftMessage('Failed to download minutes markdown.');
-    } finally {
-      window.URL.revokeObjectURL(url);
+      setMinutesDraftError('Failed to download minutes draft');
     }
+  };
+
+  const closeMinutesDraft = () => {
+    setMinutesDraftMarkdown(null);
+    setMinutesDraftError(null);
+    setMinutesDraftCopied(false);
   };
 
   return {
     meeting,
     loading,
     error,
-    minutesDraftMarkdown,
-    minutesDraftStatus,
-    minutesDraftMessage,
     onEdit,
     onBack,
     generateMinutes,
+    minutesDraftMarkdown,
+    minutesDraftLoading,
+    minutesDraftError,
+    minutesDraftCopied,
     copyMinutesDraft,
     downloadMinutesDraft,
+    closeMinutesDraft,
     refresh: fetchDetail,
   };
 };

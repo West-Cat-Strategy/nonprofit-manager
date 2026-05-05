@@ -3,6 +3,7 @@ import request from 'supertest';
 import { csrfMiddleware } from '@middleware/csrf';
 import { successEnvelopeMiddleware } from '@middleware/successEnvelope';
 import { registerV2Routes } from '@routes/v2';
+import { renderLocalCampaignBrowserViewFromToken } from '../services/localCampaignBrowserViewService';
 import { recordLocalUnsubscribeFromToken } from '../services/unsubscribeService';
 import { createPublicCommunicationsRoutes } from '../routes';
 
@@ -10,8 +11,18 @@ jest.mock('../services/unsubscribeService', () => ({
   recordLocalUnsubscribeFromToken: jest.fn().mockResolvedValue({ accepted: true }),
 }));
 
+jest.mock('../services/localCampaignBrowserViewService', () => ({
+  renderLocalCampaignBrowserViewFromToken: jest.fn().mockResolvedValue(
+    '<!doctype html><html><body><p>Hello First name</p></body></html>'
+  ),
+}));
+
 const mockRecordLocalUnsubscribeFromToken =
   recordLocalUnsubscribeFromToken as jest.MockedFunction<typeof recordLocalUnsubscribeFromToken>;
+const mockRenderLocalCampaignBrowserViewFromToken =
+  renderLocalCampaignBrowserViewFromToken as jest.MockedFunction<
+    typeof renderLocalCampaignBrowserViewFromToken
+  >;
 
 const buildApp = () => {
   const app = express();
@@ -94,5 +105,30 @@ describe('public communications unsubscribe routes', () => {
 
     expectGenericUnsubscribeResponse(response.body);
     expect(mockRecordLocalUnsubscribeFromToken).toHaveBeenCalledWith(token);
+  });
+
+  it('returns public browser-view HTML without wrapping it in the success envelope', async () => {
+    const response = await request(buildApp())
+      .get('/api/v2/public/communications/view/signed-token')
+      .expect(200)
+      .expect('Content-Type', /html/);
+
+    expect(response.text).toContain('Hello First name');
+    expect(response.text).not.toContain('"success"');
+    expect(response.headers['cache-control']).toContain('private');
+    expect(mockRenderLocalCampaignBrowserViewFromToken).toHaveBeenCalledWith('signed-token');
+  });
+
+  it('is mounted through the v2 registrar for unauthenticated browser views with encoded tokens', async () => {
+    const token = 'payload.with:special+chars/signature';
+    const encodedToken = encodeURIComponent(token);
+
+    const response = await request(buildRegisteredApp())
+      .get(`/api/v2/public/communications/view/${encodedToken}`)
+      .expect(200)
+      .expect('Content-Type', /html/);
+
+    expect(response.text).toContain('Hello First name');
+    expect(mockRenderLocalCampaignBrowserViewFromToken).toHaveBeenCalledWith(token);
   });
 });

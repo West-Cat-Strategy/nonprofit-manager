@@ -1,4 +1,7 @@
-import { deriveWebsiteManagementSnapshot } from '../../websites/lib/websiteConsole';
+import {
+  deriveWebsiteManagementSnapshot,
+  getWebsiteConsoleUrlTarget,
+} from '../../websites/lib/websiteConsole';
 import {
   getWebsiteFormsPath,
   getWebsiteOverviewPath,
@@ -79,14 +82,21 @@ export const buildBuilderSiteContext = (
 ): BuilderSiteContext => {
   const liveFormCount = overview.forms.filter((form) => form.live).length;
   const followUpWorkspace = resolveBuilderFollowUpWorkspace(overview, liveFormCount);
+  const safePrimaryUrl = getWebsiteConsoleUrlTarget({
+    primaryUrl: overview.deployment.primaryUrl,
+  });
+  const safePreviewUrl = getWebsiteConsoleUrlTarget({
+    previewUrl: overview.deployment.previewUrl,
+    primaryUrl: null,
+  });
 
   return {
     siteId: overview.site.id,
     siteName: overview.site.name,
     siteStatus: overview.site.status,
     blocked: overview.site.blocked,
-    primaryUrl: overview.deployment.primaryUrl,
-    previewUrl: overview.deployment.previewUrl,
+    primaryUrl: safePrimaryUrl || '',
+    previewUrl: safePreviewUrl,
     templateId,
     managedForms: {
       total: overview.forms.length,

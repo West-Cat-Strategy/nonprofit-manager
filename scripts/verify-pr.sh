@@ -1,103 +1,96 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-
-pr_number=""
-mode="strict"
-print_only=0
-
-usage() {
-  cat <<'EOF'
-Usage: scripts/verify-pr.sh <PR_NUMBER> [--mode fast|strict] [--print-only]
-
-Compatibility wrapper for PR-oriented verification. It reads the PR changed-file
-list with gh, delegates check selection to scripts/select-checks.sh, then runs
-the emitted make/package commands in order.
-
-Use --print-only to inspect the selected commands without running them.
-EOF
-}
+run_legacy="${NONPROFIT_MANAGER_RUN_LEGACY_VERIFY:-0}"
+PR=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --mode)
-      mode="${2:-}"
-      shift 2
-      ;;
-    --print-only|--dry-run)
-      print_only=1
+    --run-legacy)
+      run_legacy=1
       shift
       ;;
     -h|--help)
-      usage
+      cat <<'EOF'
+Usage: scripts/verify-pr.sh [--run-legacy] [PR_NUMBER]
+
+Historical reproduction helper for the former PR-number verifier.
+Supported verification now flows through the local Make and selector contract:
+  make test-tooling
+  ./scripts/select-checks.sh --mode fast
+  make ci-full
+
+Pass --run-legacy, or set NONPROFIT_MANAGER_RUN_LEGACY_VERIFY=1, to replay
+the old GitHub CLI metadata and file-presence checks.
+EOF
       exit 0
       ;;
-    -*)
-      echo "Unknown argument: $1" >&2
-      usage >&2
-      exit 2
-      ;;
     *)
-      if [[ -n "$pr_number" ]]; then
+      if [[ -n "$PR" ]]; then
         echo "Unexpected extra argument: $1" >&2
-        usage >&2
         exit 2
       fi
-      pr_number="$1"
+      PR="$1"
       shift
       ;;
   esac
 done
 
-if [[ -z "$pr_number" ]]; then
-  echo "PR number is required." >&2
-  usage >&2
-  exit 2
-fi
+PR="${PR:-9}"
 
-if ! command -v gh >/dev/null 2>&1; then
-  echo "GitHub CLI (gh) is required for PR verification." >&2
-  exit 127
-fi
+if [[ "$run_legacy" != "1" ]]; then
+  cat <<EOF
+=== historical PR verifier re-homed ===
 
-changed_files=()
-while IFS= read -r file; do
-  [[ -n "$file" ]] && changed_files+=("$file")
-done < <(gh pr diff "$pr_number" --name-only)
-if [[ ${#changed_files[@]} -eq 0 ]]; then
-  echo "PR #$pr_number has no changed files according to gh pr diff." >&2
+scripts/verify-pr.sh is kept only as a historical reproduction helper.
+It is not the supported PR or repository verification contract.
+
+Use the current supported entry points instead:
+  make test-tooling
+  ./scripts/select-checks.sh --mode fast
+  make ci-full
+
+To replay the old PR metadata/file-presence verifier intentionally, run:
+  ./scripts/verify-pr.sh --run-legacy $PR
+EOF
   exit 1
 fi
 
-files_arg="$(printf '%s\n' "${changed_files[@]}")"
-commands=()
-while IFS= read -r command; do
-  [[ -n "$command" ]] && commands+=("$command")
-done < <("$SCRIPT_DIR/select-checks.sh" --mode "$mode" --files "$files_arg")
+echo "=== PR verification: #$PR ==="
 
-if [[ "$print_only" -eq 1 ]]; then
-  if [[ ${#commands[@]} -gt 0 ]]; then
-    printf '%s\n' "${commands[@]}"
+echo
+echo "1. PR metadata"
+gh pr view "$PR" --json number,title,state,url,files
+
+echo
+echo "2. PR changed files"
+gh pr diff "$PR" --name-only
+
+echo
+echo "3. PR patch summary"
+gh pr diff "$PR" --patch | git apply --stat
+
+echo
+echo "4. Verify PR files exist in current checkout"
+missing=0
+while IFS= read -r file; do
+  if [[ -f "$file" ]]; then
+    echo "OK: $file"
+  else
+    echo "MISSING: $file"
+    missing=1
   fi
-  exit 0
-fi
+done < <(gh pr diff "$PR" --name-only)
 
-echo "=== PR verification compatibility wrapper: #$pr_number ==="
-echo "Mode: $mode"
-echo
-
-echo "Changed files:"
-printf '  %s\n' "${changed_files[@]}"
-echo
-
-if [[ ${#commands[@]} -gt 0 ]]; then
-  for command in "${commands[@]}"; do
-    echo ">>> $command"
-    (cd "$PROJECT_ROOT" && bash -lc "$command")
-  done
+if [[ "$missing" -ne 0 ]]; then
+  echo
+  echo "Verification failed: one or more PR files are missing from current checkout."
+  exit 1
 fi
 
 echo
-echo "=== PR verification complete ==="
+echo "5. Docker-dependent E2E execution"
+echo "SKIPPED: Playwright webServer requires Docker migration scripts on this repo."
+
+echo
+echo "=== PR verification complete: metadata, patch, and file-presence checks passed ==="

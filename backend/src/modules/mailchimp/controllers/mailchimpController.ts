@@ -24,12 +24,8 @@ import {
   serverError,
   serviceUnavailable,
 } from '@utils/responseHelpers';
-import { sendProviderAck, sendSuccess } from '@modules/shared/http/envelope';
+import { sendError, sendProviderAck, sendSuccess } from '@modules/shared/http/envelope';
 import type { DataScopeFilter } from '@app-types/dataScope';
-import {
-  handleCampaignRunActionResult,
-  handleUnsupportedCampaignRunAction,
-} from './campaignRunActionResponses';
 
 const isMailchimpNotFoundError = (error: unknown): boolean => {
   return typeof error === 'object' && error !== null && (error as { status?: number }).status === 404;
@@ -804,6 +800,18 @@ export const sendCampaignTest = async (req: AuthRequest, res: Response): Promise
   }
 };
 
+const handleCampaignRunActionResult = (
+  res: Response,
+  result: Awaited<ReturnType<typeof mailchimpService.sendCampaignRun>>
+): void => {
+  if (!result) {
+    notFoundMessage(res, 'Campaign run not found');
+    return;
+  }
+
+  sendSuccess(res, result);
+};
+
 export const sendCampaignRun = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (!mailchimpService.isMailchimpConfigured()) {
@@ -847,36 +855,22 @@ export const refreshCampaignRunStatus = async (
   }
 };
 
-export const cancelCampaignRun = async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const result = await mailchimpService.cancelCampaignRun(
-      req.params.runId,
-      getRequesterScopeAccountIds(req)
-    );
-    handleCampaignRunActionResult(res, result);
-  } catch (error) {
-    if (handleUnsupportedCampaignRunAction(res, error)) {
-      return;
-    }
-    logger.error('Error canceling campaign run', { error });
-    serverError(res, 'Failed to cancel campaign run');
-  }
+export const cancelCampaignRun = async (_req: AuthRequest, res: Response): Promise<void> => {
+  sendError(
+    res,
+    'method_not_allowed',
+    'Mailchimp campaign-run cancellation is not implemented by this backend contract.',
+    405
+  );
 };
 
-export const rescheduleCampaignRun = async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const result = await mailchimpService.rescheduleCampaignRun(
-      req.params.runId,
-      getRequesterScopeAccountIds(req)
-    );
-    handleCampaignRunActionResult(res, result);
-  } catch (error) {
-    if (handleUnsupportedCampaignRunAction(res, error)) {
-      return;
-    }
-    logger.error('Error rescheduling campaign run', { error });
-    serverError(res, 'Failed to reschedule campaign run');
-  }
+export const rescheduleCampaignRun = async (_req: AuthRequest, res: Response): Promise<void> => {
+  sendError(
+    res,
+    'method_not_allowed',
+    'Mailchimp campaign-run rescheduling is not implemented by this backend contract.',
+    405
+  );
 };
 
 /**

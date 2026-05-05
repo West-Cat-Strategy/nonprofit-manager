@@ -200,8 +200,6 @@ const fetchStaffBootstrapSnapshot = async (): Promise<StaffBootstrapSnapshot> =>
 
 export const getStaffBootstrapSnapshot = async (options?: {
   forceRefresh?: boolean;
-  fallbackUser?: User | null;
-  fallbackOrganizationId?: string | null;
 }): Promise<StaffBootstrapSnapshot> => {
   const forceRefresh = options?.forceRefresh === true;
 
@@ -217,16 +215,7 @@ export const getStaffBootstrapSnapshot = async (options?: {
   inFlightSnapshot = request;
 
   try {
-    let snapshot = await request;
-    if (!snapshot.user && options?.fallbackUser) {
-      const retrySnapshot = await fetchStaffBootstrapSnapshot();
-      snapshot = retrySnapshot.user
-        ? retrySnapshot
-        : buildAuthenticatedSnapshot({
-            user: options.fallbackUser,
-            organizationId: options.fallbackOrganizationId ?? null,
-          });
-    }
+    const snapshot = await request;
     cachedSnapshot = snapshot;
     return snapshot;
   } finally {

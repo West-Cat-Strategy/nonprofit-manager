@@ -620,11 +620,11 @@ outside the current contract.
 
 **POST** `/api/v2/mailchimp/campaign-runs/:runId/cancel`
 
-Returns `405 method_not_allowed`; Mailchimp cancellation is not implemented in the current backend contract.
+Returns a `405 Method Not Allowed` error envelope. Mailchimp campaign-run cancellation is registered for contract stability but is not implemented in the current backend contract.
 
 **POST** `/api/v2/mailchimp/campaign-runs/:runId/reschedule`
 
-Returns `405 method_not_allowed`; Mailchimp rescheduling is not implemented in the current backend contract.
+Returns a `405 Method Not Allowed` error envelope. Mailchimp campaign-run rescheduling is registered for contract stability but is not implemented in the current backend contract.
 
 ### Contact Suppression Governance
 

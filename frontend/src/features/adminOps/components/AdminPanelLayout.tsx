@@ -9,6 +9,7 @@ interface AdminPanelLayoutProps {
   badge?: ReactNode;
   actions?: ReactNode;
   sidebar?: ReactNode;
+  mobileNav?: ReactNode;
   children: ReactNode;
   className?: string;
   contentClassName?: string;
@@ -20,23 +21,32 @@ export default function AdminPanelLayout({
   badge,
   actions,
   sidebar,
+  mobileNav,
   children,
   className,
   contentClassName,
 }: AdminPanelLayoutProps) {
   return (
     <NeoBrutalistLayout pageTitle={title.toUpperCase()}>
-      <div className={classNames('min-h-screen bg-[var(--app-bg)] p-4 pb-28 sm:p-6 sm:pb-28', className)}>
-        <div className="mx-auto max-w-7xl space-y-6">
+      <div
+        className={classNames(
+          'min-h-screen bg-[var(--app-bg)] px-3 py-4 pb-28 sm:px-5 sm:py-6 sm:pb-28',
+          className
+        )}
+      >
+        <div className="mx-auto max-w-7xl space-y-5">
           <PageHeader title={title} description={description} actions={actions} badge={badge} />
+          {mobileNav ? <div className="lg:hidden">{mobileNav}</div> : null}
           <div
             className={classNames(
-              sidebar ? 'grid grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)]' : '',
+              sidebar ? 'grid grid-cols-1 gap-5 lg:grid-cols-[260px_minmax(0,1fr)]' : '',
               contentClassName
             )}
           >
-            {sidebar ? <div>{sidebar}</div> : null}
-            <div className="min-w-0 space-y-6">{children}</div>
+            {sidebar ? (
+              <div className="hidden lg:block lg:sticky lg:top-20 lg:self-start">{sidebar}</div>
+            ) : null}
+            <div className="min-w-0 space-y-5">{children}</div>
           </div>
         </div>
       </div>

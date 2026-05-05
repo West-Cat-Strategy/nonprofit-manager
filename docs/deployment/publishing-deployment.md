@@ -11,6 +11,8 @@ Base URL choices for local testing:
 - Docker dev backend: `http://localhost:8004/api/v2`
 - Same-origin browser/public-site proxy: `/api/v2`
 
+Published site links use the Caddy-served public-site host, not the staff app host. Local Docker/Caddy uses `SITE_BASE_URL=http://sites.localhost` and `CADDY_PUBLIC_SITE_DOMAIN=sites.localhost`, so a site with subdomain `westside-intake` opens at `http://westside-intake.sites.localhost`. Production deploys must set `SITE_BASE_URL` and `CADDY_PUBLIC_SITE_DOMAIN` to the public-site domain for that environment; the `public-site` container keeps `/api/v2/public/*` same-origin through `PUBLIC_SITE_API_ORIGIN`.
+
 ## Overview
 
 The publishing system allows users to:
@@ -149,7 +151,7 @@ Response:
     {
       "type": "CNAME",
       "name": "www.westcat.ca",
-      "value": "mysite-abc123.sites.westcat.ca",
+      "value": "mysite-abc123.<public-site-domain>",
       "verified": false
     }
   ]
@@ -163,7 +165,7 @@ Add the required DNS records with your domain registrar:
 **CNAME Method:**
 - Name: `www.westcat.ca`
 - Type: CNAME
-- Value: `<subdomain>.sites.westcat.ca`
+- Value: `<subdomain>.<public-site-domain>` where `<public-site-domain>` matches `CADDY_PUBLIC_SITE_DOMAIN`
 
 **TXT Method (for verification):**
 - Name: `_npmverify.www.westcat.ca`
@@ -327,7 +329,9 @@ This creates:
 
 ```bash
 ## Base URL for published sites
-SITE_BASE_URL=https://sites.westcat.ca
+SITE_BASE_URL=https://sites.example.org
+CADDY_PUBLIC_SITE_DOMAIN=sites.example.org
+PUBLIC_SITE_API_ORIGIN=https://sites.example.org
 
 ## SSL provisioning (for production with Let's Encrypt)
 ACME_EMAIL=admin@westcat.ca
