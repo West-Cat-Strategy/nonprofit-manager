@@ -1114,17 +1114,10 @@ test.describe("UI/UX regression flows", () => {
     ).toBeVisible();
     await page.keyboard.press("Escape");
 
-    {
-      const adminHubButtons = page.getByRole("button", {
-        name: /show advanced|hide advanced/i,
-      });
-      const adminHubLinks = page.getByRole("link", {
-        name: /show advanced|hide advanced/i,
-      });
-      expect(
-        (await adminHubButtons.count()) + (await adminHubLinks.count()),
-      ).toBeGreaterThan(0);
-    }
+    await expect(page.getByText(/all admin sections visible/i)).toBeVisible();
+    await expect(
+      page.getByRole("tab", { name: /roles & permissions/i }),
+    ).toBeVisible();
 
     const adminChecks: Array<{
       path: string;

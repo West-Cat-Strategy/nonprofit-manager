@@ -257,16 +257,9 @@ test('user settings uploads and persists the profile avatar', async ({ request, 
   });
 
   test('admin settings toggles advanced mode and saves organization preferences', async ({ page }) => {
-    await gotoAuthenticatedRoute(page, '/settings/admin');
+    await gotoAuthenticatedRoute(page, '/settings/admin/organization');
+    await expect(page.getByText(/all admin sections visible/i)).toBeVisible();
 
-    const advancedToggle = page.getByRole('button', { name: /show advanced|hide advanced/i });
-    const initialToggleLabel = (await advancedToggle.textContent()) || '';
-    await advancedToggle.click();
-    await expect(advancedToggle).toHaveText(
-      initialToggleLabel.match(/show/i) ? /hide advanced/i : /show advanced/i
-    );
-
-    await page.getByRole('tab', { name: /organization/i }).click();
     const organizationName = `E2E Organization ${Date.now()}`;
     await page.getByPlaceholder('Your Nonprofit Name').fill(organizationName);
 

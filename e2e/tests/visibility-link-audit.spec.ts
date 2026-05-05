@@ -298,10 +298,10 @@ const staffRouteAudits: RouteAuditConfig[] = [
     surface: 'staff',
     expectedEntryId: 'admin-settings',
     heading: /admin hub|admin settings/i,
-    primaryAction: /show advanced|hide advanced/i,
+    primaryAction: /organization/i,
     interaction: {
-      keyControls: [/show advanced|hide advanced/i],
-      expectedStatesAnyOf: [/dashboard/i, /organization/i, /branding/i],
+      keyControls: [/organization/i, /roles & permissions/i],
+      expectedStatesAnyOf: [/all admin sections visible/i, /high-impact tools stay labeled/i],
     },
   },
   {
