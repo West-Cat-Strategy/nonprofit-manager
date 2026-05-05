@@ -530,7 +530,7 @@ test-e2e-docker-smoke:
 	trap cleanup EXIT; \
 	echo "$(BLUE)Starting isolated Docker smoke stack $(COMPOSE_PROJECT_SMOKE) on ports $(SMOKE_FRONTEND_PORT)/$(SMOKE_BACKEND_PORT)/$(SMOKE_PUBLIC_SITE_PORT)...$(RESET)"; \
 	purge_smoke_stack; \
-	if ! $(SMOKE_STACK_ENV) $(DOCKER_COMPOSE) $(COMPOSE_DEV_SMOKE_ARGS) up -d; then \
+	if ! $(SMOKE_STACK_ENV) $(DOCKER_COMPOSE) $(COMPOSE_DEV_SMOKE_ARGS) up -d --build; then \
 	  echo "$(YELLOW)Smoke stack startup failed; purging partial containers and volumes before exit.$(RESET)"; \
 	  purge_smoke_stack; \
 	  exit 1; \
