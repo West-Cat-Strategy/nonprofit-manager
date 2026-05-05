@@ -4,6 +4,7 @@
  */
 
 import Stripe from 'stripe';
+import type * as StripeCore from 'stripe/cjs/stripe.core.js';
 import { logger } from '@config/logger';
 import type {
   CreatePaymentIntentRequest,
@@ -27,7 +28,7 @@ import type {
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-let stripe: Stripe | null = null;
+let stripe: StripeCore.Stripe | null = null;
 
 type StripeResourceWithId = {
   id?: string | null;
@@ -120,7 +121,7 @@ const summarizeCheckoutSessionRequest = (
   metadataKeys: summarizeRequestMetadataKeys(request.metadata),
 });
 
-const mapSubscription = (subscription: Stripe.Subscription): SubscriptionResponse => {
+const mapSubscription = (subscription: StripeCore.Stripe.Subscription): SubscriptionResponse => {
   const sub = subscription as unknown as {
     id: string;
     customer: string;
@@ -147,7 +148,7 @@ const mapSubscription = (subscription: Stripe.Subscription): SubscriptionRespons
 /**
  * Get or initialize Stripe client
  */
-function getStripeClient(): Stripe {
+function getStripeClient(): StripeCore.Stripe {
   if (!stripe) {
     if (!stripeSecretKey) {
       throw new Error('STRIPE_SECRET_KEY environment variable is not set');
@@ -173,7 +174,7 @@ export async function createPaymentIntent(
   const client = getStripeClient();
 
   try {
-    const params: Stripe.PaymentIntentCreateParams = {
+    const params: StripeCore.Stripe.PaymentIntentCreateParams = {
       amount: request.amount,
       currency: request.currency || 'usd',
       automatic_payment_methods: {
@@ -299,7 +300,7 @@ export async function createRefund(request: RefundRequest): Promise<RefundRespon
   const client = getStripeClient();
 
   try {
-    const params: Stripe.RefundCreateParams = {
+    const params: StripeCore.Stripe.RefundCreateParams = {
       payment_intent: request.paymentIntentId,
     };
 
@@ -344,7 +345,7 @@ export async function createCustomer(request: CreateCustomerRequest): Promise<Cu
   const client = getStripeClient();
 
   try {
-    const params: Stripe.CustomerCreateParams = {
+    const params: StripeCore.Stripe.CustomerCreateParams = {
       email: request.email,
       metadata: {
         ...request.metadata,
@@ -393,7 +394,7 @@ export async function createMonthlyPrice(
   const client = getStripeClient();
 
   try {
-    const params: Stripe.PriceCreateParams = {
+    const params: StripeCore.Stripe.PriceCreateParams = {
       unit_amount: request.amount,
       currency: request.currency.toLowerCase(),
       recurring: {
@@ -414,7 +415,7 @@ export async function createMonthlyPrice(
 
     return {
       id: price.id,
-      productId: getStripeId(price.product as string | Stripe.Product | Stripe.DeletedProduct | null) || '',
+      productId: getStripeId(price.product as string | StripeCore.Stripe.Product | StripeCore.Stripe.DeletedProduct | null) || '',
       unitAmount: price.unit_amount || request.amount,
       currency: price.currency,
     };
@@ -498,7 +499,7 @@ export async function createSubscription(
   const client = getStripeClient();
 
   try {
-    const params: Stripe.SubscriptionCreateParams = {
+    const params: StripeCore.Stripe.SubscriptionCreateParams = {
       customer: request.customerId,
       items: [{ price: request.priceId }],
       metadata: request.metadata,
@@ -555,10 +556,10 @@ export async function createCheckoutSession(
       id: session.id,
       provider: 'stripe',
       url: session.url || '',
-      customerId: getStripeId(session.customer as string | Stripe.Customer | Stripe.DeletedCustomer | null),
-      subscriptionId: getStripeId(session.subscription as string | Stripe.Subscription | null),
+      customerId: getStripeId(session.customer as string | StripeCore.Stripe.Customer | StripeCore.Stripe.DeletedCustomer | null),
+      subscriptionId: getStripeId(session.subscription as string | StripeCore.Stripe.Subscription | null),
       status: session.status || 'open',
-      providerTransactionId: getStripeId(session.subscription as string | Stripe.Subscription | null),
+      providerTransactionId: getStripeId(session.subscription as string | StripeCore.Stripe.Subscription | null),
     };
   } catch (error) {
     logger.error('Failed to create checkout session', {
@@ -584,10 +585,10 @@ export async function getCheckoutSession(sessionId: string): Promise<CheckoutSes
       id: session.id,
       provider: 'stripe',
       url: session.url || '',
-      customerId: getStripeId(session.customer as string | Stripe.Customer | Stripe.DeletedCustomer | null),
-      subscriptionId: getStripeId(session.subscription as string | Stripe.Subscription | null),
+      customerId: getStripeId(session.customer as string | StripeCore.Stripe.Customer | StripeCore.Stripe.DeletedCustomer | null),
+      subscriptionId: getStripeId(session.subscription as string | StripeCore.Stripe.Subscription | null),
       status: session.status || 'open',
-      providerTransactionId: getStripeId(session.subscription as string | Stripe.Subscription | null),
+      providerTransactionId: getStripeId(session.subscription as string | StripeCore.Stripe.Subscription | null),
     };
   } catch (error) {
     logger.error('Failed to retrieve checkout session', {
@@ -716,7 +717,7 @@ export async function cancelSubscription(
   const client = getStripeClient();
 
   try {
-    let subscription: Stripe.Subscription;
+    let subscription: StripeCore.Stripe.Subscription;
 
     if (cancelAtPeriodEnd) {
       subscription = await client.subscriptions.update(subscriptionId, {

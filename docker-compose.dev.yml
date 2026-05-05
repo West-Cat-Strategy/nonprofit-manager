@@ -23,7 +23,7 @@ x-workspace-build-contexts: &workspace-build-contexts
 
 services:
   postgres:
-    image: postgres:14-alpine
+    image: postgres:18-alpine@sha256:54451ecb8ab38c24c3ec123f2fd501303a3a1856a5c66e98cecf2460d5e1e9d7
     restart: unless-stopped
     ports:
       - "${DEV_DB_PORT:-8002}:5432"
@@ -32,7 +32,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     volumes:
-      - nonprofit-manager-postgres-data:/var/lib/postgresql/data
+      - nonprofit-manager-postgres-data:/var/lib/postgresql
       - ./database/initdb/000_init.sql:/docker-entrypoint-initdb.d/000_init.sql:ro
       - ./database/migrations:/migrations:ro
       - ./database/seeds:/seeds:ro
@@ -44,7 +44,7 @@ services:
       start_period: 10s
 
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine@sha256:c5e375abb885e6b2021c0377879e4890bf76f9065b8922ffc113f2b226b9fc17
     restart: unless-stopped
     ports:
       - "${DEV_REDIS_PORT:-8003}:6379"

@@ -114,7 +114,7 @@ export const useAdminSettingsRouteState = ({
     const currentIndex = visibleTabIds.indexOf(tabId);
     if (currentIndex < 0) return;
 
-    let targetIndex = currentIndex;
+    let targetIndex: number;
     if (event.key === 'ArrowRight') {
       targetIndex = (currentIndex + 1) % visibleTabIds.length;
     } else if (event.key === 'ArrowLeft') {

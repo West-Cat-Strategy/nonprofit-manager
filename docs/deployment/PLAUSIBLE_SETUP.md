@@ -80,7 +80,7 @@ docker compose -f docker-compose.plausible.yml --env-file .env.plausible up -d
 
 The stack starts:
 
-- `plausible_db` (Postgres)
+- `plausible_db` (Postgres 18)
 - `plausible_events_db` (ClickHouse)
 - `plausible` (Plausible itself)
 

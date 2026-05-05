@@ -1,6 +1,7 @@
 import dns from 'dns/promises';
 import net from 'net';
 import { Agent, interceptors } from 'undici';
+import type { Dispatcher } from 'undici';
 
 const WEBHOOK_TIMEOUT = 30000;
 const WEBHOOK_FETCH_OPTIONS = { redirect: 'manual' as const };
@@ -78,23 +79,13 @@ export const createPinnedWebhookLookup =
     callback(null, addresses.map(toAddressInfo));
   };
 
-const createPinnedWebhookDispatcher = (addresses: string[]): Agent =>
-  new Agent({
-    interceptors: {
-      Agent: [
-        interceptors.dns({
-          maxTTL: 0,
-          lookup: createPinnedWebhookLookup(addresses),
-        }),
-      ],
-      Client: [
-        interceptors.dns({
-          maxTTL: 0,
-          lookup: createPinnedWebhookLookup(addresses),
-        }),
-      ],
-    },
-  });
+const createPinnedWebhookDispatcher = (addresses: string[]): Dispatcher =>
+  new Agent().compose(
+    interceptors.dns({
+      maxTTL: 0,
+      lookup: createPinnedWebhookLookup(addresses),
+    })
+  );
 
 async function resolveSafeWebhookHostname(
   hostname: string

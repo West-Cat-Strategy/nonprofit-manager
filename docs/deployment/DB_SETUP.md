@@ -32,7 +32,7 @@ For full application runtime selection and app-port expectations, use [../develo
 - No local PostgreSQL required
 
 ### For Native PostgreSQL Setup
-- PostgreSQL 14+ installed and running
+- PostgreSQL 18+ installed and running
 - `psql` CLI available in PATH
 - `createdb` and `dropdb` utilities available
 - Sufficient permissions to create databases
@@ -130,14 +130,14 @@ make docker-down
 
 **macOS (Homebrew):**
 ```bash
-brew install postgresql@14
-brew services start postgresql@14
+brew install postgresql@18
+brew services start postgresql@18
 ```
 
 **Ubuntu/Debian:**
 ```bash
 sudo apt update
-sudo apt install postgresql-14 postgresql-contrib
+sudo apt install postgresql-18 postgresql-contrib
 sudo systemctl start postgresql
 sudo systemctl enable postgresql
 ```
@@ -393,6 +393,8 @@ docker compose -p nonprofit-dev -f docker-compose.dev.yml exec -T postgres psql 
 psql -U postgres -d nonprofit_manager < backup_20260201.sql
 ```
 
+For a major Postgres upgrade, use the archive helpers instead of reusing the old data directory with the new image. Export from the old major with `scripts/db-export-archive.sh`, bring up Postgres 18 with a fresh data volume or host directory mounted at `/var/lib/postgresql`, restore with `scripts/db-restore-archive.sh`, and verify before cutover. Managed production databases should use the provider's snapshot and major-upgrade workflow instead of these local helpers.
+
 ### Scenario 5: Connect from Backend Application
 
 **Update `backend/.env`:**
@@ -446,7 +448,7 @@ sudo systemctl status postgresql
 
 ## Start PostgreSQL
 ## macOS
-brew services start postgresql@14
+brew services start postgresql@18
 ## Linux
 sudo systemctl start postgresql
 ```

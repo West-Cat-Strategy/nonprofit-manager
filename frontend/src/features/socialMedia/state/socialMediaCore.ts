@@ -52,9 +52,8 @@ const applyTrackedPageToMappings = (
 const loadAllSites = async (): Promise<WebsiteSiteSummary[]> => {
   const sites: WebsiteSiteSummary[] = [];
   let page = 1;
-  let totalPages = 1;
 
-  do {
+  while (true) {
     const response = await websitesApiClient.listSites({
       page,
       limit: 100,
@@ -62,9 +61,13 @@ const loadAllSites = async (): Promise<WebsiteSiteSummary[]> => {
       sortOrder: 'asc',
     });
     sites.push(...response.sites);
-    totalPages = response.totalPages;
+
+    if (page >= response.totalPages) {
+      break;
+    }
+
     page += 1;
-  } while (page <= totalPages);
+  }
 
   return sites;
 };

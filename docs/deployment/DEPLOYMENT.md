@@ -24,7 +24,7 @@ Workspace note: this checkout includes the Dockerfiles plus the compose manifest
 ### Required Software
 - Docker (Docker Compose only if you plan to use the optional dev stack)
 - Node.js 20.19+ (for manual deployment)
-- PostgreSQL 14+
+- PostgreSQL 18+ for repo-owned Docker/self-hosted Postgres deployments
 - Git
 
 ### Required Access
@@ -179,11 +179,13 @@ If using Cloudflare or similar:
 - `luks`
   - Use self-hosted PostgreSQL with the `docker-compose.db-encrypted.yml` overlay; `bash ./scripts/deploy.sh production` adds it automatically when LUKS mode is active.
   - Required env: `POSTGRES_DATA_DIR` as an absolute host path on the unlocked LUKS mount and `DB_LUKS_MAPPING_NAME`.
+  - Postgres 18 mounts this host path at `/var/lib/postgresql`, where the official image creates its major-versioned data subdirectory.
   - `BACKUP_DIR` must be an absolute path on the same encrypted mount; repo-local backup paths are rejected in production.
   - The production deploy and verification scripts validate the LUKS mapper, the mounted host path, and the Postgres bind mount before reporting success.
 - `self_hosted`
   - Use self-hosted PostgreSQL with the `docker-compose.db-self-hosted.yml` overlay when the host cannot satisfy the managed or LUKS contract.
   - Required env: `POSTGRES_DATA_DIR`, `BACKUP_DIR`, and `SELF_HOSTED_DB_RISK_ACCEPTED=true`.
+  - Postgres 18 mounts `POSTGRES_DATA_DIR` at `/var/lib/postgresql`, so use a fresh host directory before restoring an older-major archive.
   - When the runtime uses a macOS bind mount, also set `POSTGRES_HOST_UID` and `POSTGRES_HOST_GID` so the container writes files as the host user that owns the mounted directory.
   - On macOS, Docker Desktop-backed bind mounts are a supported path for this mode. Keep Docker Desktop file sharing enabled for the repo and host data paths, and do not carry a Colima-style `DOCKER_HOST` override into the production contract.
   - `POSTGRES_DATA_DIR` and `BACKUP_DIR` must be absolute host paths; the deploy and backup scripts reject repo-local paths in production.
@@ -220,9 +222,9 @@ chmod 600 /var/lib/postgresql/server.key
 chown postgres:postgres /var/lib/postgresql/server.*
 
 ## Update postgresql.conf
-echo "ssl = on" >> /etc/postgresql/14/main/postgresql.conf
-echo "ssl_cert_file = '/var/lib/postgresql/server.crt'" >> /etc/postgresql/14/main/postgresql.conf
-echo "ssl_key_file = '/var/lib/postgresql/server.key'" >> /etc/postgresql/14/main/postgresql.conf
+echo "ssl = on" >> /etc/postgresql/18/main/postgresql.conf
+echo "ssl_cert_file = '/var/lib/postgresql/server.crt'" >> /etc/postgresql/18/main/postgresql.conf
+echo "ssl_key_file = '/var/lib/postgresql/server.key'" >> /etc/postgresql/18/main/postgresql.conf
 ```
 
 #### Backend Database Connection
@@ -579,6 +581,8 @@ make db-verify
   - Set `BACKUP_DIR` to an absolute host path on the runtime host and document the operational risk acceptance alongside your backup schedule.
 
 For one-off migrations or disaster recovery that need a database-creating archive instead of the recurring SQL and gzip flow, use [db-export-archive.sh](../../scripts/db-export-archive.sh) and [db-restore-archive.sh](../../scripts/db-restore-archive.sh). Those helpers wrap `pg_dump -Fc -C --no-owner --no-acl` and `pg_restore --clean --if-exists --create -d postgres`, honor `DB_COMPOSE_ENV_FILE` for production-like stacks, block managed-production usage, require `DB_EXPORT_RISK_CONFIRM=export:<host>:<port>/<db>` for risky archive exports, and require the explicit restore confirmation variables before destructive restores.
+
+For major Postgres upgrades, do not point an existing older-major data directory at the new container image. Export from the old major with `scripts/db-export-archive.sh`, start Postgres 18 with a fresh `POSTGRES_DATA_DIR`, restore with `scripts/db-restore-archive.sh`, then run `make db-verify` or the equivalent production verification queries before cutover. Managed production databases stay on provider-native snapshot, major-upgrade, and rollback workflows.
 
 ```bash
 ## Daily automated backup for local Postgres production modes
