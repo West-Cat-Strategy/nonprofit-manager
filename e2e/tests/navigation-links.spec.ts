@@ -35,7 +35,7 @@ authTest.describe('Staff navigation click-through audit', () => {
 
     await authenticatedPage.goto('/settings/admin/audit_logs', { waitUntil: 'domcontentloaded' });
     await expect(authenticatedPage).toHaveURL(/\/settings\/admin\/audit_logs$/);
-    await expect(authenticatedPage.getByRole('tab', { name: /^audit logs$/i })).toHaveAttribute(
+    await expect(authenticatedPage.getByRole('tab', { name: /^audit logs/i })).toHaveAttribute(
       'aria-selected',
       'true'
     );
