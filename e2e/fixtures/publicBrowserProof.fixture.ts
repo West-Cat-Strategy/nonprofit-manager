@@ -251,6 +251,42 @@ async function deletePublicBrowserProofArtifacts(input: {
   }
 }
 
+export async function waitForPublicBrowserProofEventRegistration(input: {
+  email: string;
+  eventId: string;
+  timeoutMs?: number;
+}): Promise<{ contact_id: string; registration_id: string }> {
+  const client = new PgClient(getDatabaseConfig());
+  const deadline = Date.now() + (input.timeoutMs ?? 15_000);
+
+  try {
+    await client.connect();
+    while (Date.now() < deadline) {
+      const result = await client.query<{ contact_id: string; registration_id: string }>(
+        `SELECT er.id AS registration_id,
+                er.contact_id
+           FROM event_registrations er
+           JOIN contacts ON contacts.id = er.contact_id
+          WHERE LOWER(contacts.email) = LOWER($1)
+            AND er.event_id = $2
+          ORDER BY er.created_at DESC
+          LIMIT 1`,
+        [input.email, input.eventId]
+      );
+      if (result.rows[0]) {
+        return result.rows[0];
+      }
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+
+  throw new Error(
+    `Timed out waiting for public browser proof event registration for ${input.email} (${input.eventId})`
+  );
+}
+
 export const publicBrowserProofArtifacts = {
   contactIds: [] as string[],
   donationIds: [] as string[],

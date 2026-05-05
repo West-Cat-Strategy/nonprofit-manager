@@ -2,6 +2,7 @@ import {
   expect,
   publicBrowserProofArtifacts,
   test,
+  waitForPublicBrowserProofEventRegistration,
 } from '../fixtures/publicBrowserProof.fixture';
 
 const unwrapBody = <T>(body: unknown): T =>
@@ -176,6 +177,7 @@ test.describe('Public browser proof coverage', () => {
       authenticatedPage.getByRole('heading', { name: /public browser event/i })
     ).toBeVisible();
 
+    const registrationEmail = `event-${Date.now()}@example.com`;
     const registrationResponse = await submitNamedPublicForm({
       page: authenticatedPage,
       buttonName: /^register$/i,
@@ -183,30 +185,26 @@ test.describe('Public browser proof coverage', () => {
       fill: async (form) => {
         await form.locator('input[name="first_name"]').fill('Alex');
         await form.locator('input[name="last_name"]').fill('Patel');
-        await form.locator('input[name="email"]').fill(`event-${Date.now()}@example.com`);
+        await form.locator('input[name="email"]').fill(registrationEmail);
         await form.locator('input[name="phone"]').fill('(604) 555-0103');
         await form.locator('textarea[name="notes"]').fill('One seat please.');
       },
     });
-    const registrationBody = await readSuccessBody<{
-      contact_id?: string;
-      contactId?: string;
-      registration?: {
-        registration_id?: string;
-        registrationId?: string;
-      };
-      registration_id?: string;
-      registrationId?: string;
-    }>(registrationResponse);
+    const registrationErrorBody = registrationResponse.ok()
+      ? ''
+      : await registrationResponse.text().catch(() => '<unreadable response body>');
     expect(
-      registrationBody.registration_id ||
-        registrationBody.registrationId ||
-        registrationBody.registration?.registration_id ||
-        registrationBody.registration?.registrationId
+      registrationResponse.ok(),
+      `Public event registration failed (${registrationResponse.status()}): ${registrationErrorBody}`
     ).toBeTruthy();
-    const registrationContactId = registrationBody.contact_id || registrationBody.contactId;
-    if (registrationContactId) {
-      publicBrowserProofArtifacts.contactIds.push(registrationContactId);
-    }
+    await expect(
+      authenticatedPage.locator('form[data-public-site-form="true"] [data-form-status]')
+    ).toHaveText('Submitted successfully.');
+    const registration = await waitForPublicBrowserProofEventRegistration({
+      email: registrationEmail,
+      eventId: publicBrowserProofSite.eventId,
+    });
+    expect(registration.registration_id).toBeTruthy();
+    publicBrowserProofArtifacts.contactIds.push(registration.contact_id);
   });
 });
