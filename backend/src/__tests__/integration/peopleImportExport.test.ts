@@ -48,7 +48,9 @@ describe('People import/export integration', () => {
 
   const withAuth = (req: Test): Test => req.set('Authorization', `Bearer ${authToken}`);
   const withOrgAuth = (req: Test): Test =>
-    withAuth(req).set('X-Organization-Id', organizationId);
+    req
+      .set('Authorization', `Bearer ${authTokenWithOrganizationContext || authToken}`)
+      .set('X-Organization-Id', organizationId);
   const createOrganization = async (
     overrides: Partial<{
       account_name: string;
