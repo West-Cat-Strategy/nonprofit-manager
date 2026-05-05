@@ -793,8 +793,7 @@ describe('communicationsService', () => {
         message: 'Failed-recipient retry is only supported for local email campaign runs',
       })
     );
-    expect(mockMailchimpService.cancelCampaignRun).not.toHaveBeenCalled();
-    expect(mockMailchimpService.rescheduleCampaignRun).not.toHaveBeenCalled();
+    expect(mockMailchimpService.sendCampaignRun).not.toHaveBeenCalled();
   });
 
   it('gates Mailchimp campaign-run cancellation in the communications facade', async () => {

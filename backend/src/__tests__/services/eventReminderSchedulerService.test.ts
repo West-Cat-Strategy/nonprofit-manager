@@ -200,12 +200,12 @@ describe('eventReminderSchedulerService', () => {
     await flushMicrotasks();
     expect(mockClaimDueAutomations).toHaveBeenCalledTimes(1);
 
-    jest.advanceTimersByTime(60_000);
+    await jest.advanceTimersByTimeAsync(60_000);
     await flushMicrotasks();
     expect(mockClaimDueAutomations).toHaveBeenCalledTimes(2);
 
     eventReminderSchedulerService.stop();
-    jest.advanceTimersByTime(120_000);
+    await jest.advanceTimersByTimeAsync(120_000);
     await flushMicrotasks();
     expect(mockClaimDueAutomations).toHaveBeenCalledTimes(2);
 

@@ -41,12 +41,19 @@ DECLARE
 BEGIN
   SELECT
     COUNT(*)::integer,
-    COUNT(DISTINCT c.account_id)::integer,
-    MIN(c.account_id)
-  INTO matched_contact_count, matched_account_count, resolved_account_id
+    COUNT(DISTINCT c.account_id)::integer
+  INTO matched_contact_count, matched_account_count
   FROM public.contacts c
   WHERE lower(c.email) = lower(portal_email)
     AND c.account_id IS NOT NULL;
+
+  SELECT c.account_id
+  INTO resolved_account_id
+  FROM public.contacts c
+  WHERE lower(c.email) = lower(portal_email)
+    AND c.account_id IS NOT NULL
+  ORDER BY c.account_id::TEXT ASC
+  LIMIT 1;
 
   IF matched_contact_count = 1 THEN
     SELECT c.id, c.account_id
@@ -63,11 +70,13 @@ BEGIN
   END IF;
 
   IF matched_contact_count = 0 THEN
-    SELECT MIN(a.id)
+    SELECT a.id
     INTO resolved_account_id
     FROM public.accounts a
     WHERE COALESCE(a.is_active, TRUE)
-    HAVING COUNT(*) = 1;
+      AND (SELECT COUNT(*) FROM public.accounts active_accounts WHERE COALESCE(active_accounts.is_active, TRUE)) = 1
+    ORDER BY a.id::TEXT ASC
+    LIMIT 1;
 
     IF resolved_account_id IS NOT NULL THEN
       INSERT INTO public.contacts (

@@ -55,14 +55,14 @@ describe('webhookRetrySchedulerService', () => {
     expect(mockProcessRetries).toHaveBeenCalledWith(7);
     expect(mockProcessRetries).toHaveBeenCalledTimes(1);
 
-    jest.advanceTimersByTime(1000);
+    await jest.advanceTimersByTimeAsync(1000);
     await flushMicrotasks();
 
     expect(mockProcessRetries).toHaveBeenCalledTimes(2);
     expect(mockProcessRetries).toHaveBeenLastCalledWith(7);
 
     webhookRetrySchedulerService.stop();
-    jest.advanceTimersByTime(3000);
+    await jest.advanceTimersByTimeAsync(3000);
     await flushMicrotasks();
 
     expect(mockProcessRetries).toHaveBeenCalledTimes(2);

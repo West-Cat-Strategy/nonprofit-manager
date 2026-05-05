@@ -93,6 +93,7 @@ jest.mock('../../controllers', () => {
     getSiteIntegrations: ok,
     getSiteNewsletterWorkspace: ok,
     getSiteOverview: ok,
+    getSitePublicActionSupportLetterArtifact: ok,
     getSslInfo: ok,
     getVersion: ok,
     getVersionHistory: ok,

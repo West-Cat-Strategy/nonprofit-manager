@@ -42,7 +42,7 @@ describe('IntervalBatchRunner', () => {
 
     expect(runBatch).toHaveBeenCalledTimes(1);
 
-    jest.advanceTimersByTime(3000);
+    await jest.advanceTimersByTimeAsync(3000);
     await flushMicrotasks();
 
     expect(runBatch).toHaveBeenCalledTimes(1);
@@ -50,7 +50,7 @@ describe('IntervalBatchRunner', () => {
     resolveBatch?.(1);
     await flushMicrotasks();
 
-    jest.advanceTimersByTime(1000);
+    await jest.advanceTimersByTimeAsync(1000);
     await flushMicrotasks();
 
     expect(runBatch).toHaveBeenCalledTimes(2);
@@ -92,13 +92,13 @@ describe('IntervalBatchRunner', () => {
     await flushMicrotasks();
     expect(runBatch).toHaveBeenCalledTimes(1);
 
-    jest.advanceTimersByTime(1000);
+    await jest.advanceTimersByTimeAsync(1000);
     await flushMicrotasks();
     expect(runBatch).toHaveBeenCalledTimes(2);
 
     runner.stop();
 
-    jest.advanceTimersByTime(3000);
+    await jest.advanceTimersByTimeAsync(3000);
     await flushMicrotasks();
     expect(runBatch).toHaveBeenCalledTimes(2);
   });
@@ -141,7 +141,7 @@ describe('IntervalBatchRunner', () => {
     });
 
     const tickPromise = runner.tick();
-    jest.advanceTimersByTime(60);
+    await jest.advanceTimersByTimeAsync(60);
     await flushMicrotasks();
 
     await expect(tickPromise).resolves.toBe(0);

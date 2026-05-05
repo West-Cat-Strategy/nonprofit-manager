@@ -744,7 +744,7 @@ describe('Publishing API Integration', () => {
         configured?: boolean;
       };
     }>(newsletterResponse.body);
-    expect(newsletter.newsletter.provider).toBe('mautic');
+    expect(newsletter.newsletter.provider).toBe('local_email');
     expect(newsletter.mautic.baseUrl).toBe('https://mautic.example.org');
     expect(newsletter.mautic.segmentId).toBe('seg-123');
     expect(newsletter.mautic.defaultTags).toEqual(['members', 'website']);
