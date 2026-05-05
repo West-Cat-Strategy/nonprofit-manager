@@ -40,7 +40,7 @@ COPY --from=workspace /contracts/messaging.d.ts ./node_modules/@nonprofit-manage
 COPY --from=workspace /contracts/websiteBuilder.d.ts ./node_modules/@nonprofit-manager/contracts/websiteBuilder.d.ts
 
 FROM app AS build
-RUN ./node_modules/.bin/tsc -p tsconfig.docker.json --ignoreDeprecations 6.0 && \
+RUN ./node_modules/.bin/tsc -p tsconfig.docker.json && \
     ./node_modules/.bin/tsc-alias -p tsconfig.docker.json
 
 FROM base AS workspace-production-deps
