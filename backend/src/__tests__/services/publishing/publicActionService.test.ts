@@ -180,12 +180,65 @@ describe('PublicActionService', () => {
         email: 'alex@example.org',
         tags: ['petition-signature'],
       }),
-      'owner-1'
+      'owner-1',
+      undefined,
+      undefined
     );
     expect(mockQuery.mock.calls[4][0]).toContain('INSERT INTO website_public_action_submissions');
     expect(mockQuery.mock.calls[4][1]).toEqual(
       expect.arrayContaining(['idem-1', '/petition', 'visitor-1', 'session-1', 'vitest'])
     );
+  });
+
+  it('creates public action contacts inside the site owner RLS context when a pool client is available', async () => {
+    const clientQuery = jest
+      .fn()
+      .mockResolvedValue(undefined)
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce(undefined);
+    const client = {
+      query: clientQuery,
+      release: jest.fn(),
+    };
+    const pooledQuery = jest
+      .fn()
+      .mockResolvedValueOnce({ rows: [actionRow()] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [submissionRow()] });
+    service = new PublicActionService({
+      query: pooledQuery,
+      connect: jest.fn().mockResolvedValue(client),
+    } as unknown as Pool);
+
+    const result = await service.submitPublicAction(
+      baseSite.id,
+      'save-the-library',
+      {
+        first_name: 'Alex',
+        last_name: 'Chen',
+        email: 'alex@example.org',
+        consent: true,
+      },
+      {}
+    );
+
+    expect(result.contactId).toBe('55555555-5555-4555-8555-555555555555');
+    expect(clientQuery).toHaveBeenNthCalledWith(1, 'BEGIN');
+    expect(clientQuery).toHaveBeenNthCalledWith(
+      2,
+      `SELECT set_config('app.current_user_id', $1, true)`,
+      ['owner-1']
+    );
+    expect(servicesModule.services.contact.createContact).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'alex@example.org' }),
+      'owner-1',
+      undefined,
+      client
+    );
+    expect(clientQuery).toHaveBeenLastCalledWith('COMMIT');
+    expect(client.release).toHaveBeenCalled();
   });
 
   it('marks duplicate petition signatures without creating another contact', async () => {

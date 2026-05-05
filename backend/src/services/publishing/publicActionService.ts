@@ -1,5 +1,5 @@
-import { Pool } from 'pg';
-import dbPool from '@config/database';
+import { Pool, PoolClient } from 'pg';
+import dbPool, { setCurrentUserId } from '@config/database';
 import { services } from '@container/services';
 import type { PublishedSite } from '@app-types/publishing';
 import type {
@@ -343,12 +343,13 @@ export class PublicActionService {
 
   private async findExistingContact(
     site: PublishedSite,
-    payload: PublicActionSubmissionRequest
+    payload: PublicActionSubmissionRequest,
+    executor: Pick<Pool | PoolClient, 'query'> = this.pool
   ): Promise<{ id: string; tags: string[] | null } | null> {
     const email = asString(payload.email)?.toLowerCase();
     if (!email) return null;
 
-    const result = await this.pool.query<{ id: string; tags: string[] | null }>(
+    const result = await executor.query<{ id: string; tags: string[] | null }>(
       `SELECT id, tags
        FROM contacts
        WHERE lower(email) = $1
@@ -361,6 +362,32 @@ export class PublicActionService {
     return result.rows[0] || null;
   }
 
+  private async withSiteOwnerContext<T>(
+    site: PublishedSite,
+    work: (executor: Pick<Pool | PoolClient, 'query'>, client?: PoolClient) => Promise<T>
+  ): Promise<T> {
+    const siteOwnerId = site.ownerUserId || site.userId;
+    const connect = (this.pool as unknown as { connect?: () => Promise<PoolClient> }).connect;
+
+    if (!siteOwnerId || typeof connect !== 'function') {
+      return work(this.pool);
+    }
+
+    const client = await connect.call(this.pool);
+    try {
+      await client.query('BEGIN');
+      await setCurrentUserId(client, siteOwnerId, { local: true });
+      const result = await work(client, client);
+      await client.query('COMMIT');
+      return result;
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   private async ensureContact(
     site: PublishedSite,
     payload: PublicActionSubmissionRequest,
@@ -371,34 +398,38 @@ export class PublicActionService {
     const lastName = asString(payload.last_name) || 'Supporter';
     if (!email && !asString(payload.phone)) return undefined;
 
-    const existing = await this.findExistingContact(site, payload);
-    if (existing) {
-      const nextTags = Array.from(new Set([...(existing.tags || []), ...tags]));
-      await this.pool.query(
-        `UPDATE contacts
-         SET account_id = COALESCE(account_id, $1),
-             phone = COALESCE(phone, $2),
-             tags = $3,
-             updated_at = CURRENT_TIMESTAMP
-         WHERE id = $4`,
-        [site.organizationId, asString(payload.phone) || null, nextTags, existing.id]
-      );
-      return existing.id;
-    }
+    return this.withSiteOwnerContext(site, async (executor, client) => {
+      const existing = await this.findExistingContact(site, payload, executor);
+      if (existing) {
+        const nextTags = Array.from(new Set([...(existing.tags || []), ...tags]));
+        await executor.query(
+          `UPDATE contacts
+           SET account_id = COALESCE(account_id, $1),
+               phone = COALESCE(phone, $2),
+               tags = $3,
+               updated_at = CURRENT_TIMESTAMP
+           WHERE id = $4`,
+          [site.organizationId, asString(payload.phone) || null, nextTags, existing.id]
+        );
+        return existing.id;
+      }
 
-    const contact = await services.contact.createContact(
-      {
-        account_id: site.organizationId || undefined,
-        first_name: firstName,
-        last_name: lastName,
-        email: email || null,
-        phone: asString(payload.phone) || null,
-        notes: asString(payload.message),
-        tags,
-      },
-      site.ownerUserId || site.userId
-    );
-    return contact.contact_id;
+      const contact = await services.contact.createContact(
+        {
+          account_id: site.organizationId || undefined,
+          first_name: firstName,
+          last_name: lastName,
+          email: email || null,
+          phone: asString(payload.phone) || null,
+          notes: asString(payload.message),
+          tags,
+        },
+        site.ownerUserId || site.userId,
+        undefined,
+        client
+      );
+      return contact.contact_id;
+    });
   }
 
   private async findDuplicateSignature(actionId: string, email: string | undefined): Promise<string | null> {
