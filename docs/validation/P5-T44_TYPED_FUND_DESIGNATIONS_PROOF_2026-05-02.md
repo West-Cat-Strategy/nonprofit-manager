@@ -49,8 +49,15 @@ make check-links
 git diff --check
 ```
 
+Validation recovery, 2026-05-03:
+
+```bash
+make db-verify
+```
+
+The recovery pass found Docker Desktop's configured socket path (`/Users/bryan/.docker/run/docker.sock`) missing while `/var/run/docker.sock` pointed to it. Opening Docker Desktop restored the socket, and `make db-verify` then passed manifest/initdb parity, isolated test database, canonical migration order, foreign key, starter row, app-role/RLS, superseded-index, and audit partition checks.
+
 Known validation notes:
 
-- `make db-verify` is blocked before database verification starts because Docker is unavailable at `/Users/bryan/.docker/run/docker.sock`.
-- `cd backend && npm test -- --runTestsByPath ...` is blocked by the same backend test wrapper Docker dependency; the direct focused `npx jest` equivalent passes.
+- `cd backend && npm test -- --runTestsByPath ...` was not rerun during the May 3 database-recovery pass; the direct focused `npx jest` equivalent from the implementation proof passes.
 - Direct focused Jest emits the existing `--localstorage-file` warning while still passing.

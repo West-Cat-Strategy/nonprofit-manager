@@ -21,6 +21,7 @@ import type {
 export interface PortalSectionProps {
   portalInviteUrl: string | null;
   portalLoading: boolean;
+  portalRequestsError?: string | null;
   portalRequests: PortalSignupRequest[];
   portalInviteEmail: string;
   portalContactSearch: string;
@@ -28,15 +29,18 @@ export interface PortalSectionProps {
   portalContactResults: PortalContactLookup[];
   selectedPortalContact: PortalContactLookup | null;
   portalInvitations: PortalInvitation[];
+  portalInvitationsError?: string | null;
   portalUsers: PortalUser[];
   portalUsersLoading: boolean;
+  portalUsersError?: string | null;
   portalUserSearch: string;
   selectedPortalUser: PortalUser | null;
   portalUserActivity: PortalActivity[];
   portalActivityLoading: boolean;
+  portalActivityError?: string | null;
   formError?: string | null;
   onRefreshPortal: () => void;
-  onApproveRequest: (id: string) => void;
+  onApproveRequest: (id: string, payload?: { contact_id: string }) => void;
   onRejectRequest: (id: string) => void;
   onPortalInviteEmailChange: (value: string) => void;
   onPortalContactSearchChange: (value: string) => void;
@@ -60,6 +64,7 @@ export interface PortalSectionProps {
     value: string
   ) => void;
   portalConversationsLoading: boolean;
+  portalConversationsError?: string | null;
   portalConversationsLoadingMore: boolean;
   portalConversationsHasMore: boolean;
   portalConversations: PortalConversationThread[];
@@ -87,6 +92,7 @@ export interface PortalSectionProps {
     value: string
   ) => void;
   portalSlotsLoading: boolean;
+  portalSlotsError?: string | null;
   portalSlotsLoadingMore: boolean;
   portalSlotsHasMore: boolean;
   portalSlots: PortalAppointmentSlot[];
@@ -109,6 +115,7 @@ export interface PortalSectionProps {
   onDeletePortalSlot: (slotId: string) => void;
   portalAppointments: PortalAdminAppointmentInboxItem[];
   portalAppointmentsLoading: boolean;
+  portalAppointmentsError?: string | null;
   portalAppointmentsPagination: {
     page: number;
     limit: number;

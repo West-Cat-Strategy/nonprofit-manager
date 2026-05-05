@@ -1,6 +1,6 @@
 import type { PublicEventDetail, PublicEventListItem } from '@app-types/event';
 import type { PublishedPage, PublishedSite } from '@app-types/publishing';
-import type { WebsiteEntry } from '@app-types/websiteBuilder';
+import type { PublicAction, WebsiteEntry } from '@app-types/websiteBuilder';
 import { escapeHtml } from '@services/site-generator/escapeHtml';
 
 export type ResolvedRoute =
@@ -13,13 +13,33 @@ export type ResolvedRoute =
   | { kind: 'blogDetail'; page: PublishedPage; slug: string };
 
 export type RuntimeContext =
-  | { kind: 'static' }
-  | { kind: 'eventsIndex'; items: PublicEventListItem[]; detailPathPattern: string }
-  | { kind: 'eventDetail'; event: PublicEventDetail; detailPathPattern: string }
-  | { kind: 'newslettersIndex'; items: WebsiteEntry[]; detailPathPattern: string }
-  | { kind: 'newsletterDetail'; entry: WebsiteEntry; detailPathPattern: string }
-  | { kind: 'blogIndex'; items: WebsiteEntry[]; detailPathPattern: string }
-  | { kind: 'blogDetail'; entry: WebsiteEntry; detailPathPattern: string };
+  | { kind: 'static'; publicActions?: PublicAction[] }
+  | {
+      kind: 'eventsIndex';
+      items: PublicEventListItem[];
+      detailPathPattern: string;
+      publicActions?: PublicAction[];
+    }
+  | {
+      kind: 'eventDetail';
+      event: PublicEventDetail;
+      detailPathPattern: string;
+      publicActions?: PublicAction[];
+    }
+  | {
+      kind: 'newslettersIndex';
+      items: WebsiteEntry[];
+      detailPathPattern: string;
+      publicActions?: PublicAction[];
+    }
+  | {
+      kind: 'newsletterDetail';
+      entry: WebsiteEntry;
+      detailPathPattern: string;
+      publicActions?: PublicAction[];
+    }
+  | { kind: 'blogIndex'; items: WebsiteEntry[]; detailPathPattern: string; publicActions?: PublicAction[] }
+  | { kind: 'blogDetail'; entry: WebsiteEntry; detailPathPattern: string; publicActions?: PublicAction[] };
 
 export const getPublicSiteOwnerUserId = (site: PublishedSite): string => site.ownerUserId || site.userId;
 

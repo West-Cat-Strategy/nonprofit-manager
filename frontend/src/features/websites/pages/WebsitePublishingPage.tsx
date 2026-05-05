@@ -180,9 +180,9 @@ const WebsitePublishingPage: React.FC = () => {
           <WebsiteConsoleUrlAction
             href={liveSiteHref}
             className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
-            disabledTitle="Live site is unavailable until the website has a public URL."
+            disabledTitle="Public website is unavailable until the public-site host is configured."
           >
-            Open live site
+            Open public website
           </WebsiteConsoleUrlAction>
           <Link
             to={getWebsiteContentPath(siteId)}
@@ -207,6 +207,14 @@ const WebsitePublishingPage: React.FC = () => {
             tone={notice.tone}
             message={notice.message}
             onDismiss={() => setNotice(null)}
+          />
+        ) : null}
+
+        {overview && !liveSiteHref ? (
+          <WebsiteConsoleStatePanel
+            tone="warning"
+            title="Public-site destination needs configuration"
+            message="Set the public-site base URL and Caddy public host before sharing this website. Preview and live buttons stay disabled while the backend is still returning a placeholder destination."
           />
         ) : null}
 
@@ -280,7 +288,7 @@ const WebsitePublishingPage: React.FC = () => {
                   </div>
                   <p className="mt-1 text-sm text-app-text-muted">
                     {deploymentInfo.domainStatus === 'configured'
-                      ? 'Primary site domain is attached.'
+                      ? 'Public-site container route is attached.'
                       : 'Add a subdomain or custom domain.'}
                   </p>
                 </div>
@@ -292,7 +300,7 @@ const WebsitePublishingPage: React.FC = () => {
                     {deploymentInfo.sslStatus}
                   </div>
                   <p className="mt-1 text-sm text-app-text-muted">
-                    {overview.site.customDomain ? 'Secure traffic for the live domain.' : 'Not required without a custom domain.'}
+                    {overview.site.customDomain ? 'Secure traffic for the custom domain.' : 'Covered by the public-site host.'}
                   </p>
                 </div>
                 <div className="rounded-2xl border border-app-border bg-app-surface-muted px-4 py-4">
@@ -353,7 +361,7 @@ const WebsitePublishingPage: React.FC = () => {
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                   <div className="rounded-2xl border border-app-border bg-app-surface-muted px-4 py-4">
                     <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
-                      Primary URL
+                      Public-site URL
                     </div>
                     <div className="mt-2 text-sm text-app-text">
                       {deployment?.primaryUrl || deploymentInfo.primaryUrl}
@@ -361,7 +369,7 @@ const WebsitePublishingPage: React.FC = () => {
                   </div>
                   <div className="rounded-2xl border border-app-border bg-app-surface-muted px-4 py-4">
                     <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
-                      Preview URL
+                      Public preview URL
                     </div>
                     <div className="mt-2 text-sm text-app-text">
                       {deploymentInfo.previewUrl || 'No preview deployment available.'}

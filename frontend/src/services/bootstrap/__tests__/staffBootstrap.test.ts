@@ -18,6 +18,7 @@ import {
 import {
   clearStaffBootstrapSnapshot,
   getStaffBootstrapSnapshot,
+  setStaffBootstrapSnapshot,
 } from '../staffBootstrap';
 import {
   __resetUserPreferencesCacheForTests,
@@ -27,6 +28,7 @@ import {
 describe('staffBootstrap', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
     window.history.pushState({}, '', '/');
     window.localStorage.clear();
     clearStaffBootstrapSnapshot();
@@ -144,106 +146,40 @@ describe('staffBootstrap', () => {
     expect(getWorkspaceModuleAccessCachedSync().cases).toBe(false);
   });
 
-  it('retries bootstrap once before falling back to the authenticated user snapshot', async () => {
-    vi.mocked(api.get)
-      .mockRejectedValueOnce(new Error('bootstrap not ready'))
-      .mockResolvedValueOnce({
-        data: {
-          success: true,
-          data: {
-            user: {
-              id: 'user-2',
-              email: 'retry@example.com',
-              firstName: 'Retry',
-              lastName: 'User',
-              role: 'admin',
-              profilePicture: null,
-              organizationId: 'org-2',
-            },
-            organizationId: 'org-2',
-            branding: {
-              appName: 'Retry Org',
-              appIcon: null,
-              primaryColour: '#abcdef',
-              secondaryColour: '#fedcba',
-              favicon: null,
-            },
-            preferences: {
-              timezone: 'America/Edmonton',
-              navigation: {
-                items: [{ id: 'contacts' }],
-              },
-              dashboard_settings: {
-                showQuickLookup: true,
-              },
-            },
-          },
-        },
-      });
-
-    const snapshot = await getStaffBootstrapSnapshot({
-      forceRefresh: true,
-      fallbackUser: {
-        id: 'fallback-user',
-        email: 'fallback@example.com',
-        firstName: 'Fallback',
-        lastName: 'User',
-        role: 'admin',
-        profilePicture: null,
-      },
-      fallbackOrganizationId: 'fallback-org',
-    });
-
-    expect(api.get).toHaveBeenCalledTimes(2);
-    expect(snapshot).toMatchObject({
-      status: 'authenticated',
-      organizationId: 'org-2',
-      user: {
-        id: 'user-2',
-      },
-      preferences: {
-        timezone: 'America/Edmonton',
-        navigation: {
-          items: [{ id: 'contacts' }],
-        },
-        dashboard_settings: {
-          showQuickLookup: true,
-        },
-      },
-    });
-    expect(getUserPreferencesCachedSync()).toMatchObject({
-      timezone: 'America/Edmonton',
-      navigation: {
-        items: [{ id: 'contacts' }],
-      },
-      dashboard_settings: {
-        showQuickLookup: true,
-      },
-    });
-  });
-
-  it('seeds an empty preferences cache when fallback auth snapshot has no startup preferences', async () => {
+  it('does not synthesize staff auth when the removed preview env is set', async () => {
+    vi.stubEnv('VITE_UI_STAFF_BOOTSTRAP_MODE', 'authenticated');
     vi.mocked(api.get).mockRejectedValue(new Error('still anonymous'));
 
-    const snapshot = await getStaffBootstrapSnapshot({
-      forceRefresh: true,
-      fallbackUser: {
-        id: 'fallback-user',
-        email: 'fallback@example.com',
-        firstName: 'Fallback',
+    const snapshot = await getStaffBootstrapSnapshot({ forceRefresh: true });
+
+    expect(api.get).toHaveBeenCalledWith('/auth/bootstrap');
+    expect(snapshot).toMatchObject({
+      status: 'anonymous',
+      organizationId: null,
+      user: null,
+    });
+    expect(snapshot.user?.id).not.toBe('ui-preview-staff');
+  });
+
+  it('seeds staff auth only through the explicit login-response setter', async () => {
+    const snapshot = setStaffBootstrapSnapshot({
+      user: {
+        id: 'login-user',
+        email: 'login@example.com',
+        firstName: 'Login',
         lastName: 'User',
         role: 'admin',
         profilePicture: null,
       },
-      fallbackOrganizationId: 'fallback-org',
+      organizationId: 'login-org',
     });
 
-    expect(api.get).toHaveBeenCalledTimes(2);
+    expect(api.get).not.toHaveBeenCalled();
     expect(snapshot).toMatchObject({
       status: 'authenticated',
-      organizationId: 'fallback-org',
+      organizationId: 'login-org',
       user: {
-        id: 'fallback-user',
+        id: 'login-user',
       },
       preferences: {},
     });

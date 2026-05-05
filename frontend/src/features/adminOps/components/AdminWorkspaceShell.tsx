@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import AdminQuickActionsBar from './AdminQuickActionsBar';
 import AdminPanelLayout from './AdminPanelLayout';
 import AdminPanelNav, { type AdminPanelNavMode } from './AdminPanelNav';
 
@@ -12,6 +13,8 @@ interface AdminWorkspaceShellProps {
   mode?: AdminPanelNavMode;
   className?: string;
   contentClassName?: string;
+  quickActionsRole?: string | null;
+  quickActionsMaxItems?: number;
 }
 
 const badgeClassName =
@@ -27,10 +30,19 @@ export default function AdminWorkspaceShell({
   mode = 'settings',
   className,
   contentClassName,
+  quickActionsRole = 'admin',
+  quickActionsMaxItems = 6,
 }: AdminWorkspaceShellProps) {
   const defaultBadgeLabel = mode === 'portal' ? 'Portal Workspace' : 'Admin Workspace';
-  const resolvedBadge =
-    badge ?? <span className={badgeClassName}>{defaultBadgeLabel}</span>;
+  const resolvedBadge = badge ?? <span className={badgeClassName}>{defaultBadgeLabel}</span>;
+  const sidebar = (
+    <div className="space-y-4">
+      <AdminPanelNav currentPath={currentPath} mode={mode} />
+      {quickActionsRole ? (
+        <AdminQuickActionsBar role={quickActionsRole} compact maxItems={quickActionsMaxItems} />
+      ) : null}
+    </div>
+  );
 
   return (
     <AdminPanelLayout
@@ -38,7 +50,8 @@ export default function AdminWorkspaceShell({
       description={description}
       actions={actions}
       badge={resolvedBadge}
-      sidebar={<AdminPanelNav currentPath={currentPath} mode={mode} />}
+      sidebar={sidebar}
+      mobileNav={<AdminPanelNav currentPath={currentPath} mode={mode} variant="compact" />}
       className={className}
       contentClassName={contentClassName}
     >

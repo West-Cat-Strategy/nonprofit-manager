@@ -1,5 +1,12 @@
 # PR #9 Verification
 
+Historical reproduction note. This file records a point-in-time PR metadata and
+file-presence check for merged PR #9; it is not part of the active verification
+contract. Current work should use `make test-tooling`,
+`./scripts/select-checks.sh --mode fast`, and `make ci-full` as described in
+[VERIFICATION_SYSTEM.md](VERIFICATION_SYSTEM.md) and
+[../testing/TESTING.md](../testing/TESTING.md).
+
 ## PR
 - Number: #9
 - Title: [P4-T30] e2e unblock and portal audit fixes

@@ -71,4 +71,54 @@ describe('rateLimitKeys', () => {
       'rate-limit:global:auth:person%40example.com%3A203.0.113.10'
     );
   });
+
+  it('builds site and IP scoped public website form keys', () => {
+    const req = buildRequest({
+      params: {
+        siteKey: 'site-1',
+        formKey: 'contact-form',
+      },
+    });
+
+    expect(rateLimitKeys.publicWebsiteForm(req)).toBe(
+      'rate-limit:global:public-website-form:site-1%3Acontact-form%3A203.0.113.10'
+    );
+  });
+
+  it('builds site and IP scoped public action keys', () => {
+    const req = buildRequest({
+      params: {
+        siteKey: 'site-1',
+        actionSlug: 'save-the-library',
+      },
+    });
+
+    expect(rateLimitKeys.publicWebsiteAction(req)).toBe(
+      'rate-limit:global:public-website-action:site-1%3Asave-the-library%3A203.0.113.10'
+    );
+  });
+
+  it('builds token and IP scoped public newsletter confirmation keys', () => {
+    const req = buildRequest({
+      params: {
+        token: 'signed-token',
+      },
+    });
+
+    expect(rateLimitKeys.publicNewsletterConfirmation(req)).toBe(
+      'rate-limit:global:public-newsletter-confirmation:d131c306d498cf8aa66cbd07%3A203.0.113.10'
+    );
+  });
+
+  it('builds site and IP scoped public analytics keys', () => {
+    const req = buildRequest({
+      params: {
+        siteId: 'site-1',
+      },
+    });
+
+    expect(rateLimitKeys.publicSiteAnalytics(req)).toBe(
+      'rate-limit:global:public-site-analytics:site-1%3A203.0.113.10'
+    );
+  });
 });

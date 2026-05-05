@@ -17,6 +17,7 @@ POLICY_COMMANDS=(
   "node scripts/check-migration-manifest-policy.ts"
   "node scripts/check-duplicate-test-tree.ts"
   "node scripts/check-doc-api-versioning.ts"
+  "node scripts/check-openapi-contract.ts"
   "node scripts/check-v2-module-ownership-policy.ts"
   "node scripts/check-module-boundary-policy.ts"
   "node scripts/check-module-route-proxy-policy.ts"

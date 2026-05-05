@@ -2,6 +2,7 @@ import {
   renderMailchimpCampaignPreview,
   resolveMailchimpCampaignContent,
 } from '@services/template/emailCampaignRenderer';
+import { genericizeMailMergeVariables } from '@services/template/emailCampaignBrowserView';
 
 describe('emailCampaignRenderer', () => {
   it('renders builder blocks into preview html and plain text', () => {
@@ -86,5 +87,15 @@ describe('emailCampaignRenderer', () => {
     expect(preview.html).not.toContain('javascript:alert');
     expect(preview.html).not.toContain('data:text/html');
     expect(preview.warnings).toHaveLength(2);
+  });
+
+  it('genericizes browser-view merge variables without exposing recipient values', () => {
+    const generic = genericizeMailMergeVariables(
+      'Hello {{first_name}} {{ full_name }} {{organization_name}} *|FNAME|* *|LNAME|* {{customStatus}} {{custom_status}}'
+    );
+
+    expect(generic).toBe(
+      'Hello First name Full name Organization name First name Last name Custom status Custom status'
+    );
   });
 });

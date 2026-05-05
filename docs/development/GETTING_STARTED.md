@@ -32,7 +32,8 @@ Pick one runtime path and stay with it while debugging. The Docker dev stack, di
 | Goal | Recommended Path | Local Contract |
 |---|---|---|
 | Validate Dockerfiles or production image packaging | Path 1: build-first Docker images | no long-running app; image build validation only |
-| Work full stack with Docker-managed Postgres and Redis | Path 2: optional compose dev stack | frontend `8005`, backend `8004`, public site `8006` |
+| Work on the API and staff app with the lowest Docker footprint | Path 2: lean compose dev stack | frontend `8005`, backend `8004`; public site omitted |
+| Work full stack with Docker-managed Postgres and Redis | Path 2: full compose dev stack | frontend `8005`, backend `8004`, public site `8006` |
 | Work on the API backend outside Docker | Path 3: direct backend runtime | backend `3000` |
 | Work on the public-site runtime outside Docker | Path 4: direct public-site runtime | public site `8006` |
 | Run schedulers or worker-side integrations outside Docker | Path 5: direct worker runtime | no HTTP port |
@@ -55,7 +56,14 @@ Expected result:
 
 ## Path 2: Optional Compose Dev Stack
 
-Use this when you want the app plus local Postgres and Redis under Docker.
+Use `make dev-lite` for day-to-day API and staff-app work under Docker. It starts Postgres, Redis, the backend API, and the frontend, then leaves the public-site runtime and Caddy stopped to reduce local runtime footprint.
+
+```bash
+cp .env.development.example .env.development
+make dev-lite
+```
+
+Use `make dev` when the public-site runtime is part of the change or proof. The full stack keeps the same ports as before.
 
 ```bash
 cp .env.development.example .env.development
@@ -67,8 +75,11 @@ Expected endpoints:
 - Frontend: `http://localhost:8005`
 - Backend API: `http://localhost:8004`
 - Public site: `http://localhost:8006`
+- Caddy public-site host: `http://sites.localhost` and `http://<site-subdomain>.sites.localhost`
 - Postgres: `localhost:8002`
 - Redis: `localhost:8003`
+
+Use `make docker-up-caddy` only when you need the explicit Caddy/public-host path for `localhost`, `sites.localhost`, or wildcard public-site domains.
 
 Quick verification:
 
@@ -137,6 +148,8 @@ Expected endpoint:
 
 This runtime uses the same `backend/.env` contract as the direct API runtime. `backend/.env.example` sets `PORT=3000` for the direct API server, so set `PORT=8006` when running the public-site server directly. `PUBLIC_SITE_PORT` is used by Compose overlays and does not override the direct Node process by itself. Keep the DB, Redis, and origin settings aligned with the backing services you chose in Path 2 or Path 3.
 
+Published-site links are built from `SITE_BASE_URL`. For local Caddy-backed work, keep `SITE_BASE_URL=http://sites.localhost` so a site with subdomain `westside-intake` resolves to `http://westside-intake.sites.localhost`. Compose uses `DEV_SITE_BASE_URL` to override that local default and routes `sites.localhost` plus wildcard subdomains to the `public-site-dev` container through Caddy. Public form submissions stay same-origin under the public-site runtime at `/api/v2/public/*`.
+
 ## Path 5: Direct Worker Runtime
 
 Use this when you need scheduler, queue, or worker-side integration behavior without the Docker stack.
@@ -153,6 +166,7 @@ Expected behavior:
 
 - No HTTP port is exposed
 - The worker uses the same database and Redis settings as the backend runtime
+- Production Docker Compose runs the same worker entrypoint as the `worker` service with `node dist/worker.js`; keep scheduler enable flags false unless this process is the single intended scheduler runner for that environment
 
 ## Path 6: Direct Frontend Runtime
 
@@ -200,7 +214,7 @@ Default Playwright runtime:
 - Backend API: `http://127.0.0.1:3001`
 
 The harness loads `.env.test` first and then `.env.test.local`, so local overrides win last.
-Wrapper-driven docker commands still default to `8005/8004/8006`, while the repo-root `make test-e2e-docker-smoke` target provisions its own isolated smoke stack on `18005/18004/18006` unless `KEEP_SMOKE_STACK=1`.
+Wrapper-driven docker commands still default to the full `8005/8004/8006` contract. `make dev-lite` is for manual API/app work and intentionally omits the public-site runtime; use `make dev` or `make docker-up-caddy` before package-level Docker E2E commands that need public-site coverage. The repo-root `make test-e2e-docker-smoke` target provisions its own isolated full smoke stack on `18005/18004/18006` unless `KEEP_SMOKE_STACK=1`.
 
 ## Verification And Next Docs
 
@@ -218,6 +232,9 @@ make test-e2e-docker-smoke
 make test-tooling
 make check-links
 make lint-doc-api-versioning
+make lint-openapi
+npm run knip
+npm run audit
 cd backend && npm run type-check
 cd frontend && npm run type-check
 ```

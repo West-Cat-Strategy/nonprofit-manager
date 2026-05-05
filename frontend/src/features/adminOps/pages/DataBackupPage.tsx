@@ -3,7 +3,6 @@ import { useLocation } from 'react-router-dom';
 import api from '../../../services/api';
 import ErrorBanner from '../../../components/ErrorBanner';
 import { useApiError } from '../../../hooks/useApiError';
-import AdminQuickActionsBar from '../components/AdminQuickActionsBar';
 import AdminWorkspaceShell from '../components/AdminWorkspaceShell';
 
 function getFilenameFromContentDisposition(headerValue: string | undefined): string | null {
@@ -80,7 +79,6 @@ export default function DataBackup() {
       description="Generate on-demand backup exports and review handling guidance from the shared admin tools surface."
       currentPath={location.pathname}
     >
-      <AdminQuickActionsBar role="admin" />
       <div className="bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
         <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted">
           <h2 className="text-lg font-semibold text-app-text">Export Backup</h2>

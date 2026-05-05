@@ -50,12 +50,35 @@ esac
 
 if [[ -z "$files_arg" ]]; then
   if [[ -n "$base" ]]; then
-    mapfile -t changed_files < <(git -C "$PROJECT_ROOT" diff --name-only "${base}...HEAD")
+    changed_files=()
+    while IFS= read -r file; do
+      changed_files+=("$file")
+    done < <(
+      {
+        git -C "$PROJECT_ROOT" diff --name-only "${base}...HEAD"
+        git -C "$PROJECT_ROOT" diff --name-only
+        git -C "$PROJECT_ROOT" diff --cached --name-only
+        git -C "$PROJECT_ROOT" ls-files --others --exclude-standard
+      } | sed '/^$/d' | sort -u
+    )
   else
-    mapfile -t changed_files < <(git -C "$PROJECT_ROOT" diff --name-only HEAD~1...HEAD 2>/dev/null || true)
+    changed_files=()
+    while IFS= read -r file; do
+      changed_files+=("$file")
+    done < <(
+      {
+        git -C "$PROJECT_ROOT" diff --name-only HEAD~1...HEAD 2>/dev/null || true
+        git -C "$PROJECT_ROOT" diff --name-only
+        git -C "$PROJECT_ROOT" diff --cached --name-only
+        git -C "$PROJECT_ROOT" ls-files --others --exclude-standard
+      } | sed '/^$/d' | sort -u
+    )
   fi
 else
-  mapfile -t changed_files < <(printf '%s\n' "$files_arg" | tr ' ' '\n' | sed '/^$/d')
+  changed_files=()
+  while IFS= read -r file; do
+    changed_files+=("$file")
+  done < <(printf '%s\n' "$files_arg" | tr ' ' '\n' | sed '/^$/d')
 fi
 
 if [[ ${#changed_files[@]} -eq 0 ]]; then
@@ -87,6 +110,9 @@ has_doc_api_linter_tool=0
 has_policy_tooling=0
 has_security_tooling=0
 has_tooling_contracts=0
+has_openapi_contract=0
+has_dependency_tooling=0
+has_knip_config=0
 
 is_docs_path() {
   case "$1" in
@@ -127,6 +153,11 @@ for file in "${changed_files[@]}"; do
     if is_api_docs_path "$file"; then
       has_api_docs=1
     fi
+    case "$file" in
+      docs/api/openapi.yaml)
+        has_openapi_contract=1
+        ;;
+    esac
     if is_runtime_docs_path "$file"; then
       has_runtime_docs=1
     fi
@@ -158,6 +189,10 @@ for file in "${changed_files[@]}"; do
       has_doc_api_linter_tool=1
       has_tooling_contracts=1
       ;;
+    scripts/check-openapi-contract.ts|docs/api/openapi.yaml|openapi.*|.openapi*)
+      has_openapi_contract=1
+      has_tooling_contracts=1
+      ;;
     scripts/check-*.ts|scripts/ui-audit.ts)
       has_policy_tooling=1
       has_tooling_contracts=1
@@ -175,7 +210,16 @@ for file in "${changed_files[@]}"; do
       has_runtime_orchestration=1
       has_tooling_contracts=1
       ;;
-    Makefile|package.json|package-lock.json|tsconfig*.json|docker-compose*.yml|docker-compose*.yaml|contracts/*|scripts/ci.sh|scripts/deploy.sh|scripts/e2e-*.sh|scripts/select-checks.sh|scripts/tests/*|backend/scripts/run-*.sh)
+    package.json|package-lock.json)
+      has_dependency_tooling=1
+      has_runtime_orchestration=1
+      has_tooling_contracts=1
+      ;;
+    knip.json)
+      has_knip_config=1
+      has_tooling_contracts=1
+      ;;
+    Makefile|tsconfig*.json|docker-compose*.yml|docker-compose*.yaml|contracts/*|scripts/ci.sh|scripts/deploy.sh|scripts/e2e-*.sh|scripts/select-checks.sh|scripts/tests/*|backend/scripts/run-*.sh)
       has_runtime_orchestration=1
       has_tooling_contracts=1
       case "$file" in
@@ -197,11 +241,13 @@ add_command() {
   local command="$1"
   local existing
 
-  for existing in "${commands[@]}"; do
-    if [[ "$existing" == "$command" ]]; then
-      return
-    fi
-  done
+  if [[ ${#commands[@]} -gt 0 ]]; then
+    for existing in "${commands[@]}"; do
+      if [[ "$existing" == "$command" ]]; then
+        return
+      fi
+    done
+  fi
 
   commands+=("$command")
 }
@@ -255,6 +301,19 @@ fi
 
 if [[ $has_tooling_contracts -eq 1 ]]; then
   add_command "make test-tooling"
+fi
+
+if [[ $has_openapi_contract -eq 1 || $has_api_docs -eq 1 ]]; then
+  add_command "make lint-openapi"
+fi
+
+if [[ $has_knip_config -eq 1 ]]; then
+  add_command "npm run knip"
+fi
+
+if [[ $has_dependency_tooling -eq 1 ]]; then
+  add_command "npm run knip"
+  add_command "make security-audit"
 fi
 
 if [[ $has_hook_tooling -eq 1 ]]; then

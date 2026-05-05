@@ -257,3 +257,97 @@ export const publicEventCheckInLimiter = rateLimit({
   },
 });
 export const publicEventCheckInLimiterMiddleware = isTestEnv ? noopLimiter : publicEventCheckInLimiter;
+
+export const publicWebsiteFormLimiter = rateLimit({
+  windowMs: parseInt(process.env.PUBLIC_WEBSITE_FORM_RATE_LIMIT_WINDOW_MS || String(10 * 60 * 1000)),
+  max: isTestEnv ? 10000 : parseInt(process.env.PUBLIC_WEBSITE_FORM_RATE_LIMIT_MAX_REQUESTS || '60'),
+  keyGenerator: (req) => rateLimitKeys.publicWebsiteForm(req),
+  skipSuccessfulRequests: false,
+  skip: shouldSkipRateLimit,
+  message: ERROR_MESSAGES.TOO_MANY_REQUESTS,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: buildStore('rl:public-website-form:'),
+  handler: (req, res) => {
+    sendError(
+      res,
+      'rate_limit_exceeded',
+      ERROR_MESSAGES.TOO_MANY_REQUESTS,
+      HTTP_STATUS.TOO_MANY_REQUESTS,
+      buildRetryDetails(req, 'public_website_form'),
+      req.correlationId
+    );
+  },
+});
+export const publicWebsiteFormLimiterMiddleware = isTestEnv ? noopLimiter : publicWebsiteFormLimiter;
+
+export const publicWebsiteActionLimiter = rateLimit({
+  windowMs: parseInt(process.env.PUBLIC_WEBSITE_ACTION_RATE_LIMIT_WINDOW_MS || String(10 * 60 * 1000)),
+  max: isTestEnv ? 10000 : parseInt(process.env.PUBLIC_WEBSITE_ACTION_RATE_LIMIT_MAX_REQUESTS || '60'),
+  keyGenerator: (req) => rateLimitKeys.publicWebsiteAction(req),
+  skipSuccessfulRequests: false,
+  skip: shouldSkipRateLimit,
+  message: ERROR_MESSAGES.TOO_MANY_REQUESTS,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: buildStore('rl:public-website-action:'),
+  handler: (req, res) => {
+    sendError(
+      res,
+      'rate_limit_exceeded',
+      ERROR_MESSAGES.TOO_MANY_REQUESTS,
+      HTTP_STATUS.TOO_MANY_REQUESTS,
+      buildRetryDetails(req, 'public_website_action'),
+      req.correlationId
+    );
+  },
+});
+export const publicWebsiteActionLimiterMiddleware = isTestEnv ? noopLimiter : publicWebsiteActionLimiter;
+
+export const publicNewsletterConfirmationLimiter = rateLimit({
+  windowMs: parseInt(process.env.PUBLIC_NEWSLETTER_CONFIRM_RATE_LIMIT_WINDOW_MS || String(15 * 60 * 1000)),
+  max: isTestEnv ? 10000 : parseInt(process.env.PUBLIC_NEWSLETTER_CONFIRM_RATE_LIMIT_MAX_REQUESTS || '30'),
+  keyGenerator: (req) => rateLimitKeys.publicNewsletterConfirmation(req),
+  skipSuccessfulRequests: false,
+  skip: shouldSkipRateLimit,
+  message: ERROR_MESSAGES.TOO_MANY_REQUESTS,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: buildStore('rl:public-newsletter-confirmation:'),
+  handler: (req, res) => {
+    sendError(
+      res,
+      'rate_limit_exceeded',
+      ERROR_MESSAGES.TOO_MANY_REQUESTS,
+      HTTP_STATUS.TOO_MANY_REQUESTS,
+      buildRetryDetails(req, 'public_newsletter_confirmation'),
+      req.correlationId
+    );
+  },
+});
+export const publicNewsletterConfirmationLimiterMiddleware = isTestEnv
+  ? noopLimiter
+  : publicNewsletterConfirmationLimiter;
+
+export const publicSiteAnalyticsLimiter = rateLimit({
+  windowMs: parseInt(process.env.PUBLIC_SITE_ANALYTICS_RATE_LIMIT_WINDOW_MS || String(10 * 60 * 1000)),
+  max: isTestEnv ? 10000 : parseInt(process.env.PUBLIC_SITE_ANALYTICS_RATE_LIMIT_MAX_REQUESTS || '240'),
+  keyGenerator: (req) => rateLimitKeys.publicSiteAnalytics(req),
+  skipSuccessfulRequests: false,
+  skip: shouldSkipRateLimit,
+  message: ERROR_MESSAGES.TOO_MANY_REQUESTS,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: buildStore('rl:public-site-analytics:'),
+  handler: (req, res) => {
+    sendError(
+      res,
+      'rate_limit_exceeded',
+      ERROR_MESSAGES.TOO_MANY_REQUESTS,
+      HTTP_STATUS.TOO_MANY_REQUESTS,
+      buildRetryDetails(req, 'public_site_analytics'),
+      req.correlationId
+    );
+  },
+});
+export const publicSiteAnalyticsLimiterMiddleware = isTestEnv ? noopLimiter : publicSiteAnalyticsLimiter;

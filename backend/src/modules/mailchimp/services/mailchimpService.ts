@@ -888,38 +888,6 @@ export async function refreshCampaignRunStatus(
   };
 }
 
-export async function cancelCampaignRun(
-  runId: string,
-  requesterScopeAccountIds?: string[]
-): Promise<CampaignRunActionResult | null> {
-  const run = await getCampaignRun(runId, requesterScopeAccountIds);
-  if (!run) {
-    return null;
-  }
-
-  return {
-    run,
-    action: 'unsupported',
-    message: 'Mailchimp campaign cancellation is not supported by this backend contract yet',
-  };
-}
-
-export async function rescheduleCampaignRun(
-  runId: string,
-  requesterScopeAccountIds?: string[]
-): Promise<CampaignRunActionResult | null> {
-  const run = await getCampaignRun(runId, requesterScopeAccountIds);
-  if (!run) {
-    return null;
-  }
-
-  return {
-    run,
-    action: 'unsupported',
-    message: 'Mailchimp campaign rescheduling is not supported by this backend contract yet',
-  };
-}
-
 async function recordMailchimpContactSuppressionEvidence(
   payload: MailchimpWebhookPayload,
   email: string
@@ -1060,8 +1028,6 @@ export const mailchimpService = {
   sendCampaign,
   sendCampaignRun,
   refreshCampaignRunStatus,
-  cancelCampaignRun,
-  rescheduleCampaignRun,
   recordCampaignLifecycleWebhook,
   recordContactPreferenceWebhook,
   createSegment,

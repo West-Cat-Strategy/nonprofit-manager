@@ -38,6 +38,11 @@ type DuplicateSectionResult = {
   sectionId: string;
 };
 
+type ComponentUpdatePatch = Omit<Partial<PageComponent>, 'id' | 'type'> & {
+  id?: PageComponent['id'];
+  type?: PageComponent['type'];
+};
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
@@ -236,6 +241,20 @@ const moveComponentInSections = (
   return nextSections;
 };
 
+const applyComponentUpdate = (
+  component: PageComponent,
+  updates: Partial<PageComponent>
+): PageComponent => {
+  const { id: _ignoredId, type: _ignoredType, ...patch } = updates as ComponentUpdatePatch;
+
+  return {
+    ...component,
+    ...patch,
+    id: component.id,
+    type: component.type,
+  } as PageComponent;
+};
+
 export const buildPageUpdatePayload = (
   currentPage: TemplatePage | null | undefined,
   updates: UpdatePageRequest
@@ -356,9 +375,9 @@ export const updateComponentInSections = (
   sections.map((section) => ({
     ...section,
     components: section.components.map((component) =>
-      component.id === componentId ? ({ ...component, ...updates } as PageComponent) : component
+      component.id === componentId ? applyComponentUpdate(component, updates) : component
     ),
-  })) as PageSection[];
+  }));
 
 export const updateSectionInSections = (
   sections: PageSection[],

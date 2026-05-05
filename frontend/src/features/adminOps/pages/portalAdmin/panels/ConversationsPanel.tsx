@@ -1,33 +1,46 @@
+import { useEffect, useState } from 'react';
 import { shouldSubmitComposer } from '../../../../../features/messaging/composer';
+import {
+  type AdminStatusTone,
+  AdminFilterToolbar,
+  AdminMetricGrid,
+  AdminMetricTile,
+  AdminStatusPill,
+  AdminWorkspaceSection,
+  adminControlClassName,
+  adminPrimaryButtonClassName,
+  adminSubtleButtonClassName,
+} from '../../../components/AdminWorkspacePrimitives';
+import LoadFailureNotice from './LoadFailureNotice';
 import type { PortalPanelProps } from '../panelTypes';
 
 const getStreamStatusBadge = (
   status: PortalPanelProps['portalStreamStatus']
-): { label: string; className: string } => {
+): { label: string; tone: AdminStatusTone } => {
   if (status === 'connected') {
     return {
       label: 'Live updates on',
-      className: 'bg-app-accent-soft text-app-accent-text',
+      tone: 'success',
     };
   }
 
   if (status === 'connecting') {
     return {
       label: 'Connecting live updates...',
-      className: 'bg-app-surface-muted text-app-text-muted',
+      tone: 'info',
     };
   }
 
   if (status === 'error') {
     return {
       label: 'Live updates unavailable (polling)',
-      className: 'bg-app-accent-soft text-app-accent-text',
+      tone: 'warning',
     };
   }
 
   return {
     label: 'Live updates disabled (polling)',
-    className: 'bg-app-surface-muted text-app-text-muted',
+    tone: 'neutral',
   };
 };
 
@@ -36,6 +49,7 @@ export default function ConversationsPanel({
   portalConversationFilters,
   onPortalConversationFilterChange,
   portalConversationsLoading,
+  portalConversationsError,
   portalConversationsLoadingMore,
   portalConversationsHasMore,
   portalConversations,
@@ -52,231 +66,305 @@ export default function ConversationsPanel({
   onRetryPortalConversationReply,
   onUpdatePortalConversationStatus,
 }: PortalPanelProps) {
+  const [mobileConversationView, setMobileConversationView] = useState<'list' | 'detail'>('list');
   const streamBadge = getStreamStatusBadge(portalStreamStatus);
+  const visibleConversationCount = portalConversations.length;
+  const openConversationCount = portalConversations.filter(
+    (conversation) => conversation.status === 'open'
+  ).length;
+  const unreadMessageCount = portalConversations.reduce(
+    (total, conversation) => total + conversation.unread_count,
+    0
+  );
+  const caseLinkedConversationCount = portalConversations.filter((conversation) =>
+    Boolean(conversation.case_id)
+  ).length;
+  const showMobileDetail = Boolean(selectedPortalConversation) && mobileConversationView === 'detail';
+
+  useEffect(() => {
+    if (!selectedPortalConversation) {
+      setMobileConversationView('list');
+    }
+  }, [selectedPortalConversation]);
 
   return (
-    <div className="bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
-      <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h3 className="text-lg font-semibold text-app-text-heading">Portal Conversations</h3>
-            <p className="text-sm text-app-text-muted mt-1">
-              Reply to client threads and keep conversation history in sync with case detail.
-            </p>
-          </div>
-          <span className={`px-2 py-1 text-xs rounded ${streamBadge.className}`}>
-            {streamBadge.label}
-          </span>
-        </div>
-      </div>
-      <div className="p-6 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
-          <input
-            type="text"
-            aria-label="Search portal conversations"
-            value={portalConversationFilters.search}
-            onChange={(event) => onPortalConversationFilterChange('search', event.target.value)}
-            placeholder="Search conversations"
-            className="px-3 py-2 border border-app-input-border rounded-lg"
+    <AdminWorkspaceSection
+      title="Portal Conversations"
+      description="Reply to client threads and keep conversation history in sync with case detail."
+      actions={<AdminStatusPill tone={streamBadge.tone}>{streamBadge.label}</AdminStatusPill>}
+    >
+      <AdminFilterToolbar>
+        <input
+          type="text"
+          aria-label="Search portal conversations"
+          value={portalConversationFilters.search}
+          onChange={(event) => onPortalConversationFilterChange('search', event.target.value)}
+          placeholder="Search conversations"
+          className={adminControlClassName}
+        />
+        <select
+          aria-label="Filter portal conversations by status"
+          value={portalConversationFilters.status}
+          onChange={(event) => onPortalConversationFilterChange('status', event.target.value)}
+          className={adminControlClassName}
+        >
+          <option value="all">All statuses</option>
+          <option value="open">Open</option>
+          <option value="closed">Closed</option>
+          <option value="archived">Archived</option>
+        </select>
+        <input
+          type="text"
+          aria-label="Filter portal conversations by case ID"
+          value={portalConversationFilters.caseId}
+          onChange={(event) => onPortalConversationFilterChange('caseId', event.target.value)}
+          placeholder="Case ID"
+          className={adminControlClassName}
+        />
+        <input
+          type="text"
+          aria-label="Filter portal conversations by pointperson user ID"
+          value={portalConversationFilters.pointpersonUserId}
+          onChange={(event) =>
+            onPortalConversationFilterChange('pointpersonUserId', event.target.value)
+          }
+          placeholder="Pointperson user ID"
+          className={adminControlClassName}
+        />
+        <button
+          type="button"
+          onClick={onRefreshPortalConversations}
+          className={adminSubtleButtonClassName}
+        >
+          Refresh Conversations
+        </button>
+      </AdminFilterToolbar>
+      {!portalConversationsLoading && (
+        <AdminMetricGrid>
+          <AdminMetricTile label="Visible" value={visibleConversationCount} />
+          <AdminMetricTile
+            label="Open"
+            value={openConversationCount}
+            tone={openConversationCount ? 'info' : 'neutral'}
           />
-          <select
-            aria-label="Filter portal conversations by status"
-            value={portalConversationFilters.status}
-            onChange={(event) => onPortalConversationFilterChange('status', event.target.value)}
-            className="px-3 py-2 border border-app-input-border rounded-lg"
-          >
-            <option value="all">All statuses</option>
-            <option value="open">Open</option>
-            <option value="closed">Closed</option>
-            <option value="archived">Archived</option>
-          </select>
-          <input
-            type="text"
-            aria-label="Filter portal conversations by case ID"
-            value={portalConversationFilters.caseId}
-            onChange={(event) => onPortalConversationFilterChange('caseId', event.target.value)}
-            placeholder="Case ID"
-            className="px-3 py-2 border border-app-input-border rounded-lg"
+          <AdminMetricTile
+            label="Unread"
+            value={unreadMessageCount}
+            tone={unreadMessageCount ? 'warning' : 'neutral'}
           />
-          <input
-            type="text"
-            aria-label="Filter portal conversations by pointperson user ID"
-            value={portalConversationFilters.pointpersonUserId}
-            onChange={(event) =>
-              onPortalConversationFilterChange('pointpersonUserId', event.target.value)
-            }
-            placeholder="Pointperson user ID"
-            className="px-3 py-2 border border-app-input-border rounded-lg"
-          />
-          <button
-            type="button"
-            onClick={onRefreshPortalConversations}
-            className="px-4 py-2 text-sm bg-app-surface-muted rounded-lg hover:bg-app-surface-muted"
-          >
-            Refresh Conversations
-          </button>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4">
-          <div className="border border-app-border rounded-lg overflow-hidden">
-            {portalConversationsLoading && portalConversations.length === 0 ? (
-              <p className="p-4 text-sm text-app-text-muted">Loading conversations...</p>
-            ) : portalConversations.length === 0 ? (
-              <p className="p-4 text-sm text-app-text-muted">No portal conversations yet.</p>
-            ) : (
-              <div>
-                <ul className="max-h-[420px] overflow-y-auto divide-y divide-app-border">
-                  {portalConversations.map((conversation) => (
-                    <li key={conversation.id}>
-                      <button
-                        type="button"
-                        onClick={() => onOpenPortalConversation(conversation.id)}
-                        className={`w-full px-3 py-3 text-left hover:bg-app-surface-muted ${
-                          selectedPortalConversation?.thread.id === conversation.id
-                            ? 'bg-app-surface-muted'
-                            : ''
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="text-sm font-medium text-app-text">
-                            {conversation.subject || conversation.case_title || 'Conversation'}
-                          </div>
-                          {conversation.unread_count > 0 && (
-                            <span className="px-2 py-0.5 rounded-full bg-app-accent text-[var(--app-accent-foreground)] text-xs">
-                              {conversation.unread_count}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs text-app-text-muted mt-1">
-                          {conversation.portal_email || 'Client'} • {conversation.status}
-                        </div>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-                {portalConversationsHasMore && (
-                  <div className="p-3 border-t border-app-border">
+          <AdminMetricTile label="Case linked" value={caseLinkedConversationCount} />
+        </AdminMetricGrid>
+      )}
+      <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+        <div
+          id="portal-conversation-list"
+          className={`min-w-0 overflow-hidden rounded-lg border border-app-border ${
+            showMobileDetail ? 'hidden lg:block' : ''
+          }`}
+        >
+          {portalConversationsError ? (
+            <div className="border-b border-app-border p-3">
+              <LoadFailureNotice
+                title={portalConversations.length ? 'Partial load' : 'Load failed'}
+                message={portalConversationsError}
+              />
+            </div>
+          ) : null}
+          {portalConversationsLoading && portalConversations.length === 0 ? (
+            <p className="p-4 text-sm text-app-text-muted">Loading conversations...</p>
+          ) : portalConversations.length === 0 && !portalConversationsError ? (
+            <p className="p-4 text-sm text-app-text-muted">No portal conversations yet.</p>
+          ) : portalConversations.length > 0 ? (
+            <div>
+              <ul className="max-h-[420px] overflow-y-auto divide-y divide-app-border">
+                {portalConversations.map((conversation) => (
+                  <li key={conversation.id}>
                     <button
                       type="button"
-                      onClick={onLoadMorePortalConversations}
-                      disabled={portalConversationsLoadingMore}
-                      className="w-full px-3 py-2 text-sm bg-app-surface-muted rounded-lg hover:bg-app-surface-muted disabled:opacity-50"
-                    >
-                      {portalConversationsLoadingMore ? 'Loading...' : 'Load More Conversations'}
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="border border-app-border rounded-lg p-4">
-            {!selectedPortalConversation ? (
-              <p className="text-sm text-app-text-muted">Select a conversation to reply.</p>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <div className="text-sm font-semibold text-app-text">
-                      {selectedPortalConversation.thread.subject || 'Conversation'}
-                    </div>
-                    <div className="text-xs text-app-text-muted">
-                      {selectedPortalConversation.thread.portal_email || 'Client'} •{' '}
-                      {selectedPortalConversation.thread.status}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onUpdatePortalConversationStatus(
-                        selectedPortalConversation.thread.id,
-                        selectedPortalConversation.thread.status === 'open' ? 'closed' : 'open'
-                      )
-                    }
-                    className="px-3 py-1.5 text-xs bg-app-surface-muted rounded-lg hover:bg-app-surface-muted"
-                  >
-                    {selectedPortalConversation.thread.status === 'open' ? 'Close' : 'Reopen'}
-                  </button>
-                </div>
-
-                <div className="max-h-[260px] overflow-y-auto space-y-3 border border-app-border rounded-lg p-3">
-                  {selectedPortalConversation.messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`rounded-lg px-3 py-2 text-sm ${
-                        message.sender_type === 'staff'
-                          ? 'bg-app-accent-soft text-app-accent-text'
-                          : 'bg-app-surface-muted text-app-text'
+                    onClick={() => {
+                      onOpenPortalConversation(conversation.id);
+                      setMobileConversationView('detail');
+                    }}
+                    aria-pressed={selectedPortalConversation?.thread.id === conversation.id}
+                      className={`w-full min-w-0 px-3 py-3 text-left hover:bg-app-surface-muted ${
+                        selectedPortalConversation?.thread.id === conversation.id
+                          ? 'bg-app-surface-muted'
+                          : ''
                       }`}
                     >
-                      <div className="text-[11px] text-app-text-muted">
-                        {message.sender_display_name || message.sender_type} •{' '}
-                        {new Date(message.created_at).toLocaleString()}
-                        {message.is_internal && ' • Internal'}
-                      </div>
-                      <div className="mt-1 whitespace-pre-wrap">{message.message_text}</div>
-                      {(message.send_state === 'sending' || message.send_state === 'failed') && (
-                        <div className="mt-2 text-[11px] text-app-text-muted">
-                          {message.send_state === 'sending' ? 'Sending...' : 'Failed to send'}
+                      <div className="flex min-w-0 items-center justify-between gap-2">
+                        <div className="min-w-0 break-words text-sm font-medium text-app-text">
+                          {conversation.subject || conversation.case_title || 'Conversation'}
                         </div>
-                      )}
-                      {message.send_state === 'failed' && (
-                        <button
-                          type="button"
-                          onClick={() => onRetryPortalConversationReply(message.id)}
-                          className="mt-2 rounded border border-current px-2 py-1 text-[11px] font-semibold"
-                        >
-                          Retry
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="space-y-2">
-                  <textarea
-                    aria-label="Reply to portal conversation"
-                    value={portalConversationReply}
-                    onChange={(event) => onPortalConversationReplyChange(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (shouldSubmitComposer(event)) {
-                        event.preventDefault();
-                        onSendPortalConversationReply();
-                      }
-                    }}
-                    rows={3}
-                    placeholder="Reply to client"
-                    className="w-full px-3 py-2 border border-app-input-border rounded-lg"
-                    disabled={selectedPortalConversation.thread.status !== 'open'}
-                  />
-                  <label className="inline-flex items-center gap-2 text-sm text-app-text-muted">
-                    <input
-                      type="checkbox"
-                      checked={portalConversationReplyInternal}
-                      onChange={(event) => onPortalConversationReplyInternalChange(event.target.checked)}
-                      className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
-                    />
-                    Internal note (not visible to client)
-                  </label>
-                  <div className="flex justify-end">
-                    <button
-                      type="button"
-                      onClick={onSendPortalConversationReply}
-                      disabled={
-                        portalConversationReplyLoading ||
-                        selectedPortalConversation.thread.status !== 'open' ||
-                        !portalConversationReply.trim()
-                      }
-                      className="px-4 py-2 text-sm bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
-                    >
-                      {portalConversationReplyLoading ? 'Sending...' : 'Send Reply'}
+                        {conversation.unread_count > 0 && (
+                          <span className="shrink-0 rounded-full bg-app-accent px-2 py-0.5 text-xs text-[var(--app-accent-foreground)]">
+                            {conversation.unread_count}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1 break-words text-xs text-app-text-muted">
+                        {conversation.portal_email || 'Client'} • {conversation.status}
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <AdminStatusPill tone="neutral">
+                          {conversation.case_id ? 'Case-linked' : 'General portal thread'}
+                        </AdminStatusPill>
+                        {conversation.status === 'open' && (
+                          <AdminStatusPill tone="success">Reply available</AdminStatusPill>
+                        )}
+                      </div>
                     </button>
+                  </li>
+                ))}
+              </ul>
+              {portalConversationsHasMore && (
+                <div className="p-3 border-t border-app-border">
+                  <button
+                    type="button"
+                    onClick={onLoadMorePortalConversations}
+                    disabled={portalConversationsLoadingMore}
+                    className={adminSubtleButtonClassName}
+                  >
+                    {portalConversationsLoadingMore ? 'Loading...' : 'Load More Conversations'}
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : null}
+        </div>
+
+        <div
+          className={`min-w-0 rounded-lg border border-app-border p-4 ${
+            showMobileDetail ? '' : 'hidden lg:block'
+          }`}
+        >
+          {!selectedPortalConversation ? (
+            <p className="text-sm text-app-text-muted">Select a conversation to reply.</p>
+          ) : (
+            <div className="space-y-4">
+              <button
+                type="button"
+                onClick={() => setMobileConversationView('list')}
+                className={`${adminSubtleButtonClassName} lg:hidden`}
+              >
+                Back to conversations
+              </button>
+              <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <div className="break-words text-sm font-semibold text-app-text">
+                    {selectedPortalConversation.thread.subject || 'Conversation'}
+                  </div>
+                  <div className="break-words text-xs text-app-text-muted">
+                    {selectedPortalConversation.thread.portal_email || 'Client'} •{' '}
+                    {selectedPortalConversation.thread.status}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <AdminStatusPill tone="neutral">
+                      {selectedPortalConversation.thread.case_id ? 'Case-linked' : 'No linked case'}
+                    </AdminStatusPill>
+                    {selectedPortalConversation.thread.unread_count > 0 && (
+                      <AdminStatusPill tone="warning">
+                        {selectedPortalConversation.thread.unread_count} unread
+                      </AdminStatusPill>
+                    )}
                   </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onUpdatePortalConversationStatus(
+                      selectedPortalConversation.thread.id,
+                      selectedPortalConversation.thread.status === 'open' ? 'closed' : 'open'
+                    )
+                  }
+                  className={adminSubtleButtonClassName}
+                >
+                  {selectedPortalConversation.thread.status === 'open' ? 'Close' : 'Reopen'}
+                </button>
               </div>
-            )}
-          </div>
+
+              <div className="max-h-[260px] min-w-0 space-y-3 overflow-y-auto rounded-lg border border-app-border p-3">
+                {selectedPortalConversation.messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`min-w-0 rounded-lg px-3 py-2 text-sm ${
+                      message.sender_type === 'staff'
+                        ? 'bg-app-accent-soft text-app-accent-text'
+                        : 'bg-app-surface-muted text-app-text'
+                    }`}
+                  >
+                    <div className="text-[11px] text-app-text-muted">
+                      {message.sender_display_name || message.sender_type} •{' '}
+                      {new Date(message.created_at).toLocaleString()}
+                      {message.is_internal && ' • Internal'}
+                    </div>
+                    <div className="mt-1 whitespace-pre-wrap break-words">
+                      {message.message_text}
+                    </div>
+                    {(message.send_state === 'sending' || message.send_state === 'failed') && (
+                      <div className="mt-2 text-[11px] text-app-text-muted">
+                        {message.send_state === 'sending' ? 'Sending...' : 'Failed to send'}
+                      </div>
+                    )}
+                    {message.send_state === 'failed' && (
+                      <button
+                        type="button"
+                        onClick={() => onRetryPortalConversationReply(message.id)}
+                        className="mt-2 rounded border border-current px-2 py-1 text-[11px] font-semibold"
+                      >
+                        Retry
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-2">
+                <textarea
+                  aria-label="Reply to portal conversation"
+                  value={portalConversationReply}
+                  onChange={(event) => onPortalConversationReplyChange(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (shouldSubmitComposer(event)) {
+                      event.preventDefault();
+                      onSendPortalConversationReply();
+                    }
+                  }}
+                  rows={3}
+                  placeholder="Reply to client"
+                  className={adminControlClassName}
+                  disabled={selectedPortalConversation.thread.status !== 'open'}
+                />
+                <label className="inline-flex items-center gap-2 text-sm text-app-text-muted">
+                  <input
+                    type="checkbox"
+                    checked={portalConversationReplyInternal}
+                    onChange={(event) =>
+                      onPortalConversationReplyInternalChange(event.target.checked)
+                    }
+                    className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
+                  />
+                  Internal note (not visible to client)
+                </label>
+                <div className="flex justify-stretch sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={onSendPortalConversationReply}
+                    disabled={
+                      portalConversationReplyLoading ||
+                      selectedPortalConversation.thread.status !== 'open' ||
+                      !portalConversationReply.trim()
+                    }
+                    className={adminPrimaryButtonClassName}
+                  >
+                    {portalConversationReplyLoading ? 'Sending...' : 'Send Reply'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-    </div>
+    </AdminWorkspaceSection>
   );
 }

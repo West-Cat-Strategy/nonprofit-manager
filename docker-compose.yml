@@ -27,6 +27,11 @@ x-runtime-env: &runtime-env
 x-build-contexts: &build-contexts
   workspace: .
 
+x-backend-production-build: &backend-production-build
+  context: ./backend
+  target: production
+  additional_contexts: *build-contexts
+
 x-runtime-env-file: &runtime-env-file
   - ${RUNTIME_ENV_FILE:-.env.production}
 
@@ -44,10 +49,8 @@ services:
       start_period: 5s
 
   backend:
-    build:
-      context: ./backend
-      target: production
-      additional_contexts: *build-contexts
+    image: ${BACKEND_DOCKER_IMAGE:-nonprofit-manager-backend:latest}
+    build: *backend-production-build
     restart: unless-stopped
     init: true
     env_file: *runtime-env-file
@@ -89,10 +92,7 @@ services:
       start_period: 20s
 
   public-site:
-    build:
-      context: ./backend
-      target: production
-      additional_contexts: *build-contexts
+    image: ${BACKEND_DOCKER_IMAGE:-nonprofit-manager-backend:latest}
     restart: unless-stopped
     init: true
     env_file: *runtime-env-file
@@ -114,3 +114,15 @@ services:
       timeout: 5s
       retries: 20
       start_period: 20s
+
+  worker:
+    image: ${BACKEND_DOCKER_IMAGE:-nonprofit-manager-backend:latest}
+    restart: unless-stopped
+    init: true
+    env_file: *runtime-env-file
+    environment:
+      <<: *runtime-env
+    command: ["node", "dist/worker.js"]
+    depends_on:
+      redis:
+        condition: service_healthy

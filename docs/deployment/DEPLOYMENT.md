@@ -154,6 +154,10 @@ If using a managed load balancer:
    CORS_ORIGIN=https://app.example.org
    # Frontend proxy base; public app endpoints remain /api/v2/*
    VITE_API_URL=/api
+   # Public website host served by the public-site container through Caddy
+   SITE_BASE_URL=https://sites.example.org
+   CADDY_PUBLIC_SITE_DOMAIN=sites.example.org
+   PUBLIC_SITE_API_ORIGIN=https://sites.example.org
    # Don't expose HTTP ports directly
    ```
 
@@ -420,9 +424,11 @@ make docker-validate
 If you want the raw Docker commands instead:
 
 ```bash
-docker build --build-context contracts=contracts -f backend/Dockerfile -t nonprofit-manager-backend:latest backend
-docker build --build-context contracts=contracts -f frontend/Dockerfile -t nonprofit-manager-frontend:latest frontend
+docker build --build-context workspace=. -f backend/Dockerfile -t nonprofit-manager-backend:latest backend
+docker build --build-context workspace=. -f frontend/Dockerfile -t nonprofit-manager-frontend:latest frontend
 ```
+
+The production compose stack uses the same backend image for the API, public-site, and worker roles; the service command selects `dist/index.js`, `dist/public-site.js`, or `dist/worker.js` at runtime. The worker service exposes no HTTP port and only runs schedulers that are already enabled through the `*_SCHEDULER_ENABLED` environment variables.
 
 ### 4. Publish or Run the Images
 

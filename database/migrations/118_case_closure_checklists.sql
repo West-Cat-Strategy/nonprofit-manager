@@ -1,4 +1,4 @@
--- Migration 109: Case closure checklists
+-- Migration 118: Case closure checklists
 -- Created: 2026-04-26
 -- Description:
 --   * adds case-scoped closure continuity checklists for structured case closure records

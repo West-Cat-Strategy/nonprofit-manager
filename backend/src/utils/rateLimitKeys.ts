@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import type { Request } from 'express';
 
 const normalizePart = (value: unknown): string => {
@@ -44,6 +45,14 @@ const getBodyValue = (req: Request, key: string): string | undefined => {
   return typeof value === 'string' ? value : undefined;
 };
 
+const getParamValue = (req: Request, key: string, fallback: string): string => {
+  const value = req.params?.[key];
+  return typeof value === 'string' && value.trim().length > 0 ? value : fallback;
+};
+
+const hashIdentifier = (value: string): string =>
+  crypto.createHash('sha256').update(value).digest('hex').slice(0, 24);
+
 const buildScopedRateLimitKey = (
   scope: string,
   identifier: string,
@@ -84,13 +93,48 @@ export const rateLimitKeys = {
   },
 
   publicEventCheckIn(req: Request): string {
-    const eventId =
-      typeof req.params?.id === 'string' && req.params.id.trim().length > 0
-        ? req.params.id
-        : 'unknown-event';
+    const eventId = getParamValue(req, 'id', 'unknown-event');
     return buildScopedRateLimitKey(
       'public-event-checkin',
       `${eventId}:${getIp(req)}`,
+      undefined
+    );
+  },
+
+  publicWebsiteForm(req: Request): string {
+    const siteKey = getParamValue(req, 'siteKey', 'unknown-site');
+    const formKey = getParamValue(req, 'formKey', 'unknown-form');
+    return buildScopedRateLimitKey(
+      'public-website-form',
+      `${siteKey}:${formKey}:${getIp(req)}`,
+      undefined
+    );
+  },
+
+  publicWebsiteAction(req: Request): string {
+    const siteKey = getParamValue(req, 'siteKey', 'unknown-site');
+    const actionSlug = getParamValue(req, 'actionSlug', 'unknown-action');
+    return buildScopedRateLimitKey(
+      'public-website-action',
+      `${siteKey}:${actionSlug}:${getIp(req)}`,
+      undefined
+    );
+  },
+
+  publicNewsletterConfirmation(req: Request): string {
+    const token = getParamValue(req, 'token', 'unknown-token');
+    return buildScopedRateLimitKey(
+      'public-newsletter-confirmation',
+      `${hashIdentifier(token)}:${getIp(req)}`,
+      undefined
+    );
+  },
+
+  publicSiteAnalytics(req: Request): string {
+    const siteId = getParamValue(req, 'siteId', 'unknown-site');
+    return buildScopedRateLimitKey(
+      'public-site-analytics',
+      `${siteId}:${getIp(req)}`,
       undefined
     );
   },

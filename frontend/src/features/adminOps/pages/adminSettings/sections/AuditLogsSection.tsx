@@ -1,7 +1,29 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+  type ColumnDef,
+} from '@tanstack/react-table';
 import api from '../../../../../services/api';
 import { useApiError } from '../../../../../hooks/useApiError';
-import type { AuditLogPage } from '../types';
+import type { AuditLog, AuditLogPage } from '../types';
+
+const auditLogHeaderClasses: Record<string, string> = {
+  changedAt: 'w-44',
+  changedByEmail: 'w-44',
+  operation: 'w-32',
+  tableName: 'w-36',
+  summary: 'min-w-80',
+};
+
+const auditLogCellClasses: Record<string, string> = {
+  changedAt: 'align-top text-[var(--app-text-muted)]',
+  changedByEmail: 'align-top',
+  operation: 'align-top',
+  tableName: 'align-top font-mono text-xs text-[var(--app-text-muted)]',
+  summary: 'align-top',
+};
 
 export default function AuditLogsSection() {
   const [auditLogPage, setAuditLogPage] = useState<AuditLogPage>({ logs: [], total: 0 });
@@ -33,6 +55,100 @@ export default function AuditLogsSection() {
   const latestVisibleEvent = auditLogPage.logs[0] ?? null;
   const isEmpty = !loading && auditLogPage.logs.length === 0;
   const hasDisabledState = isEmpty && Boolean(auditLogPage.warning);
+  const columns = useMemo<ColumnDef<AuditLog>[]>(
+    () => [
+      {
+        accessorKey: 'changedAt',
+        header: 'Date',
+        cell: ({ row }) => (
+          <>
+            <div>{new Date(row.original.changedAt).toLocaleString()}</div>
+            <div className="mt-1 text-xs text-[var(--app-text-subtle)]">
+              {row.original.clientIpAddress || 'IP unavailable'}
+            </div>
+          </>
+        ),
+      },
+      {
+        accessorKey: 'changedByEmail',
+        header: 'Actor',
+        cell: ({ row }) => (
+          <>
+            <div className="font-medium text-app-text">
+              {row.original.changedByEmail || 'System'}
+            </div>
+            {row.original.userAgent && (
+              <div
+                className="mt-1 max-w-56 overflow-hidden break-words text-xs text-[var(--app-text-subtle)]"
+                data-testid="audit-log-user-agent"
+              >
+                {row.original.userAgent}
+              </div>
+            )}
+          </>
+        ),
+      },
+      {
+        accessorKey: 'operation',
+        header: 'Event',
+        cell: ({ row }) => (
+          <span
+            className={`inline-flex rounded-full border border-app-border px-2 py-0.5 text-xs font-bold uppercase ${
+              row.original.operation === 'DELETE'
+                ? 'bg-app-accent-soft text-app-accent-text'
+                : row.original.operation === 'INSERT'
+                  ? 'bg-app-accent-soft text-app-accent-text'
+                  : 'bg-app-surface-muted text-app-text'
+            }`}
+          >
+            {row.original.operation}
+          </span>
+        ),
+      },
+      {
+        accessorKey: 'tableName',
+        header: 'Target',
+      },
+      {
+        accessorKey: 'summary',
+        header: 'Details',
+        cell: ({ row }) => (
+          <div className="min-w-0 max-w-[44rem]">
+            <div className="break-words font-medium text-app-text">{row.original.summary}</div>
+            <div
+              className="mt-1 whitespace-pre-wrap break-words text-sm text-[var(--app-text-muted)]"
+              data-testid="audit-log-details"
+            >
+              {row.original.details}
+            </div>
+            {row.original.changedFields && row.original.changedFields.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {row.original.changedFields.map((field) => (
+                  <span
+                    key={field}
+                    className="rounded-full bg-app-surface-muted px-2 py-0.5 text-xs text-app-text-muted"
+                  >
+                    {field}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        ),
+      },
+    ],
+    []
+  );
+  // TanStack Table is intentionally piloted on this dense admin grid.
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const table = useReactTable({
+    data: auditLogPage.logs,
+    columns,
+    getRowId: (row) => row.id,
+    getCoreRowModel: getCoreRowModel(),
+    manualPagination: true,
+    rowCount: auditLogPage.total,
+  });
 
   return (
     <div className="space-y-6">
@@ -102,67 +218,36 @@ export default function AuditLogsSection() {
 
       <div className="rounded-lg border border-app-border bg-app-surface shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          <table className="min-w-[72rem] table-fixed text-left text-sm">
             <thead className="bg-app-surface-muted">
-              <tr className="border-b border-app-border">
-                <th className="p-3 font-bold uppercase w-44">Date</th>
-                <th className="p-3 font-bold uppercase w-44">Actor</th>
-                <th className="p-3 font-bold uppercase w-32">Event</th>
-                <th className="p-3 font-bold uppercase w-36">Target</th>
-                <th className="p-3 font-bold uppercase">Details</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-app-border">
-              {auditLogPage.logs.map((log) => (
-                <tr key={log.id} className="hover:bg-app-surface-muted transition-colors">
-                  <td className="p-3 text-[var(--app-text-muted)]">
-                    <div>{new Date(log.changedAt).toLocaleString()}</div>
-                    <div className="mt-1 text-xs text-[var(--app-text-subtle)]">
-                      {log.clientIpAddress || 'IP unavailable'}
-                    </div>
-                  </td>
-                  <td className="p-3">
-                    <div className="font-medium text-app-text">
-                      {log.changedByEmail || 'System'}
-                    </div>
-                    {log.userAgent && (
-                      <div className="mt-1 text-xs text-[var(--app-text-subtle)]">
-                        {log.userAgent}
-                      </div>
-                    )}
-                  </td>
-                  <td className="p-3">
-                    <span
-                      className={`inline-flex rounded-full border border-app-border px-2 py-0.5 text-xs font-bold uppercase ${
-                        log.operation === 'DELETE'
-                          ? 'bg-app-accent-soft text-app-accent-text'
-                          : log.operation === 'INSERT'
-                            ? 'bg-app-accent-soft text-app-accent-text'
-                            : 'bg-app-surface-muted text-app-text'
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id} className="border-b border-app-border">
+                  {headerGroup.headers.map((header) => (
+                    <th
+                      key={header.id}
+                      className={`p-3 font-bold uppercase ${
+                        auditLogHeaderClasses[header.column.id] ?? ''
                       }`}
                     >
-                      {log.operation}
-                    </span>
-                  </td>
-                  <td className="p-3 font-mono text-xs text-[var(--app-text-muted)]">
-                    {log.tableName}
-                  </td>
-                  <td className="p-3">
-                    <div className="font-medium text-app-text">{log.summary}</div>
-                    <div className="mt-1 text-sm text-[var(--app-text-muted)]">{log.details}</div>
-                    {log.changedFields && log.changedFields.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {log.changedFields.map((field) => (
-                          <span
-                            key={field}
-                            className="rounded-full bg-app-surface-muted px-2 py-0.5 text-xs text-app-text-muted"
-                          >
-                            {field}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </td>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(header.column.columnDef.header, header.getContext())}
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+            <tbody className="divide-y divide-app-border">
+              {table.getRowModel().rows.map((row) => (
+                <tr key={row.id} className="hover:bg-app-surface-muted transition-colors">
+                  {row.getVisibleCells().map((cell) => (
+                    <td
+                      key={cell.id}
+                      className={`p-3 ${auditLogCellClasses[cell.column.id] ?? ''}`}
+                    >
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
                 </tr>
               ))}
               {loading && (

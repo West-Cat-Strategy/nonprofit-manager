@@ -17,6 +17,17 @@ describe('MeetingDetailPage', () => {
       meeting: null,
       loading: true,
       error: null,
+      onEdit: vi.fn(),
+      onBack: vi.fn(),
+      generateMinutes: vi.fn(),
+      minutesDraftMarkdown: null,
+      minutesDraftLoading: false,
+      minutesDraftError: null,
+      minutesDraftCopied: false,
+      copyMinutesDraft: vi.fn(),
+      downloadMinutesDraft: vi.fn(),
+      closeMinutesDraft: vi.fn(),
+      refresh: vi.fn(),
     });
 
     render(
@@ -51,6 +62,14 @@ describe('MeetingDetailPage', () => {
       onEdit: vi.fn(),
       onBack: vi.fn(),
       generateMinutes: vi.fn(),
+      minutesDraftMarkdown: null,
+      minutesDraftLoading: false,
+      minutesDraftError: null,
+      minutesDraftCopied: false,
+      copyMinutesDraft: vi.fn(),
+      downloadMinutesDraft: vi.fn(),
+      closeMinutesDraft: vi.fn(),
+      refresh: vi.fn(),
     });
 
     render(

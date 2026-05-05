@@ -1,6 +1,11 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { emailSchema, optionalStrictBooleanSchema } from '@validations/shared';
+import {
+  publicNewsletterConfirmationLimiterMiddleware,
+  publicWebsiteActionLimiterMiddleware,
+  publicWebsiteFormLimiterMiddleware,
+} from '@middleware/domains/platform';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import {
   getPublicContentEntry,
@@ -120,11 +125,13 @@ const newslettersRouter = Router();
 newslettersRouter.get('/', validateQuery(publicNewsletterListQuerySchema), listPublicNewsletters);
 newslettersRouter.get(
   '/confirm/:token',
+  publicNewsletterConfirmationLimiterMiddleware,
   validateParams(newsletterConfirmationParamsSchema),
   confirmPublicNewsletterSignup
 );
 newslettersRouter.post(
   '/confirm/:token',
+  publicNewsletterConfirmationLimiterMiddleware,
   validateParams(newsletterConfirmationParamsSchema),
   confirmPublicNewsletterSignup
 );
@@ -147,6 +154,7 @@ contentRouter.get(
 const formsRouter = Router();
 formsRouter.post(
   '/:siteKey/:formKey/submit',
+  publicWebsiteFormLimiterMiddleware,
   validateParams(publicWebsiteFormParamsSchema),
   validateBody(publicWebsiteFormBodySchema),
   submitPublicWebsiteForm
@@ -155,6 +163,7 @@ formsRouter.post(
 const actionsRouter = Router();
 actionsRouter.post(
   '/:siteKey/:actionSlug/submissions',
+  publicWebsiteActionLimiterMiddleware,
   validateParams(publicActionParamsSchema),
   validateBody(publicActionSubmissionBodySchema),
   submitPublicAction

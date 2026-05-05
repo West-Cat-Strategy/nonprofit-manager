@@ -30,7 +30,6 @@ const dateStringSchema = isoDateSchema;
 export const outcomesReportQuerySchema = z.object({
   from: dateStringSchema,
   to: dateStringSchema,
-  programId: uuidSchema.optional(),
   staffId: uuidSchema.optional(),
   source: z.enum(['all', 'interaction', 'event']).optional(),
   interactionType: z
@@ -38,7 +37,7 @@ export const outcomesReportQuerySchema = z.object({
     .optional(),
   bucket: z.enum(['week', 'month']).optional(),
   includeNonReportable: optionalStrictBooleanSchema,
-});
+}).strict();
 
 export type UpdateInteractionOutcomeImpactsInput = z.infer<
   typeof updateInteractionOutcomeImpactsSchema

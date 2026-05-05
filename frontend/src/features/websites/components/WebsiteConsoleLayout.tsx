@@ -94,15 +94,15 @@ const WebsiteConsoleLayout: React.FC<WebsiteConsoleLayoutProps> = ({
                 <div className="rounded-2xl border border-app-border bg-app-surface px-4 py-3 transition duration-200 hover:-translate-y-0.5 hover:shadow-sm">
                   <div className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-app-text-subtle">
                     <GlobeAltIcon className="h-4 w-4 text-app-accent" aria-hidden="true" />
-                    Live URL
+                    Public-site URL
                   </div>
                   <div className="mt-2 truncate text-sm font-semibold text-app-text">
                     {overview.deployment?.primaryUrl || overview.site.primaryUrl || 'Not available'}
                   </div>
                   <p className="mt-1 text-sm text-app-text-muted">
                     {overview.deployment?.domainStatus === 'configured'
-                      ? 'Custom domain configured'
-                      : 'Default routing'}
+                      ? 'Served by the public-site container'
+                      : 'Public route not configured'}
                   </p>
                 </div>
                 <div className="rounded-2xl border border-app-border bg-app-surface px-4 py-3 transition duration-200 hover:-translate-y-0.5 hover:shadow-sm">
@@ -112,7 +112,7 @@ const WebsiteConsoleLayout: React.FC<WebsiteConsoleLayoutProps> = ({
                   </div>
                   <div className="mt-2 text-sm font-semibold text-app-text">
                     {overview.deployment?.previewUrl
-                      ? 'Preview available'
+                      ? 'Public preview available'
                       : 'No preview deployment'}
                   </div>
                   <p className="mt-1 text-sm text-app-text-muted">

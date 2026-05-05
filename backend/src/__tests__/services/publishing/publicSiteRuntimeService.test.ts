@@ -203,6 +203,75 @@ describe('PublicSiteRuntimeService', () => {
     expect(html).toContain('/api/v2/public/events/event-1/registrations');
   });
 
+  it('threads published public-action counts into static petition blocks', async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'action-1',
+            organization_id: 'org-1',
+            site_id: 'site-1',
+            page_id: null,
+            component_id: null,
+            action_type: 'petition_signature',
+            status: 'published',
+            slug: 'save-the-library',
+            title: 'Save the Library',
+            description: null,
+            settings: {},
+            confirmation_message: null,
+            published_at: '2026-05-01T00:00:00.000Z',
+            closed_at: null,
+            submission_count: 1,
+            created_at: '2026-05-01T00:00:00.000Z',
+            updated_at: '2026-05-01T00:00:00.000Z',
+          },
+        ],
+      });
+
+    const site = {
+      ...baseSite,
+      publishedContent: {
+        ...baseSite.publishedContent,
+        pages: [
+          {
+            id: 'page-petition',
+            slug: 'petition',
+            name: 'Petition',
+            isHomepage: false,
+            pageType: 'static',
+            routePattern: '/petition',
+            sections: [
+              {
+                id: 'section-1',
+                name: 'Petition section',
+                components: [
+                  {
+                    id: 'petition-block',
+                    type: 'petition-form',
+                    actionSlug: 'save-the-library',
+                    showSignatureCount: true,
+                    petitionStatement: 'Keep the public library open.',
+                  },
+                ],
+              },
+            ],
+            seo: {},
+          },
+        ],
+      },
+    };
+
+    const html = await service.renderSitePage(site as never, '/petition');
+
+    expect(html).toContain('1 signature');
+    expect(html).toContain(
+      'action="/api/v2/public/actions/site-1/save-the-library/submissions"'
+    );
+    expect(mockQuery.mock.calls[1][0]).toContain("a.status = 'published'");
+  });
+
   it('renders newsletter detail pages from live website entries', async () => {
     websiteEntryModule.__mocks.getPublicNewsletterBySlug.mockResolvedValue({
       id: 'entry-1',

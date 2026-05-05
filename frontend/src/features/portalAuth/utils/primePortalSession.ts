@@ -1,11 +1,17 @@
 import type { PortalUser } from '../state';
-import { getPortalBootstrapSnapshot } from '../../../services/bootstrap/portalBootstrap';
+import {
+  getPortalBootstrapSnapshot,
+  setPortalBootstrapSnapshot,
+} from '../../../services/bootstrap/portalBootstrap';
 
 export const primePortalSession = async (fallbackUser: PortalUser): Promise<PortalUser> => {
-  const snapshot = await getPortalBootstrapSnapshot({
+  let snapshot = await getPortalBootstrapSnapshot({
     forceRefresh: true,
-    fallbackUser,
   });
+
+  if (!snapshot.user) {
+    snapshot = setPortalBootstrapSnapshot(fallbackUser);
+  }
 
   return snapshot.user ?? fallbackUser;
 };

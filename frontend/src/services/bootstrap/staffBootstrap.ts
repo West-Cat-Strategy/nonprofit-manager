@@ -35,18 +35,6 @@ type StaffBootstrapResponse = {
 };
 
 const STAFF_BOOTSTRAP_TTL_MS = 60_000;
-const staffBootstrapMode = import.meta.env.VITE_UI_STAFF_BOOTSTRAP_MODE as
-  | 'anonymous'
-  | 'authenticated'
-  | undefined;
-const mockStaffUser: User = {
-  id: 'ui-preview-staff',
-  email: 'preview.staff@example.org',
-  firstName: 'Preview',
-  lastName: 'Staff',
-  role: 'admin',
-  profilePicture: null,
-};
 
 let cachedSnapshot: StaffBootstrapSnapshot | null = null;
 let inFlightSnapshot: Promise<StaffBootstrapSnapshot> | null = null;
@@ -177,28 +165,6 @@ const fetchStaffBootstrapSnapshot = async (): Promise<StaffBootstrapSnapshot> =>
     };
   }
 
-  if (staffBootstrapMode === 'anonymous') {
-    return {
-      status: 'anonymous',
-      user: null,
-      organizationId: null,
-      branding: null,
-      preferences: null,
-      workspaceModules: createDefaultWorkspaceModuleSettings(),
-      fetchedAt: Date.now(),
-    };
-  }
-
-  if (staffBootstrapMode === 'authenticated') {
-    return buildAuthenticatedSnapshot({
-      user: mockStaffUser,
-      organizationId: null,
-      branding: null,
-      preferences: null,
-      workspaceModules: createDefaultWorkspaceModuleSettings(),
-    });
-  }
-
   try {
     const response = await api.get<ApiEnvelope<StaffBootstrapResponse>>('/auth/bootstrap');
     const payload = unwrapApiData(response.data) as StaffBootstrapResponse;
@@ -224,8 +190,6 @@ const fetchStaffBootstrapSnapshot = async (): Promise<StaffBootstrapSnapshot> =>
 
 export const getStaffBootstrapSnapshot = async (options?: {
   forceRefresh?: boolean;
-  fallbackUser?: User | null;
-  fallbackOrganizationId?: string | null;
 }): Promise<StaffBootstrapSnapshot> => {
   const forceRefresh = options?.forceRefresh === true;
 
@@ -241,16 +205,7 @@ export const getStaffBootstrapSnapshot = async (options?: {
   inFlightSnapshot = request;
 
   try {
-    let snapshot = await request;
-    if (!snapshot.user && options?.fallbackUser) {
-      const retrySnapshot = await fetchStaffBootstrapSnapshot();
-      snapshot = retrySnapshot.user
-        ? retrySnapshot
-        : buildAuthenticatedSnapshot({
-            user: options.fallbackUser,
-            organizationId: options.fallbackOrganizationId ?? null,
-          });
-    }
+    const snapshot = await request;
     cachedSnapshot = snapshot;
     return snapshot;
   } finally {

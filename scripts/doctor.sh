@@ -14,12 +14,14 @@ echo ""
 ERRORS=0
 
 # 1. Node.js version
-REQUIRED_NODE_MAJOR=22
+REQUIRED_NODE_MAJOR=20
+REQUIRED_NODE_MINOR=19
 CURRENT_NODE_VERSION=$(node -v | cut -d'v' -f2)
 CURRENT_NODE_MAJOR=$(echo $CURRENT_NODE_VERSION | cut -d'.' -f1)
+CURRENT_NODE_MINOR=$(echo $CURRENT_NODE_VERSION | cut -d'.' -f2)
 
-if [ "$CURRENT_NODE_MAJOR" -lt "$REQUIRED_NODE_MAJOR" ]; then
-    echo -e "  [${RED}FAIL${RESET}] Node.js version is $CURRENT_NODE_VERSION. Required: >= v$REQUIRED_NODE_MAJOR.0.0"
+if [ "$CURRENT_NODE_MAJOR" -lt "$REQUIRED_NODE_MAJOR" ] || { [ "$CURRENT_NODE_MAJOR" -eq "$REQUIRED_NODE_MAJOR" ] && [ "$CURRENT_NODE_MINOR" -lt "$REQUIRED_NODE_MINOR" ]; }; then
+    echo -e "  [${RED}FAIL${RESET}] Node.js version is $CURRENT_NODE_VERSION. Required: >= v$REQUIRED_NODE_MAJOR.$REQUIRED_NODE_MINOR.0"
     ERRORS=$((ERRORS + 1))
 else
     echo -e "  [${GREEN}PASS${RESET}] Node.js version is $CURRENT_NODE_VERSION."

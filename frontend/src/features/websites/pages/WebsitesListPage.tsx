@@ -15,6 +15,7 @@ import WebsiteStatusBadge from '../components/WebsiteStatusBadge';
 import {
   deriveWebsiteSiteManagementSummary,
   formatWebsiteConsoleDate,
+  getWebsiteConsoleUrlTarget,
 } from '../lib/websiteConsole';
 import {
   getWebsiteBuilderPath,
@@ -513,6 +514,10 @@ const WebsitesListPage: React.FC = () => {
             {sitesWithManagement.map((site) => {
               const summary = site.managementSummary;
               const nextAction = summary.nextAction;
+              const publicSiteHref = getWebsiteConsoleUrlTarget({
+                previewUrl: site.previewUrl,
+                primaryUrl: site.primaryUrl,
+              });
 
               return (
                 <article
@@ -555,7 +560,10 @@ const WebsitesListPage: React.FC = () => {
                       </p>
 
                       <div className="flex flex-wrap gap-3 text-sm text-app-text-muted">
-                        <span>Primary URL: {site.primaryUrl}</span>
+                        <span>
+                          Public-site URL:{' '}
+                          {publicSiteHref || 'Not configured'}
+                        </span>
                         {site.subdomain ? <span>Subdomain: {site.subdomain}</span> : null}
                         {site.customDomain ? <span>Domain: {site.customDomain}</span> : null}
                         <span>Updated {formatWebsiteConsoleDate(site.updatedAt)}</span>
@@ -657,14 +665,14 @@ const WebsitesListPage: React.FC = () => {
                         >
                           Builder
                         </Link>
-                        {site.previewUrl ? (
+                        {publicSiteHref ? (
                           <a
-                            href={site.previewUrl}
+                            href={publicSiteHref}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="rounded-full border border-app-border px-3 py-2 text-xs font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
                           >
-                            Preview
+                            Public site
                           </a>
                         ) : null}
                       </div>

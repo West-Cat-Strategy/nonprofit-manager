@@ -21,7 +21,7 @@
   }
 }
 
-{$CADDY_PUBLIC_SITE_DOMAIN:sites.localhost} {
+{$CADDY_PUBLIC_SITE_DOMAIN:sites.localhost}, *.{$CADDY_PUBLIC_SITE_DOMAIN:sites.localhost} {
   encode zstd gzip
 
   header {

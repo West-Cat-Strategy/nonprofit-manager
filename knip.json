@@ -17,6 +17,7 @@
         "scripts/check-migration-manifest-policy.ts",
         "scripts/check-duplicate-test-tree.ts",
         "scripts/check-doc-api-versioning.ts",
+        "scripts/check-openapi-contract.ts",
         "scripts/check-v2-module-ownership-policy.ts",
         "scripts/check-module-boundary-policy.ts",
         "scripts/check-module-route-proxy-policy.ts",

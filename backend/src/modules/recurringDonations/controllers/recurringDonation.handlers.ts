@@ -36,12 +36,16 @@ const ensurePermission = (req: AuthRequest, res: Response, permission: Permissio
 const handleServiceError = (res: Response, error: unknown, fallbackMessage: string): void => {
   const message = error instanceof Error ? error.message : fallbackMessage;
   const normalized = message.toLowerCase();
-  if (
+  const likelyClientError =
     normalized.includes('invalid') ||
     normalized.includes('not found') ||
     normalized.includes('missing') ||
-    normalized.includes('must')
-  ) {
+    normalized.includes('must') ||
+    normalized.includes('not yet connected') ||
+    normalized.includes('not supported') ||
+    normalized.includes('only supported');
+
+  if (likelyClientError) {
     badRequest(res, message);
     return;
   }

@@ -12,8 +12,13 @@ import { followUpReminderSchedulerService } from './services/followUpReminderSch
 import { appointmentReminderSchedulerService } from './services/appointmentReminderSchedulerService';
 import { publicReportSnapshotCleanupSchedulerService } from './services/publicReportSnapshotCleanupSchedulerService';
 import { scheduledReportSchedulerService } from './services/scheduledReportSchedulerService';
+import {
+  LOCAL_CAMPAIGN_DELIVERY_HEALTH_NAME,
+  localCampaignDeliverySchedulerService,
+} from '@modules/communications/services/localCampaignDeliverySchedulerService';
 import { socialMediaSyncSchedulerService } from '@modules/socialMedia/services/socialMediaSyncSchedulerService';
 import { webhookRetrySchedulerService } from '@modules/webhooks/services/webhookRetrySchedulerService';
+import { schedulerHealthService } from './services/queue/schedulerHealthService';
 
 // Load environment variables
 dotenv.config({ path: '.env', quiet: true });
@@ -30,42 +35,56 @@ const startWorker = async () => {
     const schedulers = [
       {
         name: 'Event Reminders',
+        healthName: 'event_reminders',
         enabled: process.env.EVENT_REMINDER_SCHEDULER_ENABLED === 'true',
         service: eventReminderSchedulerService,
       },
       {
         name: 'Follow-up Reminders',
+        healthName: 'follow_up_reminders',
         enabled: process.env.FOLLOW_UP_REMINDER_SCHEDULER_ENABLED === 'true',
         service: followUpReminderSchedulerService,
       },
       {
         name: 'Appointment Reminders',
+        healthName: 'appointment_reminders',
         enabled: process.env.APPOINTMENT_REMINDER_SCHEDULER_ENABLED === 'true',
         service: appointmentReminderSchedulerService,
       },
       {
         name: 'Scheduled Reports',
+        healthName: 'scheduled_reports',
         enabled: process.env.SCHEDULED_REPORT_SCHEDULER_ENABLED === 'true',
         service: scheduledReportSchedulerService,
       },
       {
+        name: 'Local Campaign Delivery',
+        healthName: LOCAL_CAMPAIGN_DELIVERY_HEALTH_NAME,
+        enabled: process.env.LOCAL_CAMPAIGN_DELIVERY_SCHEDULER_ENABLED === 'true',
+        service: localCampaignDeliverySchedulerService,
+      },
+      {
         name: 'Public Report Cleanup',
+        healthName: 'public_report_cleanup',
         enabled: process.env.REPORT_PUBLIC_SNAPSHOT_CLEANUP_ENABLED === 'true',
         service: publicReportSnapshotCleanupSchedulerService,
       },
       {
         name: 'Social Media Sync',
+        healthName: 'social_media_sync',
         enabled: process.env.SOCIAL_MEDIA_SYNC_SCHEDULER_ENABLED === 'true',
         service: socialMediaSyncSchedulerService,
       },
       {
         name: 'Webhook Retries',
+        healthName: 'webhook_retries',
         enabled: process.env.WEBHOOK_RETRY_SCHEDULER_ENABLED === 'true',
         service: webhookRetrySchedulerService,
       },
     ];
 
     for (const scheduler of schedulers) {
+      await schedulerHealthService.recordSchedulerState(scheduler.healthName, scheduler.enabled);
       if (scheduler.enabled) {
         scheduler.service.start();
         logger.info(`Worker: Started ${scheduler.name} scheduler`);
@@ -89,9 +108,21 @@ const stopWorker = async (signal: string) => {
   followUpReminderSchedulerService.stop();
   appointmentReminderSchedulerService.stop();
   scheduledReportSchedulerService.stop();
+  localCampaignDeliverySchedulerService.stop();
   publicReportSnapshotCleanupSchedulerService.stop();
   socialMediaSyncSchedulerService.stop();
   webhookRetrySchedulerService.stop();
+
+  await Promise.allSettled([
+    schedulerHealthService.recordSchedulerStopped('event_reminders'),
+    schedulerHealthService.recordSchedulerStopped('follow_up_reminders'),
+    schedulerHealthService.recordSchedulerStopped('appointment_reminders'),
+    schedulerHealthService.recordSchedulerStopped('scheduled_reports'),
+    schedulerHealthService.recordSchedulerStopped(LOCAL_CAMPAIGN_DELIVERY_HEALTH_NAME),
+    schedulerHealthService.recordSchedulerStopped('public_report_cleanup'),
+    schedulerHealthService.recordSchedulerStopped('social_media_sync'),
+    schedulerHealthService.recordSchedulerStopped('webhook_retries'),
+  ]);
 
   try {
     await Promise.all([closeRedis(), pool.end()]);

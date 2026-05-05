@@ -25,6 +25,12 @@ interface ReassessmentFormState {
   summary: string;
 }
 
+interface ReassessmentCue {
+  headline: string;
+  detail: string;
+  tone: 'urgent' | 'warning' | 'complete' | 'muted' | 'normal';
+}
+
 const emptyForm = (): ReassessmentFormState => ({
   title: '',
   dueDate: '',
@@ -94,6 +100,111 @@ const getBadgeColor = (state: string): 'green' | 'yellow' | 'red' | 'gray' | 'bl
   return 'blue';
 };
 
+const daysBetween = (left: Date, right: Date): number =>
+  Math.ceil((left.getTime() - right.getTime()) / 86_400_000);
+
+const pluralDays = (days: number): string => `${days} day${days === 1 ? '' : 's'}`;
+
+const getReassessmentCue = (reassessment: CaseReassessment, state: string): ReassessmentCue => {
+  if (reassessment.status === 'completed') {
+    return {
+      headline: reassessment.completed_at
+        ? `Completed ${formatDate(reassessment.completed_at)}`
+        : 'Completed',
+      detail: reassessment.completion_summary || 'Completion evidence is recorded.',
+      tone: 'complete',
+    };
+  }
+
+  if (reassessment.status === 'cancelled') {
+    return {
+      headline: 'Cancelled',
+      detail: reassessment.cancellation_reason || 'This reassessment is no longer active.',
+      tone: 'muted',
+    };
+  }
+
+  const today = getToday();
+  const dueDate = dateOnly(reassessment.due_date);
+  const earliestDate = dateOnly(reassessment.earliest_review_date);
+  const latestDate = dateOnly(reassessment.latest_review_date);
+
+  if (state === 'Window lapsed' && latestDate) {
+    return {
+      headline: `Window lapsed ${formatDate(reassessment.latest_review_date)}`,
+      detail: 'Complete, reschedule, or cancel this reassessment so the case plan stays current.',
+      tone: 'urgent',
+    };
+  }
+
+  if (dueDate) {
+    const daysUntilDue = daysBetween(dueDate, today);
+
+    if (daysUntilDue < 0) {
+      return {
+        headline: `Overdue by ${pluralDays(Math.abs(daysUntilDue))}`,
+        detail: 'Complete the reassessment or update the due date before closing the case plan.',
+        tone: 'urgent',
+      };
+    }
+
+    if (daysUntilDue === 0) {
+      return {
+        headline: 'Due today',
+        detail: 'Review outcomes and decide whether to complete or schedule the next reassessment.',
+        tone: 'warning',
+      };
+    }
+
+    if (state === 'In window') {
+      return {
+        headline: `Review window open; due in ${pluralDays(daysUntilDue)}`,
+        detail: latestDate
+          ? `Latest review date is ${formatDate(reassessment.latest_review_date)}.`
+          : 'The reassessment can be completed now.',
+        tone: 'warning',
+      };
+    }
+
+    if (daysUntilDue <= 7) {
+      return {
+        headline: `Due in ${pluralDays(daysUntilDue)}`,
+        detail: 'Prepare outcome evidence before the reassessment date.',
+        tone: 'warning',
+      };
+    }
+  }
+
+  if (earliestDate && today < earliestDate) {
+    return {
+      headline: `Review opens in ${pluralDays(daysBetween(earliestDate, today))}`,
+      detail: `Earliest review date is ${formatDate(reassessment.earliest_review_date)}.`,
+      tone: 'normal',
+    };
+  }
+
+  return {
+    headline: dueDate ? `Due ${formatDate(reassessment.due_date)}` : 'Scheduled',
+    detail: 'No immediate reassessment action is due.',
+    tone: 'normal',
+  };
+};
+
+const getCueClassName = (tone: ReassessmentCue['tone']): string => {
+  switch (tone) {
+    case 'urgent':
+      return 'border-app-accent bg-app-accent-soft text-app-accent-text';
+    case 'warning':
+      return 'border-[var(--loop-yellow)] bg-[var(--loop-yellow)]/25 text-black dark:text-white';
+    case 'complete':
+      return 'border-[var(--loop-green)] bg-[var(--loop-green)]/20 text-black dark:text-white';
+    case 'muted':
+      return 'border-black/20 bg-app-surface-muted text-black/70 dark:text-white/70';
+    default:
+      return 'border-black/20 bg-app-surface-muted text-black/80 dark:text-white/80';
+  }
+};
+
 const sortReassessments = (items: CaseReassessment[]): CaseReassessment[] =>
   [...items].sort((left, right) => {
     const leftDate = dateOnly(left.due_date)?.getTime() ?? Number.MAX_SAFE_INTEGER;
@@ -153,6 +264,14 @@ export default function CaseReassessmentPanel({
       reassessments.filter(
         (reassessment) =>
           reassessment.status !== 'completed' && reassessment.status !== 'cancelled'
+      ),
+    [reassessments]
+  );
+  const closedReassessments = useMemo(
+    () =>
+      reassessments.filter(
+        (reassessment) =>
+          reassessment.status === 'completed' || reassessment.status === 'cancelled'
       ),
     [reassessments]
   );
@@ -325,6 +444,7 @@ export default function CaseReassessmentPanel({
 
     const state = getWindowState(reassessment);
     const owner = getOwnerLabel(reassessment, defaultOwnerUserId, defaultOwnerName);
+    const cue = getReassessmentCue(reassessment, state);
 
     return (
       <div className="border-2 border-black bg-app-surface p-4">
@@ -344,6 +464,10 @@ export default function CaseReassessmentPanel({
             <h3 className="text-base font-black uppercase text-black dark:text-white">
               {reassessment.title || 'Case reassessment'}
             </h3>
+            <div className={`border-2 px-3 py-2 text-xs font-bold ${getCueClassName(cue.tone)}`}>
+              <p className="font-black uppercase">{cue.headline}</p>
+              <p className="mt-1">{cue.detail}</p>
+            </div>
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs font-bold text-black/70 dark:text-white/70">
               <span>Due: {formatDate(reassessment.due_date)}</span>
               {reassessment.earliest_review_date && (
@@ -363,6 +487,11 @@ export default function CaseReassessmentPanel({
             {reassessment.cancellation_reason && (
               <p className="text-sm font-bold text-app-accent">
                 Cancelled: {reassessment.cancellation_reason}
+              </p>
+            )}
+            {reassessment.completion_summary && reassessment.status === 'completed' && (
+              <p className="text-sm font-bold text-black/80 dark:text-white/80">
+                Completion: {reassessment.completion_summary}
               </p>
             )}
           </div>
@@ -605,10 +734,29 @@ export default function CaseReassessmentPanel({
           Loading reassessments...
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-          {renderSummary('Current', currentReassessment)}
-          {renderSummary('Next', nextReassessment)}
-        </div>
+        <>
+          <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+            {renderSummary('Current', currentReassessment)}
+            {renderSummary('Next', nextReassessment)}
+          </div>
+          {closedReassessments.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-black uppercase text-black/70 dark:text-white/70">
+                Recent reassessment history
+              </h3>
+              <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                {closedReassessments.slice(0, 2).map((reassessment) => (
+                  <div key={reassessment.id}>
+                    {renderSummary(
+                      reassessment.status === 'completed' ? 'Completed' : 'Cancelled',
+                      reassessment
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {formOpen && (

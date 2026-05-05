@@ -17,6 +17,8 @@ import {
   getWebsitePublishingPath,
 } from './websiteRouteTargets';
 
+export { getWebsiteConsoleUrlTarget, isConfiguredPublicWebsiteUrl } from './publicWebsiteUrl';
+
 type FormDependencyKey = 'crm' | 'newsletter' | 'stripe' | 'events';
 
 export interface FormSurfaceMeta {
@@ -683,16 +685,6 @@ export const deriveWebsiteManagedFormVerification = (
 };
 
 export const formatWebsiteConsoleDate = toDateLabel;
-
-export const getWebsiteConsoleUrlTarget = (
-  target:
-    | {
-        previewUrl?: string | null;
-        primaryUrl?: string | null;
-      }
-    | null
-    | undefined
-): string | null => target?.previewUrl || target?.primaryUrl || null;
 
 export const deriveWebsiteManagementSnapshot = (
   overview: WebsiteOverviewSummary | null

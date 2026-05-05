@@ -6,6 +6,10 @@ import type {
   TemplatePageType,
 } from '../../../types/websiteBuilder';
 
+type ComponentDefaults = {
+  [Type in ComponentType]: Omit<Extract<PageComponent, { type: Type }>, 'id'>;
+};
+
 export const normalizePageSlug = (value: string): string =>
   value
     .trim()
@@ -54,7 +58,7 @@ export const getDefaultRoutePattern = (
 export function createNewComponent(type: ComponentType): PageComponent {
   const id = `component-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-  const defaults: Record<ComponentType, Partial<PageComponent>> = {
+  const defaults = {
     text: { type: 'text', content: 'Add your text here...', align: 'left' },
     heading: { type: 'heading', content: 'Heading', level: 2, align: 'left' },
     image: { type: 'image', src: '', alt: 'Image description', objectFit: 'cover' },
@@ -200,7 +204,7 @@ export function createNewComponent(type: ComponentType): PageComponent {
     stats: { type: 'stats', items: [], columns: 4 },
     team: { type: 'team', members: [], columns: 3, showBio: true, showSocial: true },
     'logo-grid': { type: 'logo-grid', logos: [], columns: 4, grayscale: false },
-  };
+  } satisfies ComponentDefaults;
 
   return { id, ...defaults[type] } as PageComponent;
 }

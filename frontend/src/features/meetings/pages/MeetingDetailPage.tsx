@@ -1,11 +1,14 @@
 import React from 'react';
 import {
   ArrowLeftIcon,
+  ArrowDownTrayIcon,
   CalendarDaysIcon,
+  ClipboardDocumentIcon,
   ClipboardDocumentCheckIcon,
   DocumentTextIcon,
   MapPinIcon,
   PencilSquareIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import {
   BrutalCard,
@@ -17,7 +20,21 @@ import { useMeetingDetailPage } from '../hooks/useMeetingDetailPage';
 import { LoadingState, ErrorState } from '../../../components/ui/State';
 
 const MeetingDetailPage: React.FC = () => {
-  const { meeting, loading, error, onEdit, onBack, generateMinutes } = useMeetingDetailPage();
+  const {
+    meeting,
+    loading,
+    error,
+    onEdit,
+    onBack,
+    generateMinutes,
+    minutesDraftMarkdown,
+    minutesDraftLoading,
+    minutesDraftError,
+    minutesDraftCopied,
+    copyMinutesDraft,
+    downloadMinutesDraft,
+    closeMinutesDraft,
+  } = useMeetingDetailPage();
 
   if (loading) return <LoadingState />;
   if (error || !meeting) return <ErrorState message={error || 'Meeting not found'} />;
@@ -41,12 +58,69 @@ const MeetingDetailPage: React.FC = () => {
             <PencilSquareIcon className="mr-2 inline h-5 w-5" aria-hidden="true" />
             Edit Meeting
           </BrutalButton>
-          <BrutalButton variant="success" onClick={generateMinutes}>
+          <BrutalButton
+            variant="success"
+            onClick={() => {
+              void generateMinutes();
+            }}
+            disabled={minutesDraftLoading}
+          >
             <DocumentTextIcon className="mr-2 inline h-5 w-5" aria-hidden="true" />
-            Draft Minutes
+            {minutesDraftLoading ? 'Drafting...' : 'Draft Minutes'}
           </BrutalButton>
         </div>
       </div>
+
+      {minutesDraftError && (
+        <div
+          role="alert"
+          className="mb-6 border-2 border-black bg-red-100 p-4 font-bold text-red-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+        >
+          {minutesDraftError}
+        </div>
+      )}
+
+      {minutesDraftMarkdown && (
+        <BrutalCard className="mb-8">
+          <div className="p-6">
+            <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h2 className="text-2xl font-black uppercase">Minutes Draft Preview</h2>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <BrutalButton
+                  variant="secondary"
+                  onClick={() => {
+                    void copyMinutesDraft();
+                  }}
+                >
+                  <ClipboardDocumentIcon className="mr-2 inline h-5 w-5" aria-hidden="true" />
+                  Copy Markdown
+                </BrutalButton>
+                <BrutalButton variant="primary" onClick={downloadMinutesDraft}>
+                  <ArrowDownTrayIcon className="mr-2 inline h-5 w-5" aria-hidden="true" />
+                  Download .md
+                </BrutalButton>
+                <BrutalButton variant="secondary" onClick={closeMinutesDraft}>
+                  <XMarkIcon className="mr-2 inline h-5 w-5" aria-hidden="true" />
+                  Close Preview
+                </BrutalButton>
+              </div>
+            </div>
+            {minutesDraftCopied && (
+              <p role="status" className="mb-3 text-sm font-bold text-green-800">
+                Minutes markdown copied.
+              </p>
+            )}
+            <pre
+              aria-label="Generated minutes markdown"
+              className="max-h-[28rem] overflow-auto whitespace-pre-wrap border-2 border-black bg-white p-4 font-mono text-sm leading-relaxed shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+            >
+              {minutesDraftMarkdown}
+            </pre>
+          </div>
+        </BrutalCard>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column: Details & Agenda */}

@@ -21,6 +21,11 @@ x-backend-dev-env: &backend-dev-env
 x-workspace-build-contexts: &workspace-build-contexts
   workspace: .
 
+x-backend-dev-build: &backend-dev-build
+  context: ./backend
+  target: dev
+  additional_contexts: *workspace-build-contexts
+
 services:
   postgres:
     image: postgres:14-alpine
@@ -56,10 +61,8 @@ services:
       start_period: 5s
 
   backend-dev:
-    build:
-      context: ./backend
-      target: dev
-      additional_contexts: *workspace-build-contexts
+    image: ${DEV_BACKEND_DOCKER_IMAGE:-nonprofit-dev-backend-dev:latest}
+    build: *backend-dev-build
     restart: unless-stopped
     init: true
     env_file:
@@ -86,10 +89,7 @@ services:
       start_period: 20s
 
   public-site-dev:
-    build:
-      context: ./backend
-      target: dev
-      additional_contexts: *workspace-build-contexts
+    image: ${DEV_BACKEND_DOCKER_IMAGE:-nonprofit-dev-backend-dev:latest}
     restart: unless-stopped
     init: true
     env_file:
@@ -97,6 +97,7 @@ services:
     environment:
       <<: *backend-dev-env
       PORT: 8006
+      API_ORIGIN: ${PUBLIC_SITE_API_ORIGIN:-http://sites.localhost}
       CORS_ORIGIN: http://sites.localhost,http://localhost:${DEV_PUBLIC_SITE_PORT:-8006},http://127.0.0.1:${DEV_PUBLIC_SITE_PORT:-8006}
     command: npm run dev:public
     ports:

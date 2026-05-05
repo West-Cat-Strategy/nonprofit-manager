@@ -24,9 +24,17 @@ const mailchimpControllerMocks = {
   refreshCampaignRunStatus: jest.fn((_req: unknown, res: Response) =>
     res.status(200).json({ ok: true })
   ),
-  cancelCampaignRun: jest.fn((_req: unknown, res: Response) => res.status(200).json({ ok: true })),
+  cancelCampaignRun: jest.fn((_req: unknown, res: Response) =>
+    res.status(405).json({
+      success: false,
+      error: { code: 'method_not_allowed', message: 'Not implemented' },
+    })
+  ),
   rescheduleCampaignRun: jest.fn((_req: unknown, res: Response) =>
-    res.status(200).json({ ok: true })
+    res.status(405).json({
+      success: false,
+      error: { code: 'method_not_allowed', message: 'Not implemented' },
+    })
   ),
   previewCampaign: jest.fn((_req: unknown, res: Response) => res.status(200).json({ ok: true })),
   createCampaign: jest.fn((_req: unknown, res: Response) => res.status(200).json({ ok: true })),
@@ -314,11 +322,39 @@ describe('mailchimp routes authorization', () => {
     expect(mailchimpControllerMocks.sendCampaignRun).not.toHaveBeenCalled();
 
     await request(app)
+      .post('/api/v2/mailchimp/campaign-runs/not-a-uuid/cancel')
+      .send({})
+      .expect(400);
+
+    expect(mailchimpControllerMocks.cancelCampaignRun).not.toHaveBeenCalled();
+
+    await request(app)
+      .post('/api/v2/mailchimp/campaign-runs/not-a-uuid/reschedule')
+      .send({})
+      .expect(400);
+
+    expect(mailchimpControllerMocks.rescheduleCampaignRun).not.toHaveBeenCalled();
+
+    await request(app)
       .post('/api/v2/mailchimp/campaign-runs/11111111-1111-4111-8111-111111111111/send')
       .send({})
       .expect(200);
 
     expect(mailchimpControllerMocks.sendCampaignRun).toHaveBeenCalledTimes(1);
+
+    await request(app)
+      .post('/api/v2/mailchimp/campaign-runs/11111111-1111-4111-8111-111111111111/cancel')
+      .send({})
+      .expect(405);
+
+    expect(mailchimpControllerMocks.cancelCampaignRun).toHaveBeenCalledTimes(1);
+
+    await request(app)
+      .post('/api/v2/mailchimp/campaign-runs/11111111-1111-4111-8111-111111111111/reschedule')
+      .send({})
+      .expect(405);
+
+    expect(mailchimpControllerMocks.rescheduleCampaignRun).toHaveBeenCalledTimes(1);
   });
 
   it('keeps the Mailchimp webhook public', async () => {

@@ -61,6 +61,7 @@ Use this file for repo-specific coding-agent guardrails. It is not the setup gui
 - Re-open [../phases/planning-and-progress.md](../phases/planning-and-progress.md) and [../validation/README.md](../validation/README.md) when a resumed task depends on recent audit or remediation context.
 - When persona or benchmark details change, update the tracked persona-suite references first and keep `docs/product/*.md` concise.
 - Run `make check-links` for docs changes and add `make lint-doc-api-versioning` when API wording or examples changed.
+- Run `make lint-openapi` when `docs/api/openapi.yaml` changes.
 
 ## Default Validation Commands
 
@@ -80,6 +81,7 @@ cd backend && npm run type-check
 cd frontend && npm run type-check
 make check-links
 make lint-doc-api-versioning
+make lint-openapi
 make test-tooling
 ./scripts/select-checks.sh --base HEAD~1 --mode fast
 ```

@@ -4,10 +4,10 @@
 # Local make targets are the canonical CI/security/release command surface.
 # GitHub hosts the repo, but tracked workflows do not execute CI/CD.
 
-.PHONY: help install install-dev lint lint-rate-limit-keys lint-success-envelope lint-route-validation lint-express-validator lint-controller-sql lint-query-contract lint-auth-guards lint-migration-manifest lint-duplicate-tests lint-doc-api-versioning lint-v2-module-ownership lint-module-boundary lint-module-route-proxy lint-canonical-module-imports lint-implementation-size lint-frontend-feature-boundary lint-frontend-legacy-slice-imports lint-frontend-legacy-page-paths lint-backend-legacy-controller-wrappers lint-route-integrity lint-route-catalog-drift typecheck test test-backend test-frontend test-e2e test-e2e-docker-smoke test-coverage test-coverage-full test-tooling quality-baseline check-links build build-backend build-frontend clean clean-local clean-all \
+.PHONY: help install install-dev lint lint-rate-limit-keys lint-success-envelope lint-route-validation lint-express-validator lint-controller-sql lint-query-contract lint-auth-guards lint-migration-manifest lint-duplicate-tests lint-doc-api-versioning lint-openapi lint-v2-module-ownership lint-module-boundary lint-module-route-proxy lint-canonical-module-imports lint-implementation-size lint-frontend-feature-boundary lint-frontend-legacy-slice-imports lint-frontend-legacy-page-paths lint-backend-legacy-controller-wrappers lint-route-integrity lint-route-catalog-drift typecheck test test-backend test-frontend test-e2e test-e2e-docker-smoke test-coverage test-coverage-full test-tooling quality-baseline check-links build build-backend build-frontend clean clean-local clean-all \
 	security-audit security-scan ci ci-fast ci-full ci-unit \
         release-check release-staging release-production deploy deploy-staging deploy-local \
-        docker-build docker-up docker-up-dev docker-up-caddy docker-down docker-logs docker-rebuild docker-validate \
+        dev-lite docker-build docker-up docker-up-dev docker-up-dev-lite docker-up-caddy docker-down docker-logs docker-rebuild docker-validate \
         db-migrate db-verify doctor check-changed hooks
 
 # Colors for output
@@ -54,7 +54,7 @@ E2E_NPM_RUN := cd e2e && npm run
 CI_INFRA_ENV := REDIS_URL=$(CI_REDIS_URL) DB_PASSWORD=postgres
 CI_BACKEND_COVERAGE_ENV := REDIS_URL=$(CI_REDIS_URL) NODE_OPTIONS=$(CI_BACKEND_COVERAGE_NODE_OPTIONS)
 CI_TEST_DB_ENV := DB_HOST=127.0.0.1 DB_PORT=8012 DB_NAME=nonprofit_manager_test DB_USER=postgres DB_PASSWORD=postgres COMPOSE_MODE=ci
-SMOKE_STACK_ENV := COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_SMOKE) DEV_DB_PORT=$(SMOKE_DB_PORT) DEV_REDIS_PORT=$(SMOKE_REDIS_PORT) DEV_BACKEND_PORT=$(SMOKE_BACKEND_PORT) DEV_FRONTEND_PORT=$(SMOKE_FRONTEND_PORT) DEV_PUBLIC_SITE_PORT=$(SMOKE_PUBLIC_SITE_PORT) DEV_BYPASS_REGISTRATION_POLICY_IN_TEST=true DEV_BYPASS_MFA_FOR_TESTS=true
+SMOKE_STACK_ENV := COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_SMOKE) DEV_BACKEND_DOCKER_IMAGE=$(COMPOSE_PROJECT_SMOKE)-backend-dev:latest DEV_DB_PORT=$(SMOKE_DB_PORT) DEV_REDIS_PORT=$(SMOKE_REDIS_PORT) DEV_BACKEND_PORT=$(SMOKE_BACKEND_PORT) DEV_FRONTEND_PORT=$(SMOKE_FRONTEND_PORT) DEV_PUBLIC_SITE_PORT=$(SMOKE_PUBLIC_SITE_PORT) DEV_BYPASS_REGISTRATION_POLICY_IN_TEST=true DEV_BYPASS_MFA_FOR_TESTS=true
 
 #------------------------------------------------------------------------------
 # Help
@@ -68,9 +68,11 @@ help:
 	@echo "  make docker-build   Build backend/frontend Docker images directly"
 	@echo "  make docker-validate Validate both Dockerfiles and workspace dependency stages with clean direct builds"
 	@echo "  make docker-rebuild Rebuild backend/frontend Docker images without cache"
-	@echo "  make dev            Start the optional compose dev stack"
+	@echo "  make dev-lite       Start the lean compose dev stack (API, app, Postgres, Redis)"
+	@echo "  make dev            Start the full compose dev stack, including public-site"
 	@echo "  make docker-up      Start the production compose stack"
 	@echo "  make docker-up-dev  Start the optional compose dev stack (hot reload)"
+	@echo "  make docker-up-dev-lite Start the lean compose dev stack without public-site/Caddy"
 	@echo "  make docker-up-caddy Start the dev compose stack behind Caddy"
 	@echo "  make docker-down    Stop the optional compose dev stack"
 	@echo "  make docker-logs    View optional compose dev stack logs"
@@ -97,6 +99,7 @@ help:
 	@echo "  make lint-backend-legacy-controller-wrappers Enforce deleted legacy controller path stays removed"
 	@echo "  make lint-route-integrity Enforce literal route targets resolve via routeCatalog"
 	@echo "  make lint-route-catalog-drift Enforce routeCatalog stays aligned with registered routes"
+	@echo "  make lint-openapi   Lint docs/api/openapi.yaml for local contract consistency"
 	@echo "  make lint-fix       Run linters and auto-fix issues"
 	@echo "  make typecheck      Run TypeScript type checking across backend, frontend, and contracts"
 	@echo "  make test           Run backend/frontend tests + host Playwright CI + isolated Docker smoke gate"
@@ -160,8 +163,19 @@ dev: docker-up-dev
 	@echo "$(GREEN)Development environment started!$(RESET)"
 	@echo "  Frontend: http://localhost:$(DEV_FRONTEND_PORT)"
 	@echo "  Backend:  http://localhost:$(DEV_BACKEND_PORT)"
+	@echo "  Public site: http://localhost:$(DEV_PUBLIC_SITE_PORT)"
 	@echo "  Database: localhost:$(DEV_DB_PORT)"
 	@echo "  Redis:    localhost:$(DEV_REDIS_PORT)"
+	@echo ""
+
+dev-lite: docker-up-dev-lite
+	@echo ""
+	@echo "$(GREEN)Lean development environment started!$(RESET)"
+	@echo "  Frontend: http://localhost:$(DEV_FRONTEND_PORT)"
+	@echo "  Backend:  http://localhost:$(DEV_BACKEND_PORT)"
+	@echo "  Database: localhost:$(DEV_DB_PORT)"
+	@echo "  Redis:    localhost:$(DEV_REDIS_PORT)"
+	@echo "  Public site omitted; use make dev or make docker-up-caddy when that runtime is needed."
 	@echo ""
 
 docker-up:
@@ -195,6 +209,29 @@ docker-up-dev:
 	  "http://127.0.0.1:$(DEV_BACKEND_PORT)/health/ready" \
 	  "http://127.0.0.1:$(DEV_FRONTEND_PORT)" \
 	  "http://127.0.0.1:$(DEV_PUBLIC_SITE_PORT)/health/ready"
+
+docker-up-dev-lite:
+	@missing=0; \
+	for file in docker-compose.dev.yml; do \
+	  if [ ! -f "$$file" ]; then \
+	    echo "$(YELLOW)Required compose manifest missing: $$file$(RESET)"; \
+	    missing=1; \
+	  fi; \
+	done; \
+	if [ $$missing -ne 0 ]; then \
+	  echo "$(RED)Compose dev stack is unavailable until the manifest is restored.$(RESET)"; \
+	  exit 1; \
+	fi
+	$(DOCKER_COMPOSE) $(COMPOSE_DEV_ARGS) stop public-site-dev >/dev/null 2>&1 || true
+	$(DOCKER_COMPOSE) $(COMPOSE_DEV_ARGS) rm -f public-site-dev >/dev/null 2>&1 || true
+	@if [ -f docker-compose.caddy.yml ] && [ -f Caddyfile ]; then \
+	  $(DOCKER_COMPOSE) $(COMPOSE_DEV_CADDY_ARGS) stop caddy >/dev/null 2>&1 || true; \
+	  $(DOCKER_COMPOSE) $(COMPOSE_DEV_CADDY_ARGS) rm -f caddy >/dev/null 2>&1 || true; \
+	fi
+	$(DOCKER_COMPOSE) $(COMPOSE_DEV_ARGS) up -d postgres redis backend-dev frontend-dev
+	@./scripts/wait-for-http-ready.sh \
+	  "http://127.0.0.1:$(DEV_BACKEND_PORT)/health/ready" \
+	  "http://127.0.0.1:$(DEV_FRONTEND_PORT)"
 
 docker-up-caddy:
 	@missing=0; \
@@ -317,6 +354,11 @@ lint-doc-api-versioning:
 	@echo "$(BLUE)Checking docs API versioning policy...$(RESET)"
 	node scripts/check-doc-api-versioning.ts
 	@echo "$(GREEN)Docs API versioning check complete!$(RESET)"
+
+lint-openapi:
+	@echo "$(BLUE)Checking OpenAPI contract policy...$(RESET)"
+	node scripts/check-openapi-contract.ts
+	@echo "$(GREEN)OpenAPI contract check complete!$(RESET)"
 
 lint-v2-module-ownership:
 	@echo "$(BLUE)Checking v2 module ownership policy...$(RESET)"
@@ -518,12 +560,8 @@ check-links:
 # Security
 #------------------------------------------------------------------------------
 security-audit:
-	@echo "$(BLUE)Running npm audit on backend...$(RESET)"
-	cd backend && npm audit --omit=dev --audit-level=moderate
-	@echo ""
-	@echo "$(BLUE)Running npm audit on frontend...$(RESET)"
-	cd frontend && npm audit --omit=dev --audit-level=moderate
-	@echo ""
+	@echo "$(BLUE)Running npm audit across workspaces...$(RESET)"
+	npm run audit:prod
 	@echo "$(GREEN)Security audit complete!$(RESET)"
 
 security-scan:

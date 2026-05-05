@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import ConfirmDialog from '../../../../components/ConfirmDialog';
 import { useToast } from '../../../../contexts/useToast';
@@ -7,8 +7,13 @@ import useConfirmDialog from '../../../../hooks/useConfirmDialog';
 import usePortalAdminRealtime from '../../../portal/admin/usePortalAdminRealtime';
 import type { PortalAdminPanel } from '../../adminRoutePaths';
 import { portalAdminDefinitionByPanel } from '../../adminNavigationCatalog';
-import AdminQuickActionsBar from '../../components/AdminQuickActionsBar';
 import AdminWorkspaceShell from '../../components/AdminWorkspaceShell';
+import {
+  AdminMetricGrid,
+  AdminMetricTile,
+  AdminStatusPill,
+  AdminWorkspaceSection,
+} from '../../components/AdminWorkspacePrimitives';
 import PortalResetPasswordModal from '../adminSettings/components/PortalResetPasswordModal';
 import { usePortalSettings } from '../adminSettings/hooks/usePortalSettings';
 import type { PortalSectionProps } from '../adminSettings/sections/PortalSection';
@@ -22,6 +27,42 @@ interface PortalAdminPageProps {
   panel: PortalAdminPanel;
 }
 
+const pluralize = (count: number, singular: string, plural = `${singular}s`) =>
+  `${count} ${count === 1 ? singular : plural}`;
+
+const metricValue = (count: number, options: { loading?: boolean; error?: string | null }) => {
+  if (options.error) return 'Load failed';
+  if (options.loading) return 'Loading';
+  return count;
+};
+
+const metricTone = (
+  count: number,
+  options: { loading?: boolean; error?: string | null; activeTone?: 'warning' | 'success' | 'info' }
+) => {
+  if (options.error) return 'danger';
+  if (options.loading) return 'info';
+  return count ? (options.activeTone ?? 'warning') : 'neutral';
+};
+
+const metricHelper = ({
+  count,
+  loadedHelper,
+  emptyHelper,
+  loading,
+  error,
+}: {
+  count: number;
+  loadedHelper: string;
+  emptyHelper: string;
+  loading?: boolean;
+  error?: string | null;
+}) => {
+  if (error) return 'Refresh before treating this queue as empty.';
+  if (loading) return 'Checking the latest portal data.';
+  return count ? loadedHelper : emptyHelper;
+};
+
 export default function PortalAdminPage({ panel }: PortalAdminPageProps) {
   const location = useLocation();
   const { showSuccess, showError } = useToast();
@@ -32,10 +73,33 @@ export default function PortalAdminPage({ panel }: PortalAdminPageProps) {
     clear: clearFormError,
   } = useApiError();
   const { setFromError: notifyError } = useApiError({ notify: true });
+  const [portalConversationsError, setPortalConversationsError] = useState<string | null>(null);
+  const [portalSlotsError, setPortalSlotsError] = useState<string | null>(null);
+
+  const notifyPortalRealtimeError = useCallback(
+    (error: unknown, fallback: string) => {
+      if (fallback === 'Failed to load portal conversations') {
+        setPortalConversationsError(
+          'Could not load portal conversations. Refresh this panel before treating the queue as empty.'
+        );
+      }
+
+      if (fallback === 'Failed to load appointment slots') {
+        setPortalSlotsError(
+          'Could not load appointment slots. Refresh this panel before treating the queue as empty.'
+        );
+      }
+
+      notifyError(error, fallback);
+    },
+    [notifyError]
+  );
 
   const {
     portalRequests,
+    portalRequestsError,
     portalInvitations,
+    portalInvitationsError,
     portalInviteEmail,
     setPortalInviteEmail,
     setPortalInviteContactId,
@@ -43,10 +107,12 @@ export default function PortalAdminPage({ panel }: PortalAdminPageProps) {
     portalLoading,
     portalUsers,
     portalUsersLoading,
+    portalUsersError,
     portalUserSearch,
     setPortalUserSearch,
     portalUserActivity,
     portalActivityLoading,
+    portalActivityError,
     selectedPortalUser,
     portalResetTarget,
     setPortalResetTarget,
@@ -66,6 +132,7 @@ export default function PortalAdminPage({ panel }: PortalAdminPageProps) {
     setSelectedPortalContact,
     portalAppointments,
     portalAppointmentsLoading,
+    portalAppointmentsError,
     portalAppointmentsPagination,
     portalAppointmentFilters,
     portalSelectedAppointmentId,
@@ -139,18 +206,34 @@ export default function PortalAdminPage({ panel }: PortalAdminPageProps) {
     active: realtimePanelActive,
     showSuccess,
     showError,
-    notifyError,
+    notifyError: notifyPortalRealtimeError,
     onAppointmentUpdated,
   });
+
+  const refreshPortalConversations = useCallback(
+    async (options?: { offsetValue?: number }) => {
+      setPortalConversationsError(null);
+      await fetchPortalConversations(options);
+    },
+    [fetchPortalConversations]
+  );
+
+  const refreshPortalSlots = useCallback(
+    async (options?: { offsetValue?: number }) => {
+      setPortalSlotsError(null);
+      await fetchPortalSlots(options);
+    },
+    [fetchPortalSlots]
+  );
 
   const refreshPortalDataWithRealtime = useCallback(async () => {
     await refreshPortalData({
       refreshConversations: realtimePanelActive
-        ? () => fetchPortalConversations({ offsetValue: 0 })
+        ? () => refreshPortalConversations({ offsetValue: 0 })
         : undefined,
-      refreshSlots: realtimePanelActive ? () => fetchPortalSlots({ offsetValue: 0 }) : undefined,
+      refreshSlots: realtimePanelActive ? () => refreshPortalSlots({ offsetValue: 0 }) : undefined,
     });
-  }, [fetchPortalConversations, fetchPortalSlots, realtimePanelActive, refreshPortalData]);
+  }, [realtimePanelActive, refreshPortalConversations, refreshPortalData, refreshPortalSlots]);
 
   const handleDeletePortalSlot = useCallback(
     async (slotId: string) => {
@@ -171,6 +254,7 @@ export default function PortalAdminPage({ panel }: PortalAdminPageProps) {
     () => ({
       portalInviteUrl,
       portalLoading,
+      portalRequestsError,
       portalRequests,
       portalInviteEmail,
       portalContactSearch,
@@ -178,16 +262,19 @@ export default function PortalAdminPage({ panel }: PortalAdminPageProps) {
       portalContactResults,
       selectedPortalContact,
       portalInvitations,
+      portalInvitationsError,
       portalUsers,
       portalUsersLoading,
+      portalUsersError,
       portalUserSearch,
       selectedPortalUser,
       portalUserActivity,
       portalActivityLoading,
+      portalActivityError,
       formError,
       onRefreshPortal: refreshPortalDataWithRealtime,
-      onApproveRequest: async (requestId: string) => {
-        await handleApprovePortalRequest(requestId);
+      onApproveRequest: async (requestId: string, payload?: { contact_id: string }) => {
+        await handleApprovePortalRequest(requestId, payload);
         await refreshPortalDataWithRealtime();
       },
       onRejectRequest: async (requestId: string) => {
@@ -227,6 +314,7 @@ export default function PortalAdminPage({ panel }: PortalAdminPageProps) {
       portalConversationFilters,
       onPortalConversationFilterChange,
       portalConversationsLoading,
+      portalConversationsError,
       portalConversationsLoadingMore,
       portalConversationsHasMore,
       portalConversations,
@@ -234,7 +322,7 @@ export default function PortalAdminPage({ panel }: PortalAdminPageProps) {
       portalConversationReply,
       portalConversationReplyInternal,
       portalConversationReplyLoading,
-      onRefreshPortalConversations: () => fetchPortalConversations({ offsetValue: 0 }),
+      onRefreshPortalConversations: () => refreshPortalConversations({ offsetValue: 0 }),
       onLoadMorePortalConversations: loadMorePortalConversations,
       onOpenPortalConversation: openPortalConversation,
       onPortalConversationReplyChange: setPortalConversationReply,
@@ -245,6 +333,7 @@ export default function PortalAdminPage({ panel }: PortalAdminPageProps) {
       portalSlotFilters,
       onPortalSlotFilterChange,
       portalSlotsLoading,
+      portalSlotsError,
       portalSlotsLoadingMore,
       portalSlotsHasMore,
       portalSlots,
@@ -252,12 +341,13 @@ export default function PortalAdminPage({ panel }: PortalAdminPageProps) {
       portalSlotForm,
       onPortalSlotFormChange,
       onCreatePortalSlot: createPortalSlot,
-      onRefreshPortalSlots: () => fetchPortalSlots({ offsetValue: 0 }),
+      onRefreshPortalSlots: () => refreshPortalSlots({ offsetValue: 0 }),
       onLoadMorePortalSlots: loadMorePortalSlots,
       onUpdatePortalSlotStatus: updatePortalSlotStatus,
       onDeletePortalSlot: handleDeletePortalSlot,
       portalAppointments,
       portalAppointmentsLoading,
+      portalAppointmentsError,
       portalAppointmentsPagination,
       portalAppointmentFilters,
       onPortalAppointmentFilterChange: handlePortalAppointmentFilterChange,
@@ -280,8 +370,6 @@ export default function PortalAdminPage({ panel }: PortalAdminPageProps) {
     }),
     [
       fetchPortalAppointments,
-      fetchPortalConversations,
-      fetchPortalSlots,
       fetchPortalUsers,
       formError,
       handleApprovePortalRequest,
@@ -306,6 +394,7 @@ export default function PortalAdminPage({ panel }: PortalAdminPageProps) {
       portalAppointmentReminders,
       portalAppointmentRemindersLoading,
       portalAppointments,
+      portalAppointmentsError,
       portalAppointmentsLoading,
       portalAppointmentsPagination,
       portalContactLoading,
@@ -316,21 +405,26 @@ export default function PortalAdminPage({ panel }: PortalAdminPageProps) {
       portalConversationReplyInternal,
       portalConversationReplyLoading,
       portalConversations,
+      portalConversationsError,
       portalConversationsHasMore,
       portalConversationsLoading,
       portalConversationsLoadingMore,
       portalInviteEmail,
       portalInviteUrl,
       portalInvitations,
+      portalInvitationsError,
       portalLoading,
       portalReminderCustomMessage,
       portalRequests,
+      portalRequestsError,
+      portalActivityError,
       portalActivityLoading,
       portalSelectedAppointmentId,
       portalSlotFilters,
       portalSlotForm,
       portalSlotSaving,
       portalSlots,
+      portalSlotsError,
       portalSlotsHasMore,
       portalSlotsLoading,
       portalSlotsLoadingMore,
@@ -338,8 +432,11 @@ export default function PortalAdminPage({ panel }: PortalAdminPageProps) {
       portalUserActivity,
       portalUserSearch,
       portalUsers,
+      portalUsersError,
       portalUsersLoading,
       refreshPortalDataWithRealtime,
+      refreshPortalConversations,
+      refreshPortalSlots,
       retryPortalConversationReply,
       selectedPortalContact,
       selectedPortalConversation,
@@ -372,6 +469,21 @@ export default function PortalAdminPage({ panel }: PortalAdminPageProps) {
     slots: <SlotsPanel {...portalSectionProps} />,
   }[panel];
   const panelMeta = portalAdminDefinitionByPanel.get(panel);
+  const contactResolutionCount = portalRequests.filter(
+    (request) => request.resolution_status === 'needs_contact_resolution'
+  ).length;
+  const unreadConversationCount = portalConversations.reduce(
+    (total, conversation) => total + conversation.unread_count,
+    0
+  );
+  const requestedAppointmentCount = portalAppointments.filter(
+    (appointment) => appointment.status === 'requested'
+  ).length;
+  const pendingReminderCount = portalAppointments.reduce(
+    (total, appointment) => total + (appointment.pending_reminder_jobs ?? 0),
+    0
+  );
+  const openSlotCount = portalSlots.filter((slot) => slot.status === 'open').length;
 
   return (
     <AdminWorkspaceShell
@@ -383,7 +495,112 @@ export default function PortalAdminPage({ panel }: PortalAdminPageProps) {
       currentPath={location.pathname}
       mode="portal"
     >
-      <AdminQuickActionsBar role="admin" />
+      <AdminWorkspaceSection
+        title="Portal Triage"
+        description="Queue signals across access, conversations, appointments, and availability. Counts reflect the data currently loaded for this workspace."
+        actions={
+          <AdminStatusPill tone={portalStreamStatus === 'connected' ? 'success' : 'info'}>
+            {portalStreamStatus === 'connected' ? 'Live updates on' : 'Polling updates'}
+          </AdminStatusPill>
+        }
+      >
+        <AdminMetricGrid className="xl:grid-cols-5">
+          <AdminMetricTile
+            label="Signup requests"
+            value={metricValue(portalRequests.length, {
+              loading: portalLoading,
+              error: portalRequestsError,
+            })}
+            helper={metricHelper({
+              count: portalRequests.length,
+              loadedHelper: contactResolutionCount
+                ? pluralize(contactResolutionCount, 'contact match')
+                : 'Ready queue',
+              emptyHelper: 'Ready queue',
+              loading: portalLoading,
+              error: portalRequestsError,
+            })}
+            tone={metricTone(portalRequests.length, {
+              loading: portalLoading,
+              error: portalRequestsError,
+            })}
+          />
+          <AdminMetricTile
+            label="Unread replies"
+            value={metricValue(unreadConversationCount, {
+              loading: portalConversationsLoading,
+              error: portalConversationsError,
+            })}
+            helper={metricHelper({
+              count: portalConversations.length,
+              loadedHelper: `${portalConversations.length} loaded threads`,
+              emptyHelper: 'No loaded threads',
+              loading: portalConversationsLoading,
+              error: portalConversationsError,
+            })}
+            tone={metricTone(unreadConversationCount, {
+              loading: portalConversationsLoading,
+              error: portalConversationsError,
+            })}
+          />
+          <AdminMetricTile
+            label="Appointments"
+            value={metricValue(requestedAppointmentCount, {
+              loading: portalAppointmentsLoading,
+              error: portalAppointmentsError,
+            })}
+            helper={metricHelper({
+              count: requestedAppointmentCount,
+              loadedHelper: 'Need confirmation',
+              emptyHelper: 'No requested items loaded',
+              loading: portalAppointmentsLoading,
+              error: portalAppointmentsError,
+            })}
+            tone={metricTone(requestedAppointmentCount, {
+              loading: portalAppointmentsLoading,
+              error: portalAppointmentsError,
+            })}
+          />
+          <AdminMetricTile
+            label="Reminders"
+            value={metricValue(pendingReminderCount, {
+              loading: portalAppointmentsLoading,
+              error: portalAppointmentsError,
+            })}
+            helper={metricHelper({
+              count: pendingReminderCount,
+              loadedHelper: 'Pending jobs loaded',
+              emptyHelper: 'No pending jobs loaded',
+              loading: portalAppointmentsLoading,
+              error: portalAppointmentsError,
+            })}
+            tone={metricTone(pendingReminderCount, {
+              loading: portalAppointmentsLoading,
+              error: portalAppointmentsError,
+              activeTone: 'info',
+            })}
+          />
+          <AdminMetricTile
+            label="Open slots"
+            value={metricValue(openSlotCount, {
+              loading: portalSlotsLoading,
+              error: portalSlotsError,
+            })}
+            helper={metricHelper({
+              count: portalSlots.length,
+              loadedHelper: `${portalSlots.length} loaded slots`,
+              emptyHelper: 'No loaded slots',
+              loading: portalSlotsLoading,
+              error: portalSlotsError,
+            })}
+            tone={metricTone(openSlotCount, {
+              loading: portalSlotsLoading,
+              error: portalSlotsError,
+              activeTone: 'success',
+            })}
+          />
+        </AdminMetricGrid>
+      </AdminWorkspaceSection>
       {panelContent}
 
       <PortalResetPasswordModal

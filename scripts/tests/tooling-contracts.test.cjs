@@ -15,6 +15,12 @@ const {
 const {
   analyzeRouteValidationSource,
 } = require('../check-route-validation-policy.ts');
+const {
+  analyzeMigrationManifestPolicy,
+} = require('../check-migration-manifest-policy.ts');
+const {
+  analyzeOpenApiContract,
+} = require('../check-openapi-contract.ts');
 
 const repoRoot = path.resolve(__dirname, '../..');
 
@@ -50,6 +56,51 @@ function parseEnvironment(stdout) {
 
 function createTempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'nonprofit-manager-tooling-'));
+}
+
+function writeMigrationPolicyFixture(root, { manifestRows, migrationFiles, includeFiles, tuples }) {
+  const migrationsDir = path.join(root, 'database/migrations');
+  const initdbDir = path.join(root, 'database/initdb');
+  fs.mkdirSync(migrationsDir, { recursive: true });
+  fs.mkdirSync(initdbDir, { recursive: true });
+
+  fs.writeFileSync(
+    path.join(migrationsDir, 'manifest.tsv'),
+    `${manifestRows.join('\n')}\n`,
+    'utf8'
+  );
+
+  for (const filename of migrationFiles) {
+    fs.writeFileSync(path.join(migrationsDir, filename), '-- fixture migration\n', 'utf8');
+  }
+
+  const includeSql = includeFiles.map((filename) => `\\i /migrations/${filename}`).join('\n');
+  const tupleSql = tuples
+    .map(
+      ({ filename, migrationId, canonicalFilename }) =>
+        `    ('${filename}', '${migrationId}', '${canonicalFilename}')`
+    )
+    .join(',\n');
+
+  fs.writeFileSync(
+    path.join(initdbDir, '000_init.sql'),
+    `${includeSql}
+
+INSERT INTO schema_migrations (filename, migration_id, canonical_filename)
+VALUES
+${tupleSql}
+ON CONFLICT (filename) DO UPDATE
+SET migration_id = EXCLUDED.migration_id,
+    canonical_filename = EXCLUDED.canonical_filename;
+`,
+    'utf8'
+  );
+}
+
+function writeOpenApiFixture(root, text) {
+  const apiDir = path.join(root, 'docs/api');
+  fs.mkdirSync(apiDir, { recursive: true });
+  fs.writeFileSync(path.join(apiDir, 'openapi.yaml'), text, 'utf8');
 }
 
 test('route audit collects catalog entries across split files', () => {
@@ -172,6 +223,158 @@ test('route pattern matching accepts prefix checks and compatible dynamic runtim
     catalogPatternMatchesRuntime('/websites/:*/:*', '/website-builder/:*/preview', 'to'),
     false
   );
+});
+
+test('migration manifest policy flags orphan migration files and duplicate numeric IDs', () => {
+  const fixtureRoot = createTempDir();
+  writeMigrationPolicyFixture(fixtureRoot, {
+    manifestRows: ['001\t001_initial_schema.sql'],
+    migrationFiles: ['001_initial_schema.sql', '001_orphan_duplicate.sql'],
+    includeFiles: ['001_initial_schema.sql'],
+    tuples: [
+      {
+        filename: '001_initial_schema.sql',
+        migrationId: '001',
+        canonicalFilename: '001_initial_schema.sql',
+      },
+    ],
+  });
+
+  const issues = analyzeMigrationManifestPolicy(fixtureRoot);
+
+  assert(
+    issues.some((issue) =>
+      issue.includes('Orphan migration file is not listed in manifest.tsv: 001_orphan_duplicate.sql')
+    )
+  );
+  assert(
+    issues.some((issue) =>
+      issue.includes('Duplicate numeric migration file ID 001: 001_initial_schema.sql, 001_orphan_duplicate.sql')
+    )
+  );
+});
+
+test('migration manifest policy accepts non-numeric suffix IDs when manifest and initdb match', () => {
+  const fixtureRoot = createTempDir();
+  writeMigrationPolicyFixture(fixtureRoot, {
+    manifestRows: [
+      '060a\t060a_event_checkin_and_appointment_reminders.sql\t060_event_checkin_and_appointment_reminders.sql',
+      '060b\t060b_saved_reports_sharing_columns.sql\t060_saved_reports_sharing_columns.sql',
+    ],
+    migrationFiles: [
+      '060a_event_checkin_and_appointment_reminders.sql',
+      '060b_saved_reports_sharing_columns.sql',
+    ],
+    includeFiles: [
+      '060a_event_checkin_and_appointment_reminders.sql',
+      '060b_saved_reports_sharing_columns.sql',
+    ],
+    tuples: [
+      {
+        filename: '060a_event_checkin_and_appointment_reminders.sql',
+        migrationId: '060a',
+        canonicalFilename: '060a_event_checkin_and_appointment_reminders.sql',
+      },
+      {
+        filename: '060b_saved_reports_sharing_columns.sql',
+        migrationId: '060b',
+        canonicalFilename: '060b_saved_reports_sharing_columns.sql',
+      },
+    ],
+  });
+
+  fs.appendFileSync(
+    path.join(fixtureRoot, 'database/initdb/000_init.sql'),
+    `
+UPDATE schema_migrations
+SET migration_id = '060a',
+    canonical_filename = '060a_event_checkin_and_appointment_reminders.sql'
+WHERE filename = '060_event_checkin_and_appointment_reminders.sql';
+
+UPDATE schema_migrations
+SET migration_id = '060b',
+    canonical_filename = '060b_saved_reports_sharing_columns.sql'
+WHERE filename = '060_saved_reports_sharing_columns.sql';
+`,
+    'utf8'
+  );
+
+  assert.deepEqual(analyzeMigrationManifestPolicy(fixtureRoot), []);
+});
+
+test('openapi contract policy accepts local refs and path parameters', () => {
+  const fixtureRoot = createTempDir();
+  writeOpenApiFixture(
+    fixtureRoot,
+    `
+openapi: 3.0.3
+info:
+  title: Fixture API
+  version: 1.0.0
+servers:
+  - url: /api/v2
+paths:
+  /people/{personId}:
+    get:
+      summary: Get person
+      parameters:
+        - in: path
+          name: personId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Person
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+components:
+  schemas:
+    SuccessEnvelope:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+`
+  );
+
+  assert.deepEqual(analyzeOpenApiContract(fixtureRoot), []);
+});
+
+test('openapi contract policy flags missing refs and unbound path params', () => {
+  const fixtureRoot = createTempDir();
+  writeOpenApiFixture(
+    fixtureRoot,
+    `
+openapi: 3.0.3
+info:
+  title: Fixture API
+  version: 1.0.0
+servers:
+  - url: /api/v2
+paths:
+  /api/v2/people/{personId}:
+    get:
+      responses:
+        '20x':
+          description: Person
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MissingEnvelope'
+`
+  );
+
+  const issues = analyzeOpenApiContract(fixtureRoot);
+
+  assert(issues.some((issue) => issue.includes('should be relative to the /api/v2 server base URL')));
+  assert(issues.some((issue) => issue.includes('must include a summary')));
+  assert(issues.some((issue) => issue.includes("missing path parameter 'personId'")));
+  assert(issues.some((issue) => issue.includes('must be an HTTP status code or default')));
+  assert(issues.some((issue) => issue.includes("references missing component '#/components/schemas/MissingEnvelope'")));
 });
 
 test('e2e playwright host wrapper preserves explicit runtime overrides', () => {
@@ -307,6 +510,28 @@ test('e2e port preflight fails clearly when lsof is unavailable', () => {
   assert.match(`${result.stdout}\n${result.stderr}`, /requires 'lsof'/);
 });
 
+test('legacy broad verifier defaults to current supported contract notice', () => {
+  const result = run('bash', ['scripts/verify.sh']);
+
+  assert.equal(result.status, 1, result.stderr);
+  assert.match(result.stdout, /historical verifier re-homed/);
+  assert.match(result.stdout, /make test-tooling/);
+  assert.match(result.stdout, /scripts\/select-checks\.sh --mode fast/);
+  assert.match(result.stdout, /make ci-full/);
+  assert.doesNotMatch(result.stdout, /legacy verification replay complete/);
+});
+
+test('legacy PR verifier defaults to current supported contract notice', () => {
+  const result = run('bash', ['scripts/verify-pr.sh', '9']);
+
+  assert.equal(result.status, 1, result.stderr);
+  assert.match(result.stdout, /historical PR verifier re-homed/);
+  assert.match(result.stdout, /make test-tooling/);
+  assert.match(result.stdout, /scripts\/select-checks\.sh --mode fast/);
+  assert.match(result.stdout, /make ci-full/);
+  assert.match(result.stdout, /scripts\/verify-pr\.sh --run-legacy 9/);
+});
+
 test('select-checks keeps docs-only fast mode on docs validation', () => {
   const result = run('bash', [
     'scripts/select-checks.sh',
@@ -387,6 +612,37 @@ test('select-checks broadens orchestration changes into the coverage gate in str
     'make typecheck',
     'make test-coverage-full',
   ]);
+});
+
+test('select-checks includes untracked files in default selection', () => {
+  const fixturePath = path.join(repoRoot, 'openapi.selector-fixture');
+
+  try {
+    fs.writeFileSync(fixturePath, 'fixture\n', 'utf8');
+
+    const result = run('bash', ['scripts/select-checks.sh', '--base', 'HEAD', '--mode', 'fast']);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert(result.stdout.split('\n').includes('make lint-openapi'));
+  } finally {
+    fs.rmSync(fixturePath, { force: true });
+  }
+});
+
+test('select-checks includes dirty tracked files in default selection', () => {
+  const fixturePath = path.join(repoRoot, 'knip.json');
+  const originalText = fs.readFileSync(fixturePath, 'utf8');
+
+  try {
+    fs.writeFileSync(fixturePath, `${originalText}\n`, 'utf8');
+
+    const result = run('bash', ['scripts/select-checks.sh', '--base', 'HEAD', '--mode', 'fast']);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert(result.stdout.split('\n').includes('npm run knip'));
+  } finally {
+    fs.writeFileSync(fixturePath, originalText, 'utf8');
+  }
 });
 
 test('gitignore keeps live envs local-only while allowing tracked templates and canonical refs', () => {

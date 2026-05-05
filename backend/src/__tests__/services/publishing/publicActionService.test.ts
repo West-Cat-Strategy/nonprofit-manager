@@ -126,6 +126,25 @@ describe('PublicActionService', () => {
     });
   });
 
+  it('lists published public actions for runtime counts with current submission totals', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [actionRow({ submission_count: 12 })],
+    });
+
+    const result = await service.listPublishedActionsForSite(baseSite as never);
+
+    expect(result).toEqual([
+      expect.objectContaining({
+        actionType: 'petition_signature',
+        slug: 'save-the-library',
+        status: 'published',
+        submissionCount: 12,
+      }),
+    ]);
+    expect(mockQuery.mock.calls[0][0]).toContain("a.status = 'published'");
+    expect(mockQuery.mock.calls[0][1]).toEqual([baseSite.id]);
+  });
+
   it('records petition submissions with consent, provenance, and contact linkage', async () => {
     mockQuery
       .mockResolvedValueOnce({ rows: [actionRow()] })

@@ -167,7 +167,7 @@ describe('portalAuthController', () => {
       );
     });
 
-    it('creates a resolved pending signup request when no existing contact matches the email', async () => {
+    it('creates a manual-resolution pending signup request when no existing contact matches the email', async () => {
       const req = createBaseRequest({
         body: {
           email: 'NewUser@Example.com',
@@ -180,8 +180,9 @@ describe('portalAuthController', () => {
       mockPortalAuthService.findPortalUserIdByEmail.mockResolvedValueOnce(null);
       mockPortalAuthService.findPendingSignupRequestIdByEmail.mockResolvedValueOnce(null);
       mockPortalAuthService.resolvePortalSignupContact.mockResolvedValueOnce({
-        contactId: 'contact-created',
-        resolutionStatus: 'resolved',
+        contactId: null,
+        accountId: 'account-1',
+        resolutionStatus: 'needs_contact_resolution',
       });
       mockPortalAuthService.createPortalSignupRequest.mockResolvedValueOnce('signup-1');
 
@@ -195,13 +196,14 @@ describe('portalAuthController', () => {
       });
       expect(mockBcryptHash).toHaveBeenCalledWith('Secret123!', expect.any(Number));
       expect(mockPortalAuthService.createPortalSignupRequest).toHaveBeenCalledWith({
-        contactId: 'contact-created',
+        contactId: null,
+        accountId: 'account-1',
         email: 'newuser@example.com',
         passwordHash: 'hashed-password',
         firstName: 'New',
         lastName: 'User',
         phone: '555-0100',
-        resolutionStatus: 'resolved',
+        resolutionStatus: 'needs_contact_resolution',
       });
       expect((mockResponse.status as jest.Mock)).toHaveBeenCalledWith(201);
       expect((mockResponse.json as jest.Mock)).toHaveBeenCalledWith(
@@ -230,6 +232,7 @@ describe('portalAuthController', () => {
       mockPortalAuthService.findPendingSignupRequestIdByEmail.mockResolvedValueOnce(null);
       mockPortalAuthService.resolvePortalSignupContact.mockResolvedValueOnce({
         contactId: 'contact-existing',
+        accountId: 'account-1',
         resolutionStatus: 'resolved',
       });
       mockPortalAuthService.createPortalSignupRequest.mockResolvedValueOnce('signup-2');
@@ -238,6 +241,7 @@ describe('portalAuthController', () => {
 
       expect(mockPortalAuthService.createPortalSignupRequest).toHaveBeenCalledWith({
         contactId: 'contact-existing',
+        accountId: 'account-1',
         email: 'existing@example.com',
         passwordHash: 'hashed-password',
         firstName: 'Existing',
@@ -263,6 +267,7 @@ describe('portalAuthController', () => {
       mockPortalAuthService.findPendingSignupRequestIdByEmail.mockResolvedValueOnce(null);
       mockPortalAuthService.resolvePortalSignupContact.mockResolvedValueOnce({
         contactId: null,
+        accountId: 'account-1',
         resolutionStatus: 'needs_contact_resolution',
       });
       mockPortalAuthService.createPortalSignupRequest.mockResolvedValueOnce('signup-3');
@@ -271,6 +276,7 @@ describe('portalAuthController', () => {
 
       expect(mockPortalAuthService.createPortalSignupRequest).toHaveBeenCalledWith({
         contactId: null,
+        accountId: 'account-1',
         email: 'duplicate@example.com',
         passwordHash: 'hashed-password',
         firstName: 'Duplicate',

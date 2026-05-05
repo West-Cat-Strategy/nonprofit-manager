@@ -1,13 +1,11 @@
 export type AdminSurface = 'core' | 'workspace';
 
 export type AdminSettingsGroup =
-  | 'approvals'
-  | 'overview'
-  | 'organization'
-  | 'people_access'
+  | 'access_security'
+  | 'organization_setup'
   | 'communications'
-  | 'governance'
-  | 'other';
+  | 'governance_audit'
+  | 'integrations_data';
 
 export type AdminSettingsSection =
   | 'approvals'
@@ -80,7 +78,7 @@ export const adminSettingsSectionDefinitions = [
     routeTitle: 'Pending Approvals',
     description: 'Review pending staff registrations and tune approval defaults.',
     level: 'basic',
-    group: 'approvals',
+    group: 'access_security',
     icon: '⏳',
     surface: 'core',
   },
@@ -93,7 +91,7 @@ export const adminSettingsSectionDefinitions = [
     routeTitle: 'Admin Hub',
     description: 'Command center for organization health, access, delivery, and admin tooling.',
     level: 'basic',
-    group: 'overview',
+    group: 'organization_setup',
     icon: '🏛️',
     surface: 'core',
   },
@@ -106,7 +104,7 @@ export const adminSettingsSectionDefinitions = [
     routeTitle: 'Organization',
     description: 'Core organization profile, preferences, and operational defaults.',
     level: 'basic',
-    group: 'organization',
+    group: 'organization_setup',
     icon: '🏢',
     surface: 'core',
   },
@@ -119,7 +117,7 @@ export const adminSettingsSectionDefinitions = [
     routeTitle: 'Workspace Modules',
     description: 'Enable or disable staff-facing workspace modules for the organization.',
     level: 'basic',
-    group: 'organization',
+    group: 'organization_setup',
     icon: '🧱',
     surface: 'core',
   },
@@ -132,7 +130,7 @@ export const adminSettingsSectionDefinitions = [
     routeTitle: 'Branding',
     description: 'Application name, colors, icons, and shared visual identity settings.',
     level: 'basic',
-    group: 'organization',
+    group: 'organization_setup',
     icon: '🎨',
     surface: 'core',
   },
@@ -145,7 +143,7 @@ export const adminSettingsSectionDefinitions = [
     routeTitle: 'Users & Security',
     description: 'Search accounts, manage invitations, review security state, and adjust access.',
     level: 'basic',
-    group: 'people_access',
+    group: 'access_security',
     icon: '👥',
     surface: 'core',
   },
@@ -158,7 +156,7 @@ export const adminSettingsSectionDefinitions = [
     routeTitle: 'Groups & Policy',
     description: 'Bundle reusable access group definitions and shared policy assignments.',
     level: 'advanced',
-    group: 'people_access',
+    group: 'access_security',
     icon: '🪪',
     surface: 'core',
   },
@@ -197,7 +195,7 @@ export const adminSettingsSectionDefinitions = [
     routeTitle: 'Outcome Definitions',
     description: 'Maintain reporting-ready outcome definitions and operational taxonomy.',
     level: 'advanced',
-    group: 'governance',
+    group: 'governance_audit',
     icon: '📊',
     surface: 'core',
   },
@@ -210,7 +208,7 @@ export const adminSettingsSectionDefinitions = [
     routeTitle: 'Roles & Permissions',
     description: 'Manage role catalog entries and the permission matrix backing staff access.',
     level: 'advanced',
-    group: 'people_access',
+    group: 'access_security',
     icon: '🛡️',
     surface: 'core',
   },
@@ -223,7 +221,7 @@ export const adminSettingsSectionDefinitions = [
     routeTitle: 'Audit Logs',
     description: 'Review administrative activity, access changes, and operational history.',
     level: 'advanced',
-    group: 'governance',
+    group: 'governance_audit',
     icon: '📜',
     surface: 'core',
   },
@@ -236,7 +234,7 @@ export const adminSettingsSectionDefinitions = [
     routeTitle: 'Admin Tools',
     description: 'Launch adjacent admin workspaces like backups, API tools, and navigation.',
     level: 'advanced',
-    group: 'other',
+    group: 'integrations_data',
     icon: '🧰',
     surface: 'core',
   },
@@ -244,28 +242,16 @@ export const adminSettingsSectionDefinitions = [
 
 export const adminSettingsTabGroups: readonly AdminSettingsTabGroup[] = [
   {
-    id: 'approvals',
-    label: 'Approvals',
-    description: 'Pending staff registrations and fast approval decisions.',
-    tabs: ['approvals'],
+    id: 'access_security',
+    label: 'Access & Security',
+    description: 'Approvals, staff accounts, groups, and permission models.',
+    tabs: ['approvals', 'users', 'groups', 'roles'],
   },
   {
-    id: 'overview',
-    label: 'Overview',
-    description: 'Hub status, shortcuts, and shared admin health signals.',
-    tabs: ['dashboard'],
-  },
-  {
-    id: 'organization',
-    label: 'Organization',
-    description: 'Identity, defaults, branding, and enabled staff workspaces.',
-    tabs: ['organization', 'workspace_modules', 'branding'],
-  },
-  {
-    id: 'people_access',
-    label: 'People & Access',
-    description: 'Users, security, access groups, and permission models.',
-    tabs: ['users', 'groups', 'roles'],
+    id: 'organization_setup',
+    label: 'Organization Setup',
+    description: 'Hub status, identity, branding, and enabled staff workspaces.',
+    tabs: ['dashboard', 'organization', 'workspace_modules', 'branding'],
   },
   {
     id: 'communications',
@@ -274,15 +260,15 @@ export const adminSettingsTabGroups: readonly AdminSettingsTabGroup[] = [
     tabs: ['communications', 'messaging'],
   },
   {
-    id: 'governance',
-    label: 'Governance',
+    id: 'governance_audit',
+    label: 'Governance & Audit',
     description: 'Outcome taxonomy, audit visibility, and administrative oversight.',
     tabs: ['outcomes', 'audit_logs'],
   },
   {
-    id: 'other',
-    label: 'Admin Tools',
-    description: 'Specialist workspaces that remain module-owned but admin-operated.',
+    id: 'integrations_data',
+    label: 'Integrations & Data',
+    description: 'Specialist admin workspaces for data, APIs, and adjacent tools.',
     tabs: ['other'],
   },
 ] as const;

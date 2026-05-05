@@ -5,10 +5,7 @@ import {
   parseAdminSettingsSection,
   type AdminSettingsSection,
 } from '../../../adminRoutePaths';
-import {
-  adminSettingsTabGroups,
-  adminSettingsTabs,
-} from '../constants';
+import { adminSettingsTabGroups, adminSettingsTabs } from '../constants';
 
 const ADMIN_SETTINGS_MODE_KEY = 'admin_settings_mode_v1';
 
@@ -36,10 +33,7 @@ export const useAdminSettingsRouteState = ({
 
   const activeSection = parseAdminSettingsSection(sectionParam) ?? 'dashboard';
 
-  const setActiveSection = (
-    nextSection: AdminSettingsSection,
-    options?: { replace?: boolean }
-  ) => {
+  const setActiveSection = (nextSection: AdminSettingsSection, options?: { replace?: boolean }) => {
     navigate(
       {
         pathname: getAdminSettingsPath(nextSection),
@@ -66,9 +60,7 @@ export const useAdminSettingsRouteState = ({
   }, [showAdvancedSettings]);
 
   const { visibleTabIds, visibleTabMap, visibleTabGroups } = useMemo(() => {
-    const tabs = showAdvancedSettings
-      ? adminSettingsTabs
-      : adminSettingsTabs.filter((tab) => tab.level === 'basic');
+    const tabs = adminSettingsTabs;
     const tabIds = tabs.map((tab) => tab.id);
     const tabMap = new Map(tabs.map((tab) => [tab.id, tab]));
     const tabGroups = adminSettingsTabGroups
@@ -83,9 +75,10 @@ export const useAdminSettingsRouteState = ({
       visibleTabMap: tabMap,
       visibleTabGroups: tabGroups,
     };
-  }, [showAdvancedSettings]);
+  }, []);
 
-  const activeTab = adminSettingsTabs.find((tab) => tab.id === activeSection) || adminSettingsTabs[0];
+  const activeTab =
+    adminSettingsTabs.find((tab) => tab.id === activeSection) || adminSettingsTabs[0];
   const activeGroup = adminSettingsTabGroups.find((group) => group.tabs.includes(activeSection));
 
   const handleToggleAdvancedSettings = () => {

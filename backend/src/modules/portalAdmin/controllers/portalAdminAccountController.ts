@@ -9,6 +9,7 @@ import { getPortalActivity } from '@services/domains/integration';
 import { badRequest, conflict, notFoundMessage } from '@utils/responseHelpers';
 import {
   ensurePortalAdmin,
+  getPortalAdminTenantId,
   getPortalAdminQuery,
   type PortalSignupApprovalRow,
 } from './portalAdminController.shared';
@@ -23,6 +24,7 @@ export const listPortalSignupRequests = async (
   try {
     if (!ensurePortalAdmin(req, res)) return;
 
+    const tenantId = getPortalAdminTenantId(req);
     const result = await pool.query(
       `SELECT
               psr.id,
@@ -37,8 +39,21 @@ export const listPortalSignupRequests = async (
               COALESCE(psr.phone, c.phone) AS phone
        FROM portal_signup_requests psr
        LEFT JOIN contacts c ON c.id = psr.contact_id
-       WHERE psr.status = 'pending'
-       ORDER BY psr.requested_at ASC`
+	       WHERE psr.status = 'pending'
+	         AND $1::uuid IS NOT NULL
+	         AND (
+	           psr.account_id = $1
+	           OR
+	           c.account_id = $1
+	           OR EXISTS (
+             SELECT 1
+             FROM contacts scope_contact
+             WHERE scope_contact.account_id = $1
+               AND lower(scope_contact.email) = lower(psr.email)
+           )
+         )
+       ORDER BY psr.requested_at ASC`,
+      [tenantId]
     );
 
     sendSuccess(res, { requests: result.rows });
@@ -57,12 +72,30 @@ export const approvePortalSignupRequest = async (
 
     const { id } = req.params;
     const { contact_id: requestedContactId } = req.body as { contact_id?: string };
+    const tenantId = getPortalAdminTenantId(req);
 
     const requestResult = await pool.query<PortalSignupApprovalRow>(
       `SELECT id, email, password_hash, contact_id, status, resolution_status
-       FROM portal_signup_requests
-       WHERE id = $1`,
-      [id]
+       FROM portal_signup_requests psr
+       WHERE psr.id = $1
+	         AND $2::uuid IS NOT NULL
+	         AND (
+	           psr.account_id = $2
+	           OR
+	           EXISTS (
+             SELECT 1
+             FROM contacts linked_contact
+             WHERE linked_contact.id = psr.contact_id
+               AND linked_contact.account_id = $2
+           )
+           OR EXISTS (
+             SELECT 1
+             FROM contacts scope_contact
+             WHERE scope_contact.account_id = $2
+               AND lower(scope_contact.email) = lower(psr.email)
+           )
+         )`,
+      [id, tenantId]
     );
 
     if (requestResult.rows.length === 0) {
@@ -90,8 +123,9 @@ export const approvePortalSignupRequest = async (
         `SELECT id
          FROM contacts
          WHERE id = $1
-           AND lower(email) = lower($2)`,
-        [requestedContactId, requestRow.email]
+           AND lower(email) = lower($2)
+           AND account_id = $3`,
+        [requestedContactId, requestRow.email, tenantId]
       );
 
       if (matchingContact.rows.length === 0) {
@@ -121,14 +155,7 @@ export const approvePortalSignupRequest = async (
         contact_id, email, password_hash, status, is_verified, verified_at, verified_by
       ) VALUES ($1, $2, $3, $4, $5, NOW(), $6)
       RETURNING id, email, contact_id`,
-      [
-        approvedContactId,
-        normalizedEmail,
-        requestRow.password_hash,
-        'active',
-        true,
-        req.user!.id,
-      ]
+      [approvedContactId, normalizedEmail, requestRow.password_hash, 'active', true, req.user!.id]
     );
 
     await pool.query(
@@ -161,10 +188,30 @@ export const rejectPortalSignupRequest = async (
 
     const { id } = req.params;
     const { notes } = req.body as { notes?: string };
+    const tenantId = getPortalAdminTenantId(req);
 
     const requestResult = await pool.query(
-      `SELECT id, status FROM portal_signup_requests WHERE id = $1`,
-      [id]
+      `SELECT id, status
+       FROM portal_signup_requests psr
+       WHERE psr.id = $1
+	         AND $2::uuid IS NOT NULL
+	         AND (
+	           psr.account_id = $2
+	           OR
+	           EXISTS (
+             SELECT 1
+             FROM contacts linked_contact
+             WHERE linked_contact.id = psr.contact_id
+               AND linked_contact.account_id = $2
+           )
+           OR EXISTS (
+             SELECT 1
+             FROM contacts scope_contact
+             WHERE scope_contact.account_id = $2
+               AND lower(scope_contact.email) = lower(psr.email)
+           )
+         )`,
+      [id, tenantId]
     );
 
     if (requestResult.rows.length === 0) {
@@ -364,9 +411,7 @@ export const getPortalUserActivity = async (
     const { id } = req.params;
     const query = getPortalAdminQuery<{ limit?: number | string }>(req);
     const parsedLimit =
-      typeof query.limit === 'number'
-        ? query.limit
-        : parseInt(String(query.limit ?? ''), 10);
+      typeof query.limit === 'number' ? query.limit : parseInt(String(query.limit ?? ''), 10);
     const limit = Number.isFinite(parsedLimit) ? parsedLimit : 20;
 
     const activity = await getPortalActivity(id, limit);

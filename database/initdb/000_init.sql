@@ -133,6 +133,9 @@ CREATE INDEX IF NOT EXISTS idx_schema_migrations_canonical_filename
 \i /migrations/115_website_public_actions.sql
 \i /migrations/116_typed_fund_designations.sql
 \i /migrations/117_local_newsletter_double_opt_in.sql
+\i /migrations/118_case_closure_checklists.sql
+\i /migrations/119_worker_scheduler_health.sql
+\i /migrations/120_portal_signup_manual_no_match.sql
 
 UPDATE schema_migrations
 SET migration_id = '032',
@@ -271,7 +274,10 @@ VALUES
     ('114_case_form_templates_and_delivery_channels.sql', '114', '114_case_form_templates_and_delivery_channels.sql'),
     ('115_website_public_actions.sql', '115', '115_website_public_actions.sql'),
     ('116_typed_fund_designations.sql', '116', '116_typed_fund_designations.sql'),
-    ('117_local_newsletter_double_opt_in.sql', '117', '117_local_newsletter_double_opt_in.sql')
+    ('117_local_newsletter_double_opt_in.sql', '117', '117_local_newsletter_double_opt_in.sql'),
+    ('118_case_closure_checklists.sql', '118', '118_case_closure_checklists.sql'),
+    ('119_worker_scheduler_health.sql', '119', '119_worker_scheduler_health.sql'),
+    ('120_portal_signup_manual_no_match.sql', '120', '120_portal_signup_manual_no_match.sql')
 ON CONFLICT (filename) DO UPDATE
 SET migration_id = EXCLUDED.migration_id,
     canonical_filename = EXCLUDED.canonical_filename;

@@ -11,6 +11,7 @@ import {
   listQueueViewDefinitions,
   upsertQueueViewDefinition,
 } from '@services/queueViewDefinitionService';
+import { getDashboardWorkqueueSummary } from '../services/workqueueSummaryService';
 
 const dashboardIdParamsSchema = z.object({
   id: uuidSchema,
@@ -94,6 +95,20 @@ export const createDashboardRoutes = (): Router => {
       }
     }
   );
+
+  router.get('/workqueue-summary', async (req, res, next) => {
+    try {
+      const cards = await getDashboardWorkqueueSummary({
+        userId: req.user?.id ?? null,
+        role: req.user?.role ?? null,
+        roles: req.authorizationContext?.roles,
+        organizationId: req.organizationId ?? req.accountId ?? null,
+      });
+      sendSuccess(res, cards);
+    } catch (error) {
+      next(error);
+    }
+  });
 
   router.get('/configs', controller.getDashboards);
   router.get('/configs/default', controller.getDefaultDashboard);

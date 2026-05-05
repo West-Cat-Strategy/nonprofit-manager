@@ -8,6 +8,7 @@ import WorkbenchDashboardPage from '../WorkbenchDashboardPage';
 import { renderWithProviders } from '../../../../test/testUtils';
 
 const listQueueViewsMock = vi.hoisted(() => vi.fn());
+const fetchWorkqueueSummaryMock = vi.hoisted(() => vi.fn());
 
 const analyticsSummary = {
   total_accounts: 50,
@@ -65,6 +66,12 @@ vi.mock('../../../../components/dashboard', () => ({
 vi.mock('../../../../features/cases/api/queueViewsApiClient', () => ({
   queueViewsApiClient: {
     listQueueViews: (...args: unknown[]) => listQueueViewsMock(...args),
+  },
+}));
+
+vi.mock('../../api/dashboardApiClient', () => ({
+  dashboardApiClient: {
+    fetchWorkqueueSummary: (...args: unknown[]) => fetchWorkqueueSummaryMock(...args),
   },
 }));
 
@@ -223,12 +230,45 @@ describe('WorkbenchDashboardPage', () => {
         updatedAt: '2026-04-29T00:00:00.000Z',
       },
     ]);
+    fetchWorkqueueSummaryMock.mockResolvedValue([
+      {
+        id: 'intake_resolution',
+        label: 'Intake resolution',
+        count: 2,
+        detail: '2 portal signup requests need contact matching.',
+        permissionScope: ['admin:users'],
+        primaryAction: {
+          label: 'Resolve portal signups',
+          href: '/settings/admin/portal/access',
+        },
+      },
+      {
+        id: 'portal_escalations',
+        label: 'Portal escalations',
+        count: 1,
+        detail: '1 portal review request needs staff triage.',
+        permissionScope: ['case:view'],
+        primaryAction: {
+          label: 'Review portal requests',
+          href: '/cases/case-1?tab=portal',
+        },
+        rows: [
+          {
+            id: 'escalation-1',
+            label: 'CASE-1',
+            detail: 'urgent / open',
+            href: '/cases/case-1?tab=portal',
+          },
+        ],
+      },
+    ]);
   });
 
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
     listQueueViewsMock.mockReset();
+    fetchWorkqueueSummaryMock.mockReset();
   });
 
   it('renders navigation-only primary actions as links and formats metrics with the runtime locale', async () => {
@@ -272,6 +312,19 @@ describe('WorkbenchDashboardPage', () => {
 
     const urgentQueueLink = await screen.findByRole('link', { name: /urgent intake queue/i });
     expect(listQueueViewsMock).toHaveBeenCalledWith('workbench');
+    expect(fetchWorkqueueSummaryMock).toHaveBeenCalled();
+    expect(screen.getByText('Intake resolution')).toBeInTheDocument();
+    expect(screen.getByText('2 portal signup requests need contact matching.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /resolve portal signups/i })).toHaveAttribute(
+      'href',
+      '/settings/admin/portal/access'
+    );
+    expect(screen.getByText('Portal escalations')).toBeInTheDocument();
+    expect(
+      screen
+        .getAllByRole('link', { name: /CASE-1/i })
+        .some((link) => link.getAttribute('href') === '/cases/case-1?tab=portal')
+    ).toBe(true);
     expect(urgentQueueLink).toHaveAttribute('href', '/cases?quick_filter=urgent');
     expect(screen.getByRole('link', { name: /today follow-ups/i })).toHaveAttribute(
       'href',
@@ -337,5 +390,31 @@ describe('WorkbenchDashboardPage', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: 'Workbench' })).toBeInTheDocument();
     expect(listQueueViewsMock).not.toHaveBeenCalled();
+    expect(fetchWorkqueueSummaryMock).not.toHaveBeenCalled();
+  });
+
+  it('shows explicit focus-queue load failures instead of empty authenticated queues', async () => {
+    vi.useFakeTimers();
+    listQueueViewsMock.mockRejectedValue(new Error('saved queues unavailable'));
+    fetchWorkqueueSummaryMock.mockRejectedValue(new Error('workqueue unavailable'));
+
+    renderWithProviders(<WorkbenchDashboardPage />, {
+      route: '/dashboard',
+      preloadedState: {
+        auth: authenticatedAuthState,
+      },
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(SAVED_QUEUE_LOAD_DELAY_MS);
+    });
+    vi.useRealTimers();
+
+    expect(await screen.findByText('Queue load failed')).toBeInTheDocument();
+    expect(
+      screen.getByText(/could not load workqueue summaries/i)
+    ).toBeInTheDocument();
+    expect(screen.getByText(/could not load saved queues/i)).toBeInTheDocument();
+    expect(screen.queryByText('No saved queues')).not.toBeInTheDocument();
   });
 });

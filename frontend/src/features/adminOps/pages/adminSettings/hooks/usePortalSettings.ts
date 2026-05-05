@@ -29,6 +29,9 @@ const toIsoDateTime = (value: string): string | undefined => {
   return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
 };
 
+const portalLoadErrorMessage = (surface: string) =>
+  `Could not load ${surface}. Refresh this panel before treating the queue as empty.`;
+
 export const usePortalSettings = ({
   activeSection,
   showSuccess,
@@ -39,16 +42,20 @@ export const usePortalSettings = ({
   clearFormError,
 }: UsePortalSettingsParams) => {
   const [portalRequests, setPortalRequests] = useState<PortalSignupRequest[]>([]);
+  const [portalRequestsError, setPortalRequestsError] = useState<string | null>(null);
   const [portalInvitations, setPortalInvitations] = useState<PortalInvitation[]>([]);
+  const [portalInvitationsError, setPortalInvitationsError] = useState<string | null>(null);
   const [portalInviteEmail, setPortalInviteEmail] = useState('');
   const [portalInviteContactId, setPortalInviteContactId] = useState('');
   const [portalInviteUrl, setPortalInviteUrl] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [portalUsers, setPortalUsers] = useState<PortalUser[]>([]);
   const [portalUsersLoading, setPortalUsersLoading] = useState(false);
+  const [portalUsersError, setPortalUsersError] = useState<string | null>(null);
   const [portalUserSearch, setPortalUserSearch] = useState('');
   const [portalUserActivity, setPortalUserActivity] = useState<PortalActivity[]>([]);
   const [portalActivityLoading, setPortalActivityLoading] = useState(false);
+  const [portalActivityError, setPortalActivityError] = useState<string | null>(null);
   const [selectedPortalUser, setSelectedPortalUser] = useState<PortalUser | null>(null);
   const [portalResetTarget, setPortalResetTarget] = useState<PortalUser | null>(null);
   const [portalResetPassword, setPortalResetPassword] = useState('');
@@ -61,6 +68,7 @@ export const usePortalSettings = ({
   const [selectedPortalContact, setSelectedPortalContact] = useState<PortalContactLookup | null>(null);
   const [portalAppointments, setPortalAppointments] = useState<PortalAdminAppointmentInboxItem[]>([]);
   const [portalAppointmentsLoading, setPortalAppointmentsLoading] = useState(false);
+  const [portalAppointmentsError, setPortalAppointmentsError] = useState<string | null>(null);
   const [portalAppointmentsPagination, setPortalAppointmentsPagination] = useState({
     page: 1,
     limit: 20,
@@ -88,10 +96,13 @@ export const usePortalSettings = ({
   const fetchPortalUsers = useCallback(async (searchTerm?: string) => {
     try {
       setPortalUsersLoading(true);
+      setPortalUsersError(null);
       const response = await api.get('/portal/admin/users', {
         params: searchTerm ? { search: searchTerm } : undefined,
       });
       setPortalUsers(response.data.users || []);
+    } catch {
+      setPortalUsersError(portalLoadErrorMessage('portal users'));
     } finally {
       setPortalUsersLoading(false);
     }
@@ -101,16 +112,33 @@ export const usePortalSettings = ({
     try {
       setPortalLoading(true);
       setPortalUsersLoading(true);
-      const [requestsResponse, invitationsResponse, usersResponse] =
-        await Promise.all([
-          api.get('/portal/admin/requests').catch(() => ({ data: { requests: [] } })),
-          api.get('/portal/admin/invitations').catch(() => ({ data: { invitations: [] } })),
-          api.get('/portal/admin/users').catch(() => ({ data: { users: [] } })),
-        ]);
+      setPortalRequestsError(null);
+      setPortalInvitationsError(null);
+      setPortalUsersError(null);
+      const [requestsResponse, invitationsResponse, usersResponse] = await Promise.all([
+        api.get('/portal/admin/requests').catch(() => {
+          setPortalRequestsError(portalLoadErrorMessage('signup requests'));
+          return null;
+        }),
+        api.get('/portal/admin/invitations').catch(() => {
+          setPortalInvitationsError(portalLoadErrorMessage('portal invitations'));
+          return null;
+        }),
+        api.get('/portal/admin/users').catch(() => {
+          setPortalUsersError(portalLoadErrorMessage('portal users'));
+          return null;
+        }),
+      ]);
 
-      setPortalRequests(requestsResponse.data.requests || []);
-      setPortalInvitations(invitationsResponse.data.invitations || []);
-      setPortalUsers(usersResponse.data.users || []);
+      if (requestsResponse) {
+        setPortalRequests(requestsResponse.data.requests || []);
+      }
+      if (invitationsResponse) {
+        setPortalInvitations(invitationsResponse.data.invitations || []);
+      }
+      if (usersResponse) {
+        setPortalUsers(usersResponse.data.users || []);
+      }
     } finally {
       setPortalLoading(false);
       setPortalUsersLoading(false);
@@ -129,6 +157,7 @@ export const usePortalSettings = ({
 
       try {
         setPortalAppointmentsLoading(true);
+        setPortalAppointmentsError(null);
         const response = await api.get('/portal/admin/appointments', {
           params: {
             status:
@@ -157,6 +186,8 @@ export const usePortalSettings = ({
             total_pages: 0,
           }
         );
+      } catch {
+        setPortalAppointmentsError(portalLoadErrorMessage('appointment inbox'));
       } finally {
         setPortalAppointmentsLoading(false);
       }
@@ -202,12 +233,24 @@ export const usePortalSettings = ({
   }) => {
     try {
       setPortalLoading(true);
+      setPortalRequestsError(null);
+      setPortalInvitationsError(null);
       const [requestsResponse, invitationsResponse] = await Promise.all([
-        api.get('/portal/admin/requests').catch(() => ({ data: { requests: [] } })),
-        api.get('/portal/admin/invitations').catch(() => ({ data: { invitations: [] } })),
+        api.get('/portal/admin/requests').catch(() => {
+          setPortalRequestsError(portalLoadErrorMessage('signup requests'));
+          return null;
+        }),
+        api.get('/portal/admin/invitations').catch(() => {
+          setPortalInvitationsError(portalLoadErrorMessage('portal invitations'));
+          return null;
+        }),
       ]);
-      setPortalRequests(requestsResponse.data.requests || []);
-      setPortalInvitations(invitationsResponse.data.invitations || []);
+      if (requestsResponse) {
+        setPortalRequests(requestsResponse.data.requests || []);
+      }
+      if (invitationsResponse) {
+        setPortalInvitations(invitationsResponse.data.invitations || []);
+      }
     } finally {
       setPortalLoading(false);
     }
@@ -220,15 +263,18 @@ export const usePortalSettings = ({
     ]);
   }, [fetchPortalAppointments, fetchPortalUsers, portalUserSearch]);
 
-  const handleApprovePortalRequest = useCallback(async (requestId: string) => {
-    try {
-      await api.post(`/portal/admin/requests/${requestId}/approve`);
-      showSuccess('Portal signup request approved');
-      await refreshPortalData();
-    } catch (error: unknown) {
-      notifyError(error, 'Failed to approve request');
-    }
-  }, [notifyError, refreshPortalData, showSuccess]);
+  const handleApprovePortalRequest = useCallback(
+    async (requestId: string, payload?: { contact_id: string }) => {
+      try {
+        await api.post(`/portal/admin/requests/${requestId}/approve`, payload ?? {});
+        showSuccess('Portal signup request approved');
+        await refreshPortalData();
+      } catch (error: unknown) {
+        notifyError(error, 'Failed to approve request');
+      }
+    },
+    [notifyError, refreshPortalData, showSuccess]
+  );
 
   const handleRejectPortalRequest = useCallback(async (requestId: string) => {
     const confirmed = await confirm({
@@ -459,8 +505,11 @@ export const usePortalSettings = ({
     try {
       setSelectedPortalUser(user);
       setPortalActivityLoading(true);
+      setPortalActivityError(null);
       const response = await api.get(`/portal/admin/users/${user.id}/activity`);
       setPortalUserActivity(response.data.activity || []);
+    } catch {
+      setPortalActivityError(portalLoadErrorMessage('portal user activity'));
     } finally {
       setPortalActivityLoading(false);
     }
@@ -507,8 +556,10 @@ export const usePortalSettings = ({
   return {
     portalRequests,
     setPortalRequests,
+    portalRequestsError,
     portalInvitations,
     setPortalInvitations,
+    portalInvitationsError,
     portalInviteEmail,
     setPortalInviteEmail,
     portalInviteContactId,
@@ -521,12 +572,14 @@ export const usePortalSettings = ({
     setPortalUsers,
     portalUsersLoading,
     setPortalUsersLoading,
+    portalUsersError,
     portalUserSearch,
     setPortalUserSearch,
     portalUserActivity,
     setPortalUserActivity,
     portalActivityLoading,
     setPortalActivityLoading,
+    portalActivityError,
     selectedPortalUser,
     setSelectedPortalUser,
     portalResetTarget,
@@ -551,6 +604,7 @@ export const usePortalSettings = ({
     setPortalAppointments,
     portalAppointmentsLoading,
     setPortalAppointmentsLoading,
+    portalAppointmentsError,
     portalAppointmentsPagination,
     setPortalAppointmentsPagination,
     portalAppointmentFilters,

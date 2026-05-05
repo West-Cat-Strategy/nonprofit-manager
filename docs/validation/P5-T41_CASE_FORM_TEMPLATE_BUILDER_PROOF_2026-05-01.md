@@ -39,9 +39,17 @@ Earlier `cd backend && npm run type-check` output was blocked by unrelated websi
 - `src/modules/publishing/services/publicSiteRuntime/renderer.ts(111,61): TS2339`
 - `src/modules/publishing/services/publicSiteRuntime/renderer.ts(112,21): TS2339`
 
-`cd frontend && npm run type-check` was still blocked during the original case-form proof by pre-existing builder-page type errors outside the case-form slice:
+During the original case-form proof, `cd frontend && npm run type-check` reported these pre-existing builder-page type errors outside the case-form slice:
 
 - `src/features/builder/pages/pageEditorControllerHelpers.ts(359,7): TS2590`
 - `src/features/builder/pages/pageEditorUtils.ts(53,9): TS2739`
+
+The May 3 scoped builder type cleanup resolved the stale frontend blocker by tightening the page-editor component defaults and component-update helper types without changing builder behavior, website public-action behavior, routes, migrations, or redesign scope.
+
+| Command | Result |
+|---|---|
+| `cd frontend && npm test -- --run src/features/builder/pages/__tests__/pageEditorControllerHelpers.test.ts src/features/builder/pages/__tests__/usePageSectionEditing.test.tsx` | Pass, `37` tests |
+| `cd frontend && npm run type-check` | Pass |
+| `cd frontend && npx tsc -b --pretty false --force` | Pass |
 
 The focused case-form and portal/public form tests above passed after the `opened` event label and new component props were covered.

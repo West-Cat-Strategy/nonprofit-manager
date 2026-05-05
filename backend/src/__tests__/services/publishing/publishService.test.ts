@@ -9,6 +9,7 @@ const mockPool = {
 describe('PublishService', () => {
   let service: PublishService;
   let mockClient: { query: jest.Mock; release: jest.Mock };
+  const originalSiteBaseUrl = process.env.SITE_BASE_URL;
 
   const mockUserId = 'user-123';
   const mockTemplateId = 'template-456';
@@ -60,6 +61,14 @@ describe('PublishService', () => {
     (mockPool.query as jest.Mock).mockReset();
     (mockPool.connect as jest.Mock).mockReset();
     (mockPool.connect as jest.Mock).mockResolvedValue(mockClient);
+  });
+
+  afterEach(() => {
+    if (originalSiteBaseUrl === undefined) {
+      delete process.env.SITE_BASE_URL;
+    } else {
+      process.env.SITE_BASE_URL = originalSiteBaseUrl;
+    }
   });
 
   it('publishes a live site and updates the current deployment', async () => {
@@ -140,6 +149,40 @@ describe('PublishService', () => {
     expect(mockClient.query).toHaveBeenCalledWith(
       expect.stringContaining('INSERT INTO site_versions'),
       expect.arrayContaining([mockSiteId, expect.stringMatching(/^preview-v/), expect.anything(), mockUserId])
+    );
+  });
+
+  it('publishes subdomain sites to the Caddy public-site host', async () => {
+    process.env.SITE_BASE_URL = 'http://sites.localhost';
+    const subdomainSiteRow = {
+      ...existingSiteRow,
+      custom_domain: null,
+      subdomain: 'mutual-aid',
+    };
+    (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [subdomainSiteRow] });
+    mockClient.query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [templateRow] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'version-row',
+            site_id: mockSiteId,
+            version: 'preview-v-live-1',
+            published_content: { templateId: mockTemplateId },
+            published_at: new Date().toISOString(),
+            published_by: mockUserId,
+            change_description: 'Preview publish via API',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [] });
+
+    const result = await service.publish(mockUserId, mockTemplateId, mockSiteId, undefined, 'preview');
+
+    expect(result.url).toBe('http://mutual-aid.sites.localhost');
+    expect(result.previewUrl).toMatch(
+      /^http:\/\/mutual-aid\.sites\.localhost\?preview=true&version=preview-v\d+$/
     );
   });
 });

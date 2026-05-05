@@ -1,4 +1,5 @@
 import { logger } from '@config/logger';
+import { schedulerHealthService } from './schedulerHealthService';
 
 export interface IntervalBatchRunnerOptions {
   name: string;
@@ -7,6 +8,7 @@ export interface IntervalBatchRunnerOptions {
   timeoutMs?: number;
   retryAttempts?: number;
   retryDelayMs?: number;
+  healthName?: string;
 }
 
 export class IntervalBatchRunner {
@@ -16,6 +18,7 @@ export class IntervalBatchRunner {
   private readonly timeoutMs?: number;
   private readonly retryAttempts: number;
   private readonly retryDelayMs: number;
+  private readonly healthName?: string;
   private intervalId: NodeJS.Timeout | null = null;
   private inFlight = false;
 
@@ -26,6 +29,7 @@ export class IntervalBatchRunner {
     this.timeoutMs = options.timeoutMs;
     this.retryAttempts = Math.max(0, options.retryAttempts ?? 0);
     this.retryDelayMs = Math.max(0, options.retryDelayMs ?? 1000);
+    this.healthName = options.healthName;
   }
 
   start(): void {
@@ -62,12 +66,15 @@ export class IntervalBatchRunner {
     let processed = 0;
 
     try {
+      await this.recordTickStarted();
       processed = await this.runBatchWithRetries();
+      await this.recordTickSucceeded(processed);
       return processed;
     } catch (error) {
       logger.error(`${this.name} tick failed`, {
         error: error instanceof Error ? error.message : String(error),
       });
+      await this.recordTickFailed(error, processed);
       return processed;
     } finally {
       logger.debug(`${this.name} tick complete`, {
@@ -125,6 +132,21 @@ export class IntervalBatchRunner {
         clearTimeout(timeoutId);
       }
     }
+  }
+
+  private async recordTickStarted(): Promise<void> {
+    if (!this.healthName) return;
+    await schedulerHealthService.recordTickStarted(this.healthName);
+  }
+
+  private async recordTickSucceeded(processed: number): Promise<void> {
+    if (!this.healthName) return;
+    await schedulerHealthService.recordTickSucceeded(this.healthName, processed);
+  }
+
+  private async recordTickFailed(error: unknown, processed: number): Promise<void> {
+    if (!this.healthName) return;
+    await schedulerHealthService.recordTickFailed(this.healthName, error, processed);
   }
 }
 

@@ -8,7 +8,9 @@ import {
 } from '@services/template/emailCampaignRenderer';
 import mailchimpService from '@services/mailchimpService';
 import {
+  appendBrowserViewLink,
   appendUnsubscribeFooter,
+  buildLocalCampaignBrowserViewUrl,
   buildLocalCampaignUnsubscribeUrl,
 } from './localCampaignUnsubscribeHelpers';
 import type {
@@ -920,6 +922,10 @@ const getCampaignRun = async (
   return result.rows[0] ? mapRunRow(result.rows[0]) : null;
 };
 
+const createUnsupportedMailchimpAction = (run: CommunicationCampaignRun, actionName: 'cancellation' | 'rescheduling'): CommunicationCampaignActionResult => ({
+  run, action: 'unsupported', message: `Mailchimp campaign-run ${actionName} is not implemented by this backend contract.`,
+});
+
 export const sendCampaignRun = async (
   runId: string,
   requesterScopeAccountIds?: string[]
@@ -989,10 +995,11 @@ export const sendCampaignRun = async (
 
   let sent = 0;
   let failed = 0;
+  const browserViewUrl = buildLocalCampaignBrowserViewUrl(run.id);
   for (const recipient of recipients.rows) {
     try {
       const unsubscribeUrl = buildLocalCampaignUnsubscribeUrl(run.id, recipient.id, recipient.email);
-      const emailContent = appendUnsubscribeFooter({ html, plainText }, unsubscribeUrl);
+      const emailContent = appendUnsubscribeFooter(appendBrowserViewLink({ html, plainText }, browserViewUrl), unsubscribeUrl);
       const ok = await sendMail({
         to: recipient.email,
         subject,
@@ -1089,10 +1096,7 @@ export const cancelCampaignRun = async (
     return null;
   }
   if (run.provider === 'mailchimp') {
-    return mailchimpService.cancelCampaignRun(
-      runId,
-      requesterScopeAccountIds
-    ) as Promise<CommunicationCampaignActionResult | null>;
+    return createUnsupportedMailchimpAction(run, 'cancellation');
   }
   if (!['draft', 'scheduled', 'sending'].includes(run.status)) {
     throw new CommunicationsValidationError(`Campaign run cannot be canceled from ${run.status} status`);
@@ -1135,10 +1139,7 @@ export const rescheduleCampaignRun = async (
     return null;
   }
   if (run.provider === 'mailchimp') {
-    return mailchimpService.rescheduleCampaignRun(
-      runId,
-      requesterScopeAccountIds
-    ) as Promise<CommunicationCampaignActionResult | null>;
+    return createUnsupportedMailchimpAction(run, 'rescheduling');
   }
   if (!['draft', 'scheduled'].includes(run.status)) {
     throw new CommunicationsValidationError(`Campaign run cannot be rescheduled from ${run.status} status`);

@@ -49,6 +49,7 @@ jest.mock('@services/paymentProviderService', () => ({
     createBillingPortalSession: jest.fn(),
     createCustomer: jest.fn(),
     createCheckoutSession: jest.fn(),
+    setSubscriptionCancelAtPeriodEnd: jest.fn(),
   },
 }));
 
@@ -122,16 +123,50 @@ describe('RecurringDonationService', () => {
     mockGetPlanByWhere.mockResolvedValueOnce({
       ...basePlan,
       payment_provider: 'paypal',
+      provider_subscription_id: 'paypal-sub-1',
     } as Awaited<ReturnType<typeof getPlanByWhere>>);
 
     await expect(
       service.updatePlan('org-1', 'plan-1', 'user-1', {
         amount: 30,
       })
-    ).rejects.toThrow('Amount changes are only supported for Stripe recurring plans in this release');
+    ).rejects.toThrow(
+      'PayPal recurring donation amount changes are not supported in this release; use the provider management portal.'
+    );
 
     expect(mockStripeService.createMonthlyPrice).not.toHaveBeenCalled();
     expect(mockQuery).not.toHaveBeenCalled();
+  });
+
+  it('allows non-Stripe metadata-only edits without provider mutation', async () => {
+    mockGetPlanByWhere
+      .mockResolvedValueOnce({
+        ...basePlan,
+        payment_provider: 'square',
+        provider_subscription_id: 'square-sub-1',
+        stripe_subscription_id: null,
+      } as Awaited<ReturnType<typeof getPlanByWhere>>)
+      .mockResolvedValueOnce({
+        ...basePlan,
+        payment_provider: 'square',
+        provider_subscription_id: 'square-sub-1',
+        stripe_subscription_id: null,
+        notes: 'Keep this recurring plan local metadata synced.',
+      } as Awaited<ReturnType<typeof getPlanByWhere>>);
+
+    mockQuery.mockResolvedValueOnce({ rows: [{ id: 'plan-1' }] });
+
+    await service.updatePlan('org-1', 'plan-1', 'user-1', {
+      notes: 'Keep this recurring plan local metadata synced.',
+    });
+
+    expect(mockStripeService.createMonthlyPrice).not.toHaveBeenCalled();
+    expect(mockStripeService.updateSubscriptionPrice).not.toHaveBeenCalled();
+    expect(mockPaymentProviderService.setSubscriptionCancelAtPeriodEnd).not.toHaveBeenCalled();
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE recurring_donation_plans'),
+      expect.arrayContaining(['Keep this recurring plan local metadata synced.'])
+    );
   });
 
   it('rejects Stripe amount changes when the subscription link is missing', async () => {
@@ -160,6 +195,40 @@ describe('RecurringDonationService', () => {
     );
 
     expect(mockStripeService.setSubscriptionCancelAtPeriodEnd).not.toHaveBeenCalled();
+  });
+
+  it('rejects non-Stripe cancel requests before attempting provider or database mutation', async () => {
+    mockGetPlanByWhere.mockResolvedValueOnce({
+      ...basePlan,
+      payment_provider: 'square',
+      provider_subscription_id: 'square-sub-1',
+      stripe_subscription_id: null,
+    } as Awaited<ReturnType<typeof getPlanByWhere>>);
+
+    await expect(service.cancelPlan('org-1', 'plan-1', 'user-1')).rejects.toThrow(
+      'Square recurring donation cancellation is not supported in this release; use the provider management portal.'
+    );
+
+    expect(mockStripeService.setSubscriptionCancelAtPeriodEnd).not.toHaveBeenCalled();
+    expect(mockPaymentProviderService.setSubscriptionCancelAtPeriodEnd).not.toHaveBeenCalled();
+    expect(mockQuery).not.toHaveBeenCalled();
+  });
+
+  it('rejects non-Stripe reactivate requests before attempting provider or database mutation', async () => {
+    mockGetPlanByWhere.mockResolvedValueOnce({
+      ...basePlan,
+      payment_provider: 'paypal',
+      provider_subscription_id: 'paypal-sub-1',
+      stripe_subscription_id: null,
+    } as Awaited<ReturnType<typeof getPlanByWhere>>);
+
+    await expect(service.reactivatePlan('org-1', 'plan-1', 'user-1')).rejects.toThrow(
+      'PayPal recurring donation reactivation is not supported in this release; use the provider management portal.'
+    );
+
+    expect(mockStripeService.setSubscriptionCancelAtPeriodEnd).not.toHaveBeenCalled();
+    expect(mockPaymentProviderService.setSubscriptionCancelAtPeriodEnd).not.toHaveBeenCalled();
+    expect(mockQuery).not.toHaveBeenCalled();
   });
 
   it('rejects checkout completion when the session does not match the stored plan session', async () => {

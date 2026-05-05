@@ -62,7 +62,6 @@ Database migrations are stored in `database/migrations/` and are ordered by `dat
 Seed data is stored in `database/seeds/` and contains optional demo/test data for development and testing environments. The default init path loads only the starter bootstrap data from `database/initdb/000_init.sql` and does not include the demo contact bundle.
 
 **Available Seeds:**
-- `001_default_users.sql` - Default admin and test users
 - `002_starter_templates.sql` - Template configurations
 - `003_mock_data.sql` - Optional comprehensive demo bundle for development
 - `004_mock_data_no_users.sql` - Optional demo bundle without user accounts
@@ -73,6 +72,8 @@ Seed data is stored in `database/seeds/` and contains optional demo/test data fo
 
 ### Initialization
 The `database/initdb/000_init.sql` script runs the canonical migration chain in manifest order and loads only the starter bootstrap seeds (`002_starter_templates.sql`, `006_theme_presets.sql`, `007_data_scopes.sql`, and `008_outcome_definitions.sql`) for development environments.
+
+The retired `001_default_users.sql` placeholder seed was intentionally removed because it contained a non-runnable password hash. Use first-time setup for a real admin account, `003_mock_data.sql` for explicit demo users, or `004_mock_data_no_users.sql` when you need demo records while preserving `/setup`.
 
 ## Migration Management
 

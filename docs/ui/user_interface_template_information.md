@@ -112,7 +112,7 @@ This system is meant to feel credible and operational rather than playful or orn
   - `glass`
   - `high-contrast`
 - Theme IDs are compatibility identifiers, not mandates for the visual style their historical names imply.
-- Keep `VITE_UI_REDESIGN_ENABLED` stable and evolve token values plus shell primitives instead of forking a second design system.
+- Evolve token values plus shell primitives instead of forking a second design system.
 
 ## Do / Do Not
 

@@ -19,6 +19,9 @@ export interface PortalSignupApprovalRow {
 export const ensurePortalAdmin = (req: AuthRequest, res: Response): boolean =>
   guardWithPermission(req, res, Permission.ADMIN_USERS);
 
+export const getPortalAdminTenantId = (req: AuthRequest): string | null =>
+  req.organizationId ?? req.accountId ?? null;
+
 export const getPortalAdminQuery = <T extends object>(req: AuthRequest): T =>
   (req.validatedQuery ?? req.query) as T;
 

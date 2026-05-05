@@ -11,6 +11,7 @@ import type {
 } from '@app-types/publishing';
 import { SiteManagementService } from './siteManagementService';
 import { CustomDomainService } from './customDomainService';
+import { buildPublicSiteHost } from './publicSiteUrlService';
 
 export class SslService {
   private siteManagement: SiteManagementService;
@@ -34,7 +35,7 @@ export class SslService {
       return null;
     }
 
-    const domain = site.customDomain || (site.subdomain ? `${site.subdomain}.sites.westcat.ca` : null);
+    const domain = site.customDomain || buildPublicSiteHost(site);
     if (!domain) {
       return null;
     }
