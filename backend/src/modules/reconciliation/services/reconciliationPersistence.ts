@@ -1,4 +1,4 @@
-import Stripe from 'stripe';
+import type * as StripeCore from 'stripe/cjs/stripe.core.js';
 import type { PoolClient } from 'pg';
 import pool from '@config/database';
 import type { MatchConfidence } from '@app-types/reconciliation';
@@ -46,7 +46,7 @@ interface UnmatchedStripeBatchRow {
 
 export async function saveStripeBalanceTransactions(
   queryable: Queryable,
-  transactions: Stripe.BalanceTransaction[],
+  transactions: StripeCore.Stripe.BalanceTransaction[],
   reconciliationId: string
 ): Promise<void> {
   if (transactions.length === 0) {
@@ -192,11 +192,11 @@ export async function createReconciliationItems(
   reconciliationId: string,
   matched: Array<{
     donation: ReconciliationDonationRecord;
-    transaction: Stripe.BalanceTransaction;
+    transaction: StripeCore.Stripe.BalanceTransaction;
     confidence: MatchConfidence;
   }>,
   unmatchedDonations: ReconciliationDonationRecord[],
-  unmatchedStripe: Stripe.BalanceTransaction[]
+  unmatchedStripe: StripeCore.Stripe.BalanceTransaction[]
 ): Promise<void> {
   const matchedRows: MatchedReconciliationBatchRow[] = matched.map(({ donation, transaction, confidence }) => {
     const stripeAmount = transaction.amount / 100;

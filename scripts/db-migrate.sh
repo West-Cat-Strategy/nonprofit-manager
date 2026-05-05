@@ -22,7 +22,7 @@ DB_ADMIN_PASSWORD="${DB_ADMIN_PASSWORD:-postgres}"
 DB_REUSE_IF_READY="${DB_REUSE_IF_READY:-0}"
 TEST_CONTAINER_NAME="${DB_TEST_CONTAINER_NAME:-nonprofit-manager-test-postgres}"
 TEST_VOLUME_NAME="${DB_TEST_VOLUME_NAME:-nonprofit-manager-test-postgres-data}"
-TEST_IMAGE="${DB_TEST_IMAGE:-postgres:14-alpine}"
+TEST_IMAGE="${DB_TEST_IMAGE:-postgres:18-alpine@sha256:54451ecb8ab38c24c3ec123f2fd501303a3a1856a5c66e98cecf2460d5e1e9d7}"
 STATUS_ONLY=0
 DEV_COMPOSE_PROJECT="${COMPOSE_PROJECT_DEV}"
 DEV_COMPOSE_FILE="$PROJECT_ROOT/docker-compose.dev.yml"
@@ -192,7 +192,7 @@ ensure_test_database() {
       -e POSTGRES_DB="$DB_NAME" \
       -e POSTGRES_USER="$DB_ADMIN_USER" \
       -e POSTGRES_PASSWORD="$DB_ADMIN_PASSWORD" \
-      -v "$TEST_VOLUME_NAME:/var/lib/postgresql/data" \
+      -v "$TEST_VOLUME_NAME:/var/lib/postgresql" \
       -v "$PROJECT_ROOT/database/initdb/000_init.sql:/docker-entrypoint-initdb.d/000_init.sql:ro" \
       -v "$PROJECT_ROOT/database/migrations:/migrations:ro" \
       -v "$PROJECT_ROOT/database/seeds:/seeds:ro" \

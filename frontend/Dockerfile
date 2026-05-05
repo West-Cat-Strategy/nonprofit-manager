@@ -1,8 +1,10 @@
 # syntax=docker/dockerfile:1
 
-FROM node:20-alpine3.20@sha256:3bc9a4c4cc25cfde1e8f946341c85f333c36517aafda829b4bb7e785e9b5995c AS base
+FROM node:24-alpine@sha256:d1b3b4da11eefd5941e7f0b9cf17783fc99d9c6fc34884a665f40a06dbdfc94f AS base
 
 WORKDIR /app
+
+RUN npm install -g npm@11.13.0 && npm cache clean --force
 
 FROM base AS workspace-deps
 
@@ -55,7 +57,9 @@ EXPOSE 8005
 # stays runnable even without a bind mount.
 CMD ["npm", "run", "dev"]
 
-FROM nginx:1.27-alpine3.20@sha256:814a8e88df978ade80e584cc5b333144b9372a8e3c98872d07137dbf3b44d0e4 AS production
+FROM nginx:1-alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de AS production
+
+RUN apk upgrade --no-cache
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html

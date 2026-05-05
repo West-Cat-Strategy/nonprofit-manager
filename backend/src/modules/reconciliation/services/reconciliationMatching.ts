@@ -1,4 +1,4 @@
-import Stripe from 'stripe';
+import type * as StripeCore from 'stripe/cjs/stripe.core.js';
 import type { MatchConfidence } from '@app-types/reconciliation';
 
 const MATCH_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -16,17 +16,17 @@ export interface ReconciliationDonationRecord {
 
 export interface ReconciliationMatch {
   donation: ReconciliationDonationRecord;
-  transaction: Stripe.BalanceTransaction;
+  transaction: StripeCore.Stripe.BalanceTransaction;
   confidence: MatchConfidence;
 }
 
 export interface ReconciliationMatchResult {
   matched: ReconciliationMatch[];
   unmatchedDonations: ReconciliationDonationRecord[];
-  unmatchedStripe: Stripe.BalanceTransaction[];
+  unmatchedStripe: StripeCore.Stripe.BalanceTransaction[];
 }
 
-const getChargeReferenceId = (tx: Stripe.BalanceTransaction): string | null =>
+const getChargeReferenceId = (tx: StripeCore.Stripe.BalanceTransaction): string | null =>
   typeof tx.source === 'string' ? tx.source : null;
 
 const getAmountBucketKey = (amountCents: number, currency?: string | null): string =>
@@ -45,15 +45,15 @@ const getDonationAmountCents = (value: unknown): number | null => {
 
 export function matchTransactions(
   donations: ReconciliationDonationRecord[],
-  stripeTransactions: Stripe.BalanceTransaction[]
+  stripeTransactions: StripeCore.Stripe.BalanceTransaction[]
 ): ReconciliationMatchResult {
   const matched: ReconciliationMatch[] = [];
   const unmatchedDonations: ReconciliationDonationRecord[] = [];
   const usedStripeTransactionIds = new Set<string>();
 
   const chargeTransactions = stripeTransactions.filter((tx) => tx.type === 'charge');
-  const chargeLookup = new Map<string, Stripe.BalanceTransaction>();
-  const amountBuckets = new Map<string, Map<number, Stripe.BalanceTransaction[]>>();
+  const chargeLookup = new Map<string, StripeCore.Stripe.BalanceTransaction>();
+  const amountBuckets = new Map<string, Map<number, StripeCore.Stripe.BalanceTransaction[]>>();
 
   for (const tx of chargeTransactions) {
     const referenceId = getChargeReferenceId(tx);
@@ -67,14 +67,14 @@ export function matchTransactions(
 
     const txAmountKey = getAmountBucketKey(tx.amount, tx.currency);
     const txDayBucket = getDayBucket(new Date(tx.created * 1000));
-    const amountBucket = amountBuckets.get(txAmountKey) ?? new Map<number, Stripe.BalanceTransaction[]>();
+    const amountBucket = amountBuckets.get(txAmountKey) ?? new Map<number, StripeCore.Stripe.BalanceTransaction[]>();
     const dayBucket = amountBucket.get(txDayBucket) ?? [];
     dayBucket.push(tx);
     amountBucket.set(txDayBucket, dayBucket);
     amountBuckets.set(txAmountKey, amountBucket);
   }
 
-  const findHighConfidenceMatch = (donation: ReconciliationDonationRecord): Stripe.BalanceTransaction | null => {
+  const findHighConfidenceMatch = (donation: ReconciliationDonationRecord): StripeCore.Stripe.BalanceTransaction | null => {
     for (const candidateId of [donation.stripe_payment_intent_id, donation.stripe_charge_id]) {
       if (typeof candidateId !== 'string' || candidateId.length === 0) {
         continue;
@@ -89,7 +89,7 @@ export function matchTransactions(
     return null;
   };
 
-  const findMediumConfidenceMatch = (donation: ReconciliationDonationRecord): Stripe.BalanceTransaction | null => {
+  const findMediumConfidenceMatch = (donation: ReconciliationDonationRecord): StripeCore.Stripe.BalanceTransaction | null => {
     const donationAmountCents = getDonationAmountCents(donation.amount);
     if (donationAmountCents === null) {
       return null;

@@ -1,8 +1,10 @@
 # syntax=docker/dockerfile:1
 
-FROM node:20-alpine3.20@sha256:3bc9a4c4cc25cfde1e8f946341c85f333c36517aafda829b4bb7e785e9b5995c AS base
+FROM node:24-alpine@sha256:d1b3b4da11eefd5941e7f0b9cf17783fc99d9c6fc34884a665f40a06dbdfc94f AS base
 
 WORKDIR /app
+
+RUN npm install -g npm@11.13.0 && npm cache clean --force
 
 FROM base AS workspace-deps
 
@@ -16,6 +18,7 @@ COPY --from=workspace /contracts/package.json ./contracts/package.json
 COPY --from=workspace /e2e/package.json ./e2e/package.json
 RUN --mount=type=cache,target=/root/.npm,sharing=locked \
     npm ci --workspace backend --include-workspace-root=false --no-audit --no-fund && \
+    npm install --workspace backend undici@8.2.0 --no-audit --no-fund && \
     mkdir -p backend/node_modules
 
 FROM base AS deps
@@ -37,7 +40,7 @@ COPY --from=workspace /contracts/messaging.d.ts ./node_modules/@nonprofit-manage
 COPY --from=workspace /contracts/websiteBuilder.d.ts ./node_modules/@nonprofit-manager/contracts/websiteBuilder.d.ts
 
 FROM app AS build
-RUN ./node_modules/.bin/tsc -p tsconfig.docker.json && \
+RUN ./node_modules/.bin/tsc -p tsconfig.docker.json --ignoreDeprecations 6.0 && \
     ./node_modules/.bin/tsc-alias -p tsconfig.docker.json
 
 FROM base AS workspace-production-deps
@@ -51,6 +54,7 @@ COPY --from=workspace /contracts/package.json ./contracts/package.json
 COPY --from=workspace /e2e/package.json ./e2e/package.json
 RUN --mount=type=cache,target=/root/.npm,sharing=locked \
     npm ci --workspace backend --include-workspace-root=false --omit=dev --no-audit --no-fund && \
+    npm install --workspace backend undici@8.2.0 --omit=dev --no-audit --no-fund && \
     mkdir -p backend/node_modules
 
 FROM base AS production-deps

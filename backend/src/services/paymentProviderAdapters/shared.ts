@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import dns from 'dns';
 import net from 'net';
 import { Agent, interceptors } from 'undici';
+import type { Dispatcher } from 'undici';
 import type { PaymentIntentResponse } from '@app-types/payment';
 
 export const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
@@ -87,64 +88,33 @@ const isPrivateIp = (ip: string): boolean => {
   return false;
 };
 
-const paymentProviderDispatcher = new Agent({
-  interceptors: {
-    Agent: [
-      interceptors.dns({
-        maxTTL: 0,
-        lookup: (origin, _options, callback) => {
-          void (async () => {
-            try {
-              const resolved = await resolveSafePaymentProviderHostname(origin.hostname);
-              if (!resolved.ok) {
-                callback(new Error(resolved.reason || 'Hostname is not allowed'), []);
-                return;
-              }
+const paymentProviderDispatcher: Dispatcher = new Agent().compose(
+  interceptors.dns({
+    maxTTL: 0,
+    lookup: (origin, _options, callback) => {
+      void (async () => {
+        try {
+          const resolved = await resolveSafePaymentProviderHostname(origin.hostname);
+          if (!resolved.ok) {
+            callback(new Error(resolved.reason || 'Hostname is not allowed'), []);
+            return;
+          }
 
-              callback(
-                null,
-                resolved.addresses.map((address) => ({
-                  address,
-                  family: address.includes(':') ? 6 : 4,
-                  ttl: 0,
-                }))
-              );
-            } catch (error) {
-              callback(error as NodeJS.ErrnoException, []);
-            }
-          })();
-        },
-      }),
-    ],
-    Client: [
-      interceptors.dns({
-        maxTTL: 0,
-        lookup: (origin, _options, callback) => {
-          void (async () => {
-            try {
-              const resolved = await resolveSafePaymentProviderHostname(origin.hostname);
-              if (!resolved.ok) {
-                callback(new Error(resolved.reason || 'Hostname is not allowed'), []);
-                return;
-              }
-
-              callback(
-                null,
-                resolved.addresses.map((address) => ({
-                  address,
-                  family: address.includes(':') ? 6 : 4,
-                  ttl: 0,
-                }))
-              );
-            } catch (error) {
-              callback(error as NodeJS.ErrnoException, []);
-            }
-          })();
-        },
-      }),
-    ],
-  },
-});
+          callback(
+            null,
+            resolved.addresses.map((address) => ({
+              address,
+              family: address.includes(':') ? 6 : 4,
+              ttl: 0,
+            }))
+          );
+        } catch (error) {
+          callback(error as NodeJS.ErrnoException, []);
+        }
+      })();
+    },
+  })
+);
 
 const createAbortController = (
   signal?: AbortSignal | null
@@ -227,7 +197,7 @@ export async function fetchWithTimeout(
         ...(init.headers || {}),
       },
       dispatcher: paymentProviderDispatcher,
-    } as RequestInit & { dispatcher: Agent });
+    } as RequestInit & { dispatcher: Dispatcher });
   } catch (error) {
     if (timeoutElapsed() || (error instanceof Error && error.name === 'AbortError')) {
       throw Object.assign(new Error(`Payment provider request timed out after ${PAYMENT_PROVIDER_REQUEST_TIMEOUT_MS}ms`), {

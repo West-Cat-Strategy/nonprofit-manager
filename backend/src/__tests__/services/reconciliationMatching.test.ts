@@ -1,10 +1,10 @@
-import type Stripe from 'stripe';
+import type * as StripeCore from 'stripe/cjs/stripe.core.js';
 import {
   matchTransactions,
   type ReconciliationDonationRecord,
 } from '@modules/reconciliation/services/reconciliationMatching';
 
-const createChargeTransaction = (overrides: Partial<Stripe.BalanceTransaction>): Stripe.BalanceTransaction =>
+const createChargeTransaction = (overrides: Partial<StripeCore.Stripe.BalanceTransaction>): StripeCore.Stripe.BalanceTransaction =>
   ({
     id: 'txn_default',
     object: 'balance_transaction',
@@ -22,7 +22,7 @@ const createChargeTransaction = (overrides: Partial<Stripe.BalanceTransaction>):
     status: 'available',
     type: 'charge',
     ...overrides,
-  }) as Stripe.BalanceTransaction;
+  }) as StripeCore.Stripe.BalanceTransaction;
 
 describe('reconciliationMatching.matchTransactions', () => {
   it('prefers explicit Stripe identifiers for high-confidence matches', () => {

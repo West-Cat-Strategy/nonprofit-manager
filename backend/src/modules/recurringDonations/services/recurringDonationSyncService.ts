@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 import { logger } from '@config/logger';
-import { publishingService } from '@services/publishing';
+import { SiteAnalyticsService } from '@services/publishing/siteAnalyticsService';
 import { DonationService } from '@services/donationService';
 import type { RecurringDonationPlan } from '@app-types/recurringDonation';
 import type { PaymentProvider } from '@app-types/payment';
@@ -43,10 +43,14 @@ interface InvoicePaymentFailedEvent {
 }
 
 export class RecurringDonationSyncService {
+  private readonly siteAnalytics: SiteAnalyticsService;
+
   constructor(
     private readonly pool: Pool,
     private readonly donationService: DonationService
-  ) {}
+  ) {
+    this.siteAnalytics = new SiteAnalyticsService(pool);
+  }
 
   private async findPlanForCheckoutSession(
     session: CheckoutCompletedEvent
@@ -107,7 +111,7 @@ export class RecurringDonationSyncService {
 
     if (session.metadata?.siteId) {
       try {
-        await publishingService.recordAnalyticsEvent(session.metadata.siteId, 'donation', {
+        await this.siteAnalytics.recordAnalyticsEvent(session.metadata.siteId, 'donation', {
           pagePath: session.metadata.pagePath || '/',
           visitorId: session.metadata.visitorId || undefined,
           sessionId: session.metadata.sessionId || undefined,

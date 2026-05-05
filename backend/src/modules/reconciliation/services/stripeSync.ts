@@ -1,10 +1,11 @@
 import Stripe from 'stripe';
+import type * as StripeCore from 'stripe/cjs/stripe.core.js';
 import { logger } from '@config/logger';
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-let stripe: Stripe | null = null;
+let stripe: StripeCore.Stripe | null = null;
 
-function getStripeClient(): Stripe {
+function getStripeClient(): StripeCore.Stripe {
   if (!stripe) {
     if (!stripeSecretKey) {
       throw new Error('STRIPE_SECRET_KEY environment variable is not set');
@@ -21,13 +22,13 @@ export function isStripeConfigured(): boolean {
 export async function fetchStripeBalanceTransactions(
   startDate: Date,
   endDate: Date
-): Promise<Stripe.BalanceTransaction[]> {
+): Promise<StripeCore.Stripe.BalanceTransaction[]> {
   if (!isStripeConfigured()) {
     throw new Error('Stripe is not configured');
   }
 
   const stripeClient = getStripeClient();
-  const transactions: Stripe.BalanceTransaction[] = [];
+  const transactions: StripeCore.Stripe.BalanceTransaction[] = [];
 
   try {
     const startTimestamp = Math.floor(startDate.getTime() / 1000);
