@@ -93,8 +93,8 @@ describe('useMeetingDetailPage minutes draft actions', () => {
     expect(result.current.minutesDraftMarkdown).toBe(
       '# Strategic Planning Session\n\n- Reviewed Q3 goals'
     );
-    expect(result.current.minutesDraftStatus).toBe('ready');
-    expect(result.current.minutesDraftMessage).toBe('Minutes draft ready for review.');
+    expect(result.current.minutesDraftError).toBeNull();
+    expect(result.current.minutesDraftCopied).toBe(false);
     expect(window.alert).not.toHaveBeenCalled();
   });
 
@@ -114,8 +114,8 @@ describe('useMeetingDetailPage minutes draft actions', () => {
     });
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('# Minutes\n\nCopied text');
-    expect(result.current.minutesDraftStatus).toBe('copied');
-    expect(result.current.minutesDraftMessage).toBe('Minutes markdown copied.');
+    expect(result.current.minutesDraftError).toBeNull();
+    expect(result.current.minutesDraftCopied).toBe(true);
   });
 
   it('downloads the generated markdown with a meeting filename', async () => {
@@ -137,12 +137,11 @@ describe('useMeetingDetailPage minutes draft actions', () => {
     expect(window.URL.createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
     expect(clickSpy).toHaveBeenCalledTimes(1);
     expect(clickSpy.mock.contexts[0]).toMatchObject({
-      download: 'strategic-planning-session-minutes-draft.md',
+      download: '2026-04-01-strategic-planning-session-minutes-draft.md',
       href: 'blob:minutes-draft',
     });
     expect(window.URL.revokeObjectURL).toHaveBeenCalledWith('blob:minutes-draft');
-    expect(result.current.minutesDraftStatus).toBe('downloaded');
-    expect(result.current.minutesDraftMessage).toBe('Minutes markdown download started.');
+    expect(result.current.minutesDraftError).toBeNull();
   });
 
   it('reports draft generation failure without browser alert fallback', async () => {
@@ -156,8 +155,7 @@ describe('useMeetingDetailPage minutes draft actions', () => {
     });
 
     expect(result.current.minutesDraftMarkdown).toBeNull();
-    expect(result.current.minutesDraftStatus).toBe('error');
-    expect(result.current.minutesDraftMessage).toBe('Failed to generate minutes draft.');
+    expect(result.current.minutesDraftError).toBe('Failed to generate minutes draft');
     expect(window.alert).not.toHaveBeenCalled();
   });
 });

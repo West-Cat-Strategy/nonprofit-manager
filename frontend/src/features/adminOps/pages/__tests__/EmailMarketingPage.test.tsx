@@ -1227,7 +1227,7 @@ describe('EmailMarketingPage', () => {
             subject: 'Scheduled Appeal',
             listId: 'list-1',
             createdAt: '2026-04-24T12:00:00Z',
-            sendTime: '2026-05-01T10:00',
+            sendTime: '2026-06-01T10:00',
           },
         });
       }
@@ -1256,7 +1256,7 @@ describe('EmailMarketingPage', () => {
       target: { value: 'hello@example.org' },
     });
     fireEvent.change(screen.getByLabelText(/schedule send time/i), {
-      target: { value: '2026-05-01T10:00' },
+      target: { value: '2026-06-01T10:00' },
     });
 
     const scheduleButton = screen.getByRole('button', { name: /schedule campaign/i });
@@ -1270,7 +1270,7 @@ describe('EmailMarketingPage', () => {
           subject: 'Scheduled Appeal',
           fromName: 'Community Org',
           replyTo: 'hello@example.org',
-          sendTime: '2026-05-01T10:00',
+          sendTime: '2026-06-01T10:00',
           builderContent: expect.objectContaining({
             blocks: expect.arrayContaining([
               expect.objectContaining({

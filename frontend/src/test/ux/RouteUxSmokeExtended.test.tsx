@@ -343,7 +343,8 @@ const smokeCases: SmokeCase[] = [
     route: '/settings/admin/dashboard',
     page: <AdminSettings />,
     heading: /admin hub/i,
-    primaryActionPattern: /show advanced|hide advanced/i,
+    primaryActionPattern: /admin hub/i,
+    primaryActionRole: 'link',
     contractAssertion: async () => {
       await expectGetRequest(apiMatchers.adminOrganizationSettings);
       await expectGetRequest(apiMatchers.adminRoles);

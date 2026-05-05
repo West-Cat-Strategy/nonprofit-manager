@@ -105,7 +105,7 @@ describe('WorkflowCoverageReportPage', () => {
 
     renderWithProviders(<WorkflowCoverageReportPage />);
 
-    await user.type(screen.getByLabelText(/owner id/i), 'user-1');
+    await user.type(screen.getByLabelText(/^owner$/i), 'user-1');
     await user.selectOptions(screen.getByLabelText(/case status/i), 'active');
     await user.selectOptions(screen.getByLabelText(/missing/i), 'outcome');
     await user.click(screen.getByRole('button', { name: /^retry$/i }));

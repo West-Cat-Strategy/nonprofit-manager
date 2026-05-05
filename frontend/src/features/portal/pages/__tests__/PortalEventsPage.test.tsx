@@ -119,13 +119,13 @@ describe('PortalEventsPage', () => {
   it('shows attendee QR pass modal for registered events', async () => {
     renderWithProviders(<PortalEventsPage />);
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'QR Pass' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Check-in pass' })[0]);
 
     await waitFor(() => {
-      expect(screen.getByRole('dialog', { name: /event qr pass/i })).toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: /event check-in pass/i })).toBeInTheDocument();
       expect(screen.getAllByText('Week 2').length).toBeGreaterThan(0);
       expect(screen.getAllByText('Confirmation sent').length).toBeGreaterThan(0);
-      expect(screen.getByRole('button', { name: 'Download PNG' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Download pass' })).toBeInTheDocument();
     });
   });
 
@@ -134,11 +134,11 @@ describe('PortalEventsPage', () => {
 
     renderWithProviders(<PortalEventsPage />);
 
-    const qrButton = screen.getAllByRole('button', { name: 'QR Pass' })[0];
+    const qrButton = screen.getAllByRole('button', { name: 'Check-in pass' })[0];
     qrButton.focus();
     await user.click(qrButton);
 
-    const dialog = await screen.findByRole('dialog', { name: /event qr pass/i });
+    const dialog = await screen.findByRole('dialog', { name: /event check-in pass/i });
     expect(dialog).toHaveAttribute('aria-modal', 'true');
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Close' })).toHaveFocus();
@@ -147,7 +147,9 @@ describe('PortalEventsPage', () => {
     await user.keyboard('{Escape}');
 
     await waitFor(() => {
-      expect(screen.queryByRole('dialog', { name: /event qr pass/i })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('dialog', { name: /event check-in pass/i })
+      ).not.toBeInTheDocument();
     });
     expect(qrButton).toHaveFocus();
   });
@@ -185,13 +187,15 @@ describe('PortalEventsPage', () => {
 
     const attendedCard = screen.getByText('Attended Session').closest('li');
     expect(attendedCard).not.toBeNull();
-    fireEvent.click(within(attendedCard as HTMLElement).getByRole('button', { name: 'QR Pass' }));
+    fireEvent.click(
+      within(attendedCard as HTMLElement).getByRole('button', { name: 'Check-in pass' })
+    );
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Download PNG' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Download pass' })).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Download PNG' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Download pass' }));
     expect(anchor.click).toHaveBeenCalledTimes(1);
     expect(anchor.download).toBe('event-pass-event-3.png');
     expect(anchor.href).toContain('data:image/png;base64,portal-qr');
@@ -205,7 +209,7 @@ describe('PortalEventsPage', () => {
     const waitlistedCard = screen.getByText('Waitlisted Session').closest('li');
     expect(waitlistedCard).not.toBeNull();
     expect(
-      within(waitlistedCard as HTMLElement).queryByRole('button', { name: 'QR Pass' })
+      within(waitlistedCard as HTMLElement).queryByRole('button', { name: 'Check-in pass' })
     ).toBeNull();
     expect(within(waitlistedCard as HTMLElement).getByText('Waitlisted')).toBeInTheDocument();
     expect(

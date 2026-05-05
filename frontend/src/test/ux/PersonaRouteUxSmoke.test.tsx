@@ -153,9 +153,10 @@ const apiMatchers = {
   followUps: /^\/(?:v2\/)?follow-ups(?:\?|$)/,
   followUpsUpcoming: /^\/v2\/follow-ups\/upcoming(?:\?|$)/,
   followUpsSummary: /^\/(?:v2\/)?follow-ups\/summary(?:\?|$)/,
-  mailchimpCampaigns: '/mailchimp/campaigns',
-  mailchimpLists: '/mailchimp/lists',
-  mailchimpStatus: '/mailchimp/status',
+  communicationsAudiences: /^\/communications\/audiences(?:\?|$)/,
+  communicationsCampaignRuns: /^\/communications\/campaign-runs(?:\?|$)/,
+  communicationsCampaigns: /^\/communications\/campaigns(?:\?|$)/,
+  communicationsStatus: '/communications/status',
   opportunities: /^\/opportunities(?:\?|$)/,
   opportunitiesStages: /^\/opportunities\/stages(?:\?|$)/,
   opportunitiesSummary: /^\/opportunities\/summary(?:\?|$)/,
@@ -455,11 +456,12 @@ const registerSharedPersonaRouteApi = () => {
       due_this_week: 0,
     },
   });
-  registerTestApiGet(apiMatchers.mailchimpStatus, {
+  registerTestApiGet(apiMatchers.communicationsStatus, {
     data: { configured: false, accountName: null, listCount: 0 },
   });
-  registerTestApiGet(apiMatchers.mailchimpLists, { data: [] });
-  registerTestApiGet(apiMatchers.mailchimpCampaigns, { data: [] });
+  registerTestApiGet(apiMatchers.communicationsAudiences, { data: [] });
+  registerTestApiGet(apiMatchers.communicationsCampaigns, { data: [] });
+  registerTestApiGet(apiMatchers.communicationsCampaignRuns, { data: [] });
 };
 
 const routeDefinitions: Record<PersonaRouteContractId, PersonaRouteDefinition> = {
@@ -555,7 +557,8 @@ const routeDefinitions: Record<PersonaRouteContractId, PersonaRouteDefinition> =
   'admin-settings': {
     page: <AdminSettings />,
     heading: /admin hub/i,
-    primaryActionPattern: /show advanced|hide advanced/i,
+    primaryActionPattern: /admin hub/i,
+    primaryActionRole: 'link',
     contractAssertion: async () => {
       await expectGetRequest(apiMatchers.adminOrganizationSettings);
       await expectGetRequest(apiMatchers.adminRoles);
@@ -563,27 +566,25 @@ const routeDefinitions: Record<PersonaRouteContractId, PersonaRouteDefinition> =
   },
   'navigation-settings': {
     page: <NavigationSettings />,
-    heading: /^navigation$/i,
+    heading: /my navigation/i,
     primaryActionPattern: /reset to defaults/i,
     contractAssertion: async () => {
-      expect(await screen.findByText(/navigation menu items/i)).toBeInTheDocument();
+      expect(await screen.findByText(/visible workspace modules/i)).toBeInTheDocument();
     },
   },
   communications: {
     page: <CommunicationsPage />,
-    heading: /newsletter campaigns/i,
-    primaryActionPattern: /admin\.mailchimp\.com\/account\/api/i,
-    primaryActionRole: 'link',
+    heading: /communications/i,
+    primaryActionPattern: /local email/i,
     contractAssertion: async () => {
-      await expectGetRequest(apiMatchers.mailchimpStatus);
+      await expectGetRequest(apiMatchers.communicationsStatus);
       expect(
         await screen.findByRole('heading', {
-          name: /newsletter provider not configured/i,
-          level: 2,
+          name: /communications/i,
+          level: 1,
         })
       ).toBeInTheDocument();
-      expect(getTestApiCalls('get', apiMatchers.mailchimpLists)).toHaveLength(0);
-      expect(getTestApiCalls('get', apiMatchers.mailchimpCampaigns)).toHaveLength(0);
+      expect(await screen.findByText(/mailchimp optional/i)).toBeInTheDocument();
     },
   },
   cases: {

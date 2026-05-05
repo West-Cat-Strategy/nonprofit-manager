@@ -266,7 +266,9 @@ describe('NeoBrutalistDashboard', () => {
     await waitFor(() => {
       expect(api.get).toHaveBeenCalledWith('/v2/dashboard/queue-views', { params: undefined });
     });
-    expect(api.get).toHaveBeenCalledTimes(1);
+    expect(
+      vi.mocked(api.get).mock.calls.filter(([url]) => url === '/v2/dashboard/queue-views')
+    ).toHaveLength(1);
     expect(preloadContactsPeopleRouteMock).not.toHaveBeenCalled();
     expect(preloadNavigationQuickLookupDialogMock).not.toHaveBeenCalled();
   });

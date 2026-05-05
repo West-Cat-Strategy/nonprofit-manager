@@ -583,7 +583,7 @@ describe('admin settings hooks', () => {
       await result.current.handlePortalSendAppointmentReminder('appt-1', { sendEmail: true });
     });
 
-    expect(mockedApi.post).toHaveBeenCalledWith('/portal/admin/requests/req-1/approve');
+    expect(mockedApi.post).toHaveBeenCalledWith('/portal/admin/requests/req-1/approve', {});
     expect(mockedApi.post).toHaveBeenCalledWith('/portal/admin/invitations', {
       email: 'portal@example.com',
       contact_id: undefined,
