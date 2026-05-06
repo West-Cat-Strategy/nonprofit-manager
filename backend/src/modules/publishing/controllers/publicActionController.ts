@@ -3,6 +3,7 @@ import type { AuthRequest } from '@middleware/auth';
 import type {
   CreatePublicActionRequest,
   PublicActionSubmissionRequest,
+  PublicActionSubmissionTransition,
   UpdatePublicActionRequest,
 } from '@app-types/websiteBuilder';
 import { publicActionService } from '@services/publishing/publicActionService';
@@ -30,6 +31,7 @@ const handleKnownError = (res: Response, error: unknown): boolean => {
   if (
     error.message.includes('organization assignment') ||
     error.message.includes('not accepting') ||
+    error.message.includes('Cannot ') ||
     error.message.includes('required')
   ) {
     badRequest(res, error.message);
@@ -163,6 +165,33 @@ export const getSitePublicActionSupportLetterArtifact = async (
     next(error);
   }
 };
+
+const transitionSitePublicActionSubmission =
+  (transition: PublicActionSubmissionTransition) =>
+  async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const result = await publicActionService.transitionSubmission(
+        req.params.siteId,
+        req.params.actionId,
+        req.params.submissionId,
+        transition,
+        req.user!.id,
+        req.organizationId
+      );
+      if (!result) {
+        notFoundMessage(res, 'Public action submission not found');
+        return;
+      }
+      sendSuccess(res, result);
+    } catch (error) {
+      if (handleKnownError(res, error)) return;
+      next(error);
+    }
+  };
+
+export const acceptSitePublicActionSubmission = transitionSitePublicActionSubmission('accept');
+export const rejectSitePublicActionSubmission = transitionSitePublicActionSubmission('reject');
+export const fulfillSitePublicActionSubmission = transitionSitePublicActionSubmission('fulfill');
 
 export const submitPublicAction = async (
   req: Request,

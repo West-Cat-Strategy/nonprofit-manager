@@ -54,6 +54,7 @@ cp .env.plausible.example .env.plausible
 ```
 
 The copied `.env.plausible` file stays local-only and ignored; `.env.plausible.example` remains the tracked template.
+For config-only validation without a copied local file, use `make docker-validate-overlays`; the helper points the Plausible overlay at `.env.plausible.example` through `PLAUSIBLE_ENV_FILE`.
 
 Populate at least:
 

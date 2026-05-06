@@ -1,5 +1,6 @@
 import type {
   AssignmentFilters,
+  ApproveVolunteerBackgroundCheckDTO,
   CreateAssignmentDTO,
   CreateVolunteerDTO,
   PaginatedVolunteers,
@@ -28,6 +29,11 @@ export interface VolunteerLifecyclePort {
   updateVolunteer(
     volunteerId: string,
     payload: UpdateVolunteerDTO,
+    userId: string
+  ): Promise<Volunteer | null>;
+  approveVolunteerBackgroundCheck(
+    volunteerId: string,
+    payload: ApproveVolunteerBackgroundCheckDTO,
     userId: string
   ): Promise<Volunteer | null>;
   deleteVolunteer(volunteerId: string, userId: string): Promise<boolean>;

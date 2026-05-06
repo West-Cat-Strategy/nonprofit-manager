@@ -1,4 +1,5 @@
 import type {
+  ApproveVolunteerBackgroundCheckDTO,
   CreateAssignmentDTO,
   CreateVolunteerDTO,
   UpdateAssignmentDTO,
@@ -21,6 +22,14 @@ export class VolunteerLifecycleUseCase {
     userId: string
   ): Promise<Volunteer | null> {
     return this.repository.updateVolunteer(volunteerId, payload, userId);
+  }
+
+  approveBackgroundCheck(
+    volunteerId: string,
+    payload: ApproveVolunteerBackgroundCheckDTO,
+    userId: string
+  ): Promise<Volunteer | null> {
+    return this.repository.approveVolunteerBackgroundCheck(volunteerId, payload, userId);
   }
 
   delete(volunteerId: string, userId: string): Promise<boolean> {

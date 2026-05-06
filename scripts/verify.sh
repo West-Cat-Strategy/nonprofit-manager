@@ -2,11 +2,34 @@
 set -euo pipefail
 
 run_legacy="${NONPROFIT_MANAGER_RUN_LEGACY_VERIFY:-0}"
+selector_mode="fast"
+selector_base=""
+selector_files=""
+selector_requested=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --run-legacy)
       run_legacy=1
+      shift
+      ;;
+    --mode)
+      selector_mode="${2:-}"
+      selector_requested=1
+      shift 2
+      ;;
+    --base)
+      selector_base="${2:-}"
+      selector_requested=1
+      shift 2
+      ;;
+    --files)
+      selector_files="${2:-}"
+      selector_requested=1
+      shift 2
+      ;;
+    --print-only)
+      selector_requested=1
       shift
       ;;
     -h|--help)
@@ -30,6 +53,17 @@ EOF
       ;;
   esac
 done
+
+if [[ "$run_legacy" != "1" && "$selector_requested" == "1" ]]; then
+  selector_args=(--mode "$selector_mode")
+  if [[ -n "$selector_base" ]]; then
+    selector_args+=(--base "$selector_base")
+  fi
+  if [[ -n "$selector_files" ]]; then
+    selector_args+=(--files "$selector_files")
+  fi
+  exec "$(dirname "$0")/select-checks.sh" "${selector_args[@]}"
+fi
 
 if [[ "$run_legacy" != "1" ]]; then
   cat <<'EOF'

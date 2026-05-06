@@ -41,6 +41,15 @@ describe('Case Handoff Packet Integration Tests', () => {
     authToken = (registerResponse.body.data?.token || registerResponse.body.token) || '';
     userId = (registerResponse.body.data?.user?.id || registerResponse.body.user?.id) || '';
 
+    await pool.query('UPDATE users SET role = $1 WHERE id = $2', ['admin', userId]);
+
+    const loginResponse = await request(app)
+      .post('/api/v2/auth/login')
+      .send({ email: testEmail, password: 'Test123!Strong' })
+      .expect(200);
+    authToken = (loginResponse.body.data?.token || loginResponse.body.token) || '';
+    expect(authToken).toBeTruthy();
+
     const accountResponse = await request(app)
       .post('/api/v2/accounts')
       .set('Authorization', `Bearer ${authToken}`)

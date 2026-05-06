@@ -1,5 +1,6 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useStableSearchParamsWriter } from '../../../hooks/useStableSearchParams';
 import type { PortalSortOrder } from '../types/contracts';
 
 interface UsePortalListUrlStateOptions<TSort extends string> {
@@ -48,40 +49,52 @@ export const usePortalListUrlState = <TSort extends string>({
   defaultOrder,
 }: UsePortalListUrlStateOptions<TSort>): PortalListUrlState<TSort> => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { writeSearchParams, shouldApplySearchParams } =
+    useStableSearchParamsWriter(setSearchParams);
 
-  const search = normalizeSearchValue(searchParams.get('search'));
+  const urlSearch = normalizeSearchValue(searchParams.get('search'));
+  const [search, setSearchState] = useState(urlSearch);
   const sort = parseAllowedValue(searchParams.get('sort'), sortValues, defaultSort);
   const order = parsePortalSortOrder(searchParams.get('order'), defaultOrder);
 
+  useEffect(() => {
+    if (!shouldApplySearchParams()) {
+      return;
+    }
+
+    setSearchState(urlSearch);
+  }, [urlSearch, shouldApplySearchParams]);
+
   const writeState = useCallback(
     (nextState: { search: string; sort: TSort; order: PortalSortOrder }) => {
-      const nextParams = new URLSearchParams(searchParams);
+      writeSearchParams((nextParams) => {
+        if (nextState.search) {
+          nextParams.set('search', nextState.search.trim());
+        } else {
+          nextParams.delete('search');
+        }
 
-      if (nextState.search) {
-        nextParams.set('search', nextState.search);
-      } else {
-        nextParams.delete('search');
-      }
+        if (nextState.sort === defaultSort) {
+          nextParams.delete('sort');
+        } else {
+          nextParams.set('sort', nextState.sort);
+        }
 
-      if (nextState.sort === defaultSort) {
-        nextParams.delete('sort');
-      } else {
-        nextParams.set('sort', nextState.sort);
-      }
+        if (nextState.order === defaultOrder) {
+          nextParams.delete('order');
+        } else {
+          nextParams.set('order', nextState.order);
+        }
 
-      if (nextState.order === defaultOrder) {
-        nextParams.delete('order');
-      } else {
-        nextParams.set('order', nextState.order);
-      }
-
-      setSearchParams(nextParams, { replace: true });
+        return nextParams;
+      }, { replace: true });
     },
-    [defaultOrder, defaultSort, searchParams, setSearchParams]
+    [defaultOrder, defaultSort, writeSearchParams]
   );
 
   const setSearch = useCallback(
     (value: string) => {
+      setSearchState(value);
       writeState({
         search: value.trim(),
         sort,

@@ -25,6 +25,7 @@ import {
 } from '../lib/authQueries';
 import { mapAuthUser } from '../lib/authResponseMappers';
 import { resolveAuthenticatedOrganizationId } from '../lib/resolveOrganizationContext';
+import { shouldBypassMfaForTests } from '../lib/mfaBypass';
 
 const PENDING_APPROVAL_MESSAGE =
   'Your account is pending approval. Please contact your workplace administrator to approve your account.';
@@ -121,7 +122,8 @@ export const login = async (
       return unauthorized(res, 'Invalid credentials');
     }
 
-    const mfaRequired = (user.mfa_totp_enabled || user.mfa_required_by_role) && process.env.BYPASS_MFA_FOR_TESTS !== 'true';
+    const mfaRequired =
+      (user.mfa_totp_enabled || user.mfa_required_by_role) && !shouldBypassMfaForTests();
     if (mfaRequired) {
       if (user.mfa_required_by_role && !user.mfa_totp_enabled) {
         logger.warn(`MFA enforced by role for user: ${user.email} but not yet enrolled`, {

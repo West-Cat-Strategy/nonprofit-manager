@@ -118,3 +118,6 @@
 118	118_case_closure_checklists.sql
 119	119_worker_scheduler_health.sql
 120	120_portal_signup_manual_no_match.sql
+121	121_portal_account_scope.sql
+122	122_pending_email_uniqueness.sql
+123	123_volunteer_background_check_approval.sql

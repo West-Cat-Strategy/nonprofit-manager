@@ -1,4 +1,4 @@
-import pool from '@config/database';
+import pool, { withUserContextTransaction } from '@config/database';
 import {
   getUserAccessOverview,
   listOrganizationAccounts,
@@ -6,7 +6,6 @@ import {
 } from '@services/accountAccessService';
 import * as policyGroupRepository from '../repositories/policyGroupRepository';
 import type { PoolClient } from 'pg';
-import { logger } from '@config/logger';
 
 export interface UpdateUserAccessInput {
   groups: string[];
@@ -14,28 +13,6 @@ export interface UpdateUserAccessInput {
 }
 
 const unique = (values: string[]): string[] => Array.from(new Set(values.filter(Boolean)));
-
-const withTransaction = async <T>(handler: (db: PoolClient) => Promise<T>): Promise<T> => {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const result = await handler(client);
-    await client.query('COMMIT');
-    return result;
-  } catch (error) {
-    try {
-      await client.query('ROLLBACK');
-    } catch (rollbackError) {
-      logger.warn('Failed to roll back user access transaction', {
-        rollbackError:
-          rollbackError instanceof Error ? rollbackError.message : String(rollbackError),
-      });
-    }
-    throw error;
-  } finally {
-    client.release();
-  }
-};
 
 const getUserRoleById = async (
   userId: string,
@@ -62,10 +39,18 @@ export const updateUserAccess = async (
   input: UpdateUserAccessInput,
   modifiedBy?: string
 ) => {
+  const actorId = modifiedBy?.trim();
+  if (!actorId) {
+    throw Object.assign(new Error('Authenticated actor is required to update user access'), {
+      statusCode: 401,
+      code: 'unauthorized',
+    });
+  }
+
   const groups = unique(input.groups);
   const organizationAccess = unique(input.organizationAccess);
 
-  await withTransaction(async (db) => {
+  await withUserContextTransaction(actorId, async (db) => {
     const user = await getUserRoleById(userId, db);
     if (!user) {
       throw new Error('User not found');
@@ -79,7 +64,7 @@ export const updateUserAccess = async (
         throw new Error(`Unknown groups: ${missingGroups.join(', ')}`);
       }
 
-      await policyGroupRepository.replaceUserPolicyGroups(userId, groups, modifiedBy ?? null, db);
+      await policyGroupRepository.replaceUserPolicyGroups(userId, groups, actorId, db);
     } else if (groups.length > 0) {
       throw new Error('Policy groups are unavailable until the latest database migrations are applied');
     }
@@ -89,7 +74,7 @@ export const updateUserAccess = async (
         userId,
         role: user.role,
         organizationAccountIds: organizationAccess,
-        grantedBy: modifiedBy ?? null,
+        grantedBy: actorId,
       },
       db
     );

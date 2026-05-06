@@ -40,6 +40,15 @@ describe('Meetings API Integration Tests', () => {
     adminAuthToken = tokenFromResponse(registerResponse.body) || '';
     expect(adminAuthToken).toBeTruthy();
 
+    await pool.query('UPDATE users SET role = $1 WHERE email = $2', ['admin', email.toLowerCase()]);
+
+    const loginResponse = await request(app)
+      .post('/api/v2/auth/login')
+      .send({ email, password: sharedPassword })
+      .expect(200);
+    adminAuthToken = tokenFromResponse(loginResponse.body) || '';
+    expect(adminAuthToken).toBeTruthy();
+
     // Create a test account
     const accountResponse = await request(app)
       .post('/api/v2/accounts')

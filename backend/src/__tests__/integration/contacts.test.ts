@@ -70,6 +70,21 @@ describe('Contact API Integration Tests', () => {
     authToken = tokenFromResponse(registerResponse.body) || '';
     expect(authToken).toBeTruthy();
 
+    const adminRoleResult = await pool.query<{ id: string }>(
+      'UPDATE users SET role = $1 WHERE email = $2 RETURNING id',
+      ['admin', email.toLowerCase()]
+    );
+    creatorUserId = adminRoleResult.rows[0]?.id || '';
+    expect(creatorUserId).toBeTruthy();
+
+    const adminLoginResponse = await request(app)
+      .post('/api/v2/auth/login')
+      .send({ email, password: sharedPassword })
+      .expect(200);
+    authToken = tokenFromResponse(adminLoginResponse.body) || '';
+    adminAuthToken = authToken;
+    expect(adminAuthToken).toBeTruthy();
+
     // Create a test account for contacts
     const accountResponse = await request(app)
       .post('/api/v2/accounts')
@@ -137,16 +152,6 @@ describe('Contact API Integration Tests', () => {
        DO UPDATE SET access_level = EXCLUDED.access_level, granted_by = EXCLUDED.granted_by, is_active = TRUE`,
       [creatorUserId, staffUserId, testAccountId, viewerUserId]
     );
-
-    await pool.query('UPDATE users SET role = $1 WHERE id = $2', ['admin', creatorUserId]);
-
-    const adminLoginResponse = await request(app)
-      .post('/api/v2/auth/login')
-      .send({ email, password: sharedPassword })
-      .expect(200);
-    authToken = tokenFromResponse(adminLoginResponse.body) || '';
-    adminAuthToken = authToken;
-    expect(adminAuthToken).toBeTruthy();
 
     const staffLoginResponse = await request(app)
       .post('/api/v2/auth/login')
@@ -2411,7 +2416,7 @@ describe('Contact API Integration Tests', () => {
         skills: ['Teaching', 'Mentoring'],
         availability_status: 'limited',
         availability_notes: 'Weekends',
-        background_check_status: 'approved',
+        background_check_status: 'in_progress',
         preferred_roles: ['Coordinator'],
         certifications: ['CPR'],
         max_hours_per_week: 12,
@@ -2424,7 +2429,7 @@ describe('Contact API Integration Tests', () => {
         skills: ['Driving', 'Mentoring'],
         availability_status: 'available',
         availability_notes: 'Mornings',
-        background_check_status: 'approved',
+        background_check_status: 'pending',
         preferred_roles: ['Coordinator', 'Driver'],
         certifications: ['First Aid'],
         max_hours_per_week: 8,
@@ -2452,6 +2457,7 @@ describe('Contact API Integration Tests', () => {
             resolutions: {
               first_name: 'source',
               availability_status: 'source',
+              background_check_status: 'source',
             },
           })
       ).expect(200);

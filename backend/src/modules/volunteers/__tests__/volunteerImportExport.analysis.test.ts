@@ -122,4 +122,38 @@ describe('analyzeVolunteerImport', () => {
       resolvedAccountId: ORGANIZATION_ID,
     });
   });
+
+  it('rejects approved background-check status during generic import analysis', async () => {
+    lookupScopedAccountsMock.mockResolvedValueOnce([]);
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+
+    const analysis = await analyzeVolunteerImport(
+      buildParsedFile({
+        mapping: {
+          first_name: 'first_name',
+          last_name: 'last_name',
+          email: 'email',
+          background_check_status: 'background_check_status',
+        },
+        rows: [
+          {
+            first_name: 'Approved',
+            last_name: 'Volunteer',
+            email: 'approved@example.com',
+            background_check_status: 'approved',
+          },
+        ],
+      }),
+      ORGANIZATION_ID,
+      undefined,
+      pool
+    );
+
+    expect(analysis.actions).toEqual([]);
+    expect(analysis.rowErrors).toHaveLength(1);
+    expect(analysis.rowErrors[0]?.messages.join(' ')).toContain(
+      'Approved background checks must use the dedicated approval endpoint'
+    );
+  });
 });

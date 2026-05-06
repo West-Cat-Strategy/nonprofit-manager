@@ -368,6 +368,11 @@ const createPublicActionSchema = z
   })
   .strict();
 const updatePublicActionSchema = createPublicActionSchema.omit({ actionType: true }).partial().strict();
+const publicActionSubmissionTransitionBodySchema = z
+  .object({})
+  .strict()
+  .optional()
+  .transform(() => ({}));
 
 // ==================== Protected Routes (require auth) ====================
 
@@ -449,6 +454,30 @@ router.get(
   ...withOrganizationContext,
   validateParams(sitePublicActionParamsSchema),
   publishingController.listSitePublicActionSubmissions
+);
+
+router.post(
+  '/:siteId/actions/:actionId/submissions/:submissionId/accept',
+  ...withOrganizationContext,
+  validateParams(sitePublicActionSubmissionParamsSchema),
+  validateBody(publicActionSubmissionTransitionBodySchema),
+  publishingController.acceptSitePublicActionSubmission
+);
+
+router.post(
+  '/:siteId/actions/:actionId/submissions/:submissionId/reject',
+  ...withOrganizationContext,
+  validateParams(sitePublicActionSubmissionParamsSchema),
+  validateBody(publicActionSubmissionTransitionBodySchema),
+  publishingController.rejectSitePublicActionSubmission
+);
+
+router.post(
+  '/:siteId/actions/:actionId/submissions/:submissionId/fulfill',
+  ...withOrganizationContext,
+  validateParams(sitePublicActionSubmissionParamsSchema),
+  validateBody(publicActionSubmissionTransitionBodySchema),
+  publishingController.fulfillSitePublicActionSubmission
 );
 
 router.get(

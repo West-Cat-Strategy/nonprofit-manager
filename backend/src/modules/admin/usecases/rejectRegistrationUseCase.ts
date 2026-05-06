@@ -3,36 +3,57 @@ import { logger } from '@config/logger';
 import { sendMail } from '@services/emailService';
 import * as repo from '../repositories/pendingRegistrationRepository';
 
+type RejectionOutcome =
+  | { kind: 'rejected'; pending: repo.PendingRegistrationRow }
+  | { kind: 'not_found' }
+  | { kind: 'already_processed'; status: string };
+
 export async function rejectPendingRegistration(
   id: string,
   reviewedBy: string,
   reason?: string
 ): Promise<repo.PendingRegistrationRow> {
-  const pending = await repo.getPendingRegistrationById(id);
+  const outcome = await withUserContextTransaction<RejectionOutcome>(reviewedBy, async (client) => {
+    const pending = await repo.getPendingRegistrationByIdForUpdate(id, false, client);
 
-  if (!pending) {
-    throw new Error('Pending registration not found');
-  }
+    if (!pending) {
+      return { kind: 'not_found' };
+    }
 
-  if (pending.status !== 'pending') {
-    throw new Error(`Registration has already been ${pending.status}`);
-  }
+    if (pending.status !== 'pending') {
+      return { kind: 'already_processed', status: pending.status };
+    }
 
-  const updated = await withUserContextTransaction(reviewedBy, async (client) => {
     await repo.deletePendingRegistrationPasskeyData(id, client);
-    return repo.updatePendingStatus(
+    const updated = await repo.updatePendingStatusIfPending(
       id,
       'rejected',
       reviewedBy,
       reason ?? null,
       client
     );
+
+    if (!updated) {
+      return { kind: 'already_processed', status: 'processed' };
+    }
+
+    return { kind: 'rejected', pending: updated };
   });
 
-  logger.info(`Pending registration rejected: ${pending.email} by user ${reviewedBy}`);
+  if (outcome.kind === 'not_found') {
+    throw new Error('Pending registration not found');
+  }
+
+  if (outcome.kind === 'already_processed') {
+    throw new Error(`Registration has already been ${outcome.status}`);
+  }
+
+  const updated = outcome.pending;
+
+  logger.info(`Pending registration rejected: ${updated.email} by user ${reviewedBy}`);
 
   // Best-effort: notify user
-  sendRejectionEmail(pending.email, pending.first_name, reason).catch((err) => {
+  sendRejectionEmail(updated.email, updated.first_name, reason).catch((err) => {
     logger.warn('Failed to send rejection notification', err);
   });
 

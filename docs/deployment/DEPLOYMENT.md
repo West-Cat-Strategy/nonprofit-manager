@@ -421,6 +421,7 @@ Use the repo-native direct-build path first:
 ```bash
 make docker-build
 make docker-validate
+make docker-validate-overlays
 ```
 
 If you want the raw Docker commands instead:

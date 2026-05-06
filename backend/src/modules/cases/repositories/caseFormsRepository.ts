@@ -38,6 +38,7 @@ import {
   createContactDocumentRecord,
   createSubmission,
   getAccessTokenByHash,
+  getLatestSubmissionForAssignment,
   getNextSubmissionNumber,
   getSubmissionByClientSubmissionId,
   linkAssetsToSubmission,
@@ -49,6 +50,7 @@ import {
   revokeAccessTokens,
   updateCaseJsonField,
   updateContactFields,
+  updateSubmissionMappingAudit,
 } from './caseFormsRepository.submissions';
 import type { ReviewFollowUpRecord } from './caseFormsRepository.followUps';
 import {
@@ -92,7 +94,10 @@ export class CaseFormsRepository {
     }
   }
 
-  async listDefaultsByCaseType(caseTypeId: string, organizationId?: string): Promise<CaseFormDefault[]> {
+  async listDefaultsByCaseType(
+    caseTypeId: string,
+    organizationId?: string
+  ): Promise<CaseFormDefault[]> {
     return listDefaultsByCaseType(this.db, caseTypeId, organizationId);
   }
 
@@ -104,7 +109,10 @@ export class CaseFormsRepository {
     return listTemplates(this.db, input);
   }
 
-  async getDefaultById(defaultId: string, organizationId?: string): Promise<CaseFormDefault | null> {
+  async getDefaultById(
+    defaultId: string,
+    organizationId?: string
+  ): Promise<CaseFormDefault | null> {
     return getDefaultById(this.db, defaultId, organizationId);
   }
 
@@ -143,15 +151,24 @@ export class CaseFormsRepository {
     return updateDefault(executor, defaultId, input);
   }
 
-  async listRecommendedDefaultsForCase(caseId: string, organizationId?: string): Promise<CaseFormDefault[]> {
+  async listRecommendedDefaultsForCase(
+    caseId: string,
+    organizationId?: string
+  ): Promise<CaseFormDefault[]> {
     return listRecommendedDefaultsForCase(this.db, caseId, organizationId);
   }
 
-  async listAssignmentsForCase(caseId: string, organizationId?: string): Promise<CaseFormAssignmentRecord[]> {
+  async listAssignmentsForCase(
+    caseId: string,
+    organizationId?: string
+  ): Promise<CaseFormAssignmentRecord[]> {
     return listAssignmentsForCase(this.db, caseId, organizationId);
   }
 
-  async listAssignmentsForPortal(contactId: string, status?: string): Promise<CaseFormAssignmentRecord[]> {
+  async listAssignmentsForPortal(
+    contactId: string,
+    status?: string
+  ): Promise<CaseFormAssignmentRecord[]> {
     return listAssignmentsForPortal(this.db, contactId, status);
   }
 
@@ -276,6 +293,14 @@ export class CaseFormsRepository {
     return listSubmissionsForAssignment(this.db, assignmentId);
   }
 
+  async getLatestSubmissionForAssignment(
+    executor: DbExecutor,
+    assignmentId: string,
+    options: { forUpdate?: boolean } = {}
+  ): Promise<CaseFormSubmission | null> {
+    return getLatestSubmissionForAssignment(executor, assignmentId, options);
+  }
+
   async getNextSubmissionNumber(executor: DbExecutor, assignmentId: string): Promise<number> {
     return getNextSubmissionNumber(executor, assignmentId);
   }
@@ -301,6 +326,14 @@ export class CaseFormsRepository {
     }
   ): Promise<CaseFormSubmission> {
     return createSubmission(executor, input);
+  }
+
+  async updateSubmissionMappingAudit(
+    executor: DbExecutor,
+    submissionId: string,
+    mappingAudit: unknown[]
+  ): Promise<void> {
+    return updateSubmissionMappingAudit(executor, submissionId, mappingAudit);
   }
 
   async listAssetsForAssignment(assignmentId: string): Promise<CaseFormAsset[]> {

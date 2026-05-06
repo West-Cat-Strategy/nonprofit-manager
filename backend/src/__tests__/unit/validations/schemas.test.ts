@@ -15,7 +15,11 @@ import {
   twoFactorSetupSchema,
   twoFactorVerifySchema,
 } from '../../../validations/auth';
-import { createVolunteerSchema, updateVolunteerSchema } from '../../../validations/volunteer';
+import {
+  approveVolunteerBackgroundCheckSchema,
+  createVolunteerSchema,
+  updateVolunteerSchema,
+} from '../../../validations/volunteer';
 import { createEventSchema } from '../../../validations/event';
 import {
   emailSchema,
@@ -324,6 +328,24 @@ describe('Authentication Schemas', () => {
         });
       }
     });
+
+    it('rejects weak new passwords while preserving snake_case alias normalization', () => {
+      const result = changePasswordSchema.safeParse({
+        current_password: 'CurrentPass123',
+        new_password: 'weakpass',
+        new_password_confirm: 'weakpass',
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.flatten().fieldErrors.new_password).toEqual(
+          expect.arrayContaining([
+            'Password must contain at least one uppercase letter',
+            'Password must contain at least one number',
+          ])
+        );
+      }
+    });
   });
 
   describe('passwordResetRequestSchema', () => {
@@ -451,7 +473,7 @@ describe('Volunteer Schemas', () => {
       const validData = {
         contact_id: '550e8400-e29b-41d4-a716-446655440000',
         status: 'active',
-        background_check_status: 'approved',
+        background_check_status: 'pending',
         availability_status: 'available',
         skills: ['mentoring', 'tutoring'],
       };
@@ -481,6 +503,15 @@ describe('Volunteer Schemas', () => {
       };
 
       const result = createVolunteerSchema.safeParse(invalidData);
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject approved background check status on generic creation', () => {
+      const result = createVolunteerSchema.safeParse({
+        contact_id: '550e8400-e29b-41d4-a716-446655440000',
+        background_check_status: 'approved',
+      });
+
       expect(result.success).toBe(false);
     });
 
@@ -517,6 +548,34 @@ describe('Volunteer Schemas', () => {
       };
 
       const result = updateVolunteerSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject approved background check status on generic updates', () => {
+      const result = updateVolunteerSchema.safeParse({
+        background_check_status: 'approved',
+      });
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('approveVolunteerBackgroundCheckSchema', () => {
+    it('should require approval notes', () => {
+      const result = approveVolunteerBackgroundCheckSchema.safeParse({
+        background_check_date: '2026-05-05',
+      });
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should validate the dedicated approval payload', () => {
+      const result = approveVolunteerBackgroundCheckSchema.safeParse({
+        background_check_date: '2026-05-05',
+        background_check_expiry: '2027-05-05',
+        notes: 'Cleared by vendor report.',
+      });
+
       expect(result.success).toBe(true);
     });
   });

@@ -7,7 +7,7 @@
 .PHONY: help install install-dev lint lint-rate-limit-keys lint-success-envelope lint-route-validation lint-express-validator lint-controller-sql lint-query-contract lint-auth-guards lint-migration-manifest lint-duplicate-tests lint-doc-api-versioning lint-openapi lint-v2-module-ownership lint-module-boundary lint-module-route-proxy lint-canonical-module-imports lint-implementation-size lint-frontend-feature-boundary lint-frontend-legacy-slice-imports lint-frontend-legacy-page-paths lint-backend-legacy-controller-wrappers lint-route-integrity lint-route-catalog-drift typecheck test test-backend test-frontend test-e2e test-e2e-docker-smoke test-coverage test-coverage-full test-tooling quality-baseline check-links build build-backend build-frontend clean clean-local clean-all \
 	security-audit security-scan ci ci-fast ci-full ci-unit \
         release-check release-staging release-production deploy deploy-staging deploy-local \
-        dev-lite docker-build docker-up docker-up-dev docker-up-dev-lite docker-up-caddy docker-down docker-logs docker-rebuild docker-validate \
+        dev-lite docker-build docker-up docker-up-dev docker-up-dev-lite docker-up-caddy docker-down docker-logs docker-rebuild docker-validate docker-validate-overlays \
         db-migrate db-verify doctor check-changed hooks
 
 # Colors for output
@@ -42,6 +42,8 @@ SMOKE_PUBLIC_SITE_PORT ?= 18006
 KEEP_SMOKE_STACK ?= 0
 BACKEND_DOCKER_IMAGE ?= nonprofit-manager-backend:latest
 FRONTEND_DOCKER_IMAGE ?= nonprofit-manager-frontend:latest
+DEV_BACKEND_DOCKER_IMAGE ?= nonprofit-dev-backend-dev:latest
+DEV_FRONTEND_DOCKER_IMAGE ?= nonprofit-dev-frontend-dev:latest
 DOCKER_WORKSPACE_BUILD_CONTEXT ?= --build-context workspace=.
 DOCKER_DIRECT_BUILD_HELPER := DOCKER_WORKSPACE_BUILD_CONTEXT="$(DOCKER_WORKSPACE_BUILD_CONTEXT)" BACKEND_DOCKER_IMAGE="$(BACKEND_DOCKER_IMAGE)" FRONTEND_DOCKER_IMAGE="$(FRONTEND_DOCKER_IMAGE)" ./scripts/docker-build-images.sh
 
@@ -54,7 +56,7 @@ E2E_NPM_RUN := cd e2e && npm run
 CI_INFRA_ENV := REDIS_URL=$(CI_REDIS_URL) DB_PASSWORD=postgres
 CI_BACKEND_COVERAGE_ENV := REDIS_URL=$(CI_REDIS_URL) NODE_OPTIONS=$(CI_BACKEND_COVERAGE_NODE_OPTIONS)
 CI_TEST_DB_ENV := DB_HOST=127.0.0.1 DB_PORT=8012 DB_NAME=nonprofit_manager_test DB_USER=postgres DB_PASSWORD=postgres COMPOSE_MODE=ci
-SMOKE_STACK_ENV := COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_SMOKE) DEV_BACKEND_DOCKER_IMAGE=$(COMPOSE_PROJECT_SMOKE)-backend-dev:latest DEV_DB_PORT=$(SMOKE_DB_PORT) DEV_REDIS_PORT=$(SMOKE_REDIS_PORT) DEV_BACKEND_PORT=$(SMOKE_BACKEND_PORT) DEV_FRONTEND_PORT=$(SMOKE_FRONTEND_PORT) DEV_PUBLIC_SITE_PORT=$(SMOKE_PUBLIC_SITE_PORT) DEV_BYPASS_REGISTRATION_POLICY_IN_TEST=true DEV_BYPASS_MFA_FOR_TESTS=true
+SMOKE_STACK_ENV := COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_SMOKE) DEV_BACKEND_DOCKER_IMAGE=$(COMPOSE_PROJECT_SMOKE)-backend-dev:latest DEV_FRONTEND_DOCKER_IMAGE=$(COMPOSE_PROJECT_SMOKE)-frontend-dev:latest DEV_NODE_ENV=test DEV_DB_PORT=$(SMOKE_DB_PORT) DEV_REDIS_PORT=$(SMOKE_REDIS_PORT) DEV_BACKEND_PORT=$(SMOKE_BACKEND_PORT) DEV_FRONTEND_PORT=$(SMOKE_FRONTEND_PORT) DEV_PUBLIC_SITE_PORT=$(SMOKE_PUBLIC_SITE_PORT) DEV_BYPASS_REGISTRATION_POLICY_IN_TEST=true DEV_BYPASS_MFA_FOR_TESTS=true
 
 #------------------------------------------------------------------------------
 # Help
@@ -67,6 +69,7 @@ help:
 	@echo "  make install-dev    Install dependencies plus git hooks and dev tooling"
 	@echo "  make docker-build   Build backend/frontend Docker images directly"
 	@echo "  make docker-validate Validate both Dockerfiles and workspace dependency stages with clean direct builds"
+	@echo "  make docker-validate-overlays Validate Docker Compose overlays and Caddyfile wiring"
 	@echo "  make docker-rebuild Rebuild backend/frontend Docker images without cache"
 	@echo "  make dev-lite       Start the lean compose dev stack (API, app, Postgres, Redis)"
 	@echo "  make dev            Start the full compose dev stack, including public-site"
@@ -292,6 +295,10 @@ docker-rebuild:
 docker-validate:
 	$(DOCKER_DIRECT_BUILD_HELPER) validate
 	@echo "$(GREEN)Dockerfile validation complete!$(RESET)"
+
+docker-validate-overlays:
+	./scripts/docker-validate-overlays.sh
+	@echo "$(GREEN)Docker Compose overlay validation complete!$(RESET)"
 
 #------------------------------------------------------------------------------
 # Quality Checks

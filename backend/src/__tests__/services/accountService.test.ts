@@ -270,7 +270,10 @@ describe('AccountService', () => {
         account_type: 'organization',
       };
 
-      mockQuery.mockResolvedValueOnce({ rows: [mockUpdatedAccount] });
+      mockQuery
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [mockUpdatedAccount] })
+        .mockResolvedValueOnce({ rows: [] });
 
       const result = await accountService.updateAccount('123', { account_name: 'Updated Name' }, 'user-123');
 
@@ -278,7 +281,10 @@ describe('AccountService', () => {
     });
 
     it('should return null when account not found', async () => {
-      mockQuery.mockResolvedValueOnce({ rows: [] });
+      mockQuery
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] });
 
       const result = await accountService.updateAccount('nonexistent', { account_name: 'Test' }, 'user-123');
 
@@ -297,7 +303,10 @@ describe('AccountService', () => {
         phone: '555-9999',
       };
 
-      mockQuery.mockResolvedValueOnce({ rows: [mockUpdatedAccount] });
+      mockQuery
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [mockUpdatedAccount] })
+        .mockResolvedValueOnce({ rows: [] });
 
       const result = await accountService.updateAccount(
         '123',
@@ -309,7 +318,10 @@ describe('AccountService', () => {
     });
 
     it('should throw error on database failure', async () => {
-      mockQuery.mockRejectedValueOnce(new Error('Database error'));
+      mockQuery
+        .mockResolvedValueOnce({ rows: [] })
+        .mockRejectedValueOnce(new Error('Database error'))
+        .mockResolvedValueOnce({ rows: [] });
 
       await expect(
         accountService.updateAccount('123', { account_name: 'Test' }, 'user-123')
@@ -319,7 +331,10 @@ describe('AccountService', () => {
 
   describe('deleteAccount', () => {
     it('should soft delete account successfully', async () => {
-      mockQuery.mockResolvedValueOnce({ rows: [{ id: '123' }] });
+      mockQuery
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [{ id: '123' }] })
+        .mockResolvedValueOnce({ rows: [] });
 
       const result = await accountService.deleteAccount('123', 'user-123');
 
@@ -331,7 +346,10 @@ describe('AccountService', () => {
     });
 
     it('should return false when account not found', async () => {
-      mockQuery.mockResolvedValueOnce({ rows: [] });
+      mockQuery
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] });
 
       const result = await accountService.deleteAccount('nonexistent', 'user-123');
 
@@ -339,7 +357,10 @@ describe('AccountService', () => {
     });
 
     it('should throw error on database failure', async () => {
-      mockQuery.mockRejectedValueOnce(new Error('Database error'));
+      mockQuery
+        .mockResolvedValueOnce({ rows: [] })
+        .mockRejectedValueOnce(new Error('Database error'))
+        .mockResolvedValueOnce({ rows: [] });
 
       await expect(accountService.deleteAccount('123', 'user-123')).rejects.toThrow('Failed to delete account');
     });
@@ -389,6 +410,37 @@ describe('AccountService', () => {
       expect(mockQuery).toHaveBeenCalledTimes(2);
       expect(result.contacts).toEqual([]);
       expect(result.total).toBe(0);
+    });
+
+    it('should apply account contact data scope filters', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rows: [{ total: '0' }] });
+
+      await accountService.getAccountContacts(
+        'account-123',
+        50,
+        0,
+        {
+          accountIds: ['account-123'],
+          contactIds: ['contact-123'],
+          createdByUserIds: ['user-123'],
+          accountTypes: ['organization'],
+        }
+      );
+
+      const [query, values] = mockQuery.mock.calls[0];
+      expect(query).toContain('c.account_id = ANY($2::uuid[])');
+      expect(query).toContain('c.id = ANY($3::uuid[])');
+      expect(query).toContain('c.created_by = ANY($4::uuid[])');
+      expect(query).toContain('a.account_type = ANY($5::text[])');
+      expect(values).toEqual([
+        'account-123',
+        ['account-123'],
+        ['contact-123'],
+        ['user-123'],
+        ['organization'],
+        50,
+        0,
+      ]);
     });
 
     it('should throw error on database failure', async () => {

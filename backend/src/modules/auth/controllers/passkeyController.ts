@@ -175,7 +175,7 @@ export const registrationOptions = async (
       attestationType: 'none',
       authenticatorSelection: {
         residentKey: 'preferred',
-        userVerification: 'preferred',
+        userVerification: 'required',
       },
       excludeCredentials: creds.rows.map((r) => ({
         id: r.credential_id,
@@ -229,7 +229,7 @@ export const registrationVerify = async (
       expectedChallenge: challenge.challenge,
       expectedOrigin: origins,
       expectedRPID: rpID,
-      requireUserVerification: false,
+      requireUserVerification: true,
     });
 
     if (!verification.verified || !verification.registrationInfo) {
@@ -301,7 +301,7 @@ export const pendingRegistrationOptions = async (
       attestationType: 'none',
       authenticatorSelection: {
         residentKey: 'preferred',
-        userVerification: 'preferred',
+        userVerification: 'required',
       },
       excludeCredentials: stagedCredentials.map((credential) => ({
         id: credential.credential_id,
@@ -365,7 +365,7 @@ export const pendingRegistrationVerify = async (
       expectedChallenge: challenge.challenge,
       expectedOrigin: origins,
       expectedRPID: rpID,
-      requireUserVerification: false,
+      requireUserVerification: true,
     });
 
     if (!verification.verified || !verification.registrationInfo) {
@@ -442,7 +442,7 @@ export const loginOptions = async (
         id: c.credential_id,
         transports: (c.transports || undefined) as WebAuthnCredential['transports'],
       })),
-      userVerification: 'preferred',
+      userVerification: 'required',
     });
 
     const challengeInsert = await pool.query<ChallengeRow>(
@@ -534,7 +534,7 @@ export const loginVerify = async (
       expectedOrigin: origins,
       expectedRPID: rpID,
       credential: expectedCredential,
-      requireUserVerification: false,
+      requireUserVerification: true,
     });
 
     if (!verification.verified || !verification.authenticationInfo) {

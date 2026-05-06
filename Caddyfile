@@ -1,41 +1,41 @@
 {$CADDY_DOMAIN:localhost} {
-  encode zstd gzip
+	encode zstd gzip
 
-  header {
-    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-    X-Frame-Options "SAMEORIGIN"
-    X-Content-Type-Options "nosniff"
-    Referrer-Policy "strict-origin-when-cross-origin"
-  }
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Frame-Options "SAMEORIGIN"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
 
-  handle /api* {
-    reverse_proxy {$CADDY_BACKEND_UPSTREAM:host.docker.internal:8000}
-  }
+	handle /api* {
+		reverse_proxy {$CADDY_BACKEND_UPSTREAM:host.docker.internal:8000}
+	}
 
-  handle /health* {
-    reverse_proxy {$CADDY_BACKEND_UPSTREAM:host.docker.internal:8000}
-  }
+	handle /health* {
+		reverse_proxy {$CADDY_BACKEND_UPSTREAM:host.docker.internal:8000}
+	}
 
-  handle {
-    reverse_proxy {$CADDY_FRONTEND_UPSTREAM:host.docker.internal:8001}
-  }
+	handle {
+		reverse_proxy {$CADDY_FRONTEND_UPSTREAM:host.docker.internal:8001}
+	}
 }
 
 {$CADDY_PUBLIC_SITE_DOMAIN:sites.localhost}, *.{$CADDY_PUBLIC_SITE_DOMAIN:sites.localhost} {
-  encode zstd gzip
+	encode zstd gzip
 
-  header {
-    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-    X-Frame-Options "SAMEORIGIN"
-    X-Content-Type-Options "nosniff"
-    Referrer-Policy "strict-origin-when-cross-origin"
-  }
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Frame-Options "SAMEORIGIN"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
 
-  handle /api* {
-    reverse_proxy {$CADDY_PUBLIC_SITE_UPSTREAM:host.docker.internal:8006}
-  }
+	handle /api* {
+		reverse_proxy {$CADDY_PUBLIC_SITE_UPSTREAM:host.docker.internal:8006}
+	}
 
-  handle {
-    reverse_proxy {$CADDY_PUBLIC_SITE_UPSTREAM:host.docker.internal:8006}
-  }
+	handle {
+		reverse_proxy {$CADDY_PUBLIC_SITE_UPSTREAM:host.docker.internal:8006}
+	}
 }

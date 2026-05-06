@@ -9,8 +9,7 @@ import {
   WebsiteConsoleStatePanel,
   WebsiteConsoleUrlAction,
 } from '../components';
-import PublicActionSubmissionsPanel from '../components/PublicActionSubmissionsPanel';
-import { websitesApiClient } from '../api/websitesApiClient';
+import WebsitePublicActionsSection from '../components/WebsitePublicActionsSection';
 import useWebsiteOverviewLoader from '../hooks/useWebsiteOverviewLoader';
 import {
   deriveWebsiteManagedFormVerification,
@@ -28,15 +27,11 @@ import {
   updateWebsiteForm,
 } from '../state';
 import type {
-  WebsitePublicAction,
-  WebsitePublicActionSubmission,
-  WebsitePublicActionSupportLetterArtifact,
   WebsiteFormDefinition,
   WebsiteFormOperationalConfig,
   WebsiteIntegrationStatus,
   WebsiteOverviewSummary,
 } from '../types';
-import type { PublicActionStatus, PublicActionType } from '../../../types/websiteBuilder';
 
 const emptyIntegrationStatus: WebsiteIntegrationStatus = {
   blocked: false,
@@ -75,33 +70,6 @@ const emptyIntegrationStatus: WebsiteIntegrationStatus = {
   },
 };
 
-const publicActionTypeOptions: Array<{ value: PublicActionType; label: string }> = [
-  { value: 'petition_signature', label: 'Petition/add your name' },
-  { value: 'donation_pledge', label: 'Donation pledge' },
-  { value: 'support_letter_request', label: 'Support letter request' },
-  { value: 'event_signup', label: 'Event signup' },
-  { value: 'self_referral', label: 'Self-referral' },
-  { value: 'donation_checkout', label: 'Donation checkout' },
-  { value: 'newsletter_signup', label: 'Newsletter signup' },
-  { value: 'volunteer_interest', label: 'Volunteer interest' },
-  { value: 'contact', label: 'Contact' },
-];
-
-const publicActionStatusOptions: PublicActionStatus[] = [
-  'draft',
-  'published',
-  'closed',
-  'archived',
-];
-
-const emptyPublicActionDraft = {
-  actionType: 'petition_signature' as PublicActionType,
-  status: 'draft' as PublicActionStatus,
-  title: '',
-  slug: '',
-  description: '',
-};
-
 const WebsiteFormsPage: React.FC = () => {
   const { siteId } = useParams<{ siteId: string }>();
   const dispatch = useAppDispatch();
@@ -117,19 +85,6 @@ const WebsiteFormsPage: React.FC = () => {
     tone: 'success' | 'error';
     message: string;
   } | null>(null);
-  const [publicActions, setPublicActions] = useState<WebsitePublicAction[]>([]);
-  const [publicActionSubmissions, setPublicActionSubmissions] = useState<
-    WebsitePublicActionSubmission[]
-  >([]);
-  const [selectedPublicActionId, setSelectedPublicActionId] = useState<string | null>(null);
-  const [publicActionDraft, setPublicActionDraft] = useState(emptyPublicActionDraft);
-  const [isActionLoading, setIsActionLoading] = useState(false);
-  const [supportLetterArtifact, setSupportLetterArtifact] =
-    useState<WebsitePublicActionSupportLetterArtifact | null>(null);
-  const [supportLetterArtifactLoadingId, setSupportLetterArtifactLoadingId] = useState<
-    string | null
-  >(null);
-  const [supportLetterCopyNotice, setSupportLetterCopyNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (!siteId) return;
@@ -142,24 +97,6 @@ const WebsiteFormsPage: React.FC = () => {
     );
     setDrafts(nextDrafts);
   }, [forms]);
-
-  useEffect(() => {
-    if (!siteId) return;
-    setIsActionLoading(true);
-    websitesApiClient
-      .listPublicActions(siteId)
-      .then((actions) => {
-        setPublicActions(actions);
-        setSelectedPublicActionId((current) => current ?? actions[0]?.id ?? null);
-      })
-      .catch(() => {
-        setNotice({
-          tone: 'error',
-          message: 'Failed to load public actions.',
-        });
-      })
-      .finally(() => setIsActionLoading(false));
-  }, [siteId]);
 
   const integrationStatus = integrations ?? overview?.integrations ?? emptyIntegrationStatus;
   const formsOverview = overview
@@ -177,37 +114,6 @@ const WebsiteFormsPage: React.FC = () => {
     });
     return Array.from(groups.entries());
   }, [forms]);
-
-  const selectedPublicAction = useMemo(
-    () => publicActions.find((action) => action.id === selectedPublicActionId) ?? null,
-    [publicActions, selectedPublicActionId]
-  );
-  const selfReferralSnapshot = useMemo(() => {
-    const selfReferralActions = publicActions.filter(
-      (action) => action.actionType === 'self_referral'
-    );
-    return {
-      actions: selfReferralActions.length,
-      published: selfReferralActions.filter((action) => action.status === 'published').length,
-      reviewableSubmissions: selfReferralActions.reduce(
-        (total, action) => total + action.submissionCount,
-        0
-      ),
-    };
-  }, [publicActions]);
-
-  useEffect(() => {
-    if (!siteId || !selectedPublicActionId) {
-      setPublicActionSubmissions([]);
-      return;
-    }
-    setSupportLetterArtifact(null);
-    setSupportLetterCopyNotice(null);
-    websitesApiClient
-      .listPublicActionSubmissions(siteId, selectedPublicActionId)
-      .then(setPublicActionSubmissions)
-      .catch(() => setPublicActionSubmissions([]));
-  }, [selectedPublicActionId, siteId]);
 
   const updateDraft = (formKey: string, patch: Partial<WebsiteFormOperationalConfig>) => {
     setDrafts((current) => ({
@@ -238,92 +144,6 @@ const WebsiteFormsPage: React.FC = () => {
           typeof result.payload === 'string' ? result.payload : 'Failed to save form settings.',
       });
     }
-  };
-
-  const createPublicAction = async () => {
-    if (!siteId || !publicActionDraft.title.trim()) return;
-    setIsActionLoading(true);
-    setNotice(null);
-    try {
-      const action = await websitesApiClient.createPublicAction(siteId, {
-        actionType: publicActionDraft.actionType,
-        status: publicActionDraft.status,
-        title: publicActionDraft.title,
-        slug: publicActionDraft.slug || undefined,
-        description: publicActionDraft.description || undefined,
-      });
-      setPublicActions((current) => [action, ...current]);
-      setSelectedPublicActionId(action.id);
-      setPublicActionDraft(emptyPublicActionDraft);
-      setNotice({ tone: 'success', message: 'Public action created.' });
-    } catch {
-      setNotice({ tone: 'error', message: 'Failed to create public action.' });
-    } finally {
-      setIsActionLoading(false);
-    }
-  };
-
-  const updatePublicActionStatus = async (
-    action: WebsitePublicAction,
-    status: PublicActionStatus
-  ) => {
-    if (!siteId) return;
-    setIsActionLoading(true);
-    setNotice(null);
-    try {
-      const updated = await websitesApiClient.updatePublicAction(siteId, action.id, { status });
-      setPublicActions((current) =>
-        current.map((currentAction) => (currentAction.id === updated.id ? updated : currentAction))
-      );
-      setNotice({ tone: 'success', message: 'Public action status updated.' });
-    } catch {
-      setNotice({ tone: 'error', message: 'Failed to update public action.' });
-    } finally {
-      setIsActionLoading(false);
-    }
-  };
-
-  const previewSupportLetterArtifact = async (submissionId: string) => {
-    if (!siteId || !selectedPublicActionId) return;
-    setSupportLetterCopyNotice(null);
-    setSupportLetterArtifactLoadingId(submissionId);
-    try {
-      const artifact = await websitesApiClient.getPublicActionSupportLetterArtifact(
-        siteId,
-        selectedPublicActionId,
-        submissionId
-      );
-      setSupportLetterArtifact(artifact);
-    } catch {
-      setNotice({ tone: 'error', message: 'Failed to load support letter artifact.' });
-    } finally {
-      setSupportLetterArtifactLoadingId(null);
-    }
-  };
-
-  const copySupportLetterArtifact = async () => {
-    if (!supportLetterArtifact || !navigator.clipboard?.writeText) return;
-    await navigator.clipboard.writeText(supportLetterArtifact.letterBody);
-    setSupportLetterCopyNotice('Letter copied.');
-  };
-
-  const downloadSupportLetterArtifact = () => {
-    if (!supportLetterArtifact) return;
-    const blob = new Blob(
-      [`${supportLetterArtifact.letterTitle}\n\n${supportLetterArtifact.letterBody}`],
-      { type: 'text/plain;charset=utf-8' }
-    );
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${
-      supportLetterArtifact.letterTitle
-        .replace(/[^a-z0-9]+/gi, '-')
-        .replace(/^-+|-+$/g, '')
-        .toLowerCase() || 'support-letter'
-    }.txt`;
-    link.click();
-    URL.revokeObjectURL(url);
   };
 
   if (!siteId) {
@@ -378,220 +198,7 @@ const WebsiteFormsPage: React.FC = () => {
           description="Keep one managed public form easy to verify where you edit it: confirm its launch readiness, open the preview or live page, and follow the submission endpoint before you publish again."
         />
 
-        <section className="rounded-3xl border border-app-border bg-app-surface p-5">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-app-text">Public actions</h2>
-              <p className="max-w-3xl text-sm text-app-text-muted">
-                Publish petition, pledge, support-letter, referral, event, donation, newsletter,
-                volunteer, and contact actions with reviewable submissions and CSV export.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2 text-xs text-app-text-muted">
-              <span className="rounded-full bg-app-surface-muted px-3 py-1">
-                {publicActions.length} actions
-              </span>
-              <span className="rounded-full bg-app-surface-muted px-3 py-1">
-                {publicActions.filter((action) => action.status === 'published').length} published
-              </span>
-            </div>
-          </div>
-
-          <div className="mt-5 rounded-2xl border border-app-border bg-app-surface-muted p-4">
-            <div className="text-xs uppercase tracking-[0.18em]">
-              Self-referral status
-            </div>
-            <div className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
-              <div>
-                <div className="text-2xl font-semibold">
-                  {selfReferralSnapshot.actions}
-                </div>
-                <div>self-referral actions</div>
-              </div>
-              <div>
-                <div className="text-2xl font-semibold">
-                  {selfReferralSnapshot.published}
-                </div>
-                <div>published</div>
-              </div>
-              <div>
-                <div className="text-2xl font-semibold">
-                  {selfReferralSnapshot.reviewableSubmissions}
-                </div>
-                <div>reviewable submissions</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-5 grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
-            <div className="space-y-3">
-              <div className="grid gap-3 md:grid-cols-2">
-                <select
-                  aria-label="Public action type"
-                  value={publicActionDraft.actionType}
-                  onChange={(event) =>
-                    setPublicActionDraft((current) => ({
-                      ...current,
-                      actionType: event.target.value as PublicActionType,
-                    }))
-                  }
-                  className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
-                >
-                  {publicActionTypeOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  aria-label="Public action status"
-                  value={publicActionDraft.status}
-                  onChange={(event) =>
-                    setPublicActionDraft((current) => ({
-                      ...current,
-                      status: event.target.value as PublicActionStatus,
-                    }))
-                  }
-                  className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
-                >
-                  {publicActionStatusOptions.map((status) => (
-                    <option key={status} value={status}>
-                      {status}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <input
-                type="text"
-                aria-label="Public action title"
-                value={publicActionDraft.title}
-                onChange={(event) =>
-                  setPublicActionDraft((current) => ({ ...current, title: event.target.value }))
-                }
-                placeholder="Action title"
-                className="w-full rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
-              />
-              <input
-                type="text"
-                aria-label="Public action slug"
-                value={publicActionDraft.slug}
-                onChange={(event) =>
-                  setPublicActionDraft((current) => ({ ...current, slug: event.target.value }))
-                }
-                placeholder="Slug (optional, used by action blocks)"
-                className="w-full rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
-              />
-              <textarea
-                aria-label="Public action description"
-                value={publicActionDraft.description}
-                onChange={(event) =>
-                  setPublicActionDraft((current) => ({
-                    ...current,
-                    description: event.target.value,
-                  }))
-                }
-                placeholder="Internal readiness notes or public action description"
-                rows={3}
-                className="w-full rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
-              />
-              <button
-                type="button"
-                onClick={createPublicAction}
-                disabled={isActionLoading || !publicActionDraft.title.trim()}
-                className="rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] transition-colors hover:bg-app-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Create public action
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {isActionLoading && publicActions.length === 0 ? (
-                <WebsiteConsoleStatePanel
-                  tone="loading"
-                  title="Loading public actions"
-                  message="We are fetching action readiness and submission counts."
-                />
-              ) : publicActions.length === 0 ? (
-                <WebsiteConsoleStatePanel
-                  tone="empty"
-                  title="No public actions yet"
-                  message="Create an action here, then connect its slug to a builder action block."
-                />
-              ) : (
-                <div className="space-y-3">
-                  {publicActions.map((action) => (
-                    <article
-                      key={action.id}
-                      className="rounded-2xl border border-app-border bg-app-surface-muted p-4"
-                    >
-                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedPublicActionId(action.id)}
-                          className="text-left"
-                        >
-                          <div className="font-semibold text-app-text">{action.title}</div>
-                          <div className="mt-1 text-sm text-app-text-muted">
-                            {action.actionType.replace(/_/g, ' ')} • {action.slug} •{' '}
-                            {action.submissionCount} submissions
-                          </div>
-                          <div className="mt-2 break-all text-xs text-app-text-subtle">
-                            /api/v2/public/actions/{siteId}/{action.slug}/submissions
-                          </div>
-                        </button>
-                        <div className="flex flex-wrap gap-2">
-                          <select
-                            aria-label={`Status for ${action.title}`}
-                            value={action.status}
-                            onChange={(event) =>
-                              void updatePublicActionStatus(
-                                action,
-                                event.target.value as PublicActionStatus
-                              )
-                            }
-                            className="rounded-full border border-app-input-border bg-app-surface px-3 py-1 text-xs"
-                          >
-                            {publicActionStatusOptions.map((status) => (
-                              <option key={status} value={status}>
-                                {status}
-                              </option>
-                            ))}
-                          </select>
-                          <a
-                            href={websitesApiClient.getPublicActionSubmissionsExportUrl(
-                              siteId,
-                              action.id
-                            )}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="rounded-full border border-app-border bg-app-surface px-3 py-1 text-xs font-medium text-app-text-muted"
-                          >
-                            CSV
-                          </a>
-                        </div>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              )}
-
-              {selectedPublicAction ? (
-                <PublicActionSubmissionsPanel
-                  selectedPublicAction={selectedPublicAction}
-                  submissions={publicActionSubmissions}
-                  supportLetterArtifact={supportLetterArtifact}
-                  supportLetterArtifactLoadingId={supportLetterArtifactLoadingId}
-                  supportLetterCopyNotice={supportLetterCopyNotice}
-                  onPreviewSupportLetter={(submissionId) =>
-                    void previewSupportLetterArtifact(submissionId)
-                  }
-                  onCopySupportLetter={() => void copySupportLetterArtifact()}
-                  onDownloadSupportLetter={downloadSupportLetterArtifact}
-                />
-              ) : null}
-            </div>
-          </div>
-        </section>
+        <WebsitePublicActionsSection siteId={siteId} onNotice={setNotice} />
 
         <section className="rounded-3xl border border-app-border bg-app-surface p-5">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

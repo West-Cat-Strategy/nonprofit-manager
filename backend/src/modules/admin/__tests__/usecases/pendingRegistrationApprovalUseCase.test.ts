@@ -11,24 +11,26 @@ jest.mock('@config/database', () => ({
   default: {
     connect: jest.fn(),
   },
-  withUserContextTransaction: jest.fn(async (userId: string, handler: (client: unknown) => Promise<unknown>) => {
-    const module = jest.requireMock('@config/database') as {
-      default: { connect: jest.Mock };
-    };
-    const client = await module.default.connect();
-    try {
-      await client.query('BEGIN');
-      await client.query("SELECT set_config('app.current_user_id', $1, true)", [userId]);
-      const result = await handler(client);
-      await client.query('COMMIT');
-      return result;
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
+  withUserContextTransaction: jest.fn(
+    async (userId: string, handler: (client: unknown) => Promise<unknown>) => {
+      const module = jest.requireMock('@config/database') as {
+        default: { connect: jest.Mock };
+      };
+      const client = await module.default.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query("SELECT set_config('app.current_user_id', $1, true)", [userId]);
+        const result = await handler(client);
+        await client.query('COMMIT');
+        return result;
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally {
+        client.release();
+      }
     }
-  }),
+  ),
 }));
 
 jest.mock('@config/logger', () => ({
@@ -56,10 +58,12 @@ jest.mock('@services/accountAccessService', () => ({
 jest.mock('../../repositories/pendingRegistrationRepository', () => ({
   __esModule: true,
   getPendingRegistrationById: jest.fn(),
+  getPendingRegistrationByIdForUpdate: jest.fn(),
   findUserByEmail: jest.fn(),
   createRealUser: jest.fn(),
   attachPendingRegistrationCredentialsToUser: jest.fn(),
   updatePendingStatus: jest.fn(),
+  updatePendingStatusIfPending: jest.fn(),
   deletePendingRegistrationPasskeyData: jest.fn(),
 }));
 
@@ -70,12 +74,13 @@ jest.mock('../../usecases/registrationSettingsUseCase', () => ({
 
 describe('pending registration approval use cases', () => {
   const mockConnect = pool.connect as jest.Mock;
-  const getPendingRegistrationByIdMock = repo.getPendingRegistrationById as jest.Mock;
+  const getPendingRegistrationByIdForUpdateMock =
+    repo.getPendingRegistrationByIdForUpdate as jest.Mock;
   const findUserByEmailMock = repo.findUserByEmail as jest.Mock;
   const createRealUserMock = repo.createRealUser as jest.Mock;
   const attachPendingRegistrationCredentialsToUserMock =
     repo.attachPendingRegistrationCredentialsToUser as jest.Mock;
-  const updatePendingStatusMock = repo.updatePendingStatus as jest.Mock;
+  const updatePendingStatusIfPendingMock = repo.updatePendingStatusIfPending as jest.Mock;
   const deletePendingRegistrationPasskeyDataMock =
     repo.deletePendingRegistrationPasskeyData as jest.Mock;
   const getRegistrationSettingsMock = getRegistrationSettings as jest.Mock;
@@ -112,7 +117,7 @@ describe('pending registration approval use cases', () => {
       }),
       release: jest.fn(),
     });
-    getPendingRegistrationByIdMock.mockResolvedValue(pendingRow);
+    getPendingRegistrationByIdForUpdateMock.mockResolvedValue(pendingRow);
     findUserByEmailMock.mockResolvedValue(null);
     createRealUserMock.mockResolvedValue({
       id: 'user-1',
@@ -122,7 +127,7 @@ describe('pending registration approval use cases', () => {
       role: 'staff',
     });
     attachPendingRegistrationCredentialsToUserMock.mockResolvedValue(0);
-    updatePendingStatusMock.mockResolvedValue({
+    updatePendingStatusIfPendingMock.mockResolvedValue({
       ...pendingRow,
       status: 'approved',
       reviewed_by: 'reviewer-1',
@@ -158,6 +163,14 @@ describe('pending registration approval use cases', () => {
       "SELECT set_config('app.current_user_id', $1, true)",
       ['reviewer-1'],
     ]);
+    expect(getPendingRegistrationByIdForUpdateMock).toHaveBeenCalledWith('pending-1', true, client);
+    expect(updatePendingStatusIfPendingMock).toHaveBeenCalledWith(
+      'pending-1',
+      'approved',
+      'reviewer-1',
+      null,
+      client
+    );
     expect(createRealUserMock).toHaveBeenCalledWith(
       expect.objectContaining({
         email: 'pending@example.com',
@@ -181,7 +194,7 @@ describe('pending registration approval use cases', () => {
   it('sets transaction audit context before rejecting a pending registration', async () => {
     const client = await mockConnect();
     const clientQuery = client.query as jest.Mock;
-    updatePendingStatusMock.mockResolvedValueOnce({
+    updatePendingStatusIfPendingMock.mockResolvedValueOnce({
       ...pendingRow,
       status: 'rejected',
       reviewed_by: 'reviewer-1',
@@ -204,12 +217,56 @@ describe('pending registration approval use cases', () => {
       ['reviewer-1'],
     ]);
     expect(deletePendingRegistrationPasskeyDataMock).toHaveBeenCalledWith('pending-1', client);
-    expect(updatePendingStatusMock).toHaveBeenCalledWith(
+    expect(getPendingRegistrationByIdForUpdateMock).toHaveBeenCalledWith(
+      'pending-1',
+      false,
+      client
+    );
+    expect(updatePendingStatusIfPendingMock).toHaveBeenCalledWith(
       'pending-1',
       'rejected',
       'reviewer-1',
       'Missing verification',
       client
     );
+  });
+
+  it('returns an already-processed conflict before approval side effects after taking the row lock', async () => {
+    getPendingRegistrationByIdForUpdateMock.mockResolvedValueOnce({
+      ...pendingRow,
+      status: 'approved',
+    });
+
+    await expect(approvePendingRegistration('pending-1', 'reviewer-1')).rejects.toThrow(
+      'Registration has already been approved'
+    );
+
+    expect(getPendingRegistrationByIdForUpdateMock).toHaveBeenCalledWith(
+      'pending-1',
+      true,
+      expect.any(Object)
+    );
+    expect(createRealUserMock).not.toHaveBeenCalled();
+    expect(syncUserRoleMock).not.toHaveBeenCalled();
+    expect(updatePendingStatusIfPendingMock).not.toHaveBeenCalled();
+  });
+
+  it('returns an already-processed conflict before rejection side effects after taking the row lock', async () => {
+    getPendingRegistrationByIdForUpdateMock.mockResolvedValueOnce({
+      ...pendingRow,
+      status: 'rejected',
+    });
+
+    await expect(rejectPendingRegistration('pending-1', 'reviewer-1')).rejects.toThrow(
+      'Registration has already been rejected'
+    );
+
+    expect(getPendingRegistrationByIdForUpdateMock).toHaveBeenCalledWith(
+      'pending-1',
+      false,
+      expect.any(Object)
+    );
+    expect(deletePendingRegistrationPasskeyDataMock).not.toHaveBeenCalled();
+    expect(updatePendingStatusIfPendingMock).not.toHaveBeenCalled();
   });
 });

@@ -1,5 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchContacts, deleteContact } from '../state';
@@ -10,6 +10,7 @@ import { useBulkSelect } from '../../../hooks';
 import { useDebounce } from '../../../hooks/useVirtualList';
 import { BrutalBadge } from '../../../components/neo-brutalist';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
+import { useStableSearchParamsWriter } from '../../../hooks/useStableSearchParams';
 import {
   parseAllowedValue,
   parsePositiveInteger,
@@ -95,7 +96,8 @@ export const useContactListPage = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const lastSyncedSearchParamsRef = useRef<string | null>(null);
+  const { writeSearchParams, shouldApplySearchParams } =
+    useStableSearchParamsWriter(setSearchParams);
   const { contacts, loading, error, pagination } = useAppSelector(resolveContactListState);
   const initialRoleFilter = normalizeRoleFilter(searchParams.get('type'));
 
@@ -159,8 +161,7 @@ export const useContactListPage = () => {
   }, [currentPage, debouncedSearchInput, roleFilter, activeFilter, sortBy, sortOrder, deselectAll]);
 
   useEffect(() => {
-    const nextSearchParamsString = searchParams.toString();
-    if (lastSyncedSearchParamsRef.current === nextSearchParamsString) {
+    if (!shouldApplySearchParams()) {
       return;
     }
 
@@ -174,7 +175,7 @@ export const useContactListPage = () => {
     setRoleFilter((current) => (current === nextRoleFilter ? current : nextRoleFilter));
     setActiveFilter((current) => (current === nextActiveFilter ? current : nextActiveFilter));
     setCurrentPage((current) => (current === nextPage ? current : nextPage));
-  }, [searchParams]);
+  }, [searchParams, shouldApplySearchParams]);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -185,9 +186,8 @@ export const useContactListPage = () => {
     if (currentLimit !== 20) params.set('limit', String(currentLimit));
     if (sortBy !== 'created_at') params.set('sort_by', sortBy);
     if (sortOrder !== 'desc') params.set('sort_order', sortOrder);
-    lastSyncedSearchParamsRef.current = params.toString();
-    setSearchParams(params, { replace: true });
-  }, [searchInput, roleFilter, activeFilter, currentPage, currentLimit, sortBy, sortOrder, setSearchParams]);
+    writeSearchParams(params, { replace: true });
+  }, [searchInput, roleFilter, activeFilter, currentPage, currentLimit, sortBy, sortOrder, writeSearchParams]);
 
   const handleFilterChange = (filterId: string, value: string | string[]) => {
     if (filterId === 'search' && typeof value === 'string') {

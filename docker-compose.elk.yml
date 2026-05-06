@@ -4,7 +4,7 @@ services:
     restart: unless-stopped
     init: true
     env_file:
-      - .env.elk
+      - ${ELK_ENV_FILE:-.env.elk}
     environment:
       discovery.type: single-node
       xpack.security.enabled: ${ELK_SECURITY_ENABLED:-true}
@@ -32,7 +32,7 @@ services:
     restart: unless-stopped
     init: true
     env_file:
-      - .env.elk
+      - ${ELK_ENV_FILE:-.env.elk}
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -52,7 +52,7 @@ services:
     restart: unless-stopped
     init: true
     env_file:
-      - .env.elk
+      - ${ELK_ENV_FILE:-.env.elk}
     depends_on:
       elasticsearch:
         condition: service_healthy

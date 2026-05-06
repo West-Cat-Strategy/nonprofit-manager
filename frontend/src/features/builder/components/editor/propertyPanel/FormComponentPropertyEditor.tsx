@@ -1,6 +1,14 @@
 import React from 'react';
 import type { PageComponent } from '../../../../../types/websiteBuilder';
 import type { PaymentProvider } from '../../../../../types/payment';
+import {
+  parseBoundedInteger,
+  parsePositiveNumberList,
+  parseTrimmedStringList,
+} from './draftPropertyParsers';
+import {
+  DraftInput,
+} from './DraftPropertyFields';
 
 interface FormComponentPropertyEditorProps {
   selectedComponent: PageComponent;
@@ -44,10 +52,10 @@ const FormComponentPropertyEditor: React.FC<FormComponentPropertyEditorProps> = 
             <label className="mb-1 block text-sm font-medium text-app-text-muted">
               Submit Text
             </label>
-            <input
+            <DraftInput
               type="text"
               value={selectedComponent.submitText || 'Send Message'}
-              onChange={(e) => update({ submitText: e.target.value })}
+              onCommit={(value) => update({ submitText: value || undefined })}
               className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
             />
           </div>
@@ -133,10 +141,10 @@ const FormComponentPropertyEditor: React.FC<FormComponentPropertyEditorProps> = 
             <label className="mb-1 block text-sm font-medium text-app-text-muted">
               Button Text
             </label>
-            <input
+            <DraftInput
               type="text"
               value={selectedComponent.buttonText || 'Subscribe'}
-              onChange={(e) => update({ buttonText: e.target.value })}
+              onCommit={(value) => update({ buttonText: value || undefined })}
               className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
             />
           </div>
@@ -165,13 +173,13 @@ const FormComponentPropertyEditor: React.FC<FormComponentPropertyEditorProps> = 
             <label className="mb-1 block text-sm font-medium text-app-text-muted">
               Audience ID
             </label>
-            <input
+            <DraftInput
               type="text"
               value={selectedComponent.mailchimpListId || selectedComponent.mauticSegmentId || ''}
-              onChange={(e) =>
+              onCommit={(value) =>
                 update({
-                  mailchimpListId: e.target.value.trim() || undefined,
-                  mauticSegmentId: e.target.value.trim() || undefined,
+                  mailchimpListId: value.trim() || undefined,
+                  mauticSegmentId: value.trim() || undefined,
                 })
               }
               className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
@@ -228,15 +236,13 @@ const FormComponentPropertyEditor: React.FC<FormComponentPropertyEditorProps> = 
             <label className="mb-1 block text-sm font-medium text-app-text-muted">
               Suggested Amounts
             </label>
-            <input
+            <DraftInput
               type="text"
+              aria-label="Suggested Amounts"
               value={(selectedComponent.suggestedAmounts || []).join(', ')}
-              onChange={(e) =>
+              onCommit={(value) =>
                 update({
-                  suggestedAmounts: e.target.value
-                    .split(',')
-                    .map((value) => Number.parseFloat(value.trim()))
-                    .filter((value) => Number.isFinite(value) && value > 0),
+                  suggestedAmounts: parsePositiveNumberList(value),
                 })
               }
               placeholder="25, 50, 100, 250"
@@ -273,17 +279,14 @@ const FormComponentPropertyEditor: React.FC<FormComponentPropertyEditorProps> = 
         <>
           <div>
             <label className="mb-1 block text-sm font-medium text-app-text-muted">Max Items</label>
-            <input
+            <DraftInput
               type="number"
               min={1}
               max={30}
-              value={selectedComponent.maxItems || 10}
-              onChange={(e) =>
+              value={String(selectedComponent.maxItems || 10)}
+              onCommit={(value) =>
                 update({
-                  maxItems: Math.max(
-                    1,
-                    Math.min(30, Number.parseInt(e.target.value || '10', 10) || 10)
-                  ),
+                  maxItems: parseBoundedInteger(value, 10, 1, 30),
                 })
               }
               className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
@@ -352,10 +355,10 @@ const FormComponentPropertyEditor: React.FC<FormComponentPropertyEditorProps> = 
             <label className="mb-1 block text-sm font-medium text-app-text-muted">
               Submit Text
             </label>
-            <input
+            <DraftInput
               type="text"
               value={selectedComponent.submitText || 'Share Interest'}
-              onChange={(e) => update({ submitText: e.target.value })}
+              onCommit={(value) => update({ submitText: value || undefined })}
               className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
             />
           </div>
@@ -401,10 +404,10 @@ const FormComponentPropertyEditor: React.FC<FormComponentPropertyEditorProps> = 
             <label className="mb-1 block text-sm font-medium text-app-text-muted">
               Submit Text
             </label>
-            <input
+            <DraftInput
               type="text"
               value={selectedComponent.submitText || 'Submit Referral'}
-              onChange={(e) => update({ submitText: e.target.value })}
+              onCommit={(value) => update({ submitText: value || undefined })}
               className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
             />
           </div>
@@ -435,15 +438,12 @@ const FormComponentPropertyEditor: React.FC<FormComponentPropertyEditorProps> = 
             <label className="mb-1 block text-sm font-medium text-app-text-muted">
               Default Tags
             </label>
-            <input
+            <DraftInput
               type="text"
               value={(selectedComponent.defaultTags || []).join(', ')}
-              onChange={(e) =>
+              onCommit={(value) =>
                 update({
-                  defaultTags: e.target.value
-                    .split(',')
-                    .map((value) => value.trim())
-                    .filter(Boolean),
+                  defaultTags: parseTrimmedStringList(value),
                 })
               }
               placeholder="intake, referral"
@@ -455,10 +455,10 @@ const FormComponentPropertyEditor: React.FC<FormComponentPropertyEditorProps> = 
             <label className="mb-1 block text-sm font-medium text-app-text-muted">
               Account ID
             </label>
-            <input
+            <DraftInput
               type="text"
               value={selectedComponent.accountId || ''}
-              onChange={(e) => update({ accountId: e.target.value.trim() || undefined })}
+              onCommit={(value) => update({ accountId: value.trim() || undefined })}
               className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
             />
           </div>
@@ -491,10 +491,10 @@ const FormComponentPropertyEditor: React.FC<FormComponentPropertyEditorProps> = 
             <label className="mb-1 block text-sm font-medium text-app-text-muted">
               Action Slug
             </label>
-            <input
+            <DraftInput
               type="text"
               value={selectedComponent.actionSlug || ''}
-              onChange={(e) => update({ actionSlug: e.target.value.trim() || undefined })}
+              onCommit={(value) => update({ actionSlug: value.trim() || undefined })}
               placeholder="campaign-action"
               className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
             />
@@ -532,15 +532,13 @@ const FormComponentPropertyEditor: React.FC<FormComponentPropertyEditorProps> = 
                 <label className="mb-1 block text-sm font-medium text-app-text-muted">
                   Suggested Amounts
                 </label>
-                <input
+                <DraftInput
                   type="text"
+                  aria-label="Suggested Amounts"
                   value={(selectedComponent.suggestedAmounts || []).join(', ')}
-                  onChange={(e) =>
+                  onCommit={(value) =>
                     update({
-                      suggestedAmounts: e.target.value
-                        .split(',')
-                        .map((value) => Number.parseFloat(value.trim()))
-                        .filter((value) => Number.isFinite(value) && value > 0),
+                      suggestedAmounts: parsePositiveNumberList(value),
                     })
                   }
                   placeholder="25, 50, 100, 250"
@@ -552,10 +550,10 @@ const FormComponentPropertyEditor: React.FC<FormComponentPropertyEditorProps> = 
                 <label className="mb-1 block text-sm font-medium text-app-text-muted">
                   Currency
                 </label>
-                <input
+                <DraftInput
                   type="text"
                   value={selectedComponent.currency || 'CAD'}
-                  onChange={(e) => update({ currency: e.target.value.trim().toUpperCase() || 'CAD' })}
+                  onCommit={(value) => update({ currency: value.trim().toUpperCase() || undefined })}
                   className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
                 />
               </div>
@@ -581,10 +579,10 @@ const FormComponentPropertyEditor: React.FC<FormComponentPropertyEditorProps> = 
             <label className="mb-1 block text-sm font-medium text-app-text-muted">
               Submit Text
             </label>
-            <input
+            <DraftInput
               type="text"
               value={selectedComponent.submitText || defaultSubmitText}
-              onChange={(e) => update({ submitText: e.target.value })}
+              onCommit={(value) => update({ submitText: value || undefined })}
               className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
             />
           </div>

@@ -1,6 +1,7 @@
 import { services } from '@container/services';
 import type {
   AssignmentFilters,
+  ApproveVolunteerBackgroundCheckDTO,
   CreateAssignmentDTO,
   CreateVolunteerDTO,
   PaginatedVolunteers,
@@ -45,6 +46,14 @@ export class VolunteerRepository implements VolunteerCatalogPort, VolunteerLifec
     userId: string
   ): Promise<Volunteer | null> {
     return services.volunteer.updateVolunteer(volunteerId, payload, userId);
+  }
+
+  approveVolunteerBackgroundCheck(
+    volunteerId: string,
+    payload: ApproveVolunteerBackgroundCheckDTO,
+    userId: string
+  ): Promise<Volunteer | null> {
+    return services.volunteer.approveVolunteerBackgroundCheck(volunteerId, payload, userId);
   }
 
   deleteVolunteer(volunteerId: string, userId: string): Promise<boolean> {

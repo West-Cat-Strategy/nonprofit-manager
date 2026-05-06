@@ -12,7 +12,6 @@ import type {
   VolunteerAccountLookup,
   VolunteerImportIdentityLookup,
 } from '../volunteerImportExport.types';
-import { volunteerFieldSchema } from '../volunteerImportExport.types';
 
 export const mapVolunteerImportRow = (
   row: Record<string, string | null>,
@@ -42,9 +41,11 @@ export const mapVolunteerImportRow = (
     value: string | null | undefined
   ): ParsedVolunteerImportRow['background_check_status'] => {
     const normalized = toTrimmedString(value)?.toLowerCase();
-    return volunteerFieldSchema.shape.background_check_status.safeParse(normalized).success
-      ? (normalized as ParsedVolunteerImportRow['background_check_status'])
-      : undefined;
+    if (!normalized) {
+      return undefined;
+    }
+
+    return normalized as ParsedVolunteerImportRow['background_check_status'];
   };
 
   return {
@@ -194,9 +195,7 @@ export const resolveVolunteerIdentity = (
   if (payload.email) {
     const identitiesByEmail = identities.byEmail.get(payload.email.toLowerCase()) ?? [];
     if (identitiesByEmail.length > 1) {
-      messages.push(
-        `Email ${payload.email} matches multiple contacts in the active organization.`
-      );
+      messages.push(`Email ${payload.email} matches multiple contacts in the active organization.`);
       return {};
     }
 

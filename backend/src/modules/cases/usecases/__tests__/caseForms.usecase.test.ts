@@ -1,6 +1,9 @@
 import type { PoolClient } from 'pg';
 import type { CaseFormDefault, CaseFormSubmission, CaseFormSchema } from '@app-types/caseForms';
-import type { CaseFormAssignmentRecord, CaseFormsRepository } from '../../repositories/caseFormsRepository';
+import type {
+  CaseFormAssignmentRecord,
+  CaseFormsRepository,
+} from '../../repositories/caseFormsRepository';
 import { CaseFormsUseCase } from '../caseForms.usecase';
 
 const sendMailMock = jest.fn();
@@ -23,7 +26,8 @@ jest.mock('@services/fileStorageService', () => ({
 }));
 
 jest.mock('../../services/caseFormPacketService', () => ({
-  generateCaseFormResponsePacket: (...args: unknown[]) => generateCaseFormResponsePacketMock(...args),
+  generateCaseFormResponsePacket: (...args: unknown[]) =>
+    generateCaseFormResponsePacketMock(...args),
 }));
 
 jest.mock('../../queries/shared', () => ({
@@ -138,6 +142,33 @@ const makeSubmission = (overrides: Partial<CaseFormSubmission> = {}): CaseFormSu
   ...overrides,
 });
 
+const makePendingMappingAudit = (): CaseFormSubmission['mapping_audit'] =>
+  [
+    {
+      question_key: 'email',
+      target: {
+        entity: 'contact',
+        field: 'email',
+      },
+      applied: false,
+      status: 'pending',
+      reason: 'pending_staff_review',
+      value: 'client@example.com',
+    },
+    {
+      question_key: 'household_size',
+      target: {
+        entity: 'case',
+        container: 'intake_data',
+        key: 'household_size',
+      },
+      applied: false,
+      status: 'pending',
+      reason: 'pending_staff_review',
+      value: 3,
+    },
+  ] as CaseFormSubmission['mapping_audit'];
+
 const makeDefault = (overrides: Partial<CaseFormDefault> = {}): CaseFormDefault => ({
   id: 'default-1',
   case_type_id: 'case-type-1',
@@ -168,7 +199,9 @@ const createRepositoryMock = (): {
   } as unknown as PoolClient;
 
   const mocks = {
-    withTransaction: jest.fn(async (callback: (client: PoolClient) => Promise<unknown>) => callback(transactionClient)),
+    withTransaction: jest.fn(async (callback: (client: PoolClient) => Promise<unknown>) =>
+      callback(transactionClient)
+    ),
     listDefaultsByCaseType: jest.fn(),
     listTemplates: jest.fn(),
     getDefaultById: jest.fn(),
@@ -189,8 +222,10 @@ const createRepositoryMock = (): {
     listAssignmentEvents: jest.fn(),
     getSubmissionByClientSubmissionId: jest.fn(),
     listSubmissionsForAssignment: jest.fn(),
+    getLatestSubmissionForAssignment: jest.fn(),
     getNextSubmissionNumber: jest.fn(),
     createSubmission: jest.fn(),
+    updateSubmissionMappingAudit: jest.fn(),
     listAssetsForAssignment: jest.fn(),
     listAssetsForSubmissionIds: jest.fn(),
     createAsset: jest.fn(),
@@ -252,9 +287,15 @@ describe('CaseFormsUseCase', () => {
 
     mocks.getAssignmentById.mockResolvedValueOnce(assignment).mockResolvedValueOnce(refreshed);
 
-    const result = await useCase.sendAssignment('case-1', assignment.id, {
-      delivery_target: 'portal',
-    }, 'staff-1', 'org-1');
+    const result = await useCase.sendAssignment(
+      'case-1',
+      assignment.id,
+      {
+        delivery_target: 'portal',
+      },
+      'staff-1',
+      'org-1'
+    );
 
     expect(mocks.createAccessToken).not.toHaveBeenCalled();
     expect(sendMailMock).not.toHaveBeenCalled();
@@ -285,11 +326,17 @@ describe('CaseFormsUseCase', () => {
     mocks.getAssignmentById.mockResolvedValueOnce(assignment).mockResolvedValueOnce(refreshed);
     mocks.createAccessToken.mockResolvedValue('token-row-1');
 
-    const result = await useCase.sendAssignment('case-1', assignment.id, {
-      delivery_target: 'email',
-      recipient_email: 'client@example.com',
-      expires_in_days: 7,
-    }, 'staff-1', 'org-1');
+    const result = await useCase.sendAssignment(
+      'case-1',
+      assignment.id,
+      {
+        delivery_target: 'email',
+        recipient_email: 'client@example.com',
+        expires_in_days: 7,
+      },
+      'staff-1',
+      'org-1'
+    );
 
     expect(mocks.createAccessToken).toHaveBeenCalledTimes(1);
     expect(sendMailMock).toHaveBeenCalledTimes(1);
@@ -308,11 +355,17 @@ describe('CaseFormsUseCase', () => {
     sendMailMock.mockResolvedValueOnce(false);
 
     await expect(
-      useCase.sendAssignment('case-1', assignment.id, {
-        delivery_target: 'email',
-        recipient_email: 'client@example.com',
-        expires_in_days: 7,
-      }, 'staff-1', 'org-1')
+      useCase.sendAssignment(
+        'case-1',
+        assignment.id,
+        {
+          delivery_target: 'email',
+          recipient_email: 'client@example.com',
+          expires_in_days: 7,
+        },
+        'staff-1',
+        'org-1'
+      )
     ).rejects.toMatchObject({
       message: 'Email delivery failed',
       statusCode: 502,
@@ -342,10 +395,16 @@ describe('CaseFormsUseCase', () => {
     mocks.getAssignmentById.mockResolvedValueOnce(assignment).mockResolvedValueOnce(refreshed);
     mocks.createAccessToken.mockResolvedValue('token-row-1');
 
-    const result = await useCase.sendAssignment('case-1', assignment.id, {
-      delivery_target: 'portal_and_email',
-      recipient_email: 'client@example.com',
-    }, 'staff-1', 'org-1');
+    const result = await useCase.sendAssignment(
+      'case-1',
+      assignment.id,
+      {
+        delivery_target: 'portal_and_email',
+        recipient_email: 'client@example.com',
+      },
+      'staff-1',
+      'org-1'
+    );
 
     expect(mocks.createAccessToken).toHaveBeenCalledTimes(1);
     expect(sendMailMock).toHaveBeenCalledTimes(1);
@@ -372,11 +431,17 @@ describe('CaseFormsUseCase', () => {
     mocks.getAssignmentById.mockResolvedValueOnce(assignment).mockResolvedValueOnce(refreshed);
     mocks.createAccessToken.mockResolvedValue('token-row-1');
 
-    const result = await useCase.sendAssignment('case-1', assignment.id, {
-      delivery_channels: ['sms'],
-      recipient_phone: '+15555550123',
-      expires_in_days: 3,
-    }, 'staff-1', 'org-1');
+    const result = await useCase.sendAssignment(
+      'case-1',
+      assignment.id,
+      {
+        delivery_channels: ['sms'],
+        recipient_phone: '+15555550123',
+        expires_in_days: 3,
+      },
+      'staff-1',
+      'org-1'
+    );
 
     expect(mocks.createAccessToken).toHaveBeenCalledWith(
       expect.anything(),
@@ -419,11 +484,17 @@ describe('CaseFormsUseCase', () => {
     sendSmsMock.mockResolvedValueOnce({ success: false, error: 'Twilio rejected the message' });
 
     await expect(
-      useCase.sendAssignment('case-1', assignment.id, {
-        delivery_channels: ['sms'],
-        recipient_phone: '+15555550123',
-        expires_in_days: 3,
-      }, 'staff-1', 'org-1')
+      useCase.sendAssignment(
+        'case-1',
+        assignment.id,
+        {
+          delivery_channels: ['sms'],
+          recipient_phone: '+15555550123',
+          expires_in_days: 3,
+        },
+        'staff-1',
+        'org-1'
+      )
     ).rejects.toMatchObject({
       message: 'Twilio rejected the message',
       statusCode: 502,
@@ -508,7 +579,10 @@ describe('CaseFormsUseCase', () => {
 
     const result = await useCase.getAssignmentDetailByToken('valid-token');
 
-    expect(mocks.markAssignmentViewed).toHaveBeenCalledWith(expect.anything(), accessedAssignment.id);
+    expect(mocks.markAssignmentViewed).toHaveBeenCalledWith(
+      expect.anything(),
+      accessedAssignment.id
+    );
     expect(mocks.markAccessTokenViewed).toHaveBeenCalledWith(expect.anything(), 'token-1');
     expect(mocks.getAssignmentById).not.toHaveBeenCalled();
     expect(result.assignment.id).toBe(accessedAssignment.id);
@@ -575,9 +649,15 @@ describe('CaseFormsUseCase', () => {
     );
 
     await expect(
-      useCase.sendAssignment('case-1', 'assignment-1', {
-        delivery_target: 'portal',
-      }, 'staff-1', 'org-1')
+      useCase.sendAssignment(
+        'case-1',
+        'assignment-1',
+        {
+          delivery_target: 'portal',
+        },
+        'staff-1',
+        'org-1'
+      )
     ).rejects.toMatchObject({
       message: 'This client needs portal access or a client-visible case before portal delivery',
       statusCode: 400,
@@ -600,7 +680,10 @@ describe('CaseFormsUseCase', () => {
     );
 
     await expect(
-      useCase.getAssignmentDetailForPortal({ contactId: 'contact-1', portalUserId: 'portal-user-1' }, 'assignment-1')
+      useCase.getAssignmentDetailForPortal(
+        { contactId: 'contact-1', portalUserId: 'portal-user-1' },
+        'assignment-1'
+      )
     ).rejects.toMatchObject({
       statusCode: 404,
       code: 'not_found',
@@ -620,7 +703,9 @@ describe('CaseFormsUseCase', () => {
       viewed_at: '2026-04-16T12:20:00.000Z',
     });
 
-    mocks.getAssignmentById.mockResolvedValueOnce(assignment).mockResolvedValueOnce(viewedAssignment);
+    mocks.getAssignmentById
+      .mockResolvedValueOnce(assignment)
+      .mockResolvedValueOnce(viewedAssignment);
     mocks.listSubmissionsForAssignment.mockResolvedValue([]);
     mocks.listAssetsForAssignment.mockResolvedValue([]);
 
@@ -689,7 +774,10 @@ describe('CaseFormsUseCase', () => {
       last_draft_saved_at: '2026-04-16T12:45:00.000Z',
     });
 
-    expect(mocks.markAssignmentViewed).toHaveBeenCalledWith(expect.anything(), submittedAssignment.id);
+    expect(mocks.markAssignmentViewed).toHaveBeenCalledWith(
+      expect.anything(),
+      submittedAssignment.id
+    );
     expect(mocks.saveDraft).toHaveBeenCalledWith(
       expect.anything(),
       submittedAssignment.id,
@@ -737,7 +825,7 @@ describe('CaseFormsUseCase', () => {
     expect(result.source_default_version).toBe(sourceDefault.version);
   });
 
-  it('records client submissions, mapped writeback, documents, note, and linked follow-up', async () => {
+  it('records client submissions with pending mapped writes, documents, note, and linked follow-up', async () => {
     const { repository, mocks } = createRepositoryMock();
     const useCase = new CaseFormsUseCase(repository);
     const assignment = makeAssignment({
@@ -759,7 +847,9 @@ describe('CaseFormsUseCase', () => {
     mocks.getAssignmentById.mockResolvedValueOnce(assignment).mockResolvedValueOnce(refreshed);
     mocks.getSubmissionByClientSubmissionId.mockResolvedValue(null);
     mocks.listAssetsForAssignment.mockResolvedValue([]);
-    mocks.listSubmissionsForAssignment.mockResolvedValueOnce([]).mockResolvedValueOnce([submission]);
+    mocks.listSubmissionsForAssignment
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([submission]);
     mocks.getNextSubmissionNumber.mockResolvedValue(1);
     mocks.createCaseDocumentRecord.mockResolvedValue('case-doc-1');
     mocks.createContactDocumentRecord.mockResolvedValue('contact-doc-1');
@@ -780,19 +870,28 @@ describe('CaseFormsUseCase', () => {
       }
     );
 
-    expect(mocks.updateContactFields).toHaveBeenCalledWith(
+    expect(mocks.updateContactFields).not.toHaveBeenCalled();
+    expect(mocks.updateCaseJsonField).not.toHaveBeenCalled();
+    expect(mocks.createSubmission).toHaveBeenCalledWith(
       expect.anything(),
-      assignment.contact_id,
       expect.objectContaining({
-        email: 'client@example.com',
+        mappingAudit: expect.arrayContaining([
+          expect.objectContaining({
+            question_key: 'email',
+            applied: false,
+            status: 'pending',
+            reason: 'pending_staff_review',
+            value: 'client@example.com',
+          }),
+          expect.objectContaining({
+            question_key: 'household_size',
+            applied: false,
+            status: 'pending',
+            reason: 'pending_staff_review',
+            value: 3,
+          }),
+        ]),
       })
-    );
-    expect(mocks.updateCaseJsonField).toHaveBeenCalledWith(
-      expect.anything(),
-      assignment.case_id,
-      'intake_data',
-      'household_size',
-      3
     );
     expect(mocks.createCaseDocumentRecord).toHaveBeenCalled();
     expect(mocks.createContactDocumentRecord).toHaveBeenCalled();
@@ -810,7 +909,9 @@ describe('CaseFormsUseCase', () => {
           submission_id: submission.id,
           submission_number: 1,
           client_submission_id: 'client-submission-1',
-          mapped_field_count: 2,
+          mapped_field_count: 0,
+          pending_mapping_count: 2,
+          skipped_mapping_count: 0,
           selected_asset_count: 0,
           response_packet_case_document_id: 'case-doc-1',
           response_packet_contact_document_id: 'contact-doc-1',
@@ -834,6 +935,173 @@ describe('CaseFormsUseCase', () => {
     );
     expect(result.assignment.status).toBe('submitted');
     expect(result.assignment.source_default_version).toBe(4);
+  });
+
+  it('records public secure-link submissions with pending mapped writes and token usage', async () => {
+    const { repository, mocks } = createRepositoryMock();
+    const useCase = new CaseFormsUseCase(repository);
+    const assignment = makeAssignment({
+      status: 'sent',
+      delivery_target: 'email',
+      client_viewable: true,
+    });
+    const refreshed = makeAssignment({
+      status: 'submitted',
+      delivery_target: 'email',
+      submitted_at: '2026-04-16T12:30:00.000Z',
+      review_follow_up_id: 'follow-up-1',
+    });
+    const submission = makeSubmission({
+      submitted_by_actor_type: 'public',
+      submitted_by_portal_user_id: null,
+      access_token_id: 'token-1',
+    });
+
+    mocks.getAccessTokenByHash.mockResolvedValue({
+      id: 'token-1',
+      assignment_id: assignment.id,
+      case_id: assignment.case_id,
+      contact_id: assignment.contact_id,
+      recipient_email: assignment.recipient_email,
+      token_hash: 'token-hash',
+      expires_at: new Date(Date.now() + 60_000),
+      revoked_at: null,
+      last_viewed_at: null,
+      last_used_at: null,
+      latest_submission_id: null,
+      created_by: 'staff-1',
+      created_at: new Date('2026-04-16T12:00:00.000Z'),
+      assignment,
+    } as never);
+    mocks.getAssignmentById.mockResolvedValueOnce(refreshed);
+    mocks.getSubmissionByClientSubmissionId.mockResolvedValue(null);
+    mocks.listAssetsForAssignment.mockResolvedValue([]);
+    mocks.listSubmissionsForAssignment
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([submission]);
+    mocks.getNextSubmissionNumber.mockResolvedValue(1);
+    mocks.createCaseDocumentRecord.mockResolvedValue('case-doc-1');
+    mocks.createContactDocumentRecord.mockResolvedValue('contact-doc-1');
+    mocks.createSubmission.mockResolvedValue(submission);
+    mocks.createReviewFollowUp.mockResolvedValue('follow-up-1');
+    mocks.updateAssignment.mockResolvedValue(refreshed);
+    mocks.listAssetsForSubmissionIds.mockResolvedValue([]);
+
+    await useCase.submitByToken('valid-token', {
+      answers: {
+        email: 'client@example.com',
+        household_size: 3,
+      },
+      client_submission_id: 'public-submission-1',
+    });
+
+    expect(mocks.updateContactFields).not.toHaveBeenCalled();
+    expect(mocks.updateCaseJsonField).not.toHaveBeenCalled();
+    expect(mocks.markAccessTokenUsed).toHaveBeenCalledWith(
+      expect.anything(),
+      'token-1',
+      submission.id
+    );
+    expect(mocks.createSubmission).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        actorType: 'public',
+        accessTokenId: 'token-1',
+        mappingAudit: expect.arrayContaining([
+          expect.objectContaining({
+            question_key: 'email',
+            applied: false,
+            status: 'pending',
+            reason: 'pending_staff_review',
+          }),
+          expect.objectContaining({
+            question_key: 'household_size',
+            applied: false,
+            status: 'pending',
+            reason: 'pending_staff_review',
+          }),
+        ]),
+      })
+    );
+  });
+
+  it('keeps staff-origin submissions on the existing immediate mapping writeback path', async () => {
+    const { repository, mocks } = createRepositoryMock();
+    const useCase = new CaseFormsUseCase(repository);
+    const assignment = makeAssignment({
+      status: 'draft',
+      delivery_target: null,
+    });
+    const refreshed = makeAssignment({
+      status: 'submitted',
+      submitted_at: '2026-04-16T12:30:00.000Z',
+    });
+    const submission = makeSubmission({
+      submitted_by_actor_type: 'staff',
+      submitted_by_user_id: 'staff-1',
+      submitted_by_portal_user_id: null,
+    });
+
+    mocks.getAssignmentById.mockResolvedValueOnce(assignment).mockResolvedValueOnce(refreshed);
+    mocks.getSubmissionByClientSubmissionId.mockResolvedValue(null);
+    mocks.listAssetsForAssignment.mockResolvedValue([]);
+    mocks.listSubmissionsForAssignment
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([submission]);
+    mocks.getNextSubmissionNumber.mockResolvedValue(1);
+    mocks.createCaseDocumentRecord.mockResolvedValue('case-doc-1');
+    mocks.createContactDocumentRecord.mockResolvedValue('contact-doc-1');
+    mocks.createSubmission.mockResolvedValue(submission);
+    mocks.listAssetsForSubmissionIds.mockResolvedValue([]);
+    mocks.listAssignmentEvents.mockResolvedValue([]);
+
+    await useCase.submitForCase(
+      'case-1',
+      assignment.id,
+      {
+        answers: {
+          email: 'client@example.com',
+          household_size: 3,
+        },
+        client_submission_id: 'staff-submission-1',
+      },
+      'staff-1',
+      'org-1'
+    );
+
+    expect(mocks.updateContactFields).toHaveBeenCalledWith(
+      expect.anything(),
+      assignment.contact_id,
+      expect.objectContaining({
+        email: 'client@example.com',
+      })
+    );
+    expect(mocks.updateCaseJsonField).toHaveBeenCalledWith(
+      expect.anything(),
+      assignment.case_id,
+      'intake_data',
+      'household_size',
+      3
+    );
+    expect(mocks.createSubmission).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        mappingAudit: expect.arrayContaining([
+          expect.objectContaining({
+            question_key: 'email',
+            applied: true,
+            status: 'applied',
+            value: 'client@example.com',
+          }),
+          expect.objectContaining({
+            question_key: 'household_size',
+            applied: true,
+            status: 'applied',
+            value: 3,
+          }),
+        ]),
+      })
+    );
   });
 
   it('does not create duplicate submissions or evidence events on client submission replay', async () => {
@@ -892,7 +1160,9 @@ describe('CaseFormsUseCase', () => {
     mocks.getAssignmentById.mockResolvedValueOnce(assignment).mockResolvedValueOnce(refreshed);
     mocks.getSubmissionByClientSubmissionId.mockResolvedValue(null);
     mocks.listAssetsForAssignment.mockResolvedValue([]);
-    mocks.listSubmissionsForAssignment.mockResolvedValueOnce([makeSubmission()]).mockResolvedValueOnce([submission]);
+    mocks.listSubmissionsForAssignment
+      .mockResolvedValueOnce([makeSubmission()])
+      .mockResolvedValueOnce([submission]);
     mocks.getNextSubmissionNumber.mockResolvedValue(2);
     mocks.createCaseDocumentRecord.mockResolvedValue('case-doc-2');
     mocks.createContactDocumentRecord.mockResolvedValue('contact-doc-2');
@@ -939,13 +1209,23 @@ describe('CaseFormsUseCase', () => {
       review_follow_up_id: 'follow-up-1',
       reviewed_at: '2026-04-16T13:30:00.000Z',
     });
+    const pendingSubmission = makeSubmission({
+      mapping_audit: makePendingMappingAudit(),
+    });
 
     mocks.getAssignmentById.mockResolvedValueOnce(assignment).mockResolvedValueOnce(refreshed);
+    mocks.getLatestSubmissionForAssignment.mockResolvedValue(pendingSubmission);
 
-    await useCase.reviewAssignment('case-1', assignment.id, {
-      decision: 'reviewed',
-      notes: 'Mapped values verified.',
-    }, 'staff-1', 'org-1');
+    await useCase.reviewAssignment(
+      'case-1',
+      assignment.id,
+      {
+        decision: 'reviewed',
+        notes: 'Mapped values verified.',
+      },
+      'staff-1',
+      'org-1'
+    );
 
     expect(mocks.completeReviewFollowUp).toHaveBeenCalledWith(
       expect.anything(),
@@ -967,8 +1247,44 @@ describe('CaseFormsUseCase', () => {
           decision: 'reviewed',
           notes_character_count: 'Mapped values verified.'.length,
           review_follow_up_id: 'follow-up-1',
+          mapping_submission_id: pendingSubmission.id,
+          applied_mapping_count: 2,
         }),
       })
+    );
+    expect(mocks.updateContactFields).toHaveBeenCalledWith(
+      expect.anything(),
+      assignment.contact_id,
+      expect.objectContaining({
+        email: 'client@example.com',
+      })
+    );
+    expect(mocks.updateCaseJsonField).toHaveBeenCalledWith(
+      expect.anything(),
+      assignment.case_id,
+      'intake_data',
+      'household_size',
+      3
+    );
+    expect(mocks.updateSubmissionMappingAudit).toHaveBeenCalledWith(
+      expect.anything(),
+      pendingSubmission.id,
+      expect.arrayContaining([
+        expect.objectContaining({
+          question_key: 'email',
+          applied: true,
+          status: 'applied',
+          reason: null,
+          applied_by_user_id: 'staff-1',
+        }),
+        expect.objectContaining({
+          question_key: 'household_size',
+          applied: true,
+          status: 'applied',
+          reason: null,
+          applied_by_user_id: 'staff-1',
+        }),
+      ])
     );
     expect(mocks.cancelReviewFollowUp).not.toHaveBeenCalled();
   });
@@ -991,11 +1307,21 @@ describe('CaseFormsUseCase', () => {
 
     mocks.getAssignmentById.mockResolvedValueOnce(assignment).mockResolvedValueOnce(refreshed);
 
-    await useCase.reviewAssignment('case-1', assignment.id, {
-      decision: 'revision_requested',
-      notes: '  Please upload the signed release.  ',
-    }, 'staff-1', 'org-1');
+    await useCase.reviewAssignment(
+      'case-1',
+      assignment.id,
+      {
+        decision: 'revision_requested',
+        notes: '  Please upload the signed release.  ',
+      },
+      'staff-1',
+      'org-1'
+    );
 
+    expect(mocks.getLatestSubmissionForAssignment).not.toHaveBeenCalled();
+    expect(mocks.updateContactFields).not.toHaveBeenCalled();
+    expect(mocks.updateCaseJsonField).not.toHaveBeenCalled();
+    expect(mocks.updateSubmissionMappingAudit).not.toHaveBeenCalled();
     expect(mocks.completeReviewFollowUp).not.toHaveBeenCalled();
     expect(mocks.cancelReviewFollowUp).not.toHaveBeenCalled();
     expect(mocks.markAssignmentReviewDecision).toHaveBeenCalledWith(
@@ -1041,10 +1367,16 @@ describe('CaseFormsUseCase', () => {
     mocks.getAssignmentById.mockResolvedValueOnce(assignment);
 
     await expect(
-      useCase.reviewAssignment('case-1', assignment.id, {
-        decision: 'revision_requested',
-        notes: '   ',
-      }, 'staff-1', 'org-1')
+      useCase.reviewAssignment(
+        'case-1',
+        assignment.id,
+        {
+          decision: 'revision_requested',
+          notes: '   ',
+        },
+        'staff-1',
+        'org-1'
+      )
     ).rejects.toMatchObject({
       statusCode: 400,
       code: 'validation_error',
@@ -1071,10 +1403,16 @@ describe('CaseFormsUseCase', () => {
 
     mocks.getAssignmentById.mockResolvedValueOnce(assignment).mockResolvedValueOnce(refreshed);
 
-    await useCase.reviewAssignment('case-1', assignment.id, {
-      decision: 'cancelled',
-      notes: 'Submission withdrawn.',
-    }, 'staff-1', 'org-1');
+    await useCase.reviewAssignment(
+      'case-1',
+      assignment.id,
+      {
+        decision: 'cancelled',
+        notes: 'Submission withdrawn.',
+      },
+      'staff-1',
+      'org-1'
+    );
 
     expect(mocks.cancelReviewFollowUp).toHaveBeenCalledWith(
       expect.anything(),
@@ -1116,10 +1454,16 @@ describe('CaseFormsUseCase', () => {
 
     mocks.getAssignmentById.mockResolvedValueOnce(assignment).mockResolvedValueOnce(refreshed);
 
-    await useCase.reviewAssignment('case-1', assignment.id, {
-      decision: 'closed',
-      notes: 'Ready for filing.',
-    }, 'staff-1', 'org-1');
+    await useCase.reviewAssignment(
+      'case-1',
+      assignment.id,
+      {
+        decision: 'closed',
+        notes: 'Ready for filing.',
+      },
+      'staff-1',
+      'org-1'
+    );
 
     expect(mocks.completeReviewFollowUp).toHaveBeenCalledWith(
       expect.anything(),

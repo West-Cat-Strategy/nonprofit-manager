@@ -25,6 +25,7 @@ describe('Passkey lockout behavior', () => {
   const emailPrefix = 'passkey-lockout-';
   const createdEmails: string[] = [];
   const previousLockoutFlag = process.env.ENABLE_ACCOUNT_LOCKOUT_IN_TEST;
+  const previousMfaBypassFlag = process.env.BYPASS_MFA_FOR_TESTS;
 
   const mockGenerateAuthenticationOptions =
     generateAuthenticationOptions as jest.MockedFunction<typeof generateAuthenticationOptions>;
@@ -35,15 +36,24 @@ describe('Passkey lockout behavior', () => {
   const mockVerifyRegistrationResponse =
     verifyRegistrationResponse as jest.MockedFunction<typeof verifyRegistrationResponse>;
 
-  const createTestUserWithPasskey = async () => {
+  const restoreEnvFlag = (key: string, value: string | undefined): void => {
+    if (value === undefined) {
+      delete process.env[key];
+      return;
+    }
+
+    process.env[key] = value;
+  };
+
+  const createTestUserWithPasskey = async (role = 'user') => {
     const email = `${emailPrefix}${unique()}@example.com`;
     const passwordHash = await bcrypt.hash(testPassword, 10);
 
     const userResult = await pool.query<{ id: string }>(
       `INSERT INTO users (email, password_hash, first_name, last_name, role)
-       VALUES ($1, $2, $3, $4, 'user')
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING id`,
-      [email, passwordHash, 'Passkey', 'User']
+      [email, passwordHash, 'Passkey', 'User', role]
     );
 
     const userId = userResult.rows[0].id;
@@ -62,6 +72,21 @@ describe('Passkey lockout behavior', () => {
     return { email, userId, credentialId };
   };
 
+  const assignOnlyExplicitRole = async (userId: string, roleName: string): Promise<void> => {
+    const roleResult = await pool.query<{ id: string }>('SELECT id FROM roles WHERE name = $1', [
+      roleName,
+    ]);
+    if (roleResult.rows.length === 0) {
+      return;
+    }
+
+    await pool.query('DELETE FROM user_roles WHERE user_id = $1', [userId]);
+    await pool.query(
+      'INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      [userId, roleResult.rows[0].id]
+    );
+  };
+
   const lockPasswordLogin = async (email: string) => {
     for (let attempt = 0; attempt < MAX_LOGIN_ATTEMPTS; attempt += 1) {
       await request(app)
@@ -76,6 +101,7 @@ describe('Passkey lockout behavior', () => {
 
   beforeEach(() => {
     process.env.ENABLE_ACCOUNT_LOCKOUT_IN_TEST = 'true';
+    process.env.BYPASS_MFA_FOR_TESTS = 'false';
     jest.clearAllMocks();
     mockGenerateAuthenticationOptions.mockResolvedValue({
       challenge: 'passkey-challenge',
@@ -93,7 +119,8 @@ describe('Passkey lockout behavior', () => {
   });
 
   afterAll(async () => {
-    process.env.ENABLE_ACCOUNT_LOCKOUT_IN_TEST = previousLockoutFlag;
+    restoreEnvFlag('ENABLE_ACCOUNT_LOCKOUT_IN_TEST', previousLockoutFlag);
+    restoreEnvFlag('BYPASS_MFA_FOR_TESTS', previousMfaBypassFlag);
 
     if (createdEmails.length === 0) {
       return;
@@ -143,6 +170,11 @@ describe('Passkey lockout behavior', () => {
 
     expect(optionsResponse.body.challengeId).toBeTruthy();
     expect(optionsResponse.body.options.challenge).toBe('passkey-challenge');
+    expect(mockGenerateAuthenticationOptions).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        userVerification: 'required',
+      })
+    );
 
     const verifyResponse = await agent
       .post('/api/v2/auth/passkeys/login/verify')
@@ -155,6 +187,11 @@ describe('Passkey lockout behavior', () => {
 
     expect(verifyResponse.body.token).toBeTruthy();
     expect(verifyResponse.body.csrfToken).toBeTruthy();
+    expect(mockVerifyAuthenticationResponse).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        requireUserVerification: true,
+      })
+    );
 
     await agent
       .post('/api/v2/auth/logout')
@@ -218,5 +255,110 @@ describe('Passkey lockout behavior', () => {
       .expect(423);
 
     expect(passwordLoginAfterPasskeyFailure.body.lockedUntil).toBe(initialLockedUntil);
+  });
+
+  it('requires user verification for passkey registration options and verification', async () => {
+    const { email } = await createTestUserWithPasskey();
+
+    const loginResponse = await request(app)
+      .post('/api/v2/auth/login')
+      .send({
+        email,
+        password: testPassword,
+      })
+      .expect(200);
+
+    mockGenerateRegistrationOptions.mockResolvedValueOnce({
+      challenge: 'registration-challenge',
+      excludeCredentials: [],
+    } as never);
+
+    const optionsResponse = await request(app)
+      .post('/api/v2/auth/passkeys/register/options')
+      .set('Authorization', `Bearer ${loginResponse.body.token}`)
+      .expect(200);
+
+    expect(optionsResponse.body.challengeId).toBeTruthy();
+    expect(mockGenerateRegistrationOptions).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        authenticatorSelection: expect.objectContaining({
+          userVerification: 'required',
+        }),
+      })
+    );
+
+    const credential = {
+      id: `cred-registration-${unique()}`,
+      response: { transports: ['internal'] },
+    };
+    mockVerifyRegistrationResponse.mockResolvedValueOnce({
+      verified: true,
+      registrationInfo: {
+        credential: {
+          id: credential.id,
+          publicKey: Uint8Array.from([1, 2, 3, 4]),
+          counter: 0,
+        },
+        credentialDeviceType: 'singleDevice',
+        credentialBackedUp: true,
+      },
+    } as never);
+
+    const verifyResponse = await request(app)
+      .post('/api/v2/auth/passkeys/register/verify')
+      .set('Authorization', `Bearer ${loginResponse.body.token}`)
+      .send({
+        challengeId: optionsResponse.body.challengeId,
+        credential,
+        name: 'UV passkey',
+      })
+      .expect(201);
+
+    expect(verifyResponse.body.passkey.id).toBeTruthy();
+    expect(mockVerifyRegistrationResponse).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        requireUserVerification: true,
+      })
+    );
+  });
+
+  it('treats verified passkey login as satisfying role-required MFA', async () => {
+    const { email, userId, credentialId } = await createTestUserWithPasskey('manager');
+    await assignOnlyExplicitRole(userId, 'manager');
+
+    const passwordLogin = await request(app)
+      .post('/api/v2/auth/login')
+      .send({
+        email,
+        password: testPassword,
+      })
+      .expect(403);
+
+    expect(passwordLogin.body.error.message).toContain(
+      'Multi-factor authentication is required for your role'
+    );
+
+    const optionsResponse = await request(app)
+      .post('/api/v2/auth/passkeys/login/options')
+      .send({
+        email,
+      })
+      .expect(200);
+
+    const verifyResponse = await request(app)
+      .post('/api/v2/auth/passkeys/login/verify')
+      .send({
+        email,
+        challengeId: optionsResponse.body.challengeId,
+        credential: { id: credentialId },
+      })
+      .expect(200);
+
+    expect(verifyResponse.body.token).toBeTruthy();
+    expect(mockVerifyAuthenticationResponse).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        requireUserVerification: true,
+      })
+    );
   });
 });

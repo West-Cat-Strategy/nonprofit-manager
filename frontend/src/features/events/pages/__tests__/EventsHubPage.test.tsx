@@ -104,6 +104,111 @@ describe('EventList page', () => {
     expect(screen.getByText('pending check-ins')).toBeInTheDocument();
   });
 
+  it('summarizes public event readiness and links to the next public occurrence drilldowns', async () => {
+    listEventOccurrencesMock.mockResolvedValue([
+      {
+        occurrence_id: 'occ-private',
+        event_id: 'event-private',
+        event_name: 'Internal Briefing',
+        occurrence_name: 'Staff Prep',
+        event_type: 'meeting',
+        status: 'planned',
+        is_public: false,
+        description: 'Internal planning meeting',
+        start_date: '2026-05-09T16:00:00.000Z',
+        end_date: '2026-05-09T17:00:00.000Z',
+        location_name: 'Board Room',
+        capacity: 20,
+        registered_count: 12,
+        attended_count: 0,
+        waitlist_enabled: false,
+        public_checkin_enabled: false,
+        public_checkin_pin_configured: false,
+      },
+      {
+        occurrence_id: 'occ-breakfast',
+        event_id: 'event-breakfast',
+        event_name: 'Community Breakfast',
+        occurrence_name: 'Morning session',
+        event_type: 'community',
+        status: 'planned',
+        is_public: true,
+        description: 'Drop-in breakfast',
+        start_date: '2026-05-10T16:00:00.000Z',
+        end_date: '2026-05-10T17:30:00.000Z',
+        location_name: 'Main Hall',
+        capacity: 30,
+        registered_count: 8,
+        attended_count: 3,
+        waitlist_enabled: false,
+        public_checkin_enabled: true,
+        public_checkin_pin_required: true,
+        public_checkin_pin_configured: false,
+      },
+      {
+        occurrence_id: 'occ-gala',
+        event_id: 'event-gala',
+        event_name: 'Spring Gala',
+        occurrence_name: 'Opening Night',
+        event_type: 'fundraiser',
+        status: 'planned',
+        is_public: true,
+        description: 'Annual fundraiser',
+        start_date: '2026-05-12T18:00:00.000Z',
+        end_date: '2026-05-12T20:00:00.000Z',
+        location_name: 'Main Hall',
+        capacity: 120,
+        registered_count: 42,
+        attended_count: 10,
+        waitlist_enabled: true,
+        public_checkin_enabled: true,
+        public_checkin_pin_required: true,
+        public_checkin_pin_configured: true,
+      },
+    ]);
+
+    renderWithProviders(<EventList />, {
+      route: '/events?month=2026-05&date=2026-05-10',
+    });
+
+    const operationsCard = await screen.findByRole('region', {
+      name: 'Public event operations',
+    });
+
+    await within(operationsCard).findByText('Community Breakfast');
+
+    expect(within(operationsCard).getByText('public occurrences').parentElement).toHaveTextContent(
+      '2'
+    );
+    expect(within(operationsCard).getByText('waitlist enabled').parentElement).toHaveTextContent(
+      '1'
+    );
+    expect(within(operationsCard).getByText('check-in enabled').parentElement).toHaveTextContent(
+      '2'
+    );
+    expect(within(operationsCard).getByText('pending check-ins').parentElement).toHaveTextContent(
+      '37'
+    );
+    expect(within(operationsCard).getByText('Needs PIN')).toBeInTheDocument();
+    expect(within(operationsCard).getByText('Off')).toBeInTheDocument();
+    expect(within(operationsCard).getByText('5 pending')).toBeInTheDocument();
+
+    const returnTo = encodeURIComponent('/events?month=2026-05&date=2026-05-10');
+    expect(within(operationsCard).getByRole('link', { name: 'Open details' })).toHaveAttribute(
+      'href',
+      `/events/event-breakfast?occurrence=occ-breakfast&return_to=${returnTo}`
+    );
+    expect(
+      within(operationsCard).getByRole('link', { name: 'Review registrations' })
+    ).toHaveAttribute(
+      'href',
+      `/events/event-breakfast?tab=registrations&occurrence=occ-breakfast&return_to=${returnTo}`
+    );
+    expect(
+      within(operationsCard).getByRole('link', { name: 'Open check-in desk' })
+    ).toHaveAttribute('href', '/events/check-in?eventId=event-breakfast');
+  });
+
   it('defaults the agenda to the first visible occurrence when the month is set without a date', async () => {
     renderWithProviders(
       <>
@@ -298,7 +403,7 @@ describe('EventList page', () => {
       );
     });
 
-    expect(screen.getByText('Spring Gala')).toBeInTheDocument();
+    expect(screen.getAllByText('Spring Gala').length).toBeGreaterThan(0);
     expect(screen.getByText('Intake review')).toBeInTheDocument();
     expect(screen.getByText('Open consult')).toBeInTheDocument();
   });

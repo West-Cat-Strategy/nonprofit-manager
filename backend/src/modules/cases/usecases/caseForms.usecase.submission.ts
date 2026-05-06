@@ -13,6 +13,7 @@ import {
   buildReviewFollowUpDescription,
   buildReviewFollowUpTitle,
   buildSubmissionArtifacts,
+  countMappingAuditStates,
   includesEmailDelivery,
   includesPortalDelivery,
   noteContent,
@@ -118,10 +119,13 @@ export const completeSubmission = async (
   }
 
   if (actor.actorType !== 'staff' && assignment.status === 'draft') {
-    throw Object.assign(new Error('This form assignment has not been delivered to the client yet'), {
-      statusCode: 409,
-      code: 'assignment_not_delivered',
-    });
+    throw Object.assign(
+      new Error('This form assignment has not been delivered to the client yet'),
+      {
+        statusCode: 409,
+        code: 'assignment_not_delivered',
+      }
+    );
   }
 
   const replayId = payload.client_submission_id?.trim() || null;
@@ -129,17 +133,23 @@ export const completeSubmission = async (
     const existing = await repository.getSubmissionByClientSubmissionId(assignment.id, replayId);
     if (existing) {
       if (stableSerialize(existing.answers) !== stableSerialize(payload.answers)) {
-        throw Object.assign(new Error('client_submission_id was already used with a different payload'), {
-          statusCode: 409,
-          code: 'idempotency_conflict',
-        });
+        throw Object.assign(
+          new Error('client_submission_id was already used with a different payload'),
+          {
+            statusCode: 409,
+            code: 'idempotency_conflict',
+          }
+        );
       }
       return buildAssignmentDetail(repository, assignment, detailOptions);
     }
   }
 
   const assignmentAssets = await repository.listAssetsForAssignment(assignment.id);
-  const { normalizedAnswers, visibleQuestions } = validateAnswers(assignment.schema, payload.answers);
+  const { normalizedAnswers, visibleQuestions } = validateAnswers(
+    assignment.schema,
+    payload.answers
+  );
   const selectedAssets = resolveSelectedAssets(
     visibleQuestions,
     normalizedAnswers,
@@ -161,14 +171,27 @@ export const completeSubmission = async (
   });
 
   await repository.withTransaction(async (client) => {
-    const { contactPatch, caseJsonUpdates, audit } = applyMappings(visibleQuestions, normalizedAnswers);
+    const { contactPatch, caseJsonUpdates, audit } = applyMappings(
+      visibleQuestions,
+      normalizedAnswers,
+      {
+        deferWriteback: actor.actorType !== 'staff',
+      }
+    );
+    const auditCounts = countMappingAuditStates(audit);
 
     if (Object.keys(contactPatch).length > 0) {
       await repository.updateContactFields(client, assignment.contact_id, contactPatch);
     }
 
     for (const update of caseJsonUpdates) {
-      await repository.updateCaseJsonField(client, assignment.case_id, update.container, update.key, update.value);
+      await repository.updateCaseJsonField(
+        client,
+        assignment.case_id,
+        update.container,
+        update.key,
+        update.value
+      );
     }
 
     const responsePacketCaseDocumentId = await repository.createCaseDocumentRecord(client, {
@@ -236,8 +259,9 @@ export const completeSubmission = async (
         submission_number: nextSubmissionNumber,
         client_submission_id: replayId,
         selected_asset_count: selectedAssets.length,
-        mapped_field_count: audit.filter((item) => item.applied).length,
-        skipped_mapping_count: audit.filter((item) => !item.applied).length,
+        mapped_field_count: auditCounts.applied,
+        pending_mapping_count: auditCounts.pending,
+        skipped_mapping_count: auditCounts.skipped,
         response_packet_case_document_id: responsePacketCaseDocumentId,
         response_packet_contact_document_id: responsePacketContactDocumentId,
       },
@@ -250,7 +274,9 @@ export const completeSubmission = async (
     );
 
     for (const asset of selectedAssets) {
-      const visibleQuestion = visibleQuestions.find((item) => item.question.key === asset.question_key);
+      const visibleQuestion = visibleQuestions.find(
+        (item) => item.question.key === asset.question_key
+      );
       const label = visibleQuestion?.question.label || asset.question_key;
 
       await repository.createCaseDocumentRecord(client, {
@@ -284,7 +310,12 @@ export const completeSubmission = async (
       });
     }
 
-    await repository.markAssignmentAfterSubmission(client, assignment.id, normalizedAnswers, actor.userId || null);
+    await repository.markAssignmentAfterSubmission(
+      client,
+      assignment.id,
+      normalizedAnswers,
+      actor.userId || null
+    );
     await createLifecycleNote(
       client,
       assignment.case_id,
@@ -292,7 +323,13 @@ export const completeSubmission = async (
       actor.userId || null
     );
 
-    await syncReviewFollowUpForSubmission(repository, assignment, actor, nextSubmissionNumber, client);
+    await syncReviewFollowUpForSubmission(
+      repository,
+      assignment,
+      actor,
+      nextSubmissionNumber,
+      client
+    );
 
     if (actor.accessTokenId) {
       await repository.markAccessTokenUsed(client, actor.accessTokenId, submission.id);

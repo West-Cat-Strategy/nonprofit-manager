@@ -47,11 +47,13 @@ Use this when you are changing Dockerfiles or want to verify the packaged assets
 ```bash
 make docker-build
 make docker-validate
+make docker-validate-overlays
 ```
 
 Expected result:
 
 - The backend and frontend Dockerfiles both build successfully.
+- The Compose overlays render successfully against tracked example env files, including optional Caddy, Plausible, ELK, and database-at-rest overlays.
 - The frontend production image includes `/usr/share/nginx/html/vite.svg` from `frontend/public`.
 
 ## Path 2: Optional Compose Dev Stack

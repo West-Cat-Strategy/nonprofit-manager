@@ -81,7 +81,9 @@ describe('VolunteerService', () => {
         .mockResolvedValueOnce({ rows: [{ count: '1' }] })
         .mockResolvedValueOnce({ rows: [{ id: '1', background_check_status: 'approved' }] });
 
-      await volunteerService.getVolunteers({ background_check_status: BackgroundCheckStatus.APPROVED });
+      await volunteerService.getVolunteers({
+        background_check_status: BackgroundCheckStatus.APPROVED,
+      });
 
       const countCall = mockQuery.mock.calls[0];
       expect(countCall[1]).toContain('approved');
@@ -102,7 +104,9 @@ describe('VolunteerService', () => {
     it('should throw error on database failure', async () => {
       mockQuery.mockRejectedValueOnce(new Error('Database error'));
 
-      await expect(volunteerService.getVolunteers()).rejects.toThrow('Failed to retrieve volunteers');
+      await expect(volunteerService.getVolunteers()).rejects.toThrow(
+        'Failed to retrieve volunteers'
+      );
     });
   });
 
@@ -142,7 +146,9 @@ describe('VolunteerService', () => {
     it('should throw error on database failure', async () => {
       mockQuery.mockRejectedValueOnce(new Error('Database error'));
 
-      await expect(volunteerService.getVolunteerById('123')).rejects.toThrow('Failed to retrieve volunteer');
+      await expect(volunteerService.getVolunteerById('123')).rejects.toThrow(
+        'Failed to retrieve volunteer'
+      );
     });
   });
 
@@ -183,11 +189,11 @@ describe('VolunteerService', () => {
       ).rejects.toThrow('Failed to create volunteer');
     });
 
-    it('should create volunteer with background check info', async () => {
+    it('should create volunteer with non-approved background check info', async () => {
       const mockCreatedVolunteer = {
         id: 'new-uuid',
         contact_id: 'contact-123',
-        background_check_status: 'approved',
+        background_check_status: 'pending',
         background_check_date: '2024-01-15',
       };
 
@@ -197,13 +203,29 @@ describe('VolunteerService', () => {
       const result = await volunteerService.createVolunteer(
         {
           contact_id: 'contact-123',
-          background_check_status: BackgroundCheckStatus.APPROVED,
+          background_check_status: BackgroundCheckStatus.PENDING,
           background_check_date: new Date('2024-01-15'),
         },
         'user-123'
       );
 
-      expect(result.background_check_status).toBe('approved');
+      expect(result.background_check_status).toBe('pending');
+    });
+
+    it('should reject approved background check status on generic creation', async () => {
+      await expect(
+        volunteerService.createVolunteer(
+          {
+            contact_id: 'contact-123',
+            background_check_status: BackgroundCheckStatus.APPROVED,
+          },
+          'user-123'
+        )
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        code: 'validation_error',
+      });
+      expect(mockQuery).not.toHaveBeenCalled();
     });
 
     it('should throw error on database failure', async () => {
@@ -244,13 +266,19 @@ describe('VolunteerService', () => {
     it('should return null when volunteer not found', async () => {
       mockQuery.mockResolvedValueOnce({ rows: [] });
 
-      const result = await volunteerService.updateVolunteer('nonexistent', { skills: ['Test'] }, 'user-123');
+      const result = await volunteerService.updateVolunteer(
+        'nonexistent',
+        { skills: ['Test'] },
+        'user-123'
+      );
 
       expect(result).toBeNull();
     });
 
     it('should throw error when no fields to update', async () => {
-      await expect(volunteerService.updateVolunteer('123', {}, 'user-123')).rejects.toThrow('Failed to update volunteer');
+      await expect(volunteerService.updateVolunteer('123', {}, 'user-123')).rejects.toThrow(
+        'Failed to update volunteer'
+      );
     });
 
     it('should throw error on database failure', async () => {
@@ -259,6 +287,87 @@ describe('VolunteerService', () => {
       await expect(
         volunteerService.updateVolunteer('123', { skills: ['Test'] }, 'user-123')
       ).rejects.toThrow('Failed to update volunteer');
+    });
+
+    it('should reject approved background check status on generic updates', async () => {
+      await expect(
+        volunteerService.updateVolunteer(
+          '123',
+          { background_check_status: BackgroundCheckStatus.APPROVED },
+          'user-123'
+        )
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        code: 'validation_error',
+      });
+      expect(mockQuery).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('approveVolunteerBackgroundCheck', () => {
+    it('should approve background checks with approver metadata', async () => {
+      const approvedAt = new Date('2026-05-05T12:00:00.000Z');
+      const mockApprovedVolunteer = {
+        id: '123',
+        contact_id: 'contact-123',
+        background_check_status: 'approved',
+        background_check_date: '2026-05-05',
+        background_check_expiry: '2027-05-05',
+        background_check_approved_by: 'user-123',
+        background_check_approved_at: approvedAt,
+        background_check_approval_notes: 'Cleared by vendor report.',
+      };
+
+      mockQuery.mockResolvedValueOnce({ rows: [mockApprovedVolunteer] });
+
+      const result = await volunteerService.approveVolunteerBackgroundCheck(
+        '123',
+        {
+          background_check_date: new Date('2026-05-05'),
+          background_check_expiry: new Date('2027-05-05'),
+          notes: 'Cleared by vendor report.',
+        },
+        'user-123'
+      );
+
+      const [sql, params] = mockQuery.mock.calls[0];
+      expect(sql).toContain("background_check_status = 'approved'");
+      expect(sql).toContain('background_check_approved_by = $1');
+      expect(sql).toContain('background_check_approved_at = CURRENT_TIMESTAMP');
+      expect(sql).toContain('background_check_approval_notes = $2');
+      expect(params[0]).toBe('user-123');
+      expect(params[1]).toBe('Cleared by vendor report.');
+      expect(result).toEqual(
+        expect.objectContaining({
+          volunteer_id: '123',
+          background_check_status: 'approved',
+          background_check_approved_by: 'user-123',
+          background_check_approved_at: approvedAt,
+          background_check_approval_notes: 'Cleared by vendor report.',
+        })
+      );
+    });
+
+    it('should return null when volunteer approval target is not found', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      const result = await volunteerService.approveVolunteerBackgroundCheck(
+        'missing',
+        { notes: 'Cleared by vendor report.' },
+        'user-123'
+      );
+
+      expect(result).toBeNull();
+    });
+
+    it('should require approval notes', async () => {
+      await expect(
+        volunteerService.approveVolunteerBackgroundCheck('123', { notes: '   ' }, 'user-123')
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        code: 'validation_error',
+      });
+      expect(mockQuery).not.toHaveBeenCalled();
     });
   });
 
@@ -286,7 +395,9 @@ describe('VolunteerService', () => {
     it('should throw error on database failure', async () => {
       mockQuery.mockRejectedValueOnce(new Error('Database error'));
 
-      await expect(volunteerService.deleteVolunteer('123', 'user-123')).rejects.toThrow('Failed to delete volunteer');
+      await expect(volunteerService.deleteVolunteer('123', 'user-123')).rejects.toThrow(
+        'Failed to delete volunteer'
+      );
     });
   });
 
@@ -307,7 +418,9 @@ describe('VolunteerService', () => {
           expect.objectContaining({ id: '2', volunteer_id: '2', matching_skills_count: 1 }),
         ])
       );
-      expect((result[0] as unknown as { matching_skills_count: number }).matching_skills_count).toBe(2);
+      expect(
+        (result[0] as unknown as { matching_skills_count: number }).matching_skills_count
+      ).toBe(2);
     });
 
     it('should return empty array when no matches', async () => {
@@ -321,7 +434,9 @@ describe('VolunteerService', () => {
     it('should throw error on database failure', async () => {
       mockQuery.mockRejectedValueOnce(new Error('Database error'));
 
-      await expect(volunteerService.findVolunteersBySkills(['Teaching'])).rejects.toThrow('Failed to find volunteers by skills');
+      await expect(volunteerService.findVolunteersBySkills(['Teaching'])).rejects.toThrow(
+        'Failed to find volunteers by skills'
+      );
     });
   });
 
@@ -338,7 +453,11 @@ describe('VolunteerService', () => {
 
       expect(result).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ assignment_id: '1', volunteer_id: '123', event_name: 'Summer Gala' }),
+          expect.objectContaining({
+            assignment_id: '1',
+            volunteer_id: '123',
+            event_name: 'Summer Gala',
+          }),
           expect.objectContaining({ assignment_id: '2', volunteer_id: '123', task_name: 'Setup' }),
         ])
       );
@@ -365,7 +484,9 @@ describe('VolunteerService', () => {
     it('should throw error on database failure', async () => {
       mockQuery.mockRejectedValueOnce(new Error('Database error'));
 
-      await expect(volunteerService.getVolunteerAssignments({})).rejects.toThrow('Failed to retrieve volunteer assignments');
+      await expect(volunteerService.getVolunteerAssignments({})).rejects.toThrow(
+        'Failed to retrieve volunteer assignments'
+      );
     });
   });
 
@@ -444,11 +565,7 @@ describe('VolunteerService', () => {
         .mockResolvedValueOnce({ rows: [mockUpdatedAssignment] })
         .mockResolvedValueOnce({ rows: [] }); // hours update
 
-      await volunteerService.updateAssignment(
-        '123',
-        { hours_logged: 4 },
-        'user-123'
-      );
+      await volunteerService.updateAssignment('123', { hours_logged: 4 }, 'user-123');
 
       expect(mockQuery).toHaveBeenCalledTimes(3);
       const hoursCall = mockQuery.mock.calls[2];
@@ -459,13 +576,19 @@ describe('VolunteerService', () => {
     it('should return null when assignment not found', async () => {
       mockQuery.mockResolvedValueOnce({ rows: [] });
 
-      const result = await volunteerService.updateAssignment('nonexistent', { status: 'completed' }, 'user-123');
+      const result = await volunteerService.updateAssignment(
+        'nonexistent',
+        { status: 'completed' },
+        'user-123'
+      );
 
       expect(result).toBeNull();
     });
 
     it('should throw error when no fields to update', async () => {
-      await expect(volunteerService.updateAssignment('123', {}, 'user-123')).rejects.toThrow('Failed to update assignment');
+      await expect(volunteerService.updateAssignment('123', {}, 'user-123')).rejects.toThrow(
+        'Failed to update assignment'
+      );
     });
   });
 });

@@ -595,7 +595,7 @@ describe('People import/export integration', () => {
 
     const csv = [
       'contact_id,account_id,account_number,first_name,last_name,email,phone,skills,availability_status,background_check_status',
-      `${existingContactId},,${organizationAccountNumber},Volunteer,Existing,${existingVolunteerContactEmail},555-444-4000,Driving;First Aid,available,approved`,
+      `${existingContactId},,${organizationAccountNumber},Volunteer,Existing,${existingVolunteerContactEmail},555-444-4000,Driving;First Aid,available,rejected`,
       `,,${organizationAccountNumber},Volunteer,New,${newVolunteerEmail},555-555-5000,Translation;Support,limited,pending`,
     ].join('\n');
 

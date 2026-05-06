@@ -28,8 +28,11 @@ export class AccountRepository implements AccountCatalogPort, AccountLifecyclePo
     return services.account.getAccountByIdWithScope(accountId, scope);
   }
 
-  getAccountContacts(accountId: string): Promise<{ contacts: Contact[]; total: number }> {
-    return services.account.getAccountContacts(accountId);
+  getAccountContacts(
+    accountId: string,
+    scope?: DataScopeFilter
+  ): Promise<{ contacts: Contact[]; total: number }> {
+    return services.account.getAccountContacts(accountId, 50, 0, scope);
   }
 
   createAccount(payload: CreateAccountDTO, userId: string): Promise<Account> {

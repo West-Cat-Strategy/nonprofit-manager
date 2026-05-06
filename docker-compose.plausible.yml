@@ -42,7 +42,7 @@ services:
       plausible_events_db:
         condition: service_started
     env_file:
-      - .env.plausible
+      - ${PLAUSIBLE_ENV_FILE:-.env.plausible}
     environment:
       BASE_URL: ${PLAUSIBLE_BASE_URL:?Set PLAUSIBLE_BASE_URL in .env.plausible}
       SECRET_KEY_BASE: ${PLAUSIBLE_SECRET_KEY_BASE:?Set PLAUSIBLE_SECRET_KEY_BASE in .env.plausible}

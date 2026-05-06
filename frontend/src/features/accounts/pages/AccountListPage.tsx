@@ -30,6 +30,7 @@ import { useBulkSelect } from '../../../hooks';
 import { useDebounce } from '../../../hooks/useVirtualList';
 import { BrutalBadge } from '../../../components/neo-brutalist';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
+import { useStableSearchParamsWriter } from '../../../hooks/useStableSearchParams';
 import {
   parseAllowedValue,
   parseAllowedValueOrEmpty,
@@ -43,6 +44,7 @@ const AccountList = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { writeSearchParams } = useStableSearchParamsWriter(setSearchParams);
   const { accounts, loading, error, pagination, filters } = useAppSelector(
     (state) => state.accounts.list
   );
@@ -117,8 +119,8 @@ const AccountList = () => {
     if (currentLimit !== 20) params.set('limit', String(currentLimit));
     if (sortBy !== 'created_at') params.set('sort_by', sortBy);
     if (sortOrder !== 'desc') params.set('sort_order', sortOrder);
-    setSearchParams(params, { replace: true });
-  }, [searchInput, accountTypeFilter, statusFilter, categoryFilter, currentPage, currentLimit, sortBy, sortOrder, setSearchParams]);
+    writeSearchParams(params, { replace: true });
+  }, [searchInput, accountTypeFilter, statusFilter, categoryFilter, currentPage, currentLimit, sortBy, sortOrder, writeSearchParams]);
 
   const handleFilterChange = (filterId: string, value: string | string[]) => {
     if (filterId === 'search' && typeof value === 'string') {

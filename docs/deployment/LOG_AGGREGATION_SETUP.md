@@ -98,6 +98,7 @@ output {
 3. **Environment Variables** (`.env.elk` and `.env.production`):
 
 Create `.env.elk` from `.env.elk.example` before starting the overlay. The copied `.env.elk` file stays local-only and ignored; `.env.elk.example` remains the tracked template:
+For config-only validation without a copied local file, use `make docker-validate-overlays`; the helper points the ELK overlay at `.env.elk.example` through `ELK_ENV_FILE`.
 
 ```bash
 cp .env.elk.example .env.elk

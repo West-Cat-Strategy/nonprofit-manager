@@ -23,6 +23,7 @@ Prefer the `make` targets when they exist. Call the scripts directly when you ne
 | [db-export-archive.sh](db-export-archive.sh) | Export a Postgres custom-format archive through the compose or direct DB contract. | Manual ops / migration prep |
 | [db-restore-archive.sh](db-restore-archive.sh) | Restore a Postgres custom-format archive with `pg_restore --create`. | Manual ops / disaster recovery |
 | [docker-build-images.sh](docker-build-images.sh) | Centralize the direct Docker build, rebuild, and validation flow, including the shared workspace dependency stages used by clean image rebuilds. | `make docker-build` / `make docker-rebuild` / `make docker-validate` |
+| [docker-validate-overlays.sh](docker-validate-overlays.sh) | Validate Docker Compose overlays and Caddyfile wiring using tracked example env files where optional local env files are absent. | `make docker-validate-overlays` |
 | [verify-migrations.sh](verify-migrations.sh) | Verify the isolated `_test` database contract and manifest parity. | `make db-verify` |
 | [deploy.sh](deploy.sh) | Run the local, staging, or production deployment wrapper. | `make deploy-local` / `make deploy-staging` / `make deploy` |
 | [install-git-hooks.sh](install-git-hooks.sh) | Install the repo-managed hooks into Git's resolved hooks path and preserve differing existing hooks unless you pass `--force`. | `make hooks` / `./scripts/install-git-hooks.sh --dry-run` |

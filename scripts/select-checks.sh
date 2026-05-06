@@ -219,7 +219,7 @@ for file in "${changed_files[@]}"; do
       has_knip_config=1
       has_tooling_contracts=1
       ;;
-    Makefile|tsconfig*.json|docker-compose*.yml|docker-compose*.yaml|contracts/*|scripts/ci.sh|scripts/deploy.sh|scripts/e2e-*.sh|scripts/select-checks.sh|scripts/tests/*|backend/scripts/run-*.sh)
+    Makefile|tsconfig*.json|docker-compose*.yml|docker-compose*.yaml|contracts/*|scripts/ci.sh|scripts/deploy.sh|scripts/e2e-*.sh|scripts/select-checks.sh|scripts/verify.sh|scripts/verify-pr.sh|scripts/tests/*|backend/scripts/run-*.sh)
       has_runtime_orchestration=1
       has_tooling_contracts=1
       case "$file" in

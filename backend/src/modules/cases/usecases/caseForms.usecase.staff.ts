@@ -7,8 +7,6 @@ import { hashData } from '@utils/encryption';
 import type {
   CaseFormAsset,
   CaseFormAssignment,
-  CaseFormDeliveryChannel,
-  CaseFormDeliveryTarget,
   CaseFormDefault,
   CaseFormReviewDecision,
   CreateCaseFormAssignmentDTO,
@@ -19,10 +17,7 @@ import type {
   UpdateCaseFormAssignmentDTO,
   UpdateCaseFormDefaultDTO,
 } from '@app-types/caseForms';
-import type {
-  CaseFormsRepository,
-  CaseFormAssignmentRecord,
-} from '../repositories/caseFormsRepository';
+import type { CaseFormsRepository } from '../repositories/caseFormsRepository';
 import { requireCaseOwnership } from '../queries/shared';
 import {
   buildAssignmentDetail,
@@ -33,12 +28,22 @@ import { completeSubmission } from './caseForms.usecase.submission';
 import {
   AssignmentDetailResult,
   buildAccessLinkUrl,
-  buildReviewFollowUpResolutionNote,
   DownloadableFile,
   noteContent,
   resolveDraftStatus,
   resolveExpiryDate,
 } from './caseForms.usecase.shared';
+import {
+  applyLatestPendingSubmissionMappings,
+  applyReviewFollowUpDecision,
+} from './caseForms.usecase.review';
+import {
+  deriveLegacyDeliveryTarget,
+  formatDeliveryChannelsLabel,
+  getContactDeliveryFallbacks,
+  hasActivePortalAccount,
+  normalizeDeliveryChannels,
+} from './caseForms.usecase.delivery';
 
 type Db = Pool | PoolClient;
 
@@ -46,124 +51,6 @@ interface CaseFormTemplateListFilters {
   status?: 'draft' | 'published' | 'archived';
   caseTypeId?: string | null;
 }
-
-const DELIVERY_CHANNEL_ORDER: CaseFormDeliveryChannel[] = ['portal', 'email', 'sms'];
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-const normalizeDeliveryChannels = (payload: SendCaseFormAssignmentDTO): CaseFormDeliveryChannel[] => {
-  const channels = new Set<CaseFormDeliveryChannel>();
-  const requested = payload.delivery_channels?.length
-    ? payload.delivery_channels
-    : payload.delivery_target === 'portal_and_email'
-      ? (['portal', 'email'] satisfies CaseFormDeliveryChannel[])
-      : payload.delivery_target
-        ? ([payload.delivery_target] satisfies CaseFormDeliveryChannel[])
-        : [];
-
-  for (const channel of requested) {
-    channels.add(channel);
-  }
-
-  return DELIVERY_CHANNEL_ORDER.filter((channel) => channels.has(channel));
-};
-
-const deriveLegacyDeliveryTarget = (
-  channels: CaseFormDeliveryChannel[]
-): CaseFormDeliveryTarget | null => {
-  const channelSet = new Set(channels);
-  if (channelSet.has('portal') && channelSet.has('email')) {
-    return 'portal_and_email';
-  }
-  if (channelSet.has('portal')) {
-    return 'portal';
-  }
-  if (channelSet.has('email')) {
-    return 'email';
-  }
-  return null;
-};
-
-const formatDeliveryChannelsLabel = (channels: CaseFormDeliveryChannel[]): string =>
-  channels.map((channel) => (channel === 'sms' ? 'SMS' : channel)).join(', ');
-
-const getContactDeliveryFallbacks = async (
-  db: Db,
-  contactId: string
-): Promise<{ email: string | null; phone: string | null }> => {
-  if (!UUID_PATTERN.test(contactId)) {
-    return { email: null, phone: null };
-  }
-
-  const result = await db.query<{
-    email: string | null;
-    phone: string | null;
-    mobile_phone: string | null;
-  }>(
-    `SELECT email, phone, mobile_phone
-     FROM contacts
-     WHERE id = $1
-     LIMIT 1`,
-    [contactId]
-  );
-  const row = result.rows[0];
-  return {
-    email: row?.email?.trim() || null,
-    phone: row?.mobile_phone?.trim() || row?.phone?.trim() || null,
-  };
-};
-
-const hasActivePortalAccount = async (db: Db, contactId: string): Promise<boolean> => {
-  if (!UUID_PATTERN.test(contactId)) {
-    return false;
-  }
-
-  const result = await db.query<{ exists: boolean }>(
-    `SELECT EXISTS (
-       SELECT 1
-       FROM portal_users
-       WHERE contact_id = $1
-         AND status = 'active'
-       LIMIT 1
-     ) AS exists`,
-    [contactId]
-  );
-  return result.rows[0]?.exists === true;
-};
-
-const applyReviewFollowUpDecision = async (
-  repository: CaseFormsRepository,
-  client: PoolClient,
-  assignment: CaseFormAssignmentRecord,
-  payload: CaseFormReviewDecision,
-  userId?: string | null
-): Promise<void> => {
-  if (!assignment.review_follow_up_id || !assignment.account_id) {
-    return;
-  }
-
-  const notes = buildReviewFollowUpResolutionNote(payload.decision, assignment.title, payload.notes);
-
-  if (payload.decision === 'revision_requested') {
-    return;
-  }
-
-  if (payload.decision === 'cancelled') {
-    await repository.cancelReviewFollowUp(client, {
-      organizationId: assignment.account_id,
-      followUpId: assignment.review_follow_up_id,
-      notes,
-      userId: userId || null,
-    });
-    return;
-  }
-
-  await repository.completeReviewFollowUp(client, {
-    organizationId: assignment.account_id,
-    followUpId: assignment.review_follow_up_id,
-    notes,
-    userId: userId || null,
-  });
-};
 
 export const listCaseFormDefaults = async (
   repository: CaseFormsRepository,
@@ -212,7 +99,10 @@ export const updateCaseFormDefault = async (
 ): Promise<CaseFormDefault> => {
   const current = await repository.getDefaultById(defaultId, organizationId);
   if (!current || current.case_type_id !== caseTypeId) {
-    throw Object.assign(new Error('Form default not found'), { statusCode: 404, code: 'not_found' });
+    throw Object.assign(new Error('Form default not found'), {
+      statusCode: 404,
+      code: 'not_found',
+    });
   }
 
   return repository.withTransaction((client) =>
@@ -258,7 +148,10 @@ export const autosaveCaseFormTemplate = async (
 ): Promise<CaseFormDefault> => {
   const current = await repository.getDefaultById(templateId, organizationId);
   if (!current) {
-    throw Object.assign(new Error('Form template not found'), { statusCode: 404, code: 'not_found' });
+    throw Object.assign(new Error('Form template not found'), {
+      statusCode: 404,
+      code: 'not_found',
+    });
   }
 
   return repository.withTransaction((client) =>
@@ -374,7 +267,10 @@ export const instantiateCaseFormDefault = async (
   const ownership = await requireCaseOwnership(db, caseId, organizationId);
   const formDefault = await repository.getDefaultById(defaultId, organizationId);
   if (!formDefault) {
-    throw Object.assign(new Error('Form default not found'), { statusCode: 404, code: 'not_found' });
+    throw Object.assign(new Error('Form default not found'), {
+      statusCode: 404,
+      code: 'not_found',
+    });
   }
 
   return repository.withTransaction((client) =>
@@ -549,7 +445,9 @@ export const sendCaseFormAssignment = async (
   const emailDeliveryEnabled = deliveryChannels.includes('email');
   const smsDeliveryEnabled = deliveryChannels.includes('sms');
   const needsContactFallback =
-    (emailDeliveryEnabled && !payload.recipient_email?.trim() && !assignment.recipient_email?.trim()) ||
+    (emailDeliveryEnabled &&
+      !payload.recipient_email?.trim() &&
+      !assignment.recipient_email?.trim()) ||
     (smsDeliveryEnabled && !payload.recipient_phone?.trim() && !assignment.recipient_phone?.trim());
   const contactFallbacks = needsContactFallback
     ? await getContactDeliveryFallbacks(db, assignment.contact_id)
@@ -566,10 +464,14 @@ export const sendCaseFormAssignment = async (
   }
 
   const recipientEmail = emailDeliveryEnabled
-    ? payload.recipient_email?.trim() || assignment.recipient_email?.trim() || contactFallbacks.email
+    ? payload.recipient_email?.trim() ||
+      assignment.recipient_email?.trim() ||
+      contactFallbacks.email
     : assignment.recipient_email?.trim() || null;
   const recipientPhone = smsDeliveryEnabled
-    ? payload.recipient_phone?.trim() || assignment.recipient_phone?.trim() || contactFallbacks.phone
+    ? payload.recipient_phone?.trim() ||
+      assignment.recipient_phone?.trim() ||
+      contactFallbacks.phone
     : assignment.recipient_phone?.trim() || null;
 
   if (emailDeliveryEnabled && !recipientEmail) {
@@ -588,7 +490,9 @@ export const sendCaseFormAssignment = async (
   const secureLinkDeliveryEnabled = emailDeliveryEnabled || smsDeliveryEnabled;
   const rawToken = secureLinkDeliveryEnabled ? crypto.randomBytes(24).toString('base64url') : null;
   const tokenHash = rawToken ? hashData(rawToken) : null;
-  const expiresAt = secureLinkDeliveryEnabled ? resolveExpiryDate(assignment, payload.expires_in_days) : null;
+  const expiresAt = secureLinkDeliveryEnabled
+    ? resolveExpiryDate(assignment, payload.expires_in_days)
+    : null;
   const sentAt = new Date();
   const legacyDeliveryTarget = deriveLegacyDeliveryTarget(deliveryChannels);
   const accessLink = rawToken ? buildAccessLinkUrl(rawToken) : null;
@@ -612,7 +516,9 @@ export const sendCaseFormAssignment = async (
       html: [
         '<p>A staff member has requested information for your case.</p>',
         `<p><strong>Form:</strong> ${assignment.title}</p>`,
-        assignment.description ? `<p><strong>Details:</strong> ${assignment.description}</p>` : null,
+        assignment.description
+          ? `<p><strong>Details:</strong> ${assignment.description}</p>`
+          : null,
         `<p><a href="${accessLink}">Complete the form here</a></p>`,
         `<p>This secure link expires on ${expiresAt.toISOString()}.</p>`,
       ]
@@ -745,7 +651,18 @@ export const reviewCaseFormAssignment = async (
   };
 
   await repository.withTransaction(async (client) => {
-    await applyReviewFollowUpDecision(repository, client, assignment, reviewPayload, userId || null);
+    const mappingApplication =
+      reviewPayload.decision === 'reviewed'
+        ? await applyLatestPendingSubmissionMappings(repository, client, assignment, userId || null)
+        : { submissionId: null, appliedCount: 0 };
+
+    await applyReviewFollowUpDecision(
+      repository,
+      client,
+      assignment,
+      reviewPayload,
+      userId || null
+    );
     await repository.markAssignmentReviewDecision(client, assignment.id, {
       status: reviewPayload.decision,
       notes,
@@ -763,13 +680,21 @@ export const reviewCaseFormAssignment = async (
         decision: reviewPayload.decision,
         notes_character_count: notes?.length ?? 0,
         review_follow_up_id: assignment.review_follow_up_id || null,
+        ...(reviewPayload.decision === 'reviewed'
+          ? {
+              mapping_submission_id: mappingApplication.submissionId,
+              applied_mapping_count: mappingApplication.appliedCount,
+            }
+          : {}),
       },
     });
     await createLifecycleNote(
       client,
       assignment.case_id,
       noteContent(
-        reviewPayload.decision === 'revision_requested' ? 'revision requested' : reviewPayload.decision,
+        reviewPayload.decision === 'revision_requested'
+          ? 'revision requested'
+          : reviewPayload.decision,
         assignment.title,
         notes
       ),
@@ -779,7 +704,10 @@ export const reviewCaseFormAssignment = async (
 
   const refreshed = await repository.getAssignmentById(assignment.id);
   if (!refreshed) {
-    throw Object.assign(new Error('Form assignment not found after review'), { statusCode: 404, code: 'not_found' });
+    throw Object.assign(new Error('Form assignment not found after review'), {
+      statusCode: 404,
+      code: 'not_found',
+    });
   }
 
   return refreshed;
@@ -792,10 +720,19 @@ export const getCaseFormResponsePacketForCase = async (
   assignmentId: string,
   organizationId?: string
 ): Promise<DownloadableFile> => {
-  const detail = await getCaseFormAssignmentDetailForCase(repository, db, caseId, assignmentId, organizationId);
+  const detail = await getCaseFormAssignmentDetailForCase(
+    repository,
+    db,
+    caseId,
+    assignmentId,
+    organizationId
+  );
   const latest = detail.assignment.latest_submission;
   if (!latest?.response_packet_file_path || !latest.response_packet_file_name) {
-    throw Object.assign(new Error('Response packet not found'), { statusCode: 404, code: 'not_found' });
+    throw Object.assign(new Error('Response packet not found'), {
+      statusCode: 404,
+      code: 'not_found',
+    });
   }
   return {
     fileName: latest.response_packet_file_name,
@@ -825,10 +762,7 @@ export const getCaseFormAssetForCase = async (
   };
 };
 
-export const createStaffCaseFormsFacade = (
-  repository: CaseFormsRepository,
-  db: Db
-) => ({
+export const createStaffCaseFormsFacade = (repository: CaseFormsRepository, db: Db) => ({
   listDefaults: (caseTypeId: string, organizationId?: string): Promise<CaseFormDefault[]> =>
     listCaseFormDefaults(repository, caseTypeId, organizationId),
   createDefault: (
@@ -849,8 +783,7 @@ export const createStaffCaseFormsFacade = (
   listTemplates: (
     filters: CaseFormTemplateListFilters,
     organizationId?: string
-  ): Promise<CaseFormDefault[]> =>
-    listCaseFormTemplates(repository, filters, organizationId),
+  ): Promise<CaseFormDefault[]> => listCaseFormTemplates(repository, filters, organizationId),
   createTemplate: (
     payload: CreateCaseFormDefaultDTO,
     userId?: string,
@@ -871,10 +804,21 @@ export const createStaffCaseFormsFacade = (
     userId?: string,
     organizationId?: string
   ): Promise<CaseFormDefault> =>
-    saveCaseFormAssignmentAsTemplate(repository, db, caseId, assignmentId, payload, userId, organizationId),
+    saveCaseFormAssignmentAsTemplate(
+      repository,
+      db,
+      caseId,
+      assignmentId,
+      payload,
+      userId,
+      organizationId
+    ),
   listRecommendedDefaults: (caseId: string, organizationId?: string): Promise<CaseFormDefault[]> =>
     listCaseFormRecommendedDefaults(repository, db, caseId, organizationId),
-  listAssignmentsForCase: (caseId: string, organizationId?: string): Promise<CaseFormAssignment[]> =>
+  listAssignmentsForCase: (
+    caseId: string,
+    organizationId?: string
+  ): Promise<CaseFormAssignment[]> =>
     listCaseFormAssignmentsForCase(repository, db, caseId, organizationId),
   createAssignment: (
     caseId: string,

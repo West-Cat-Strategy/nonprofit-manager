@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { emailSchema, passwordSchema, weakPasswordSchema, nameSchema, uuidSchema } from './shared';
+import { emailSchema, passwordSchema, nameSchema, uuidSchema } from './shared';
 
 // Login request
 export const loginSchema = z.object({
@@ -137,8 +137,8 @@ export const changePasswordSchema = z
   .object({
     currentPassword: z.string().min(1, 'Current password is required').optional(),
     current_password: z.string().min(1, 'Current password is required').optional(),
-    newPassword: weakPasswordSchema.optional(),
-    new_password: weakPasswordSchema.optional(),
+    newPassword: passwordSchema.optional(),
+    new_password: passwordSchema.optional(),
     newPasswordConfirm: z.string().optional(),
     new_password_confirm: z.string().optional(),
   })

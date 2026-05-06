@@ -2,6 +2,7 @@ import { Pool, type PoolClient } from 'pg';
 import { z } from 'zod';
 import type { AccountFilters } from '@app-types/account';
 import type { DataScopeFilter } from '@app-types/dataScope';
+import { withUserContextTransaction } from '@config/database';
 import {
   buildTabularExport,
   type GeneratedTabularFile,
@@ -18,6 +19,14 @@ import {
   toTrimmedString,
   type ImportRowError,
 } from '@modules/shared/import/importUtils';
+import {
+  ADMIN_ACCOUNT_TAX_ID_POLICY,
+  type AccountTaxIdPolicy,
+  applyAccountTaxIdReadPolicy,
+  assertAccountTaxIdWriteAllowed,
+  filterTaxIdColumnForRead,
+  filterTaxIdColumnForWrite,
+} from './accountFieldAccess.usecase';
 
 type ExportableAccountRow = {
   account_id: string;
@@ -262,9 +271,10 @@ export class AccountImportExportUseCase {
 
   async exportAccounts(
     request: AccountExportRequest,
-    scope?: DataScopeFilter
+    scope?: DataScopeFilter,
+    taxIdPolicy: AccountTaxIdPolicy = ADMIN_ACCOUNT_TAX_ID_POLICY
   ): Promise<GeneratedTabularFile> {
-    const requestedColumns = this.resolveColumns(request.columns);
+    const requestedColumns = this.resolveColumns(request.columns, taxIdPolicy);
     const { clause, values } = buildWhereClause(request, scope, request.ids);
     const sortColumn =
       ACCOUNT_SORT_COLUMNS[request.sort_by || ''] ?? ACCOUNT_SORT_COLUMNS.account_name;
@@ -306,20 +316,25 @@ export class AccountImportExportUseCase {
         {
           name: 'Accounts',
           columns: requestedColumns,
-          rows: result.rows,
+          rows: result.rows.map((row) =>
+            applyAccountTaxIdReadPolicy(row, taxIdPolicy) as ExportableAccountRow
+          ),
         },
       ],
     });
   }
 
-  async getImportTemplate(format: 'csv' | 'xlsx'): Promise<GeneratedTabularFile> {
+  async getImportTemplate(
+    format: 'csv' | 'xlsx',
+    taxIdPolicy: AccountTaxIdPolicy = ADMIN_ACCOUNT_TAX_ID_POLICY
+  ): Promise<GeneratedTabularFile> {
     return buildTabularExport({
       format,
       fallbackBaseName: 'accounts-import-template',
       sheets: [
         {
           name: 'Accounts',
-          columns: ACCOUNT_TEMPLATE_COLUMNS,
+          columns: filterTaxIdColumnForWrite(ACCOUNT_TEMPLATE_COLUMNS, taxIdPolicy),
           rows: [],
         },
       ],
@@ -329,10 +344,14 @@ export class AccountImportExportUseCase {
   async previewImport(
     file: Express.Multer.File,
     mapping?: Record<string, unknown>,
-    scope?: DataScopeFilter
+    scope?: DataScopeFilter,
+    taxIdPolicy: AccountTaxIdPolicy = ADMIN_ACCOUNT_TAX_ID_POLICY
   ): Promise<AccountImportPreview> {
-    const parsedFile = await parsePeopleImportFile(file, 'accounts', mapping);
-    const analysis = await this.analyzeImport(parsedFile, scope);
+    const parsedFile = this.applyImportTaxIdPolicy(
+      await parsePeopleImportFile(file, 'accounts', mapping),
+      taxIdPolicy
+    );
+    const analysis = await this.analyzeImport(parsedFile, scope, taxIdPolicy);
 
     return {
       detected_columns: parsedFile.detectedColumns,
@@ -351,10 +370,22 @@ export class AccountImportExportUseCase {
     file: Express.Multer.File,
     mapping: Record<string, unknown> | undefined,
     userId: string,
-    scope?: DataScopeFilter
+    scope?: DataScopeFilter,
+    taxIdPolicy: AccountTaxIdPolicy = ADMIN_ACCOUNT_TAX_ID_POLICY
   ): Promise<AccountImportCommitResult> {
-    const parsedFile = await parsePeopleImportFile(file, 'accounts', mapping);
-    const analysis = await this.analyzeImport(parsedFile, scope);
+    const actorId = userId?.trim();
+    if (!actorId) {
+      throw Object.assign(new Error('Authenticated actor is required to commit account import'), {
+        statusCode: 401,
+        code: 'unauthorized',
+      });
+    }
+
+    const parsedFile = this.applyImportTaxIdPolicy(
+      await parsePeopleImportFile(file, 'accounts', mapping),
+      taxIdPolicy
+    );
+    const analysis = await this.analyzeImport(parsedFile, scope, taxIdPolicy);
 
     if (analysis.rowErrors.length > 0) {
       throw Object.assign(new Error('Import preview contains validation errors'), {
@@ -365,44 +396,39 @@ export class AccountImportExportUseCase {
       });
     }
 
-    const client = await this.pool.connect();
     const affectedIds: string[] = [];
     let created = 0;
     let updated = 0;
 
-    try {
-      await client.query('BEGIN');
+    return withUserContextTransaction(actorId, async (client) => {
       await client.query('SELECT pg_advisory_xact_lock($1)', [911_000_001]);
 
       for (const action of analysis.actions) {
         if (action.action === 'create') {
-          const accountId = await this.insertAccount(client, action.payload, userId);
+          const accountId = await this.insertAccount(client, action.payload, actorId);
           affectedIds.push(accountId);
           created += 1;
           continue;
         }
 
-        await this.updateAccount(client, action.accountId, action.payload, userId);
+        await this.updateAccount(client, action.accountId, action.payload, actorId);
         affectedIds.push(action.accountId);
         updated += 1;
       }
 
-      await client.query('COMMIT');
       return {
         created,
         updated,
         total_processed: created + updated,
         affected_ids: affectedIds,
       };
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    });
   }
 
-  private resolveColumns(requested?: string[]): Array<TabularExportColumn<ExportableAccountRow>> {
+  private resolveColumns(
+    requested?: string[],
+    taxIdPolicy: AccountTaxIdPolicy = ADMIN_ACCOUNT_TAX_ID_POLICY
+  ): Array<TabularExportColumn<ExportableAccountRow>> {
     const defaults = ['account_id', 'account_number'];
     const selected =
       requested && requested.length > 0
@@ -411,12 +437,51 @@ export class AccountImportExportUseCase {
 
     return selected
       .map((key) => ACCOUNT_EXPORT_COLUMNS.find((column) => column.key === key))
-      .filter((column): column is TabularExportColumn<ExportableAccountRow> => Boolean(column));
+      .filter((column): column is TabularExportColumn<ExportableAccountRow> => Boolean(column))
+      .filter((column) => filterTaxIdColumnForRead([column], taxIdPolicy).length > 0);
+  }
+
+  private applyImportTaxIdPolicy(
+    parsedFile: Awaited<ReturnType<typeof parsePeopleImportFile>>,
+    taxIdPolicy: AccountTaxIdPolicy
+  ): Awaited<ReturnType<typeof parsePeopleImportFile>> {
+    if (taxIdPolicy.canWrite) {
+      return parsedFile;
+    }
+
+    const mapping = Object.fromEntries(
+      Object.entries(parsedFile.mapping).filter(([, field]) => field !== 'tax_id')
+    );
+    const mappingCandidates = Object.fromEntries(
+      Object.entries(parsedFile.mappingCandidates).map(([column, candidates]) => [
+        column,
+        candidates.filter((candidate) => candidate.field !== 'tax_id'),
+      ])
+    );
+    const removedTaxIdMapping =
+      Object.values(parsedFile.mapping).includes('tax_id')
+      || Object.values(parsedFile.mappingCandidates).some((candidates) =>
+        candidates.some((candidate) => candidate.field === 'tax_id')
+      );
+
+    return {
+      ...parsedFile,
+      fieldOptions: parsedFile.fieldOptions.filter((option) => option.field !== 'tax_id'),
+      mapping,
+      mappingCandidates,
+      warnings: removedTaxIdMapping
+        ? [
+            ...parsedFile.warnings,
+            'accounts.tax_id was ignored because you do not have permission to write it.',
+          ]
+        : parsedFile.warnings,
+    };
   }
 
   private async analyzeImport(
     parsedFile: Awaited<ReturnType<typeof parsePeopleImportFile>>,
-    scope?: DataScopeFilter
+    scope?: DataScopeFilter,
+    taxIdPolicy: AccountTaxIdPolicy = ADMIN_ACCOUNT_TAX_ID_POLICY
   ): Promise<{
     actions: AccountImportAction[];
     toCreate: number;
@@ -453,6 +518,12 @@ export class AccountImportExportUseCase {
       const payload = this.mapRow(row, parsedFile.mapping);
       const messages: string[] = [];
       let nextAction: AccountImportAction | null = null;
+
+      try {
+        assertAccountTaxIdWriteAllowed(payload, taxIdPolicy);
+      } catch (error) {
+        messages.push(error instanceof Error ? error.message : 'Cannot write accounts.tax_id');
+      }
 
       if (payload.account_id) {
         const existing = existingAccounts.byId.get(payload.account_id);

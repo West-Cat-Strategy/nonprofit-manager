@@ -33,6 +33,7 @@ import ConfirmDialog from '../../../components/ConfirmDialog';
 import { useBulkSelect } from '../../../hooks';
 import { BrutalBadge } from '../../../components/neo-brutalist';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
+import { useStableSearchParamsWriter } from '../../../hooks/useStableSearchParams';
 import {
   parseAllowedValue,
   parseAllowedValueOrEmpty,
@@ -99,6 +100,7 @@ const VolunteerList = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { writeSearchParams } = useStableSearchParamsWriter(setSearchParams);
   const { volunteers, loading, error, pagination, filters } =
     useAppSelector(resolveVolunteerListState);
 
@@ -166,7 +168,7 @@ const VolunteerList = () => {
     if (currentLimit !== 20) params.set('limit', String(currentLimit));
     if (sortBy !== 'created_at') params.set('sort_by', sortBy);
     if (sortOrder !== 'desc') params.set('sort_order', sortOrder);
-    setSearchParams(params, { replace: true });
+    writeSearchParams(params, { replace: true });
   }, [
     searchInput,
     availabilityFilter,
@@ -175,7 +177,7 @@ const VolunteerList = () => {
     currentLimit,
     sortBy,
     sortOrder,
-    setSearchParams,
+    writeSearchParams,
   ]);
 
   const handleFilterChange = (filterId: string, value: string | string[]) => {

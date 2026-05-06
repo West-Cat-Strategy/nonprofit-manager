@@ -109,7 +109,7 @@ test.describe('Volunteers Module', () => {
             lastName: 'Volunteer',
             email: `other.${suffix}@example.com`,
             availabilityStatus: 'available',
-            backgroundCheckStatus: 'approved',
+            backgroundCheckStatus: 'in_progress',
         });
 
         await authenticatedPage.goto('/volunteers');

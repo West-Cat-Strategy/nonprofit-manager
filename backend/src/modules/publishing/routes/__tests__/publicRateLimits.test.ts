@@ -69,6 +69,7 @@ jest.mock('../../controllers', () => {
 
   return {
     addCustomDomain: ok,
+    acceptSitePublicActionSubmission: ok,
     clearAllCache: ok,
     confirmPublicNewsletterSignup: ok,
     createSite: ok,
@@ -110,6 +111,7 @@ jest.mock('../../controllers', () => {
     pruneVersions: ok,
     recordAnalytics: ok,
     refreshSiteNewsletterWorkspace: ok,
+    rejectSitePublicActionSubmission: ok,
     removeCustomDomain: ok,
     rollbackVersion: ok,
     servePublishedSite: ok,
@@ -117,6 +119,7 @@ jest.mock('../../controllers', () => {
     submitPublicWebsiteForm: ok,
     syncMailchimpEntries: ok,
     unpublishSite: ok,
+    fulfillSitePublicActionSubmission: ok,
     updateSite: ok,
     updateSiteFacebookIntegration: ok,
     updateSiteForm: ok,
@@ -158,6 +161,27 @@ describe('public publishing route rate limits', () => {
       .expect(({ body }) => {
         expect(body.error.message).toBe('public-website-action');
       });
+  });
+
+  it('registers protected staff public-action submission transition routes', async () => {
+    const siteId = '11111111-1111-4111-8111-111111111111';
+    const actionId = '33333333-3333-4333-8333-333333333333';
+    const submissionId = '44444444-4444-4444-8444-444444444444';
+
+    await request(app)
+      .post(`/api/v2/sites/${siteId}/actions/${actionId}/submissions/${submissionId}/accept`)
+      .send({})
+      .expect(204);
+
+    await request(app)
+      .post(`/api/v2/sites/${siteId}/actions/${actionId}/submissions/${submissionId}/reject`)
+      .send({})
+      .expect(204);
+
+    await request(app)
+      .post(`/api/v2/sites/${siteId}/actions/${actionId}/submissions/${submissionId}/fulfill`)
+      .send({})
+      .expect(204);
   });
 
   it('applies the newsletter confirmation limiter before GET and POST confirmation writes', async () => {

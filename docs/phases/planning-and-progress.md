@@ -1,6 +1,6 @@
 # Planning & Progress
 
-**Last Updated:** 2026-05-05
+**Last Updated:** 2026-05-06
 
 ## At a Glance
 
@@ -10,11 +10,11 @@
 
 | Snapshot | Value |
 |---|---|
-| Active rows | 13 |
+| Active rows | 20 |
 | In Progress | 0 |
 | Blocked | 1 |
-| Review | 7 |
-| Ready | 5 |
+| Review | 19 |
+| Ready | 0 |
 | Phase 4 carry-over rows | 0 |
 | Recent thread follow-through rows | 0 |
 
@@ -50,24 +50,32 @@ Maintenance rules:
 | Review | P5-T64 | Mailchimp campaign-run cancel/reschedule contract cleanup | Review the Mailchimp route cleanup and proof in [../validation/P5-T64_MAILCHIMP_CANCEL_RESCHEDULE_CONTRACT_PROOF_2026-05-05.md](../validation/P5-T64_MAILCHIMP_CANCEL_RESCHEDULE_CONTRACT_PROOF_2026-05-05.md): the registered cancel/reschedule routes now return explicit `405` error envelopes without provider action calls. |
 | Review | P5-T65 | Outcomes report `programId` contract cleanup | Review the strict backend contract cleanup and proof in [../validation/P5-T65_OUTCOMES_REPORT_PROGRAM_ID_CONTRACT_PROOF_2026-05-05.md](../validation/P5-T65_OUTCOMES_REPORT_PROGRAM_ID_CONTRACT_PROOF_2026-05-05.md): `programId` is no longer accepted by validation or forwarded by the controller. |
 | Review | P5-T67 | Retire or re-home legacy verification scripts | Review the legacy verifier re-home and proof in [../validation/P5-T67_LEGACY_VERIFICATION_REHOME_PROOF_2026-05-05.md](../validation/P5-T67_LEGACY_VERIFICATION_REHOME_PROOF_2026-05-05.md): old verifier scripts/docs are historical reproduction helpers and the active verification contract remains Make plus `scripts/select-checks.sh`. |
+| Review | P5-T70 | Local campaign failed-recipient retry policy | Review the focused local-email failed-recipient retry proof in [../validation/P5-T70_LOCAL_CAMPAIGN_FAILED_RECIPIENT_RETRY_PROOF_2026-05-05.md](../validation/P5-T70_LOCAL_CAMPAIGN_FAILED_RECIPIENT_RETRY_PROOF_2026-05-05.md). |
 | Review | P5-T71 | Public workflow browser proof sweep | Review the focused browser proof in [../validation/P5-T71_PUBLIC_WORKFLOW_BROWSER_PROOF_2026-05-05.md](../validation/P5-T71_PUBLIC_WORKFLOW_BROWSER_PROOF_2026-05-05.md): clean worker proof passed for managed forms, donation checkout, and public action blocks; the dirty lead checkout exposed the separate `P5-T78` public-action runtime regression. |
+| Review | P5-T72 | Support-letter approval delivery/download polish | Review the staff support-letter preview/copy/download proof in [../validation/P5-T72_T73_WEBSITE_CONSOLE_PUBLIC_ACTION_POLISH_PROOF_2026-05-05.md](../validation/P5-T72_T73_WEBSITE_CONSOLE_PUBLIC_ACTION_POLISH_PROOF_2026-05-05.md). |
+| Review | P5-T73 | Public event and self-referral operational snapshots | Review the operator snapshot/drilldown proof in [../validation/P5-T73_PUBLIC_EVENT_SELF_REFERRAL_OPERATIONAL_SNAPSHOTS_PROOF_2026-05-05.md](../validation/P5-T73_PUBLIC_EVENT_SELF_REFERRAL_OPERATIONAL_SNAPSHOTS_PROOF_2026-05-05.md): existing event and self-referral cards now expose focused status, drilldowns, and backend contract proof without widening into analytics or redesign. |
 | Review | P5-T74 | Recurring donation provider-management parity | Review the recurring donation provider-management cleanup and proof in [../validation/P5-T74_RECURRING_DONATION_PROVIDER_MANAGEMENT_PROOF_2026-05-05.md](../validation/P5-T74_RECURRING_DONATION_PROVIDER_MANAGEMENT_PROOF_2026-05-05.md): Stripe management is preserved, non-Stripe metadata edits remain local, and unsupported non-Stripe provider-management actions are explicitly gated. |
+| Review | P5-T76 | Browser telemetry and operator metrics next slice | Review the Admin Hub browser-session diagnostics surface proof in [../validation/P5-T76_BROWSER_SESSION_DIAGNOSTICS_PROOF_2026-05-05.md](../validation/P5-T76_BROWSER_SESSION_DIAGNOSTICS_PROOF_2026-05-05.md); focused tests, frontend type-check, lint, feature-boundary policy, docs links, and `git diff --check` passed. |
+| Review | P5-T78 | Public action block submission regression | Review the focused proof in [../validation/P5-T78_PUBLIC_ACTION_BLOCK_SUBMISSION_REGRESSION_PROOF_2026-05-05.md](../validation/P5-T78_PUBLIC_ACTION_BLOCK_SUBMISSION_REGRESSION_PROOF_2026-05-05.md): current clean `main` does not reproduce the dirty-checkout petition submission `500`, and public-action service plus Chromium browser proof passed. |
+| Review | P5-T79 | Auth and session hardening remediation | Review the auth/session remediation proof in [../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md](../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md): password resets revoke staff sessions, MFA bypass is test-gated, WebAuthn user verification is required, and change-password uses the strong policy. |
+| Review | P5-T80 | Portal and pending-account hardening remediation | Review the portal/pending-account remediation proof in [../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md](../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md): portal admin actions are tenant-scoped, pending approvals are transactional, and migrations `121`/`122` are wired into manifest/initdb. |
+| Review | P5-T81 | Accounts access and RLS hardening remediation | Review the accounts/RLS remediation proof in [../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md](../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md): account writes are admin-only, `tax_id` is field-policy protected, account contacts honor full data scope, and user-access writes carry request context. |
+| Review | P5-T82 | Case-form review-gated mapping remediation | Review the case-form mapping proof in [../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md](../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md): portal/public mappings remain pending until staff reviews the latest submission, while revision requests apply no mapped writes. |
+| Review | P5-T83 | Public-action approval transition remediation | Review the public-action transition proof in [../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md](../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md): public submissions are capture-only until staff accept/reject/fulfill transitions release side effects and support-letter artifacts. |
+| Review | P5-T84 | Volunteer background-check approval remediation | Review the volunteer approval proof in [../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md](../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md): `approved` is removed from generic volunteer edits/imports and the dedicated approval route records approver metadata via migration `123`. |
+| Review | P5-T85 | Docker stack efficiency refactor and fresh rebuild | Review the Docker stack efficiency proof in [../validation/P5-T85_DOCKER_STACK_EFFICIENCY_PROOF_2026-05-06.md](../validation/P5-T85_DOCKER_STACK_EFFICIENCY_PROOF_2026-05-06.md): production app images were rebuilt smaller, compose overlays validated, fresh `nonprofit-dev` rebuilt healthy, and Docker smoke passed; local Caddy remains blocked by host port `443`. |
 
 ### Ready Queue
 
 | Status | ID | Task | Immediate Next Move |
 |---|---|---|---|
-| Ready | P5-T70 | Local campaign failed-recipient retry policy | Scope local-email failed-recipient retry semantics, operator visibility, and validation without widening `P5-T46` into marketing automation, tracking, Mailchimp, or frontend work. |
-| Ready | P5-T72 | Support-letter approval delivery/download polish | Decide and implement the staff-facing support-letter approval delivery/download behavior called out by `P5-T42`, keeping it separate from petition counts and broader workflow tooling. |
-| Ready | P5-T73 | Public event and self-referral operational snapshots | Scope public event waitlist/check-in and self-referral snapshot/status UI separately from `P5-T42A` petition counts and generic analytics surfaces. |
-| Ready | P5-T76 | Browser telemetry and operator metrics next slice | Scope a narrow browser telemetry/operator metrics follow-up from `P5-T61` without opening workflow/queue platforms, public dashboards, or broad table rewrites. |
-| Ready | P5-T78 | Public action block submission regression | Diagnose and fix the dirty lead-checkout public action runtime `500` exposed by `P5-T71` without reopening generic public analytics, managed forms, donation checkout, or broader website-builder redesign. |
+| _None_ | _None_ | _None_ | No row is currently ready. |
 
 ### Blocked Queue
 
 | Status | ID | Task | Immediate Next Move |
 |---|---|---|---|
-| Blocked | P5-T75 | Auth alias deprecation gate | Time-gated compatibility retirement: before the June 17, 2026 blocker checkpoint, verify alias telemetry ratios/exceptions and publish or explicitly defer the cutoff; no snake_case alias removal ships before July 1, 2026 and only after [../security/AUTH_ALIAS_DEPRECATION_CHECKLIST.md](../security/AUTH_ALIAS_DEPRECATION_CHECKLIST.md) is satisfied. |
+| Blocked | P5-T75 | Auth alias deprecation gate | Managed time-gated blocker: thread follow-up is scheduled for June 17, 2026 to review alias telemetry ratios/exceptions and publish or explicitly defer the cutoff; no snake_case alias removal ships before July 1, 2026 and only after [../security/AUTH_ALIAS_DEPRECATION_CHECKLIST.md](../security/AUTH_ALIAS_DEPRECATION_CHECKLIST.md) is satisfied. Handoff: [../validation/P5-T75_AUTH_ALIAS_GATE_HANDOFF_2026-05-05.md](../validation/P5-T75_AUTH_ALIAS_GATE_HANDOFF_2026-05-05.md). |
 
 ### Ready Next
 
@@ -76,8 +84,10 @@ Maintenance rules:
 - `P5-T62` is signed off with proof in [../validation/P5-T62_MEETING_MINUTES_DRAFT_PREVIEW_PROOF_2026-05-05.md](../validation/P5-T62_MEETING_MINUTES_DRAFT_PREVIEW_PROOF_2026-05-05.md). It replaced the meeting detail `Draft Minutes` placeholder with frontend markdown preview, copy, and download behavior without opening backend generation, save/editor, calendar, route catalog, migration, or broader meetings redesign scope.
 - `P5-T63` through `P5-T76` were added from the May 4 codebase review for stubs, incomplete implementations, inactive/dead code, and deferred implementation notes. They intentionally do not reopen the signed-off Docker/database proof rows.
 - `P5-T77` is signed off and archived in [archive/P5_LOCAL_CAMPAIGN_BROWSER_VIEW_CLOSEOUT_2026-05-05.md](archive/P5_LOCAL_CAMPAIGN_BROWSER_VIEW_CLOSEOUT_2026-05-05.md), with proof in [../validation/P5-T77_LOCAL_CAMPAIGN_BROWSER_VIEW_PROOF_2026-05-05.md](../validation/P5-T77_LOCAL_CAMPAIGN_BROWSER_VIEW_PROOF_2026-05-05.md). It added local SMTP campaign browser-view links without opening Mailchimp browser-view injection, tracking pixels, marketing automation, preference-center UI, frontend campaign workspace changes, database migrations, or broader `P5-T6` scope.
-- `P5-T63`, `P5-T64`, `P5-T65`, `P5-T67`, `P5-T71`, and `P5-T74` are in review with row-local proof. No row is currently in progress. Prioritize remaining concrete scoped rows next: `P5-T70` local campaign retry policy, `P5-T72` support-letter approval/download polish, `P5-T73` public event/self-referral snapshots, `P5-T76` browser telemetry/operator metrics, and `P5-T78` public action block submission regression.
-- Keep deferred/follow-on rows scoped: `P5-T70` local campaign retry policy, `P5-T72` support-letter approval delivery/download polish, `P5-T73` public event/self-referral snapshots, `P5-T76` browser telemetry/operator metrics, and `P5-T78` public action block submission regression must not open generic workflow, public analytics, or broad platform rewrites.
+- `P5-T73` is back in validation/signoff review with focused operator snapshot/drilldown proof recorded. `P5-T76` is back in validation/signoff review with the Admin Hub browser-session diagnostics surface proof recorded. `P5-T70`, `P5-T72`, and `P5-T78` remain in validation/signoff review with focused proof recorded. The dirty-checkout `P5-T78` public-action submission `500` did not reproduce on current clean `main`.
+- `P5-T79` through `P5-T84` are in validation/signoff review with proof recorded in [../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md](../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md). They must stay scoped to concrete auth/session, tenant, RLS, PII, pending-account, and approval-transition defects.
+- `P5-T85` is in validation/signoff review with Docker stack efficiency proof recorded in [../validation/P5-T85_DOCKER_STACK_EFFICIENCY_PROOF_2026-05-06.md](../validation/P5-T85_DOCKER_STACK_EFFICIENCY_PROOF_2026-05-06.md). The pass rebuilt slimmer production app images, validated all compose overlays, fresh-reset and rebuilt `nonprofit-dev`, and proved Docker smoke; local Caddy startup remains blocked by host port `443`.
+- Keep the batch scoped: `P5-T70` local campaign retry policy, `P5-T72` support-letter approval delivery/download polish, `P5-T73` public event/self-referral snapshots, `P5-T76` browser telemetry/operator metrics, and `P5-T78` public action block submission regression must not open generic workflow, public analytics, or broad platform rewrites.
 - `P5-T75` is blocked by time and telemetry rather than missing code. Treat June 17, 2026 as the blocker checkpoint and July 1, 2026 as the earliest enforcement date for auth alias retirement.
 - `P5-T6` remains live as a scope-control gate for later Phase 5 backlog work. Use [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md) and [../development/reference-patterns/P5-T6-reference-repo-consolidation-2026-05-01.md](../development/reference-patterns/P5-T6-reference-repo-consolidation-2026-05-01.md) to keep `borrow now`, `queue for P5-T6`, and `reject` decisions explicit; typed appeals, restrictions, donation batches, memberships, finance breadth, service-site routing, closure continuity, and generic workflow tooling require separate signed-out runtime rows.
 - `P5-T43` is signed off and archived in [archive/P5_LOCAL_CAMPAIGN_UNSUBSCRIBE_CLOSEOUT_2026-05-02.md](archive/P5_LOCAL_CAMPAIGN_UNSUBSCRIBE_CLOSEOUT_2026-05-02.md), with proof in [../validation/P5-T43_LOCAL_CAMPAIGN_UNSUBSCRIBE_PROOF_2026-05-01.md](../validation/P5-T43_LOCAL_CAMPAIGN_UNSUBSCRIBE_PROOF_2026-05-01.md). It added local SMTP campaign unsubscribe and `List-Unsubscribe` support without opening broader marketing automation, tracking, Mailchimp parity, preference-center, fundraising, membership, or finance scope.
@@ -105,23 +115,80 @@ Maintenance rules:
 - `P5-T37`, `P5-T38`, and `P5-T39` are signed off and archived in [archive/P5_REFERENCE_IMPROVEMENTS_CLOSEOUT_2026-05-01.md](archive/P5_REFERENCE_IMPROVEMENTS_CLOSEOUT_2026-05-01.md). `P5-T6` remains in review as the scope-control gate and is not an implementation row.
 - `P5-T43` is signed off and archived in [archive/P5_LOCAL_CAMPAIGN_UNSUBSCRIBE_CLOSEOUT_2026-05-02.md](archive/P5_LOCAL_CAMPAIGN_UNSUBSCRIBE_CLOSEOUT_2026-05-02.md). `P5-T6` remains the scope-control gate for any broader communications/fundraising work.
 - `P5-T40` through `P5-T61` are signed off and archived in [archive/P5_REVIEW_CLOSEOUT_BATCH_2026-05-04.md](archive/P5_REVIEW_CLOSEOUT_BATCH_2026-05-04.md) after the May 4 subagent review and Docker/DB proof closeout.
-- `P5-T63`, `P5-T64`, `P5-T65`, `P5-T67`, `P5-T71`, and `P5-T74` are in review from the May 4/May 5 codebase review follow-through. `P5-T70`, `P5-T72`, `P5-T73`, `P5-T76`, and `P5-T78` remain ready for scoped implementation. `P5-T75` is blocked on the auth alias telemetry calendar; the non-review live rows can move without touching signed-off Docker/database rows.
+- `P5-T79` through `P5-T84` are in review with proof recorded in [../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md](../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md). `P5-T63`, `P5-T64`, `P5-T65`, `P5-T67`, `P5-T70`, `P5-T71`, `P5-T72`, `P5-T73`, `P5-T74`, `P5-T76`, and `P5-T78` remain in review. `P5-T75` is blocked on the auth alias telemetry calendar.
 - `P5-T77` is signed off and archived in [archive/P5_LOCAL_CAMPAIGN_BROWSER_VIEW_CLOSEOUT_2026-05-05.md](archive/P5_LOCAL_CAMPAIGN_BROWSER_VIEW_CLOSEOUT_2026-05-05.md). It added local SMTP campaign browser-view links using existing `campaign_runs.content_snapshot` data and did not add a database migration.
+- `P5-T85` is in review with proof recorded in [../validation/P5-T85_DOCKER_STACK_EFFICIENCY_PROOF_2026-05-06.md](../validation/P5-T85_DOCKER_STACK_EFFICIENCY_PROOF_2026-05-06.md); the healthy `nonprofit-dev` stack remains running on `8004`/`8005`/`8006`, while the optional Caddy overlay is blocked locally by host port `443`.
 
-## Ready Row: P5-T76 Browser Telemetry And Operator Metrics Next Slice
+## Review Row: P5-T76 Browser Telemetry And Operator Metrics Next Slice
 
 - Goal: define the next narrow telemetry slice after the `P5-T61` backend-first metrics pilot, focused on browser/operator visibility without opening workflow/queue platforms.
-- Owned paths: telemetry-facing frontend bootstrap or route surfaces only after scope is signed out, backend metrics docs if needed, focused telemetry tests, `docs/validation/**`, and this workboard.
+- Owned paths: the existing `browserSessionDiagnostics` helper, one operator-facing frontend surface, focused bootstrap/route diagnostics tests, `docs/validation/**`, and this workboard.
 - Forbidden scope: public dashboards, workflow/queue infrastructure, broad admin table rewrites, backend API contract changes, database migrations, Docker runtime files, and unrelated review-lane proof notes.
-- Disposition: `Ready`.
-- Expected proof: focused frontend/backend tests matching the chosen telemetry seam, `make lint` or touched-file eslint, type-checks for changed workspaces, `make check-links` if docs change, and `git diff --check`.
+- Disposition: `Review`; proof is recorded in [../validation/P5-T76_BROWSER_SESSION_DIAGNOSTICS_PROOF_2026-05-05.md](../validation/P5-T76_BROWSER_SESSION_DIAGNOSTICS_PROOF_2026-05-05.md). The next slice adds a frontend-only Admin Hub diagnostics view with copy/clear behavior around existing session-storage diagnostics. Focused tests, frontend type-check, frontend lint, feature-boundary policy, docs link check, and `git diff --check` passed.
+- Expected remaining proof: review the focused bootstrap/route diagnostics proof before signoff.
+
+## Review Row: P5-T79 Auth And Session Hardening Remediation
+
+- Goal: close the auth/session findings from the May 5 auth/accounts review without touching the time-gated `P5-T75` auth-alias retirement.
+- Owned paths: `backend/src/services/passwordResetCore.ts`, `backend/src/services/passwordResetService.ts`, `backend/src/modules/auth/**`, `backend/src/validations/auth.ts`, focused auth/password/passkey tests, `docs/validation/**`, and this workboard.
+- Forbidden scope: snake_case alias removal, frontend auth redesign, portal password-reset session semantics without a separate portal-session revision model, database migrations, broad MFA product redesign, and unrelated bootstrap auth preview cleanup already covered by `P5-T63`.
+- Disposition: `Review`; proof is recorded in [../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md](../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md). Password reset now bumps `auth_revision`, MFA bypass is production-safe, WebAuthn requires user verification, and authenticated password change uses the strong password schema.
+- Expected remaining proof: review the focused auth/password/passkey tests, backend type-check/lint, auth/rate-limit policy checks, and combined `git diff --check` evidence.
+
+## Review Row: P5-T80 Portal And Pending-Account Hardening Remediation
+
+- Goal: close tenant-boundary, approval-race, and resubmission defects in portal admin signup, invitations, portal users, and pending staff registration review.
+- Owned paths: `backend/src/modules/portalAdmin/**`, `backend/src/modules/portalAuth/**`, `backend/src/services/portalAuthService.ts`, `backend/src/modules/admin/**Registration**`, migrations `121` and `122` plus manifest/initdb parity, focused portal/admin-registration tests, `docs/validation/**`, and this workboard.
+- Forbidden scope: generic workflow tooling, public-action approval transitions, case-form mapping approval, volunteer background-check approval, auth alias retirement, unrelated portal appointment/conversation redesign, and existing `P5-T73` UI work.
+- Disposition: `Review`; proof is recorded in [../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md](../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md). Portal admin operations are tenant-scoped, same-email tenant fallback is removed, approve/reject transitions lock pending rows, and migrations `121`/`122` allow rejected resubmission through pending-only uniqueness.
+- Expected remaining proof: review focused portal admin/auth and admin-registration tests, `make db-verify`, backend type-check/lint, route/auth policy checks, and combined `git diff --check` evidence.
+
+## Review Row: P5-T81 Accounts Access And RLS Hardening Remediation
+
+- Goal: close account PII, data-scope, role/RLS, and request-context findings while keeping account lifecycle writes admin-only.
+- Owned paths: `backend/src/modules/accounts/**`, `backend/src/services/accountService.ts`, `backend/src/modules/admin/usecases/userAccessUseCase.ts`, account/user-access RLS probe scripts, focused accounts/authorization tests, `docs/validation/**`, and this workboard.
+- Forbidden scope: manager/staff account lifecycle broadening, generic account redesign, unrelated import-export features, public finance/membership work, and Wave 2 approval-transition rows.
+- Disposition: `Review`; proof is recorded in [../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md](../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md). Account lifecycle/import commit writes are admin-only, `tax_id` follows account field policy, contacts honor full data scope, and user-access writes run with request-bound RLS context.
+- Expected remaining proof: review focused accounts/account-service/authorization tests, `make db-verify`, backend type-check/lint, route/auth policy checks, and combined `git diff --check` evidence.
+
+## Review Row: P5-T82 Case-Form Review-Gated Mapping Remediation
+
+- Goal: defer portal/public mapped contact/case writes until staff accepts the latest case-form submission.
+- Owned paths: `backend/src/modules/cases/**`, case-form tests, `docs/validation/**`, and this workboard.
+- Forbidden scope: generic workflow tooling, public-action approval transitions, volunteer background-check approval, unrelated case lifecycle redesign, and Wave 1 auth/accounts/portal hardening.
+- Disposition: `Review`; proof is recorded in [../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md](../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md). Portal/public mapped writes are stored as pending audit entries and applied only when staff marks the latest submission reviewed.
+- Expected remaining proof: review focused case-form submission/review tests, backend type-check/lint, and combined `git diff --check` evidence.
+
+## Review Row: P5-T83 Public-Action Approval Transition Remediation
+
+- Goal: make public-action submissions capture-only until staff accept/reject/fulfill transitions release contact, pledge, and support-letter side effects.
+- Owned paths: `backend/src/services/publishing/publicActionService.ts`, `backend/src/modules/publishing/**`, public-action frontend staff review surfaces if needed, focused public-action tests, `docs/validation/**`, and this workboard.
+- Forbidden scope: generic public analytics, website-builder redesign, donation checkout redesign, case-form mapping approval, volunteer background-check approval, and Wave 1 auth/accounts/portal hardening.
+- Disposition: `Review`; proof is recorded in [../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md](../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md). Public submissions are capture-only and staff accept/reject/fulfill transitions now control contacts, pledges, and support-letter artifacts.
+- Expected remaining proof: review focused public-action service/controller tests, backend type-check/lint, route policy checks, and combined `git diff --check` evidence.
+
+## Review Row: P5-T84 Volunteer Background-Check Approval Remediation
+
+- Goal: move volunteer background-check approval out of generic volunteer create/update and into an audited approval transition.
+- Owned paths: `backend/src/validations/volunteer.ts`, `backend/src/services/volunteerService.ts`, volunteer routes/controllers/tests, optional focused frontend form updates, `docs/validation/**`, and this workboard.
+- Forbidden scope: broad volunteer dispatch redesign, hours approval changes, generic workflow tooling, public-action approval transitions, case-form mapping approval, and Wave 1 auth/accounts/portal hardening.
+- Disposition: `Review`; proof is recorded in [../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md](../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md). Generic volunteer edit/import paths reject `approved`, and the dedicated background-check approval route records approver/timestamp/notes through migration `123`.
+- Expected remaining proof: review focused volunteer validation/service/route/import tests, backend type-check/lint, route policy checks, and combined `git diff --check` evidence.
+
+## Review Row: P5-T85 Docker Stack Efficiency Refactor And Fresh Rebuild
+
+- Goal: refactor the Docker stack for build/runtime efficiency, validate every compose overlay, fresh-reset and rebuild the local `nonprofit-dev` stack, and prove backend/frontend/public-site readiness.
+- Owned paths: `backend/Dockerfile`, `frontend/Dockerfile`, `docker-compose*.yml`, `Makefile`, Docker validation helper scripts, Docker deployment/runtime docs if wrapper contracts change, `docs/validation/**`, and this workboard.
+- Forbidden scope: third-party platform upgrades unless required for the stack to build, production deploys, global Docker cache pruning, deleting production/Plausible/ELK/backup volumes, application feature work, schema migrations, and unrelated review-row edits.
+- Disposition: `Review`; proof is recorded in [../validation/P5-T85_DOCKER_STACK_EFFICIENCY_PROOF_2026-05-06.md](../validation/P5-T85_DOCKER_STACK_EFFICIENCY_PROOF_2026-05-06.md). Production app images rebuilt smaller, every compose overlay validates, the fresh `nonprofit-dev` reset is healthy on `8004`/`8005`/`8006`, production nginx `/health`/SPA/`/api` behavior was smoke-proved with a temporary container, and the Docker-backed Playwright smoke gate passed.
+- Expected remaining proof: review the Docker proof note and local Caddy blocker. `make docker-up-caddy` is currently blocked by host port `443` already being in use on this machine.
 
 ## Blocked Row: P5-T75 Auth Alias Deprecation Gate
 
 - Goal: carry the timed auth alias retirement gate forward so snake_case auth input compatibility is reviewed before the June 17, 2026 blocker checkpoint and no earlier than the July 1, 2026 enforcement date.
 - Owned paths: `backend/src/validations/auth.ts`, auth validation and alias telemetry tests, [../security/AUTH_ALIAS_DEPRECATION_CHECKLIST.md](../security/AUTH_ALIAS_DEPRECATION_CHECKLIST.md), release/deprecation docs, `docs/validation/**`, and this workboard.
 - Forbidden scope: alias removal before telemetry gates are satisfied, unrelated auth policy changes, session/MFA/passkey changes, frontend redesign, database migrations, and generic API cleanup.
-- Disposition: `Blocked`; blocked on calendar and telemetry evidence rather than implementation access.
+- Disposition: `Blocked`; intentionally deferred on calendar and telemetry evidence rather than implementation access, with the June 17, 2026 thread follow-up recorded in [../validation/P5-T75_AUTH_ALIAS_GATE_HANDOFF_2026-05-05.md](../validation/P5-T75_AUTH_ALIAS_GATE_HANDOFF_2026-05-05.md).
 - Expected proof: production-like alias ratio review, documented exception status, release notice or explicit deferral, policy guard for retired keys if removal proceeds, focused auth validation tests, backend type-check, and `git diff --check`.
 
 ## Review Row: P5-T74 Recurring Donation Provider-Management Parity
@@ -132,20 +199,20 @@ Maintenance rules:
 - Disposition: `Review`; proof is recorded in [../validation/P5-T74_RECURRING_DONATION_PROVIDER_MANAGEMENT_PROOF_2026-05-05.md](../validation/P5-T74_RECURRING_DONATION_PROVIDER_MANAGEMENT_PROOF_2026-05-05.md). Stripe update/cancel/reactivate behavior is preserved, Stripe subscription-id fallback is supported, non-Stripe metadata-only edits remain local, and unsupported non-Stripe provider-management actions return explicit client errors before provider or database mutation.
 - Expected remaining proof: review focused recurring donation service/controller tests covering Stripe and non-Stripe behavior, backend type-check, touched-file eslint, and `git diff --check` output recorded in the proof note.
 
-## Ready Row: P5-T73 Public Event And Self-Referral Operational Snapshots
+## Review Row: P5-T73 Public Event And Self-Referral Operational Snapshots
 
 - Goal: scope public event waitlist/check-in and self-referral snapshot/status UI separately from petition counts and generic public analytics.
 - Owned paths: public event and self-referral frontend/backend seams selected during implementation, focused browser or component tests, `docs/validation/**`, and this workboard.
 - Forbidden scope: petition count behavior already covered by `P5-T42A`, generic public analytics dashboards, workflow tooling, route/schema rewrites unless explicitly required, unrelated website-builder changes, and donation checkout changes.
-- Disposition: `Ready`.
+- Disposition: `Review`; proof is recorded in [../validation/P5-T73_PUBLIC_EVENT_SELF_REFERRAL_OPERATIONAL_SNAPSHOTS_PROOF_2026-05-05.md](../validation/P5-T73_PUBLIC_EVENT_SELF_REFERRAL_OPERATIONAL_SNAPSHOTS_PROOF_2026-05-05.md). The existing self-referral and public event cards now expose focused status, drilldowns, and backend contract proof without opening petition counts, generic public analytics, workflow tooling, or broad redesign.
 - Expected proof: focused browser/component/backend tests for selected snapshot surfaces, relevant type-checks, feature-boundary or route policy checks where touched, docs links if validation docs change, and `git diff --check`.
 
-## Ready Row: P5-T72 Support-Letter Approval Delivery/Download Polish
+## Review Row: P5-T72 Support-Letter Approval Delivery/Download Polish
 
 - Goal: decide and implement staff-facing support-letter approval delivery/download behavior called out by the public-action expansion follow-on notes.
 - Owned paths: publishing/public-action staff review seams, support-letter frontend UI, focused publishing/public-action tests, `docs/validation/**`, and this workboard.
 - Forbidden scope: petition counts, event waitlists, generic public analytics, workflow studios, unrelated public-action schema changes, and broad website-builder rewrites.
-- Disposition: `Ready`.
+- Disposition: `Review`; proof is recorded in [../validation/P5-T72_T73_WEBSITE_CONSOLE_PUBLIC_ACTION_POLISH_PROOF_2026-05-05.md](../validation/P5-T72_T73_WEBSITE_CONSOLE_PUBLIC_ACTION_POLISH_PROOF_2026-05-05.md). Staff support-letter preview, copy, and download behavior passed focused frontend tests, type-check, lint, and feature-boundary policy.
 - Expected proof: focused support-letter route/service/component tests, backend/frontend type-checks as touched, route or feature-boundary policy checks where applicable, and `git diff --check`.
 
 ## Review Row: P5-T71 Public Workflow Browser Proof Sweep
@@ -156,20 +223,20 @@ Maintenance rules:
 - Disposition: `Review`; proof is recorded in [../validation/P5-T71_PUBLIC_WORKFLOW_BROWSER_PROOF_2026-05-05.md](../validation/P5-T71_PUBLIC_WORKFLOW_BROWSER_PROOF_2026-05-05.md). Clean worker proof passed for managed forms, donation checkout, and public action blocks; the lead checkout public starter/event-registration proof passed; the dirty lead checkout exposed a petition action submission `500` tracked separately as `P5-T78`.
 - Expected remaining proof: review the focused browser spec and proof note, then handle `P5-T78` separately before treating the dirty lead checkout public-action block path as signoff-clean.
 
-## Ready Row: P5-T78 Public Action Block Submission Regression
+## Review Row: P5-T78 Public Action Block Submission Regression
 
 - Goal: diagnose and fix the dirty lead-checkout public action runtime `500` exposed by `P5-T71` when a petition action block is submitted through the public browser flow.
 - Owned paths: public action runtime/service/controller seams, focused public action tests, E2E/browser proof as needed, `docs/validation/**`, and this workboard.
 - Forbidden scope: generic public analytics, managed-form behavior already covered by `P5-T71`, donation checkout redesign, support-letter approval/download polish, event/self-referral snapshots, broad website-builder redesign, database migrations unless a confirmed persistence contract requires one, and unrelated dirty worktree cleanup.
-- Disposition: `Ready`.
+- Disposition: `Review`; proof is recorded in [../validation/P5-T78_PUBLIC_ACTION_BLOCK_SUBMISSION_REGRESSION_PROOF_2026-05-05.md](../validation/P5-T78_PUBLIC_ACTION_BLOCK_SUBMISSION_REGRESSION_PROOF_2026-05-05.md). The dirty-checkout petition submission `500` did not reproduce on current clean `main`; focused public-action service and Chromium public-workflow browser proof passed without runtime code changes.
 - Expected proof: focused public-action backend/browser regression proof for the petition submission failure, backend/frontend type-checks and lint for touched code, route or feature-boundary policy checks where applicable, `make check-links` if docs change, and `git diff --check`.
 
-## Ready Row: P5-T70 Local Campaign Failed-Recipient Retry Policy
+## Review Row: P5-T70 Local Campaign Failed-Recipient Retry Policy
 
 - Goal: define and implement local-email failed-recipient retry semantics and operator visibility without widening the `P5-T46` delivery drain.
 - Owned paths: local campaign delivery services/scheduler, worker configuration if needed, focused communications tests, `docs/validation/**`, and this workboard.
 - Forbidden scope: marketing automation, tracking pixels, Mailchimp changes, public APIs, frontend UI unless operator visibility is explicitly selected, typed appeals, memberships, donation batches, and generic workflow tooling.
-- Disposition: `Ready`.
+- Disposition: `Review`; proof is recorded in [../validation/P5-T70_LOCAL_CAMPAIGN_FAILED_RECIPIENT_RETRY_PROOF_2026-05-05.md](../validation/P5-T70_LOCAL_CAMPAIGN_FAILED_RECIPIENT_RETRY_PROOF_2026-05-05.md). Local-email failed-recipient retry route/service behavior passed focused backend tests, backend type-check, and backend lint.
 - Expected proof: focused local campaign drain/scheduler tests, backend type-check, touched-file eslint, module/canonical policy checks, worker config docs if changed, and `git diff --check`.
 
 ## Review Row: P5-T67 Retire Or Re-home Legacy Verification Scripts
@@ -208,7 +275,27 @@ Maintenance rules:
 
 - Update this file before editing tracked work.
 - Keep one active task per agent by default unless a coordinated exception is documented here.
-- Coordinated exception, 2026-05-05: `P5-T64`, `P5-T67`, `P5-T71`, and `P5-T74` were split across dirty-checkout cleanup, isolated backend implementation, and proof-first browser lanes with lead-owned workboard/proof reconciliation. `P5-T70`, `P5-T72`, `P5-T73`, `P5-T76`, and blocked `P5-T75` stay deferred; `P5-T78` captures the public-action runtime regression exposed by `P5-T71`.
+- Coordinated exception, 2026-05-05: `P5-T79`, `P5-T80`, and `P5-T81` were opened as Wave 1 remediation lanes from the auth/accounts/pending-accounts/approvals review after the pre-existing `P5-T73` UI lane returned to review. After Wave 1 proof was green, `P5-T82`, `P5-T83`, and `P5-T84` were implemented as separate Wave 2 approval-transition lanes; all six rows are now in review with shared proof.
+  Lead: Codex
+  Backend/security lanes: `p5-t79-auth-session-hardening`, `p5-t80-portal-pending-account-hardening`, `p5-t81-accounts-rls-hardening`, `p5-t82-case-form-review-gated-mappings`, `p5-t83-public-action-approval-transitions`, `p5-t84-volunteer-background-check-approval`
+  Frontend lanes: `p5-t79-t84-implementation-size-follow-up` for the website forms public-action component extraction needed to keep the final proof gate under the implementation-size ratchet
+  Runtime/proof lanes: `p5-t79-t84-db-rls-policy-and-focused-behavior-proof`
+  Integration owner: Codex
+  Docs ownership: lead
+  Forbidden scope: auth alias retirement, generic workflow tooling, broad account redesign, manager/staff account lifecycle broadening, public analytics, website-builder redesign, unrelated `P5-T73` UI work, and cleanup of unrelated dirty files
+  Expected proof: focused auth/password/passkey tests for `P5-T79`; portal/admin-registration tests plus migration parity for `P5-T80`; accounts/account-service/authorization tests plus app-role RLS probe for `P5-T81`; case-form submission/review tests for `P5-T82`; public-action transition tests for `P5-T83`; volunteer approval/import tests for `P5-T84`; backend/frontend type-check and lint; auth/rate-limit/route/module/envelope/size/UI policy checks; `make db-verify`; host E2E matrix proof; Docker smoke proof; docs links; and `git diff --check`
+  Proof: [../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md](../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md)
+- Coordinated exception, 2026-05-05: `P5-T78`, `P5-T70`, `P5-T72`, `P5-T73`, and `P5-T76` were split across one runtime regression lane plus focused validation/signoff lanes for already-landed implementation surfaces. `P5-T70`, `P5-T72`, `P5-T73`, `P5-T76`, and `P5-T78` are now in review with row-local proof; `P5-T78` did not require a runtime code change because the dirty-checkout petition submission `500` did not reproduce on current clean `main`.
+  Lead: Codex
+  Backend lanes: `p5-t78-public-action-regression`, `p5-t70-local-campaign-retry-validation`
+  Frontend lanes: `p5-t72-t73-website-console-validation`, `p5-t76-browser-diagnostics-validation`, `p5-t76-browser-diagnostics-operator-surface`
+  Runtime/proof lanes: `p5-t78-public-workflow-browser-proof`
+  Integration owner: Codex
+  Docs ownership: lead
+  Forbidden scope: generic workflow tooling, public analytics, broad website-builder redesign, donation checkout redesign, support-letter email delivery, event/self-referral platform rewrites, backend telemetry APIs, public dashboards, Mailchimp changes, auth alias removal, database migrations unless `P5-T78` proves a persistence-contract defect, and unrelated dirty worktree cleanup
+  Expected proof: focused public-action backend/browser regression proof for `P5-T78`; communications route/service proof for `P5-T70`; website-console support-letter and operational snapshot proof for `P5-T72`/`P5-T73`; browser-session diagnostics proof for `P5-T76`; row-local validation notes, validation index updates, docs link check, and `git diff --check`
+  Proof: [../validation/P5-T70_LOCAL_CAMPAIGN_FAILED_RECIPIENT_RETRY_PROOF_2026-05-05.md](../validation/P5-T70_LOCAL_CAMPAIGN_FAILED_RECIPIENT_RETRY_PROOF_2026-05-05.md), [../validation/P5-T72_T73_WEBSITE_CONSOLE_PUBLIC_ACTION_POLISH_PROOF_2026-05-05.md](../validation/P5-T72_T73_WEBSITE_CONSOLE_PUBLIC_ACTION_POLISH_PROOF_2026-05-05.md), [../validation/P5-T73_PUBLIC_EVENT_SELF_REFERRAL_OPERATIONAL_SNAPSHOTS_PROOF_2026-05-05.md](../validation/P5-T73_PUBLIC_EVENT_SELF_REFERRAL_OPERATIONAL_SNAPSHOTS_PROOF_2026-05-05.md), [../validation/P5-T76_BROWSER_SESSION_DIAGNOSTICS_PROOF_2026-05-05.md](../validation/P5-T76_BROWSER_SESSION_DIAGNOSTICS_PROOF_2026-05-05.md), [../validation/P5-T78_PUBLIC_ACTION_BLOCK_SUBMISSION_REGRESSION_PROOF_2026-05-05.md](../validation/P5-T78_PUBLIC_ACTION_BLOCK_SUBMISSION_REGRESSION_PROOF_2026-05-05.md)
+- Coordinated exception, 2026-05-05: `P5-T64`, `P5-T67`, `P5-T71`, and `P5-T74` were split across dirty-checkout cleanup, isolated backend implementation, and proof-first browser lanes with lead-owned workboard/proof reconciliation. `P5-T70`, `P5-T72`, `P5-T73`, `P5-T76`, and blocked `P5-T75` were deferred at that point; `P5-T78` captured the public-action runtime regression exposed by `P5-T71`.
   Lead: Codex
   Backend lanes: `p5-t64-mailchimp-contract-cleanup`, `p5-t74-recurring-donation-parity`
   Frontend lanes: none
@@ -1156,11 +1243,18 @@ No live Phase 4 carry-over rows remain. Proof for the retired rows now lives in 
 | P5-T64 | Mailchimp campaign-run cancel/reschedule contract cleanup | Review | Codex | Review the explicit 405 Mailchimp cancel/reschedule route behavior and focused proof. | [../validation/P5-T64_MAILCHIMP_CANCEL_RESCHEDULE_CONTRACT_PROOF_2026-05-05.md](../validation/P5-T64_MAILCHIMP_CANCEL_RESCHEDULE_CONTRACT_PROOF_2026-05-05.md) |
 | P5-T65 | Outcomes report `programId` contract cleanup | Review | Codex | Review the strict outcomes report contract cleanup that removes accepted `programId` query handling. | [../validation/P5-T65_OUTCOMES_REPORT_PROGRAM_ID_CONTRACT_PROOF_2026-05-05.md](../validation/P5-T65_OUTCOMES_REPORT_PROGRAM_ID_CONTRACT_PROOF_2026-05-05.md) |
 | P5-T67 | Retire or re-home legacy verification scripts | Review | Codex | Review the legacy verifier re-home: the old scripts/docs are historical reproduction helpers, and the active verification contract remains Make plus `scripts/select-checks.sh`. | [../validation/P5-T67_LEGACY_VERIFICATION_REHOME_PROOF_2026-05-05.md](../validation/P5-T67_LEGACY_VERIFICATION_REHOME_PROOF_2026-05-05.md) |
-| P5-T70 | Local campaign failed-recipient retry policy | Ready | Codex | Scope and implement local-email failed-recipient retry semantics and operator visibility without widening `P5-T46`. | May 4 codebase review; [../validation/P5-T46_LOCAL_CAMPAIGN_DELIVERY_DRAIN_PROOF_2026-05-02.md](../validation/P5-T46_LOCAL_CAMPAIGN_DELIVERY_DRAIN_PROOF_2026-05-02.md) |
+| P5-T70 | Local campaign failed-recipient retry policy | Review | Codex | Review the local-email failed-recipient retry route/service proof before signoff. | [../validation/P5-T70_LOCAL_CAMPAIGN_FAILED_RECIPIENT_RETRY_PROOF_2026-05-05.md](../validation/P5-T70_LOCAL_CAMPAIGN_FAILED_RECIPIENT_RETRY_PROOF_2026-05-05.md) |
 | P5-T71 | Public workflow browser proof sweep | Review | Codex | Review focused browser proof for managed forms, public event registration, donation checkout, and public action blocks; handle the dirty lead-checkout public-action failure separately as `P5-T78`. | [../validation/P5-T71_PUBLIC_WORKFLOW_BROWSER_PROOF_2026-05-05.md](../validation/P5-T71_PUBLIC_WORKFLOW_BROWSER_PROOF_2026-05-05.md) |
-| P5-T72 | Support-letter approval delivery/download polish | Ready | Codex | Decide and implement staff-facing support-letter approval delivery/download behavior separately from petition counts and generic workflow tooling. | May 4 codebase review; [../validation/P5-T42_WEBSITE_PUBLIC_ACTION_EXPANSION_PROOF_2026-05-01.md](../validation/P5-T42_WEBSITE_PUBLIC_ACTION_EXPANSION_PROOF_2026-05-01.md) |
-| P5-T73 | Public event and self-referral operational snapshots | Ready | Codex | Scope event waitlist/check-in and self-referral snapshot/status UI separately from `P5-T42A` petition counts. | May 4 codebase review; [../validation/P5-T42_WEBSITE_PUBLIC_ACTION_EXPANSION_PROOF_2026-05-01.md](../validation/P5-T42_WEBSITE_PUBLIC_ACTION_EXPANSION_PROOF_2026-05-01.md) |
+| P5-T72 | Support-letter approval delivery/download polish | Review | Codex | Review the staff support-letter preview/copy/download proof before signoff. | [../validation/P5-T72_T73_WEBSITE_CONSOLE_PUBLIC_ACTION_POLISH_PROOF_2026-05-05.md](../validation/P5-T72_T73_WEBSITE_CONSOLE_PUBLIC_ACTION_POLISH_PROOF_2026-05-05.md) |
+| P5-T73 | Public event and self-referral operational snapshots | Review | Codex | Review the operator snapshot/drilldown proof before signoff. | [../validation/P5-T73_PUBLIC_EVENT_SELF_REFERRAL_OPERATIONAL_SNAPSHOTS_PROOF_2026-05-05.md](../validation/P5-T73_PUBLIC_EVENT_SELF_REFERRAL_OPERATIONAL_SNAPSHOTS_PROOF_2026-05-05.md) |
 | P5-T74 | Recurring donation provider-management parity | Review | Codex | Review the recurring donation provider-management cleanup: Stripe management remains active, non-Stripe metadata-only edits stay local, and unsupported non-Stripe management actions are explicitly gated. | [../validation/P5-T74_RECURRING_DONATION_PROVIDER_MANAGEMENT_PROOF_2026-05-05.md](../validation/P5-T74_RECURRING_DONATION_PROVIDER_MANAGEMENT_PROOF_2026-05-05.md) |
-| P5-T75 | Auth alias deprecation gate | Blocked | Codex | Time-gated until the June 17, 2026 blocker checkpoint and July 1, 2026 earliest enforcement date; verify telemetry and exceptions before removal. | [../security/AUTH_ALIAS_DEPRECATION_CHECKLIST.md](../security/AUTH_ALIAS_DEPRECATION_CHECKLIST.md), [../validation/AUTH_ALIAS_USAGE_REPORT_2026-04-14.md](../validation/AUTH_ALIAS_USAGE_REPORT_2026-04-14.md) |
-| P5-T76 | Browser telemetry and operator metrics next slice | Ready | Codex | Scope a narrow browser telemetry/operator metrics follow-up from `P5-T61` without opening workflow/queue platforms or public dashboards. | May 4 codebase review; [../validation/P5-T61_DENSE_TABLE_TELEMETRY_PILOT_PROOF_2026-05-03.md](../validation/P5-T61_DENSE_TABLE_TELEMETRY_PILOT_PROOF_2026-05-03.md) |
-| P5-T78 | Public action block submission regression | Ready | Codex | Diagnose and fix the dirty lead-checkout public action runtime `500` exposed by `P5-T71` petition submission proof. | [../validation/P5-T71_PUBLIC_WORKFLOW_BROWSER_PROOF_2026-05-05.md](../validation/P5-T71_PUBLIC_WORKFLOW_BROWSER_PROOF_2026-05-05.md) |
+| P5-T75 | Auth alias deprecation gate | Blocked | Codex | Managed time-gated blocker: June 17, 2026 follow-up is scheduled for telemetry and exception review; July 1, 2026 remains the earliest enforcement date. | [../security/AUTH_ALIAS_DEPRECATION_CHECKLIST.md](../security/AUTH_ALIAS_DEPRECATION_CHECKLIST.md), [../validation/AUTH_ALIAS_USAGE_REPORT_2026-04-14.md](../validation/AUTH_ALIAS_USAGE_REPORT_2026-04-14.md), [../validation/P5-T75_AUTH_ALIAS_GATE_HANDOFF_2026-05-05.md](../validation/P5-T75_AUTH_ALIAS_GATE_HANDOFF_2026-05-05.md) |
+| P5-T76 | Browser telemetry and operator metrics next slice | Review | Codex | Review the Admin Hub browser-session diagnostics panel proof and focused validation before signoff. | [../validation/P5-T76_BROWSER_SESSION_DIAGNOSTICS_PROOF_2026-05-05.md](../validation/P5-T76_BROWSER_SESSION_DIAGNOSTICS_PROOF_2026-05-05.md) |
+| P5-T78 | Public action block submission regression | Review | Codex | Review the clean-main public-action regression proof; the dirty-checkout petition submission `500` did not reproduce. | [../validation/P5-T78_PUBLIC_ACTION_BLOCK_SUBMISSION_REGRESSION_PROOF_2026-05-05.md](../validation/P5-T78_PUBLIC_ACTION_BLOCK_SUBMISSION_REGRESSION_PROOF_2026-05-05.md) |
+| P5-T79 | Auth and session hardening remediation | Review | Codex | Review the password-reset session revocation, test-only MFA bypass, WebAuthn UV, and strong password-change proof. | [../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md](../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md) |
+| P5-T80 | Portal and pending-account hardening remediation | Review | Codex | Review the tenant-scope, transactional approval, and pending-only resubmission uniqueness proof. | [../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md](../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md) |
+| P5-T81 | Accounts access and RLS hardening remediation | Review | Codex | Review the account admin-only write, tax-id policy, full data-scope, and RLS request-context proof. | [../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md](../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md) |
+| P5-T82 | Case-form review-gated mapping remediation | Review | Codex | Review the portal/public pending mapping audit and staff-reviewed application proof. | [../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md](../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md) |
+| P5-T83 | Public-action approval transition remediation | Review | Codex | Review the capture-only public submission and staff accept/reject/fulfill side-effect proof. | [../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md](../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md) |
+| P5-T84 | Volunteer background-check approval remediation | Review | Codex | Review the generic-edit rejection and dedicated audited approval route proof. | [../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md](../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md) |
+| P5-T85 | Docker stack efficiency refactor and fresh rebuild | Review | Codex | Review the Docker stack efficiency proof, including slimmer app images, fresh `nonprofit-dev` rebuild, Docker smoke pass, and local Caddy port `443` blocker. | [../validation/P5-T85_DOCKER_STACK_EFFICIENCY_PROOF_2026-05-06.md](../validation/P5-T85_DOCKER_STACK_EFFICIENCY_PROOF_2026-05-06.md) |

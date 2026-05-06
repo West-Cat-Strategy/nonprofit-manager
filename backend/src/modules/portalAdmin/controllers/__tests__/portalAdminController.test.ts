@@ -5,6 +5,8 @@ import type { AuthRequest } from '@middleware/auth';
 import {
   approvePortalSignupRequest,
   createPortalInvitation,
+  getPortalUserActivity,
+  listPortalInvitations,
   listPortalSignupRequests,
   listPortalUsers,
   rejectPortalSignupRequest,
@@ -22,10 +24,17 @@ jest.mock('bcryptjs', () => ({
   },
 }));
 
-jest.mock('@config/database', () => ({
-  __esModule: true,
-  default: { query: jest.fn() },
-}));
+jest.mock('@config/database', () => {
+  const query = jest.fn();
+  return {
+    __esModule: true,
+    default: { query },
+    withUserContextTransaction: jest.fn(
+      async (_userId: string, handler: (client: { query: jest.Mock }) => unknown) =>
+        handler({ query })
+    ),
+  };
+});
 
 jest.mock('@services/domains/integration', () => ({
   __esModule: true,
@@ -146,7 +155,8 @@ describe('portalAdminController account-management flows', () => {
     ]);
     expect(mockQuery.mock.calls[0][0]).toContain('$1::uuid IS NOT NULL');
     expect(mockQuery.mock.calls[0][0]).toContain('psr.account_id = $1');
-    expect(mockQuery.mock.calls[0][0]).toContain('scope_contact.account_id = $1');
+    expect(mockQuery.mock.calls[0][0]).toContain('c.account_id = $1');
+    expect(mockQuery.mock.calls[0][0]).not.toContain('scope_contact');
     expect(mockSendSuccess).toHaveBeenCalledWith(res, { requests: rows });
     expect(next).not.toHaveBeenCalled();
   });
@@ -183,10 +193,14 @@ describe('portalAdminController account-management flows', () => {
             email: 'portal@example.com',
             password_hash: 'hash',
             contact_id: 'contact-1',
+            account_id: 'account-1',
             status: 'pending',
             resolution_status: 'resolved',
           },
         ],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ id: 'contact-1', account_id: 'account-1' }],
       })
       .mockResolvedValueOnce({
         rows: [{ id: 'portal-user-1' }],
@@ -214,6 +228,7 @@ describe('portalAdminController account-management flows', () => {
           email: 'portal@example.com',
           password_hash: 'hash',
           contact_id: null,
+          account_id: 'account-1',
           status: 'pending',
           resolution_status: 'needs_contact_resolution',
         },
@@ -246,6 +261,7 @@ describe('portalAdminController account-management flows', () => {
             email: 'portal@example.com',
             password_hash: 'hash',
             contact_id: null,
+            account_id: 'account-1',
             status: 'pending',
             resolution_status: 'needs_contact_resolution',
           },
@@ -279,17 +295,25 @@ describe('portalAdminController account-management flows', () => {
             email: 'portal@example.com',
             password_hash: 'hash',
             contact_id: null,
+            account_id: 'account-1',
             status: 'pending',
             resolution_status: 'needs_contact_resolution',
           },
         ],
       })
-      .mockResolvedValueOnce({ rows: [{ id: 'contact-2' }] })
+      .mockResolvedValueOnce({ rows: [{ id: 'contact-2', account_id: 'account-1' }] })
       .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ id: 'signup-approve' }] })
       .mockResolvedValueOnce({
-        rows: [{ id: 'portal-user-2', email: 'portal@example.com', contact_id: 'contact-2' }],
-      })
-      .mockResolvedValueOnce({ rows: [] });
+        rows: [
+          {
+            id: 'portal-user-2',
+            email: 'portal@example.com',
+            contact_id: 'contact-2',
+            account_id: 'account-1',
+          },
+        ],
+      });
 
     await approvePortalSignupRequest(req, res, next);
 
@@ -299,19 +323,25 @@ describe('portalAdminController account-management flows', () => {
       ['contact-2', 'portal@example.com', 'account-1']
     );
     expect(mockQuery.mock.calls[1][0]).toContain('AND account_id = $3');
-    expect(mockQuery).toHaveBeenNthCalledWith(
-      4,
-      expect.stringContaining('INSERT INTO portal_users'),
-      ['contact-2', 'portal@example.com', 'hash', 'active', true, 'admin-1']
-    );
+    expect(mockQuery).toHaveBeenNthCalledWith(4, expect.stringContaining("status = 'approved'"), [
+      'signup-approve',
+      'admin-1',
+      'contact-2',
+      'account-1',
+    ]);
     expect(mockQuery).toHaveBeenNthCalledWith(
       5,
-      expect.stringContaining("resolution_status = 'resolved'"),
-      ['signup-approve', 'admin-1', 'contact-2']
+      expect.stringContaining('INSERT INTO portal_users'),
+      ['account-1', 'contact-2', 'portal@example.com', 'hash', 'active', true, 'admin-1']
     );
     expect(mockSendSuccess).toHaveBeenCalledWith(res, {
       message: 'Portal request approved',
-      portalUser: { id: 'portal-user-2', email: 'portal@example.com', contact_id: 'contact-2' },
+      portalUser: {
+        id: 'portal-user-2',
+        email: 'portal@example.com',
+        contact_id: 'contact-2',
+        account_id: 'account-1',
+      },
     });
     expect(next).not.toHaveBeenCalled();
   });
@@ -328,11 +358,40 @@ describe('portalAdminController account-management flows', () => {
 
     await approvePortalSignupRequest(req, res, next);
 
-    expect(mockQuery).toHaveBeenCalledWith(
-      expect.stringContaining('psr.account_id = $2'),
-      ['signup-other-account', 'account-1']
-    );
+    expect(mockQuery).toHaveBeenCalledWith(expect.stringContaining('psr.account_id = $2'), [
+      'signup-other-account',
+      'account-1',
+    ]);
     expect(mockNotFoundMessage).toHaveBeenCalledWith(res, 'Signup request not found');
+    expect(mockSendSuccess).not.toHaveBeenCalled();
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('returns conflict when approving an already processed signup request', async () => {
+    const req = createRequest({
+      params: { id: 'signup-approved' },
+    });
+    const res = createResponse();
+    const next = createNext();
+
+    mockQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 'signup-approved',
+          email: 'portal@example.com',
+          password_hash: 'hash',
+          contact_id: 'contact-1',
+          account_id: 'account-1',
+          status: 'approved',
+          resolution_status: 'resolved',
+        },
+      ],
+    });
+
+    await approvePortalSignupRequest(req, res, next);
+
+    expect(mockQuery.mock.calls[0][0]).toContain('FOR UPDATE OF psr');
+    expect(mockConflict).toHaveBeenCalledWith(res, 'Signup request already processed');
     expect(mockSendSuccess).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
   });
@@ -350,11 +409,36 @@ describe('portalAdminController account-management flows', () => {
 
     await rejectPortalSignupRequest(req, res, next);
 
-    expect(mockQuery).toHaveBeenCalledWith(
-      expect.stringContaining('psr.account_id = $2'),
-      ['signup-reject-other-account', 'account-1']
-    );
+    expect(mockQuery).toHaveBeenCalledWith(expect.stringContaining('psr.account_id = $2'), [
+      'signup-reject-other-account',
+      'account-1',
+    ]);
     expect(mockNotFoundMessage).toHaveBeenCalledWith(res, 'Signup request not found');
+    expect(mockSendSuccess).not.toHaveBeenCalled();
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('returns conflict when rejecting an already processed signup request', async () => {
+    const req = createRequest({
+      params: { id: 'signup-rejected' },
+      body: { notes: 'Already handled' },
+    });
+    const res = createResponse();
+    const next = createNext();
+
+    mockQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 'signup-rejected',
+          status: 'rejected',
+        },
+      ],
+    });
+
+    await rejectPortalSignupRequest(req, res, next);
+
+    expect(mockQuery.mock.calls[0][0]).toContain('FOR UPDATE OF psr');
+    expect(mockConflict).toHaveBeenCalledWith(res, 'Signup request already processed');
     expect(mockSendSuccess).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
   });
@@ -379,6 +463,99 @@ describe('portalAdminController account-management flows', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
+  it('validates invitation contact scope and inserts account_id', async () => {
+    const req = createRequest({
+      body: {
+        email: 'portal@example.com',
+        contact_id: 'contact-1',
+        expiresInDays: 14,
+      },
+    });
+    const res = createResponse();
+    const next = createNext();
+
+    mockQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ id: 'contact-1' }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'invite-1',
+            account_id: 'account-1',
+            email: 'portal@example.com',
+            contact_id: 'contact-1',
+            token: 'invite-token',
+            expires_at: new Date('2026-05-19T00:00:00.000Z'),
+          },
+        ],
+      });
+
+    await createPortalInvitation(req, res, next);
+
+    expect(mockQuery).toHaveBeenNthCalledWith(2, expect.stringContaining('account_id = $2'), [
+      'contact-1',
+      'account-1',
+    ]);
+    expect(mockQuery).toHaveBeenNthCalledWith(
+      4,
+      expect.stringContaining('INSERT INTO portal_invitations (account_id, email'),
+      [
+        'account-1',
+        'portal@example.com',
+        'contact-1',
+        expect.any(String),
+        expect.any(Date),
+        'admin-1',
+      ]
+    );
+    expect(mockSendSuccess).toHaveBeenCalledWith(
+      res,
+      expect.objectContaining({
+        invitation: expect.objectContaining({ account_id: 'account-1' }),
+      }),
+      201
+    );
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('rejects invitation creation for contacts outside the tenant', async () => {
+    const req = createRequest({
+      body: {
+        email: 'portal@example.com',
+        contact_id: 'contact-other',
+      },
+    });
+    const res = createResponse();
+    const next = createNext();
+
+    mockQuery.mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rows: [] });
+
+    await createPortalInvitation(req, res, next);
+
+    expect(mockBadRequest).toHaveBeenCalledWith(res, 'Selected contact must belong to this tenant');
+    expect(mockSendSuccess).not.toHaveBeenCalled();
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('lists portal invitations inside the tenant scope only', async () => {
+    const rows = [{ id: 'invite-1', email: 'portal@example.com', account_id: 'account-1' }];
+    const req = createRequest();
+    const res = createResponse();
+    const next = createNext();
+
+    mockQuery.mockResolvedValueOnce({ rows });
+
+    await listPortalInvitations(req, res, next);
+
+    expect(mockQuery).toHaveBeenCalledWith(expect.stringContaining('pi.account_id = $1'), [
+      'account-1',
+    ]);
+    expect(mockQuery.mock.calls[0][0]).toContain('c.account_id = $1');
+    expect(mockSendSuccess).toHaveBeenCalledWith(res, { invitations: rows });
+    expect(next).not.toHaveBeenCalled();
+  });
+
   it('lists portal users with the validated search filter and canonical envelope', async () => {
     const rows = [
       {
@@ -399,7 +576,10 @@ describe('portalAdminController account-management flows', () => {
 
     await listPortalUsers(req, res, next);
 
-    expect(mockQuery).toHaveBeenCalledWith(expect.stringContaining('WHERE ('), ['%Alice%']);
+    expect(mockQuery).toHaveBeenCalledWith(expect.stringContaining('pu.account_id = $1'), [
+      'account-1',
+      '%Alice%',
+    ]);
     expect(mockSendSuccess).toHaveBeenCalledWith(res, { users: rows });
     expect(next).not.toHaveBeenCalled();
   });
@@ -416,6 +596,11 @@ describe('portalAdminController account-management flows', () => {
 
     await updatePortalUserStatus(req, res, next);
 
+    expect(mockQuery).toHaveBeenCalledWith(expect.stringContaining('pu.account_id = $3'), [
+      'suspended',
+      'portal-user-3',
+      'account-1',
+    ]);
     expect(mockNotFoundMessage).toHaveBeenCalledWith(res, 'Portal user not found');
     expect(mockSendSuccess).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
@@ -447,18 +632,59 @@ describe('portalAdminController account-management flows', () => {
     const next = createNext();
 
     mockBcrypt.hash.mockResolvedValueOnce('portal-password-hash');
-    mockQuery.mockResolvedValueOnce({ rows: [] });
+    mockQuery.mockResolvedValueOnce({ rows: [{ id: 'portal-user-5' }] });
 
     await resetPortalUserPassword(req, res, next);
 
     expect(mockBcrypt.hash).toHaveBeenCalledWith('CorrectHorseStaple123!', expect.any(Number));
-    expect(mockQuery).toHaveBeenCalledWith(
-      'UPDATE portal_users SET password_hash = $1 WHERE id = $2',
-      ['portal-password-hash', 'portal-user-5']
-    );
+    expect(mockQuery).toHaveBeenCalledWith(expect.stringContaining('pu.account_id = $3'), [
+      'portal-password-hash',
+      'portal-user-5',
+      'account-1',
+    ]);
     expect(mockSendSuccess).toHaveBeenCalledWith(res, {
       message: 'Portal user password updated',
     });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('returns not found before reading portal activity for out-of-scope users', async () => {
+    const req = createRequest({
+      params: { id: 'portal-user-other' },
+    });
+    const res = createResponse();
+    const next = createNext();
+
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+
+    await getPortalUserActivity(req, res, next);
+
+    expect(mockQuery).toHaveBeenCalledWith(expect.stringContaining('pu.account_id = $2'), [
+      'portal-user-other',
+      'account-1',
+    ]);
+    expect(mockNotFoundMessage).toHaveBeenCalledWith(res, 'Portal user not found');
+    expect(mockSendSuccess).not.toHaveBeenCalled();
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('returns not found when resetting an out-of-scope portal user password', async () => {
+    const req = createRequest({
+      body: {
+        portalUserId: 'portal-user-other',
+        password: 'CorrectHorseStaple123!',
+      },
+    });
+    const res = createResponse();
+    const next = createNext();
+
+    mockBcrypt.hash.mockResolvedValueOnce('portal-password-hash');
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+
+    await resetPortalUserPassword(req, res, next);
+
+    expect(mockNotFoundMessage).toHaveBeenCalledWith(res, 'Portal user not found');
+    expect(mockSendSuccess).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
   });
 });

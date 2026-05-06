@@ -30,42 +30,42 @@ const ACCOUNT_SEARCH_SQL =
   + ` || CASE WHEN nullif(account_number, '') IS NOT NULL THEN ' ' || account_number ELSE '' END`;
 
 const ACCOUNT_CONTACT_COLUMNS = [
-  'id',
-  'account_id',
-  'first_name',
-  'preferred_name',
-  'last_name',
-  'middle_name',
-  'salutation',
-  'suffix',
-  'birth_date',
-  'gender',
-  'pronouns',
-  'phn_encrypted',
-  'email',
-  'phone',
-  'mobile_phone',
-  'address_line1',
-  'address_line2',
-  'city',
-  'state_province',
-  'postal_code',
-  'country',
-  'no_fixed_address',
-  'job_title',
-  'department',
-  'preferred_contact_method',
-  'do_not_email',
-  'do_not_phone',
-  'do_not_text',
-  'do_not_voicemail',
-  'notes',
-  'tags',
-  'is_active',
-  'created_at',
-  'updated_at',
-  'created_by',
-  'modified_by',
+  'c.id',
+  'c.account_id',
+  'c.first_name',
+  'c.preferred_name',
+  'c.last_name',
+  'c.middle_name',
+  'c.salutation',
+  'c.suffix',
+  'c.birth_date',
+  'c.gender',
+  'c.pronouns',
+  'c.phn_encrypted',
+  'c.email',
+  'c.phone',
+  'c.mobile_phone',
+  'c.address_line1',
+  'c.address_line2',
+  'c.city',
+  'c.state_province',
+  'c.postal_code',
+  'c.country',
+  'c.no_fixed_address',
+  'c.job_title',
+  'c.department',
+  'c.preferred_contact_method',
+  'c.do_not_email',
+  'c.do_not_phone',
+  'c.do_not_text',
+  'c.do_not_voicemail',
+  'c.notes',
+  'c.tags',
+  'c.is_active',
+  'c.created_at',
+  'c.updated_at',
+  'c.created_by',
+  'c.modified_by',
 ].join(', ');
 
 export class AccountService {
@@ -326,7 +326,12 @@ export class AccountService {
    */
   async createAccount(data: CreateAccountDTO, userId: string): Promise<Account> {
     try {
-      const account = await withUserContextTransaction(userId, async (client) => {
+      const actorId = userId?.trim();
+      if (!actorId) {
+        throw new Error('Authenticated actor is required to create account');
+      }
+
+      const account = await withUserContextTransaction(actorId, async (client) => {
         // Prevent account_number collisions under concurrent account creation.
         // We serialize just the number allocation using a transaction-scoped advisory lock.
         await client.query('SELECT pg_advisory_xact_lock($1)', [911_000_001]);
@@ -361,7 +366,7 @@ export class AccountService {
             data.postal_code || null,
             data.country || null,
             data.tax_id || null,
-            userId,
+            actorId,
           ]
         );
 
@@ -385,6 +390,11 @@ export class AccountService {
     userId: string
   ): Promise<Account | null> {
     try {
+      const actorId = userId?.trim();
+      if (!actorId) {
+        throw new Error('Authenticated actor is required to update account');
+      }
+
       const fields: string[] = [];
       const values: QueryValue[] = [];
       let paramCounter = 1;
@@ -425,7 +435,7 @@ export class AccountService {
 
       // Add modified_by and updated_at
       fields.push(`modified_by = $${paramCounter}`);
-      values.push(userId);
+      values.push(actorId);
       paramCounter++;
       fields.push(`updated_at = CURRENT_TIMESTAMP`);
 
@@ -442,7 +452,7 @@ export class AccountService {
           is_active, created_at, updated_at, created_by, modified_by
       `;
 
-      const result = await this.pool.query(query, values);
+      const result = await withUserContextTransaction(actorId, (client) => client.query(query, values));
 
       if (result.rows.length === 0) {
         return null;
@@ -461,12 +471,21 @@ export class AccountService {
    */
   async deleteAccount(accountId: string, userId: string): Promise<boolean> {
     try {
-      const result = await this.pool.query(
-        `UPDATE accounts 
-         SET is_active = false, modified_by = $1, updated_at = CURRENT_TIMESTAMP
-         WHERE id = $2
-         RETURNING id`,
-        [userId, accountId]
+      const actorId = userId?.trim();
+      if (!actorId) {
+        throw new Error('Authenticated actor is required to delete account');
+      }
+
+      const result = await withUserContextTransaction(
+        actorId,
+        (client) =>
+          client.query(
+            `UPDATE accounts
+             SET is_active = false, modified_by = $1, updated_at = CURRENT_TIMESTAMP
+             WHERE id = $2
+             RETURNING id`,
+            [actorId, accountId]
+          )
       );
 
       if (result.rows.length === 0) {
@@ -487,17 +506,48 @@ export class AccountService {
   async getAccountContacts(
     accountId: string,
     limit: number = 50,
-    offset: number = 0
+    offset: number = 0,
+    scope?: DataScopeFilter
   ): Promise<{ contacts: Contact[]; total: number }> {
     try {
+      const conditions = ['c.account_id = $1', 'c.is_active = true'];
+      const values: QueryValue[] = [accountId];
+      let paramCounter = 2;
+
+      if (scope?.accountIds && scope.accountIds.length > 0) {
+        conditions.push(`c.account_id = ANY($${paramCounter}::uuid[])`);
+        values.push(scope.accountIds);
+        paramCounter++;
+      }
+
+      if (scope?.contactIds && scope.contactIds.length > 0) {
+        conditions.push(`c.id = ANY($${paramCounter}::uuid[])`);
+        values.push(scope.contactIds);
+        paramCounter++;
+      }
+
+      if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
+        conditions.push(`c.created_by = ANY($${paramCounter}::uuid[])`);
+        values.push(scope.createdByUserIds);
+        paramCounter++;
+      }
+
+      if (scope?.accountTypes && scope.accountTypes.length > 0) {
+        conditions.push(`a.account_type = ANY($${paramCounter}::text[])`);
+        values.push(scope.accountTypes);
+        paramCounter++;
+      }
+
+      const whereClause = conditions.join(' AND ');
       const result = await this.pool.query<AccountContactRow>(
         `SELECT ${ACCOUNT_CONTACT_COLUMNS},
                 COUNT(*) OVER()::int AS total_count
-         FROM contacts
-         WHERE account_id = $1 AND is_active = true
-         ORDER BY created_at DESC
-         LIMIT $2 OFFSET $3`,
-        [accountId, limit, offset]
+         FROM contacts c
+         INNER JOIN accounts a ON a.id = c.account_id
+         WHERE ${whereClause}
+         ORDER BY c.created_at DESC
+         LIMIT $${paramCounter} OFFSET $${paramCounter + 1}`,
+        [...values, limit, offset]
       );
 
       const rows = result.rows;
@@ -508,8 +558,11 @@ export class AccountService {
 
       if (rows.length === 0) {
         const countResult = await this.pool.query<{ total: string }>(
-          'SELECT COUNT(*) as total FROM contacts WHERE account_id = $1 AND is_active = true',
-          [accountId]
+          `SELECT COUNT(*) as total
+           FROM contacts c
+           INNER JOIN accounts a ON a.id = c.account_id
+           WHERE ${whereClause}`,
+          values
         );
         total = parseInt(countResult.rows[0]?.total || '0', 10);
         contacts = [];

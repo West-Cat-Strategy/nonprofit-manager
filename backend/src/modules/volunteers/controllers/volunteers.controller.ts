@@ -72,10 +72,11 @@ export const createVolunteersController = (
   ): Promise<void> => {
     try {
       const query = (req.validatedQuery ?? req.query) as { skills?: string };
-      const skills = getString(query.skills)
-        ?.split(',')
-        .map((skill) => skill.trim())
-        .filter((skill) => skill.length > 0) || [];
+      const skills =
+        getString(query.skills)
+          ?.split(',')
+          .map((skill) => skill.trim())
+          .filter((skill) => skill.length > 0) || [];
 
       if (skills.length === 0) {
         sendFailure(res, 'bad_request', 'Skills parameter is required', 400);
@@ -121,6 +122,34 @@ export const createVolunteersController = (
       }
 
       const volunteer = await lifecycleUseCase.update(req.params.id, req.body, userId);
+      if (!volunteer) {
+        sendFailure(res, 'not_found', 'Volunteer not found', 404);
+        return;
+      }
+
+      sendData(res, volunteer);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  const approveVolunteerBackgroundCheck = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        sendFailure(res, 'unauthorized', 'User not authenticated', 401);
+        return;
+      }
+
+      const volunteer = await lifecycleUseCase.approveBackgroundCheck(
+        req.params.id,
+        req.body,
+        userId
+      );
       if (!volunteer) {
         sendFailure(res, 'not_found', 'Volunteer not found', 404);
         return;
@@ -267,7 +296,12 @@ export const createVolunteersController = (
 
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
       const mapping = parseMultipartJsonField<Record<string, unknown>>(req.body.mapping);
-      const preview = await importExportUseCase.previewImport(req.file, mapping, organizationId, scope);
+      const preview = await importExportUseCase.previewImport(
+        req.file,
+        mapping,
+        organizationId,
+        scope
+      );
       sendData(res, preview);
     } catch (error) {
       next(error);
@@ -318,6 +352,7 @@ export const createVolunteersController = (
     findVolunteersBySkills,
     createVolunteer,
     updateVolunteer,
+    approveVolunteerBackgroundCheck,
     deleteVolunteer,
     getVolunteerAssignments,
     createAssignment,

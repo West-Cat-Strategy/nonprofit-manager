@@ -92,4 +92,39 @@ describe('passwordResetService', () => {
 
     await expect(resetPassword('invalid', 'NewPass123!')).resolves.toBe(false);
   });
+
+  it('bumps staff auth revision in the same transaction as the password hash update', async () => {
+    const tokenId = '00000000-0000-0000-0000-000000000001';
+    const secret = 'b'.repeat(64);
+    const tokenHash = await bcrypt.hash(secret, 4);
+    const client = {
+      query: jest.fn().mockResolvedValue({ rows: [] }),
+      release: jest.fn(),
+    };
+
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ id: tokenId, owner_id: 'user-123', token_hash: tokenHash }],
+    });
+    mockConnect.mockResolvedValueOnce(client);
+
+    await expect(resetPassword(`${tokenId}.${secret}`, 'NewPass123!')).resolves.toBe(true);
+
+    const statements = client.query.mock.calls.map(([sql]) => sql as string);
+    const beginIndex = statements.indexOf('BEGIN');
+    const updateIndex = statements.findIndex((sql) => sql.includes(`UPDATE users`));
+    const commitIndex = statements.indexOf('COMMIT');
+
+    expect(beginIndex).toBeGreaterThanOrEqual(0);
+    expect(updateIndex).toBeGreaterThan(beginIndex);
+    expect(commitIndex).toBeGreaterThan(updateIndex);
+    expect(statements[updateIndex]).toContain('password_hash = $1');
+    expect(statements[updateIndex]).toContain(
+      'auth_revision = COALESCE(auth_revision, 0) + 1'
+    );
+    expect(client.query.mock.calls[updateIndex][1]).toEqual([
+      expect.any(String),
+      'user-123',
+    ]);
+    expect(client.release).toHaveBeenCalledTimes(1);
+  });
 });

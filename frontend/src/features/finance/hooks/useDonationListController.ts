@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useToast } from '../../../contexts/useToast';
+import { useStableSearchParamsWriter } from '../../../hooks/useStableSearchParams';
 import { triggerFileDownload } from '../../../services/fileDownload';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import type { Donation, PaymentMethod, PaymentStatus } from '../../../types/donation';
@@ -57,6 +58,7 @@ export const getPaymentMethodLabel = (method: string | null) => {
 
 export function useDonationListController() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { writeSearchParams } = useStableSearchParamsWriter(setSearchParams);
   const dispatch = useAppDispatch();
   const { showError, showSuccess } = useToast();
   const financeState = useAppSelector((state) => state.finance.donations);
@@ -124,12 +126,12 @@ export function useDonationListController() {
     if (paymentStatus) params.set('status', paymentStatus);
     if (paymentMethod) params.set('type', paymentMethod);
     if (currentPage > 1) params.set('page', String(currentPage));
-    setSearchParams(params, { replace: true });
+    writeSearchParams(params, { replace: true });
     localStorage.setItem(
       DONATION_FILTERS_STORAGE_KEY,
       JSON.stringify({ search, paymentStatus, paymentMethod })
     );
-  }, [search, paymentStatus, paymentMethod, currentPage, setSearchParams]);
+  }, [search, paymentStatus, paymentMethod, currentPage, writeSearchParams]);
 
   const clearFilters = () => {
     setSearch('');

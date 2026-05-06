@@ -2,6 +2,8 @@ import pool from '@config/database';
 import {
   createPortalSignupRequest,
   createPortalUserFromInvitation,
+  findPendingSignupRequestIdByEmail,
+  findPortalUserIdByEmail,
   getPortalInvitationByToken,
   getPortalLoginUserByEmail,
   resolvePortalSignupContact,
@@ -21,9 +23,11 @@ describe('portalAuthService', () => {
   });
 
   it('returns a resolved contact when the signup bridge finds a single normalized-email match', async () => {
-    mockQuery.mockResolvedValueOnce({
-      rows: [{ contact_id: 'contact-1', account_id: 'account-1', resolution_status: 'resolved' }],
-    }).mockResolvedValueOnce({ rows: [{ id: 'resolution-1' }] });
+    mockQuery
+      .mockResolvedValueOnce({
+        rows: [{ contact_id: 'contact-1', account_id: 'account-1', resolution_status: 'resolved' }],
+      })
+      .mockResolvedValueOnce({ rows: [{ id: 'resolution-1' }] });
 
     const result = await resolvePortalSignupContact({
       email: 'client@example.com',
@@ -44,9 +48,17 @@ describe('portalAuthService', () => {
   });
 
   it('returns a manual-resolution result when the signup bridge finds no matching contact', async () => {
-    mockQuery.mockResolvedValueOnce({
-      rows: [{ contact_id: null, account_id: 'account-1', resolution_status: 'needs_contact_resolution' }],
-    }).mockResolvedValueOnce({ rows: [{ id: 'resolution-2' }] });
+    mockQuery
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            contact_id: null,
+            account_id: 'account-1',
+            resolution_status: 'needs_contact_resolution',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [{ id: 'resolution-2' }] });
 
     const result = await resolvePortalSignupContact({
       email: 'newclient@example.com',
@@ -68,9 +80,17 @@ describe('portalAuthService', () => {
   });
 
   it('returns an unresolved signup result when multiple contacts share the email', async () => {
-    mockQuery.mockResolvedValueOnce({
-      rows: [{ contact_id: null, account_id: 'account-1', resolution_status: 'needs_contact_resolution' }],
-    }).mockResolvedValueOnce({ rows: [{ id: 'resolution-3' }] });
+    mockQuery
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            contact_id: null,
+            account_id: 'account-1',
+            resolution_status: 'needs_contact_resolution',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [{ id: 'resolution-3' }] });
 
     await expect(
       resolvePortalSignupContact({
@@ -153,6 +173,26 @@ describe('portalAuthService', () => {
     await expect(getPortalInvitationByToken('missing')).resolves.toBeNull();
   });
 
+  it('looks up active portal users and pending signup requests case-insensitively', async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rows: [{ id: 'portal-1' }] })
+      .mockResolvedValueOnce({ rows: [{ id: 'signup-1' }] });
+
+    await expect(findPortalUserIdByEmail('Client@Example.com')).resolves.toBe('portal-1');
+    await expect(findPendingSignupRequestIdByEmail('Client@Example.com')).resolves.toBe('signup-1');
+
+    expect(mockQuery).toHaveBeenNthCalledWith(
+      1,
+      'SELECT id FROM portal_users WHERE lower(email) = lower($1) LIMIT 1',
+      ['Client@Example.com']
+    );
+    expect(mockQuery).toHaveBeenNthCalledWith(
+      2,
+      'SELECT id FROM portal_signup_requests WHERE lower(email) = lower($1) AND status = $2 LIMIT 1',
+      ['Client@Example.com', 'pending']
+    );
+  });
+
   it('returns login user when found', async () => {
     const row = {
       id: 'portal-1',
@@ -178,6 +218,7 @@ describe('portalAuthService', () => {
 
     await expect(
       createPortalUserFromInvitation({
+        accountId: 'account-1',
         contactId: 'contact-2',
         email: 'client@example.com',
         passwordHash: 'hash',

@@ -6,12 +6,30 @@ export type VolunteerImportVolunteerPersistence = {
   updateVolunteer: typeof updateImportedVolunteer;
 };
 
+const assertImportDoesNotApproveBackgroundCheck = (payload: ParsedVolunteerImportRow): void => {
+  if (
+    (payload as { background_check_status?: string | null }).background_check_status !== 'approved'
+  ) {
+    return;
+  }
+
+  throw Object.assign(
+    new Error('Approved background checks must use the dedicated approval endpoint'),
+    {
+      statusCode: 400,
+      code: 'validation_error',
+    }
+  );
+};
+
 export const insertImportedVolunteer = async (
   client: PoolClient,
   contactId: string,
   payload: ParsedVolunteerImportRow,
   userId: string
 ): Promise<string> => {
+  assertImportDoesNotApproveBackgroundCheck(payload);
+
   const availabilityStatus = payload.availability_status ?? 'available';
 
   const result = await client.query<{ volunteer_id: string }>(
@@ -76,6 +94,8 @@ export const updateImportedVolunteer = async (
   payload: ParsedVolunteerImportRow,
   userId: string
 ): Promise<void> => {
+  assertImportDoesNotApproveBackgroundCheck(payload);
+
   const updates: string[] = [];
   const values: Array<string | boolean | string[] | number | Date | null> = [];
   let parameter = 1;

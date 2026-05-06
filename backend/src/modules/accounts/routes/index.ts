@@ -4,7 +4,7 @@ import pool from '@config/database';
 import { authenticate } from '@middleware/domains/auth';
 import { loadDataScope } from '@middleware/domains/data';
 import { documentUpload, handleMulterError } from '@middleware/domains/platform';
-import { requireRole } from '@middleware/permissions';
+import { requireAdmin } from '@middleware/permissions';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import { uuidSchema, optionalStrictBooleanSchema } from '@validations/shared';
 import { createAccountsController } from '../controllers/accounts.controller';
@@ -129,7 +129,7 @@ export const createAccountsRoutes = (): Router => {
     '/import/commit',
     documentUpload.single('file'),
     handleMulterError,
-    requireRole('admin', 'manager', 'staff'),
+    requireAdmin,
     controller.commitImport
   );
   router.get('/:id', validateParams(accountIdParamsSchema), controller.getAccountById);
@@ -137,20 +137,20 @@ export const createAccountsRoutes = (): Router => {
   router.post(
     '/',
     validateBody(createAccountSchema),
-    requireRole('admin', 'manager', 'staff'),
+    requireAdmin,
     controller.createAccount
   );
   router.put(
     '/:id',
     validateParams(accountIdParamsSchema),
     validateBody(updateAccountSchema),
-    requireRole('admin', 'manager', 'staff'),
+    requireAdmin,
     controller.updateAccount
   );
   router.delete(
     '/:id',
     validateParams(accountIdParamsSchema),
-    requireRole('admin', 'manager', 'staff'),
+    requireAdmin,
     controller.deleteAccount
   );
 

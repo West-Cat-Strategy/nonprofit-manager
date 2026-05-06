@@ -5,6 +5,7 @@ import { portalAdminAppointmentsApiClient } from '../../adminOps/api/portalAdmin
 import { canAccessAdminSettings } from '../../auth/state/adminAccess';
 import { useToast } from '../../../contexts/useToast';
 import useConfirmDialog from '../../../hooks/useConfirmDialog';
+import { useStableSearchParamsWriter } from '../../../hooks/useStableSearchParams';
 import { useAppSelector } from '../../../store/hooks';
 import type { EventOccurrence } from '../../../types/event';
 import { formatApiErrorMessage } from '../../../utils/apiError';
@@ -78,6 +79,8 @@ export interface StaffEventsWorkspaceController {
 export default function useStaffEventsWorkspaceController(): StaffEventsWorkspaceController {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { writeSearchParams: writeStableSearchParams, shouldApplySearchParams } =
+    useStableSearchParamsWriter(setSearchParams);
   const { showSuccess, showError } = useToast();
   const { dialogState, confirm, handleCancel, handleConfirm } = useConfirmDialog();
   const user = useAppSelector((state) => state.auth.user);
@@ -107,30 +110,34 @@ export default function useStaffEventsWorkspaceController(): StaffEventsWorkspac
 
   const writeSearchParams = useCallback(
     (updates: Record<string, string | null>) => {
-      const next = new URLSearchParams(searchParams);
+      writeStableSearchParams((next) => {
+        for (const [key, value] of Object.entries(updates)) {
+          const shouldDelete =
+            value === null ||
+            value === '' ||
+            (key === 'scope' && value === 'events') ||
+            (key === 'month' && value === formatMonthParam(startOfMonth(new Date())));
 
-      for (const [key, value] of Object.entries(updates)) {
-        const shouldDelete =
-          value === null ||
-          value === '' ||
-          (key === 'scope' && value === 'events') ||
-          (key === 'month' && value === formatMonthParam(startOfMonth(new Date())));
-
-        if (shouldDelete) {
-          next.delete(key);
-        } else {
-          next.set(key, value);
+          if (shouldDelete) {
+            next.delete(key);
+          } else {
+            next.set(key, value);
+          }
         }
-      }
 
-      setSearchParams(next, { replace: true });
+        return next;
+      }, { replace: true });
     },
-    [searchParams, setSearchParams]
+    [writeStableSearchParams]
   );
 
   useEffect(() => {
+    if (!shouldApplySearchParams()) {
+      return;
+    }
+
     setSearchInput(appliedSearch);
-  }, [appliedSearch]);
+  }, [appliedSearch, shouldApplySearchParams]);
 
   useEffect(() => {
     const trimmed = searchInput.trim();

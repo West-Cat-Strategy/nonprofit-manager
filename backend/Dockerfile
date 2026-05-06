@@ -1,12 +1,14 @@
 # syntax=docker/dockerfile:1
 
-FROM node:24-alpine@sha256:d1b3b4da11eefd5941e7f0b9cf17783fc99d9c6fc34884a665f40a06dbdfc94f AS base
+FROM node:24-alpine@sha256:d1b3b4da11eefd5941e7f0b9cf17783fc99d9c6fc34884a665f40a06dbdfc94f AS node-runtime
 
 WORKDIR /app
 
+FROM node-runtime AS npm-tooling
+
 RUN npm install -g npm@11.13.0 && npm cache clean --force
 
-FROM base AS workspace-deps
+FROM npm-tooling AS workspace-deps
 
 WORKDIR /workspace
 
@@ -21,7 +23,7 @@ RUN --mount=type=cache,target=/root/.npm,sharing=locked \
     npm install --workspace backend undici@8.2.0 --no-audit --no-fund && \
     mkdir -p backend/node_modules
 
-FROM base AS deps
+FROM npm-tooling AS deps
 
 COPY --from=workspace /backend/package.json ./package.json
 COPY --from=workspace-deps /workspace/node_modules ./node_modules
@@ -43,7 +45,7 @@ FROM app AS build
 RUN ./node_modules/.bin/tsc -p tsconfig.docker.json && \
     ./node_modules/.bin/tsc-alias -p tsconfig.docker.json
 
-FROM base AS workspace-production-deps
+FROM npm-tooling AS workspace-production-deps
 
 WORKDIR /workspace
 
@@ -57,7 +59,7 @@ RUN --mount=type=cache,target=/root/.npm,sharing=locked \
     npm install --workspace backend undici@8.2.0 --omit=dev --no-audit --no-fund && \
     mkdir -p backend/node_modules
 
-FROM base AS production-deps
+FROM npm-tooling AS production-deps
 
 COPY --from=workspace /backend/package.json ./package.json
 COPY --from=workspace-production-deps /workspace/node_modules ./node_modules
@@ -77,7 +79,7 @@ EXPOSE 3000 8006
 CMD ["npm", "run", "dev"]
 
 # Build the final runtime image from a clean base so build layers stay out of it.
-FROM base AS production
+FROM node-runtime AS production
 
 ENV NODE_ENV=production \
     PORT=8000

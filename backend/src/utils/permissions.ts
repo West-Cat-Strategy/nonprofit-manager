@@ -14,6 +14,7 @@ export enum Permission {
   VOLUNTEER_EDIT = 'volunteer:edit',
   VOLUNTEER_DELETE = 'volunteer:delete',
   VOLUNTEER_EXPORT = 'volunteer:export',
+  VOLUNTEER_BACKGROUND_CHECK_APPROVE = 'volunteer:background-check:approve',
 
   // Volunteer Hours
   HOURS_VIEW = 'hours:view',
@@ -115,6 +116,7 @@ const ROLE_PERMISSIONS: Record<CanonicalPermissionRole, Permission[]> = {
     Permission.VOLUNTEER_EDIT,
     Permission.VOLUNTEER_DELETE,
     Permission.VOLUNTEER_EXPORT,
+    Permission.VOLUNTEER_BACKGROUND_CHECK_APPROVE,
     Permission.HOURS_VIEW,
     Permission.HOURS_CREATE,
     Permission.HOURS_EDIT,
@@ -183,6 +185,7 @@ const ROLE_PERMISSIONS: Record<CanonicalPermissionRole, Permission[]> = {
     Permission.VOLUNTEER_EDIT,
     Permission.VOLUNTEER_DELETE,
     Permission.VOLUNTEER_EXPORT,
+    Permission.VOLUNTEER_BACKGROUND_CHECK_APPROVE,
     Permission.HOURS_VIEW,
     Permission.HOURS_CREATE,
     Permission.HOURS_EDIT,
@@ -397,6 +400,13 @@ export function isStaffOrAbove(role: string): boolean {
  */
 export function canManageVolunteers(role: string): boolean {
   return hasPermission(role, Permission.VOLUNTEER_EDIT);
+}
+
+/**
+ * Check if user can approve volunteer background checks
+ */
+export function canApproveVolunteerBackgroundChecks(role: string): boolean {
+  return hasPermission(role, Permission.VOLUNTEER_BACKGROUND_CHECK_APPROVE);
 }
 
 /**

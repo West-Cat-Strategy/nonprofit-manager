@@ -18,6 +18,7 @@ import {
   AvailabilityStatus,
   BackgroundCheckStatus,
   VolunteerLifecycleStatus,
+  ApproveVolunteerBackgroundCheckDTO,
 } from '@app-types/volunteer';
 import { logger } from '@config/logger';
 import { resolveSort } from '@utils/queryHelpers';
@@ -25,6 +26,11 @@ import type { DataScopeFilter } from '@app-types/dataScope';
 
 type QueryValue = string | number | boolean | string[] | Date | null;
 type DatabaseRow = Record<string, unknown>;
+type ClientError = Error & {
+  statusCode?: number;
+  code?: string;
+  details?: Record<string, unknown>;
+};
 
 const normalizedAvailabilitySql = `
   COALESCE(
@@ -78,6 +84,21 @@ const normalizeBackgroundCheckStatus = (value: unknown): Volunteer['background_c
       return BackgroundCheckStatus.NOT_REQUIRED;
     default:
       return BackgroundCheckStatus.NOT_REQUIRED;
+  }
+};
+
+const genericApprovalError = (): ClientError =>
+  Object.assign(new Error('Approved background checks must use the dedicated approval endpoint'), {
+    statusCode: 400,
+    code: 'validation_error',
+  });
+
+const isClientError = (error: unknown): error is ClientError =>
+  error instanceof Error && typeof (error as ClientError).statusCode === 'number';
+
+const assertGenericBackgroundCheckStatus = (value: unknown): void => {
+  if (value === BackgroundCheckStatus.APPROVED || value === 'approved') {
+    throw genericApprovalError();
   }
 };
 
@@ -163,6 +184,12 @@ const normalizeVolunteerRow = (row: DatabaseRow): Volunteer => {
       (row.background_check_date as Volunteer['background_check_date']) ?? null,
     background_check_expiry:
       (row.background_check_expiry as Volunteer['background_check_expiry']) ?? null,
+    background_check_approved_by:
+      (row.background_check_approved_by as Volunteer['background_check_approved_by']) ?? null,
+    background_check_approved_at:
+      (row.background_check_approved_at as Volunteer['background_check_approved_at']) ?? null,
+    background_check_approval_notes:
+      (row.background_check_approval_notes as Volunteer['background_check_approval_notes']) ?? null,
     preferred_roles: Array.isArray(row.preferred_roles) ? (row.preferred_roles as string[]) : null,
     max_hours_per_week: maxHoursPerWeek,
     emergency_contact_name:
@@ -400,6 +427,8 @@ export class VolunteerService {
    */
   async createVolunteer(data: CreateVolunteerDTO, userId: string): Promise<Volunteer> {
     try {
+      assertGenericBackgroundCheckStatus(data.background_check_status);
+
       // Verify contact exists
       const contactCheck = await this.pool.query('SELECT id FROM contacts WHERE id = $1', [
         data.contact_id,
@@ -450,6 +479,9 @@ export class VolunteerService {
       logger.info(`Volunteer created: ${result.rows[0].id}`);
       return normalizeVolunteerRow(result.rows[0] as DatabaseRow);
     } catch (error) {
+      if (isClientError(error)) {
+        throw error;
+      }
       logger.error('Error creating volunteer:', error);
       throw Object.assign(new Error('Failed to create volunteer'), { cause: error });
     }
@@ -464,6 +496,8 @@ export class VolunteerService {
     userId: string
   ): Promise<Volunteer | null> {
     try {
+      assertGenericBackgroundCheckStatus(data.background_check_status);
+
       const fields: string[] = [];
       const values: QueryValue[] = [];
       let paramCounter = 1;
@@ -558,8 +592,72 @@ export class VolunteerService {
       logger.info(`Volunteer updated: ${volunteerId}`);
       return normalizeVolunteerRow(result.rows[0] as DatabaseRow);
     } catch (error) {
+      if (isClientError(error)) {
+        throw error;
+      }
       logger.error('Error updating volunteer:', error);
       throw Object.assign(new Error('Failed to update volunteer'), { cause: error });
+    }
+  }
+
+  async approveVolunteerBackgroundCheck(
+    volunteerId: string,
+    data: ApproveVolunteerBackgroundCheckDTO,
+    userId: string
+  ): Promise<Volunteer | null> {
+    try {
+      const approvalNotes = data.notes.trim();
+      if (!approvalNotes) {
+        throw Object.assign(new Error('Approval notes are required'), {
+          statusCode: 400,
+          code: 'validation_error',
+        });
+      }
+
+      const fields: string[] = [
+        `background_check_status = 'approved'`,
+        `background_check_approved_by = $1`,
+        `background_check_approved_at = CURRENT_TIMESTAMP`,
+        `background_check_approval_notes = $2`,
+        `background_check_date = COALESCE($3::date, background_check_date, CURRENT_DATE)`,
+        `modified_by = $1`,
+        `updated_at = CURRENT_TIMESTAMP`,
+      ];
+      const values: QueryValue[] = [userId, approvalNotes, data.background_check_date ?? null];
+      let paramCounter = 4;
+
+      if (data.background_check_expiry !== undefined) {
+        fields.push(`background_check_expiry = $${paramCounter}::date`);
+        values.push(data.background_check_expiry);
+        paramCounter++;
+      }
+
+      values.push(volunteerId);
+
+      const result = await this.pool.query(
+        `
+          UPDATE volunteers
+          SET ${fields.join(', ')}
+          WHERE id = $${paramCounter}
+          RETURNING *
+        `,
+        values
+      );
+
+      if (result.rows.length === 0) {
+        return null;
+      }
+
+      logger.info(`Volunteer background check approved: ${volunteerId}`);
+      return normalizeVolunteerRow(result.rows[0] as DatabaseRow);
+    } catch (error) {
+      if (isClientError(error)) {
+        throw error;
+      }
+      logger.error('Error approving volunteer background check:', error);
+      throw Object.assign(new Error('Failed to approve volunteer background check'), {
+        cause: error,
+      });
     }
   }
 

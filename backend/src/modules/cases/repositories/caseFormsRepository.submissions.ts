@@ -1,11 +1,5 @@
-import type {
-  CaseFormAsset,
-  CaseFormSubmission,
-} from '@app-types/caseForms';
-import type {
-  CaseFormAccessTokenRecord,
-  DbExecutor,
-} from './caseFormsRepository.shared';
+import type { CaseFormAsset, CaseFormSubmission } from '@app-types/caseForms';
+import type { CaseFormAccessTokenRecord, DbExecutor } from './caseFormsRepository.shared';
 import {
   assetSelect,
   mapAsset,
@@ -40,6 +34,22 @@ export async function listSubmissionsForAssignment(
     [assignmentId]
   );
   return result.rows.map(mapSubmission);
+}
+
+export async function getLatestSubmissionForAssignment(
+  executor: DbExecutor,
+  assignmentId: string,
+  options: { forUpdate?: boolean } = {}
+): Promise<CaseFormSubmission | null> {
+  const result = await executor.query(
+    `${submissionSelect}
+     WHERE cfs.assignment_id = $1
+     ORDER BY cfs.submission_number DESC, cfs.created_at DESC
+     LIMIT 1
+     ${options.forUpdate ? 'FOR UPDATE' : ''}`,
+    [assignmentId]
+  );
+  return result.rows[0] ? mapSubmission(result.rows[0]) : null;
 }
 
 export async function getNextSubmissionNumber(
@@ -114,6 +124,19 @@ export async function createSubmission(
     ]
   );
   return mapSubmission(result.rows[0]);
+}
+
+export async function updateSubmissionMappingAudit(
+  executor: DbExecutor,
+  submissionId: string,
+  mappingAudit: unknown[]
+): Promise<void> {
+  await executor.query(
+    `UPDATE case_form_submissions
+     SET mapping_audit = $2::jsonb
+     WHERE id = $1`,
+    [submissionId, JSON.stringify(mappingAudit)]
+  );
 }
 
 export async function listAssetsForAssignment(
@@ -329,7 +352,11 @@ export async function getAccessTokenByHash(
 
   const assignment = mapAssignment({
     ...assignmentRow,
-    scoped_account_id: assignmentRow.account_id ?? caseRow?.case_account_id ?? contactRow?.contact_account_id ?? null,
+    scoped_account_id:
+      assignmentRow.account_id ??
+      caseRow?.case_account_id ??
+      contactRow?.contact_account_id ??
+      null,
     case_number: caseRow?.case_number ?? null,
     case_title: caseRow?.case_title ?? null,
     client_viewable: caseRow?.client_viewable ?? null,

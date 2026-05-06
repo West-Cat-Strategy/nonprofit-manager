@@ -7,7 +7,13 @@ import { logPortalActivity } from '@services/domains/integration';
 import * as portalAuthService from '@services/portalAuthService';
 import { type GuardFailure } from '@services/authGuardService';
 import * as portalPasswordResetService from '@services/portalPasswordResetService';
-import { badRequest, conflict, forbidden, notFoundMessage, unauthorized } from '@utils/responseHelpers';
+import {
+  badRequest,
+  conflict,
+  forbidden,
+  notFoundMessage,
+  unauthorized,
+} from '@utils/responseHelpers';
 import { clearPortalAuthCookie, setPortalAuthCookie } from '@utils/cookieHelper';
 import { shouldExposeAuthTokensInResponse } from '@utils/authResponse';
 import { sendError, sendSuccess } from '@modules/shared/http/envelope';
@@ -213,8 +219,7 @@ export const portalForgotPassword = async (
     await portalPasswordResetService.requestPortalPasswordReset(email);
 
     return sendSuccess(res, {
-      message:
-        'If an account with that email exists, a portal password reset link has been sent.',
+      message: 'If an account with that email exists, a portal password reset link has been sent.',
     });
   } catch (error) {
     next(error);
@@ -311,6 +316,10 @@ export const acceptPortalInvitation = async (
       return sendInvitationFailure(res, invitationResult.error, req.correlationId);
     }
     const invitation = invitationResult.data.invitation;
+    const accountId = invitation.account_id;
+    if (!accountId) {
+      return notFoundMessage(res, 'Invitation not found');
+    }
 
     const normalizedEmail = invitation.email.toLowerCase();
     const existingUserId = await portalAuthService.findPortalUserIdByEmail(normalizedEmail);
@@ -321,6 +330,7 @@ export const acceptPortalInvitation = async (
     let contactId = invitation.contact_id as string | null;
     if (!contactId) {
       contactId = await portalAuthService.createContactForInvitation({
+        accountId,
         firstName,
         lastName,
         email: normalizedEmail,
@@ -333,6 +343,7 @@ export const acceptPortalInvitation = async (
     const hashedPassword = await bcrypt.hash(password, PASSWORD.BCRYPT_SALT_ROUNDS);
 
     const portalUser = await portalAuthService.createPortalUserFromInvitation({
+      accountId,
       contactId,
       email: normalizedEmail,
       passwordHash: hashedPassword,

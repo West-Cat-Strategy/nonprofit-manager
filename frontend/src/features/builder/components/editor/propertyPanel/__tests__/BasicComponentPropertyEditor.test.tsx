@@ -25,6 +25,10 @@ describe('BasicComponentPropertyEditor URL handling', () => {
       target: { value: 'javascript:alert(1)' },
     });
 
+    expect(onUpdateComponent).not.toHaveBeenCalled();
+
+    fireEvent.blur(hrefInput);
+
     expect(onUpdateComponent).toHaveBeenCalledWith('button-1', { href: '' });
   });
 
@@ -48,6 +52,10 @@ describe('BasicComponentPropertyEditor URL handling', () => {
     fireEvent.change(srcInput, {
       target: { value: 'data:text/html,<svg onload=alert(1)>' },
     });
+
+    expect(onUpdateComponent).not.toHaveBeenCalled();
+
+    fireEvent.blur(srcInput);
 
     expect(onUpdateComponent).toHaveBeenCalledWith('image-1', { src: '' });
   });

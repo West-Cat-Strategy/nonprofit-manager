@@ -25,6 +25,11 @@ export enum BackgroundCheckStatus {
   EXPIRED = 'expired',
 }
 
+export type EditableBackgroundCheckStatus = Exclude<
+  BackgroundCheckStatus,
+  BackgroundCheckStatus.APPROVED
+>;
+
 export interface Volunteer {
   volunteer_id: string;
   contact_id: string;
@@ -36,6 +41,9 @@ export interface Volunteer {
   background_check_status: BackgroundCheckStatus;
   background_check_date: Date | null;
   background_check_expiry: Date | null;
+  background_check_approved_by: string | null;
+  background_check_approved_at: Date | null;
+  background_check_approval_notes: string | null;
 
   // Preferences
   preferred_roles: string[] | null;
@@ -69,7 +77,7 @@ export interface CreateVolunteerDTO {
   skills?: string[];
   availability_status?: AvailabilityStatus;
   availability_notes?: string;
-  background_check_status?: BackgroundCheckStatus;
+  background_check_status?: EditableBackgroundCheckStatus;
   background_check_date?: Date;
   background_check_expiry?: Date;
   preferred_roles?: string[];
@@ -85,7 +93,7 @@ export interface UpdateVolunteerDTO {
   skills?: string[];
   availability_status?: AvailabilityStatus;
   availability_notes?: string;
-  background_check_status?: BackgroundCheckStatus;
+  background_check_status?: EditableBackgroundCheckStatus;
   background_check_date?: Date;
   background_check_expiry?: Date;
   preferred_roles?: string[];
@@ -94,6 +102,12 @@ export interface UpdateVolunteerDTO {
   emergency_contact_phone?: string;
   emergency_contact_relationship?: string;
   is_active?: boolean;
+}
+
+export interface ApproveVolunteerBackgroundCheckDTO {
+  background_check_date?: Date;
+  background_check_expiry?: Date | null;
+  notes: string;
 }
 
 export interface VolunteerFilters {

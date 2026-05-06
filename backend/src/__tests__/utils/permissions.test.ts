@@ -1,5 +1,6 @@
 import {
   Permission,
+  canApproveVolunteerBackgroundChecks,
   canExportData,
   getPermissionsForRole,
   hasAllPermissions,
@@ -22,24 +23,26 @@ describe('permissions seam', () => {
     expect(hasPermission('admin', Permission.ADMIN_USERS)).toBe(true);
     expect(hasPermission('manager', Permission.ADMIN_USERS)).toBe(false);
     expect(hasPermission('manager', Permission.ADMIN_ORGANIZATION)).toBe(true);
+    expect(hasPermission('manager', Permission.VOLUNTEER_BACKGROUND_CHECK_APPROVE)).toBe(true);
     expect(hasPermission('staff', Permission.EVENT_EDIT)).toBe(true);
+    expect(hasPermission('staff', Permission.VOLUNTEER_BACKGROUND_CHECK_APPROVE)).toBe(false);
     expect(hasPermission('viewer', Permission.EVENT_EDIT)).toBe(false);
     expect(hasPermission('volunteer', Permission.HOURS_CREATE)).toBe(true);
     expect(hasPermission('volunteer', Permission.EVENT_CREATE)).toBe(false);
   });
 
   it('keeps aggregate permission helpers aligned with canonical role grants', () => {
-    expect(
-      hasAnyPermission('user', [Permission.ADMIN_USERS, Permission.CONTACT_EDIT])
-    ).toBe(true);
-    expect(
-      hasAllPermissions('manager', [Permission.REPORT_VIEW, Permission.CONTACT_VIEW])
-    ).toBe(true);
-    expect(
-      hasAllPermissions('manager', [Permission.REPORT_VIEW, Permission.ADMIN_USERS])
-    ).toBe(false);
+    expect(hasAnyPermission('user', [Permission.ADMIN_USERS, Permission.CONTACT_EDIT])).toBe(true);
+    expect(hasAllPermissions('manager', [Permission.REPORT_VIEW, Permission.CONTACT_VIEW])).toBe(
+      true
+    );
+    expect(hasAllPermissions('manager', [Permission.REPORT_VIEW, Permission.ADMIN_USERS])).toBe(
+      false
+    );
     expect(canExportData('admin', 'analytics')).toBe(true);
     expect(canExportData('member', 'analytics')).toBe(false);
+    expect(canApproveVolunteerBackgroundChecks('admin')).toBe(true);
+    expect(canApproveVolunteerBackgroundChecks('staff')).toBe(false);
   });
 
   it('returns no permissions for unknown roles', () => {

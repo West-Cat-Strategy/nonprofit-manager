@@ -125,8 +125,8 @@ describe('portalAuthController', () => {
         'member@example.com'
       );
       expect(mockPortalAuthService.resolvePortalSignupContact).not.toHaveBeenCalled();
-      expect((mockResponse.status as jest.Mock)).toHaveBeenCalledWith(409);
-      expect((mockResponse.json as jest.Mock)).toHaveBeenCalledWith(
+      expect(mockResponse.status as jest.Mock).toHaveBeenCalledWith(409);
+      expect(mockResponse.json as jest.Mock).toHaveBeenCalledWith(
         expect.objectContaining({
           success: false,
           error: expect.objectContaining({
@@ -155,8 +155,8 @@ describe('portalAuthController', () => {
         'pending@example.com'
       );
       expect(mockPortalAuthService.resolvePortalSignupContact).not.toHaveBeenCalled();
-      expect((mockResponse.status as jest.Mock)).toHaveBeenCalledWith(409);
-      expect((mockResponse.json as jest.Mock)).toHaveBeenCalledWith(
+      expect(mockResponse.status as jest.Mock).toHaveBeenCalledWith(409);
+      expect(mockResponse.json as jest.Mock).toHaveBeenCalledWith(
         expect.objectContaining({
           success: false,
           error: expect.objectContaining({
@@ -205,8 +205,8 @@ describe('portalAuthController', () => {
         phone: '555-0100',
         resolutionStatus: 'needs_contact_resolution',
       });
-      expect((mockResponse.status as jest.Mock)).toHaveBeenCalledWith(201);
-      expect((mockResponse.json as jest.Mock)).toHaveBeenCalledWith(
+      expect(mockResponse.status as jest.Mock).toHaveBeenCalledWith(201);
+      expect(mockResponse.json as jest.Mock).toHaveBeenCalledWith(
         expect.objectContaining({
           success: true,
           data: {
@@ -249,7 +249,7 @@ describe('portalAuthController', () => {
         phone: undefined,
         resolutionStatus: 'resolved',
       });
-      expect((mockResponse.status as jest.Mock)).toHaveBeenCalledWith(201);
+      expect(mockResponse.status as jest.Mock).toHaveBeenCalledWith(201);
       expect(mockNext).not.toHaveBeenCalled();
     });
 
@@ -284,8 +284,8 @@ describe('portalAuthController', () => {
         phone: '555-2121',
         resolutionStatus: 'needs_contact_resolution',
       });
-      expect((mockResponse.status as jest.Mock)).toHaveBeenCalledWith(201);
-      expect((mockResponse.json as jest.Mock)).toHaveBeenCalledWith(
+      expect(mockResponse.status as jest.Mock).toHaveBeenCalledWith(201);
+      expect(mockResponse.json as jest.Mock).toHaveBeenCalledWith(
         expect.objectContaining({
           success: true,
           data: {
@@ -334,8 +334,8 @@ describe('portalAuthController', () => {
         undefined,
         '127.0.0.1'
       );
-      expect((mockResponse.status as jest.Mock)).toHaveBeenCalledWith(401);
-      expect((mockResponse.json as jest.Mock)).toHaveBeenCalledWith(
+      expect(mockResponse.status as jest.Mock).toHaveBeenCalledWith(401);
+      expect(mockResponse.json as jest.Mock).toHaveBeenCalledWith(
         expect.objectContaining({
           success: false,
           error: expect.objectContaining({
@@ -362,8 +362,8 @@ describe('portalAuthController', () => {
       await portalAuthController.portalLogin(req as Request, mockResponse, mockNext);
 
       expect(mockBcryptCompare).not.toHaveBeenCalled();
-      expect((mockResponse.status as jest.Mock)).toHaveBeenCalledWith(403);
-      expect((mockResponse.json as jest.Mock)).toHaveBeenCalledWith(
+      expect(mockResponse.status as jest.Mock).toHaveBeenCalledWith(403);
+      expect(mockResponse.json as jest.Mock).toHaveBeenCalledWith(
         expect.objectContaining({
           success: false,
           error: expect.objectContaining({
@@ -390,8 +390,8 @@ describe('portalAuthController', () => {
       await portalAuthController.portalLogin(req as Request, mockResponse, mockNext);
 
       expect(mockBcryptCompare).not.toHaveBeenCalled();
-      expect((mockResponse.status as jest.Mock)).toHaveBeenCalledWith(403);
-      expect((mockResponse.json as jest.Mock)).toHaveBeenCalledWith(
+      expect(mockResponse.status as jest.Mock).toHaveBeenCalledWith(403);
+      expect(mockResponse.json as jest.Mock).toHaveBeenCalledWith(
         expect.objectContaining({
           success: false,
           error: expect.objectContaining({
@@ -425,8 +425,8 @@ describe('portalAuthController', () => {
         undefined,
         '127.0.0.1'
       );
-      expect((mockResponse.status as jest.Mock)).toHaveBeenCalledWith(401);
-      expect((mockResponse.json as jest.Mock)).toHaveBeenCalledWith(
+      expect(mockResponse.status as jest.Mock).toHaveBeenCalledWith(401);
+      expect(mockResponse.json as jest.Mock).toHaveBeenCalledWith(
         expect.objectContaining({
           success: false,
           error: expect.objectContaining({
@@ -472,8 +472,8 @@ describe('portalAuthController', () => {
         ipAddress: '127.0.0.1',
         userAgent: 'jest-agent/1.0',
       });
-      expect((mockResponse.status as jest.Mock)).toHaveBeenCalledWith(200);
-      expect((mockResponse.json as jest.Mock)).toHaveBeenCalledWith(
+      expect(mockResponse.status as jest.Mock).toHaveBeenCalledWith(200);
+      expect(mockResponse.json as jest.Mock).toHaveBeenCalledWith(
         expect.objectContaining({
           success: true,
           data: {
@@ -501,8 +501,8 @@ describe('portalAuthController', () => {
       expect(mockPortalAuthService.getPortalUserProfileById).toHaveBeenCalledWith(
         'portal-user-404'
       );
-      expect((mockResponse.status as jest.Mock)).toHaveBeenCalledWith(404);
-      expect((mockResponse.json as jest.Mock)).toHaveBeenCalledWith(
+      expect(mockResponse.status as jest.Mock).toHaveBeenCalledWith(404);
+      expect(mockResponse.json as jest.Mock).toHaveBeenCalledWith(
         expect.objectContaining({
           success: false,
           error: expect.objectContaining({
@@ -533,7 +533,7 @@ describe('portalAuthController', () => {
 
       await portalAuthController.getPortalBootstrap(req as Request, mockResponse, mockNext);
 
-      expect((mockResponse.json as jest.Mock)).toHaveBeenCalledWith(
+      expect(mockResponse.json as jest.Mock).toHaveBeenCalledWith(
         expect.objectContaining({
           success: true,
           data: {
@@ -567,8 +567,8 @@ describe('portalAuthController', () => {
 
       await portalAuthController.getPortalMe(req as Request, mockResponse, mockNext);
 
-      expect((mockResponse.status as jest.Mock)).toHaveBeenCalledWith(200);
-      expect((mockResponse.json as jest.Mock)).toHaveBeenCalledWith(
+      expect(mockResponse.status as jest.Mock).toHaveBeenCalledWith(200);
+      expect(mockResponse.json as jest.Mock).toHaveBeenCalledWith(
         expect.objectContaining({
           success: true,
           data: expect.objectContaining({
@@ -588,8 +588,8 @@ describe('portalAuthController', () => {
 
       await portalAuthController.validatePortalInvitation(req as Request, mockResponse, mockNext);
 
-      expect((mockResponse.status as jest.Mock)).toHaveBeenCalledWith(404);
-      expect((mockResponse.json as jest.Mock)).toHaveBeenCalledWith(
+      expect(mockResponse.status as jest.Mock).toHaveBeenCalledWith(404);
+      expect(mockResponse.json as jest.Mock).toHaveBeenCalledWith(
         expect.objectContaining({
           success: false,
           error: expect.objectContaining({
@@ -606,6 +606,7 @@ describe('portalAuthController', () => {
         id: 'invitation-1',
         email: 'member@example.com',
         contact_id: 'contact-1',
+        account_id: 'account-1',
         created_by: 'staff-1',
         expires_at: new Date('2026-04-01T00:00:00.000Z'),
         accepted_at: new Date('2026-04-02T00:00:00.000Z'),
@@ -613,8 +614,8 @@ describe('portalAuthController', () => {
 
       await portalAuthController.validatePortalInvitation(req as Request, mockResponse, mockNext);
 
-      expect((mockResponse.status as jest.Mock)).toHaveBeenCalledWith(400);
-      expect((mockResponse.json as jest.Mock)).toHaveBeenCalledWith(
+      expect(mockResponse.status as jest.Mock).toHaveBeenCalledWith(400);
+      expect(mockResponse.json as jest.Mock).toHaveBeenCalledWith(
         expect.objectContaining({
           success: false,
           error: expect.objectContaining({
@@ -632,6 +633,7 @@ describe('portalAuthController', () => {
           id: 'invitation-1',
           email: 'member@example.com',
           contact_id: 'contact-1',
+          account_id: 'account-1',
           created_by: 'staff-1',
           expires_at: new Date('2026-06-01T00:00:00.000Z'),
           accepted_at: new Date('2026-04-02T00:00:00.000Z'),
@@ -644,62 +646,66 @@ describe('portalAuthController', () => {
           id: 'invitation-1',
           email: 'member@example.com',
           contact_id: 'contact-1',
+          account_id: 'account-1',
           created_by: 'staff-1',
           expires_at: new Date('2026-04-01T00:00:00.000Z'),
           accepted_at: null,
         },
         message: 'Invitation expired',
       },
-    ])('applies the same token-state rule to validation and acceptance for $label', async ({ invitation, message }) => {
-      const validateReq = createBaseRequest({ params: { token: 'state-token' } });
-      const acceptReq = createBaseRequest({
-        params: { token: 'state-token' },
-        body: {
-          firstName: 'New',
-          lastName: 'Member',
-          password: 'Secret123!',
-        },
-      });
+    ])(
+      'applies the same token-state rule to validation and acceptance for $label',
+      async ({ invitation, message }) => {
+        const validateReq = createBaseRequest({ params: { token: 'state-token' } });
+        const acceptReq = createBaseRequest({
+          params: { token: 'state-token' },
+          body: {
+            firstName: 'New',
+            lastName: 'Member',
+            password: 'Secret123!',
+          },
+        });
 
-      mockPortalAuthService.getPortalInvitationByToken
-        .mockResolvedValueOnce(invitation)
-        .mockResolvedValueOnce(invitation);
+        mockPortalAuthService.getPortalInvitationByToken
+          .mockResolvedValueOnce(invitation)
+          .mockResolvedValueOnce(invitation);
 
-      await portalAuthController.validatePortalInvitation(
-        validateReq as Request,
-        mockResponse,
-        mockNext
-      );
-      await portalAuthController.acceptPortalInvitation(
-        acceptReq as Request,
-        mockResponse,
-        mockNext
-      );
+        await portalAuthController.validatePortalInvitation(
+          validateReq as Request,
+          mockResponse,
+          mockNext
+        );
+        await portalAuthController.acceptPortalInvitation(
+          acceptReq as Request,
+          mockResponse,
+          mockNext
+        );
 
-      expect((mockResponse.status as jest.Mock).mock.calls).toContainEqual([400]);
-      expect((mockResponse.json as jest.Mock).mock.calls).toEqual(
-        expect.arrayContaining([
-          [
-            expect.objectContaining({
-              success: false,
-              error: expect.objectContaining({
-                code: 'bad_request',
-                message,
+        expect((mockResponse.status as jest.Mock).mock.calls).toContainEqual([400]);
+        expect((mockResponse.json as jest.Mock).mock.calls).toEqual(
+          expect.arrayContaining([
+            [
+              expect.objectContaining({
+                success: false,
+                error: expect.objectContaining({
+                  code: 'bad_request',
+                  message,
+                }),
               }),
-            }),
-          ],
-          [
-            expect.objectContaining({
-              success: false,
-              error: expect.objectContaining({
-                code: 'bad_request',
-                message,
+            ],
+            [
+              expect.objectContaining({
+                success: false,
+                error: expect.objectContaining({
+                  code: 'bad_request',
+                  message,
+                }),
               }),
-            }),
-          ],
-        ])
-      );
-    });
+            ],
+          ])
+        );
+      }
+    );
 
     it('returns the invitation payload when validation succeeds', async () => {
       const req = createBaseRequest({ params: { token: 'valid-token' } });
@@ -707,6 +713,7 @@ describe('portalAuthController', () => {
         id: 'invitation-1',
         email: 'member@example.com',
         contact_id: 'contact-1',
+        account_id: 'account-1',
         created_by: 'staff-1',
         expires_at: new Date('2026-06-01T00:00:00.000Z'),
         accepted_at: null,
@@ -714,8 +721,8 @@ describe('portalAuthController', () => {
 
       await portalAuthController.validatePortalInvitation(req as Request, mockResponse, mockNext);
 
-      expect((mockResponse.status as jest.Mock)).toHaveBeenCalledWith(200);
-      expect((mockResponse.json as jest.Mock)).toHaveBeenCalledWith(
+      expect(mockResponse.status as jest.Mock).toHaveBeenCalledWith(200);
+      expect(mockResponse.json as jest.Mock).toHaveBeenCalledWith(
         expect.objectContaining({
           success: true,
           data: expect.objectContaining({
@@ -744,6 +751,7 @@ describe('portalAuthController', () => {
         id: 'invitation-1',
         email: 'Invitee@Example.com',
         contact_id: null,
+        account_id: 'account-1',
         created_by: 'staff-1',
         expires_at: new Date('2026-06-01T00:00:00.000Z'),
         accepted_at: null,
@@ -762,26 +770,30 @@ describe('portalAuthController', () => {
         'invitee@example.com'
       );
       expect(mockPortalAuthService.createContactForInvitation).toHaveBeenCalledWith({
+        accountId: 'account-1',
         firstName: 'New',
         lastName: 'Member',
         email: 'invitee@example.com',
       });
       expect(mockBcryptHash).toHaveBeenCalledWith('Secret123!', expect.any(Number));
       expect(mockPortalAuthService.createPortalUserFromInvitation).toHaveBeenCalledWith({
+        accountId: 'account-1',
         contactId: 'contact-2',
         email: 'invitee@example.com',
         passwordHash: 'hashed-password',
         verifiedBy: 'staff-1',
       });
-      expect(mockPortalAuthService.markPortalInvitationAccepted).toHaveBeenCalledWith('invitation-1');
+      expect(mockPortalAuthService.markPortalInvitationAccepted).toHaveBeenCalledWith(
+        'invitation-1'
+      );
       expect(mockSetPortalAuthCookie).toHaveBeenCalledWith(mockResponse, 'portal-token');
       expect(issuePortalSessionToken).toHaveBeenCalledWith({
         id: 'portal-user-2',
         email: 'invitee@example.com',
         contactId: 'contact-2',
       });
-      expect((mockResponse.status as jest.Mock)).toHaveBeenCalledWith(201);
-      expect((mockResponse.json as jest.Mock)).toHaveBeenCalledWith(
+      expect(mockResponse.status as jest.Mock).toHaveBeenCalledWith(201);
+      expect(mockResponse.json as jest.Mock).toHaveBeenCalledWith(
         expect.objectContaining({
           success: true,
           data: {
@@ -809,6 +821,7 @@ describe('portalAuthController', () => {
         id: 'invitation-1',
         email: 'Invitee@Example.com',
         contact_id: 'contact-1',
+        account_id: 'account-1',
         created_by: 'staff-1',
         expires_at: new Date('2026-06-01T00:00:00.000Z'),
         accepted_at: null,
@@ -817,8 +830,8 @@ describe('portalAuthController', () => {
 
       await portalAuthController.acceptPortalInvitation(req as Request, mockResponse, mockNext);
 
-      expect((mockResponse.status as jest.Mock)).toHaveBeenCalledWith(409);
-      expect((mockResponse.json as jest.Mock)).toHaveBeenCalledWith(
+      expect(mockResponse.status as jest.Mock).toHaveBeenCalledWith(409);
+      expect(mockResponse.json as jest.Mock).toHaveBeenCalledWith(
         expect.objectContaining({
           success: false,
           error: expect.objectContaining({
@@ -842,6 +855,7 @@ describe('portalAuthController', () => {
         id: 'invitation-1',
         email: 'Invitee@Example.com',
         contact_id: null,
+        account_id: 'account-1',
         created_by: 'staff-1',
         expires_at: new Date('2026-06-01T00:00:00.000Z'),
         accepted_at: null,
@@ -851,8 +865,8 @@ describe('portalAuthController', () => {
 
       await portalAuthController.acceptPortalInvitation(req as Request, mockResponse, mockNext);
 
-      expect((mockResponse.status as jest.Mock)).toHaveBeenCalledWith(400);
-      expect((mockResponse.json as jest.Mock)).toHaveBeenCalledWith(
+      expect(mockResponse.status as jest.Mock).toHaveBeenCalledWith(400);
+      expect(mockResponse.json as jest.Mock).toHaveBeenCalledWith(
         expect.objectContaining({
           success: false,
           error: expect.objectContaining({
@@ -871,8 +885,8 @@ describe('portalAuthController', () => {
       await portalAuthController.portalLogout(req as Request, mockResponse, mockNext);
 
       expect(mockClearPortalAuthCookie).toHaveBeenCalledWith(mockResponse);
-      expect((mockResponse.status as jest.Mock)).toHaveBeenCalledWith(200);
-      expect((mockResponse.json as jest.Mock)).toHaveBeenCalledWith(
+      expect(mockResponse.status as jest.Mock).toHaveBeenCalledWith(200);
+      expect(mockResponse.json as jest.Mock).toHaveBeenCalledWith(
         expect.objectContaining({
           success: true,
           data: {

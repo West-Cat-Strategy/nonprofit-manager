@@ -6,6 +6,7 @@ import {
 } from '../state';
 import type { RecurringDonationPlanStatus } from '../../../types/recurringDonation';
 import { formatCurrency, formatDate } from '../../../utils/format';
+import { useStableSearchParamsWriter } from '../../../hooks/useStableSearchParams';
 import {
   EmptyState,
   ErrorState,
@@ -70,6 +71,7 @@ const RecurringDonationListPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { writeSearchParams } = useStableSearchParamsWriter(setSearchParams);
   const { plans, pagination, loading, error } = useAppSelector(
     (state) => state.finance.recurring
   );
@@ -103,8 +105,8 @@ const RecurringDonationListPage: React.FC = () => {
     if (search) params.set('search', search);
     if (status) params.set('status', status);
     if (page > 1) params.set('page', String(page));
-    setSearchParams(params, { replace: true });
-  }, [page, search, setSearchParams, status]);
+    writeSearchParams(params, { replace: true });
+  }, [page, search, writeSearchParams, status]);
 
   const activeCount = plans.filter(
     (plan) => plan.status === 'active' && !plan.cancel_at_period_end

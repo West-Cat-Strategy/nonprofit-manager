@@ -8,6 +8,7 @@ import {
 import api from '../../../../../services/api';
 import { useApiError } from '../../../../../hooks/useApiError';
 import type { AuditLog, AuditLogPage } from '../types';
+import BrowserSessionDiagnosticsPanel from '../components/BrowserSessionDiagnosticsPanel';
 
 const auditLogHeaderClasses: Record<string, string> = {
   changedAt: 'w-44',
@@ -215,6 +216,8 @@ export default function AuditLogsSection() {
           </button>
         </div>
       )}
+
+      <BrowserSessionDiagnosticsPanel />
 
       <div className="rounded-lg border border-app-border bg-app-surface shadow-sm">
         <div className="overflow-x-auto">

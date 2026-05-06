@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   ArrowPathIcon,
@@ -26,6 +26,7 @@ import {
   getWebsitePublishingPath,
 } from '../lib/websiteRouteTargets';
 import { parseAllowedValue, parsePositiveInteger } from '../../../utils/persistedFilters';
+import { useStableSearchParamsWriter } from '../../../hooks/useStableSearchParams';
 
 const WEBSITE_STATUS_VALUES = ['draft', 'published', 'maintenance', 'suspended'] as const;
 const WEBSITE_SORT_BY_VALUES = ['name', 'createdAt', 'publishedAt', 'status'] as const;
@@ -77,6 +78,8 @@ const buildWebsiteListSearchParams = (params: {
 const WebsitesListPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { writeSearchParams, shouldApplySearchParams } =
+    useStableSearchParamsWriter(setSearchParams);
   const {
     sites,
     pagination,
@@ -101,11 +104,20 @@ const WebsitesListPage: React.FC = () => {
   );
   const resolvedSearchParamsKey = JSON.stringify(resolvedSearchParams);
   const mirroredSearchParamsKey = JSON.stringify(mirroredSearchParams);
+  const [searchInput, setSearchInput] = useState(resolvedSearchParams.search || '');
+
+  useEffect(() => {
+    if (!shouldApplySearchParams()) {
+      return;
+    }
+
+    setSearchInput(resolvedSearchParams.search || '');
+  }, [resolvedSearchParams.search, shouldApplySearchParams]);
 
   useEffect(() => {
     const normalizedSearchParams = buildWebsiteListSearchParams(resolvedSearchParams);
     if (searchParams.toString() !== normalizedSearchParams.toString()) {
-      setSearchParams(normalizedSearchParams, { replace: true });
+      writeSearchParams(normalizedSearchParams, { replace: true });
       return;
     }
 
@@ -120,7 +132,7 @@ const WebsitesListPage: React.FC = () => {
     resolvedSearchParams,
     resolvedSearchParamsKey,
     searchParams,
-    setSearchParams,
+    writeSearchParams,
   ]);
 
   const sitesWithManagement = useMemo(
@@ -149,7 +161,7 @@ const WebsitesListPage: React.FC = () => {
   };
 
   const updateSearchParams = (patch: Partial<typeof resolvedSearchParams>) => {
-    setSearchParams(
+    writeSearchParams(
       buildWebsiteListSearchParams({
         ...resolvedSearchParams,
         ...patch,
@@ -302,8 +314,11 @@ const WebsitesListPage: React.FC = () => {
             <input
               type="text"
               aria-label="Search websites"
-              value={resolvedSearchParams.search || ''}
-              onChange={(event) => updateSearchParams({ search: event.target.value, page: 1 })}
+              value={searchInput}
+              onChange={(event) => {
+                setSearchInput(event.target.value);
+                updateSearchParams({ search: event.target.value || undefined, page: 1 });
+              }}
               placeholder="Search websites, domains, or templates"
               className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
             />

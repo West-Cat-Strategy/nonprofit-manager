@@ -21,6 +21,10 @@ import {
   setStaffBootstrapSnapshot,
 } from '../staffBootstrap';
 import {
+  clearBrowserSessionDiagnostics,
+  getBrowserSessionDiagnostics,
+} from '../../browserSessionDiagnostics';
+import {
   __resetUserPreferencesCacheForTests,
   getUserPreferencesCachedSync,
 } from '../../userPreferencesService';
@@ -32,6 +36,7 @@ describe('staffBootstrap', () => {
     window.history.pushState({}, '', '/');
     window.localStorage.clear();
     clearStaffBootstrapSnapshot();
+    clearBrowserSessionDiagnostics();
     clearWorkspaceModuleAccessCache();
     __resetBrandingCacheForTests();
     __resetUserPreferencesCacheForTests();
@@ -159,6 +164,22 @@ describe('staffBootstrap', () => {
       user: null,
     });
     expect(snapshot.user?.id).not.toBe('ui-preview-staff');
+  });
+
+  it('records a bootstrap diagnostic when the staff bootstrap request fails', async () => {
+    vi.mocked(api.get).mockRejectedValue(new Error('network down'));
+
+    const snapshot = await getStaffBootstrapSnapshot({ forceRefresh: true });
+
+    expect(snapshot.status).toBe('anonymous');
+    expect(getBrowserSessionDiagnostics()).toEqual([
+      expect.objectContaining({
+        area: 'bootstrap',
+        event: 'staff_bootstrap_failed',
+        severity: 'warning',
+        message: 'network down',
+      }),
+    ]);
   });
 
   it('seeds staff auth only through the explicit login-response setter', async () => {

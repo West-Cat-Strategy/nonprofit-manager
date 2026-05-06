@@ -51,4 +51,74 @@ WITH deleted AS (
   RETURNING id
 )
 SELECT COUNT(*) FROM deleted;
+SELECT set_config('app.current_user_id', :'fixture_admin_user_id', true);
+WITH inserted AS (
+  INSERT INTO accounts (
+    id,
+    account_number,
+    account_name,
+    account_type,
+    is_active,
+    created_by,
+    modified_by
+  )
+  VALUES (
+    :'fixture_admin_write_account_id',
+    'VERIFY-RLS-ADMIN-WRITE',
+    'RLS Admin Write Account From App Role',
+    'organization',
+    true,
+    :'fixture_admin_user_id',
+    :'fixture_admin_user_id'
+  )
+  ON CONFLICT (id) DO UPDATE
+  SET account_name = EXCLUDED.account_name,
+      modified_by = EXCLUDED.modified_by,
+      updated_at = CURRENT_TIMESTAMP
+  RETURNING id
+)
+SELECT COUNT(*) FROM inserted;
+WITH updated AS (
+  UPDATE accounts
+  SET account_name = 'RLS Admin Updated Account',
+      modified_by = :'fixture_admin_user_id',
+      updated_at = CURRENT_TIMESTAMP
+  WHERE id = :'fixture_account_id'
+  RETURNING id
+)
+SELECT COUNT(*) FROM updated;
+SELECT set_config('app.current_user_id', :'fixture_non_admin_user_id', true);
+WITH updated AS (
+  UPDATE accounts
+  SET account_name = 'RLS Non Admin Update Should Not Apply',
+      modified_by = :'fixture_non_admin_user_id',
+      updated_at = CURRENT_TIMESTAMP
+  WHERE id = :'fixture_account_id'
+  RETURNING id
+)
+SELECT COUNT(*) FROM updated;
+SELECT set_config('app.current_user_id', :'fixture_admin_user_id', true);
+WITH access_write AS (
+  INSERT INTO user_account_access (
+    user_id,
+    account_id,
+    access_level,
+    granted_by,
+    is_active
+  )
+  VALUES (
+    :'fixture_access_target_user_id',
+    :'fixture_account_id',
+    'viewer',
+    :'fixture_admin_user_id',
+    true
+  )
+  ON CONFLICT (user_id, account_id) DO UPDATE
+  SET access_level = EXCLUDED.access_level,
+      granted_by = EXCLUDED.granted_by,
+      is_active = EXCLUDED.is_active,
+      granted_at = CURRENT_TIMESTAMP
+  RETURNING id
+)
+SELECT COUNT(*) FROM access_write;
 COMMIT;

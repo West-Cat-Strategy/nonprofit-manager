@@ -27,7 +27,10 @@ export class AccountCatalogUseCase {
     return this.repository.getAccountByIdWithScope(accountId, scope);
   }
 
-  listContacts(accountId: string): Promise<{ contacts: Contact[]; total: number }> {
-    return this.repository.getAccountContacts(accountId);
+  listContacts(
+    accountId: string,
+    scope?: DataScopeFilter
+  ): Promise<{ contacts: Contact[]; total: number }> {
+    return this.repository.getAccountContacts(accountId, scope);
   }
 }

@@ -41,7 +41,24 @@ export interface FlattenedQuestion {
   question: CaseFormQuestion;
 }
 
-export const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
+export type CaseFormMappingAuditStatus = 'pending' | 'applied' | 'skipped';
+
+export type CaseFormMappingAuditEntry = CaseFormSubmission['mapping_audit'][number] & {
+  status?: CaseFormMappingAuditStatus;
+  applied_at?: string | null;
+  applied_by_user_id?: string | null;
+};
+
+export type CaseFormMappingJsonUpdate = {
+  container: 'intake_data' | 'custom_data';
+  key: string;
+  value: unknown;
+};
+
+export const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(
+  /\/+$/,
+  ''
+);
 export const TERMINAL_ASSIGNMENT_STATUSES = new Set<CaseFormAssignmentStatus>(
   CASE_FORM_ASSIGNMENT_STATUS_BUCKETS.completed
 );
@@ -301,9 +318,7 @@ export const formatAnswerValue = (
     if (assetIds.length === 0) {
       return '—';
     }
-    return assetIds
-      .map((assetId) => assetLookup.get(assetId)?.original_name || assetId)
-      .join(', ');
+    return assetIds.map((assetId) => assetLookup.get(assetId)?.original_name || assetId).join(', ');
   }
 
   if (Array.isArray(value)) {
@@ -324,13 +339,11 @@ export const toActorLabel = (actorType: 'staff' | 'portal' | 'public'): string =
   return 'Staff';
 };
 
-export const includesPortalDelivery = (
-  deliveryTarget?: CaseFormDeliveryTarget | null
-): boolean => deliveryTarget === 'portal' || deliveryTarget === 'portal_and_email';
+export const includesPortalDelivery = (deliveryTarget?: CaseFormDeliveryTarget | null): boolean =>
+  deliveryTarget === 'portal' || deliveryTarget === 'portal_and_email';
 
-export const includesEmailDelivery = (
-  deliveryTarget?: CaseFormDeliveryTarget | null
-): boolean => deliveryTarget === 'email' || deliveryTarget === 'portal_and_email';
+export const includesEmailDelivery = (deliveryTarget?: CaseFormDeliveryTarget | null): boolean =>
+  deliveryTarget === 'email' || deliveryTarget === 'portal_and_email';
 
 export const formatDeliveryTargetLabel = (deliveryTarget: CaseFormDeliveryTarget): string => {
   if (deliveryTarget === 'portal') {
@@ -378,8 +391,8 @@ export const buildReviewFollowUpResolutionNote = (
     decision === 'revision_requested'
       ? `Form revision requested for "${assignmentTitle}".`
       : decision === 'cancelled'
-      ? `Form review cancelled for "${assignmentTitle}".`
-      : `Form review ${decision} for "${assignmentTitle}".`;
+        ? `Form review cancelled for "${assignmentTitle}".`
+        : `Form review ${decision} for "${assignmentTitle}".`;
   const trimmedNotes = reviewerNotes?.trim();
   return trimmedNotes ? `${prefix}\n\nReviewer note: ${trimmedNotes}` : prefix;
 };
@@ -400,10 +413,7 @@ export const resolveDraftStatus = (
   return currentStatus;
 };
 
-export const resolveExpiryDate = (
-  assignment: CaseFormAssignment,
-  requestedDays?: number
-): Date => {
+export const resolveExpiryDate = (assignment: CaseFormAssignment, requestedDays?: number): Date => {
   const now = new Date();
   const defaultExpiry = new Date(now.getTime() + (requestedDays ?? 7) * 24 * 60 * 60 * 1000);
   if (!assignment.due_at) {
@@ -418,20 +428,27 @@ export const resolveExpiryDate = (
   return dueAt.getTime() < defaultExpiry.getTime() ? dueAt : defaultExpiry;
 };
 
-export const noteContent = (action: string, assignmentTitle: string, detail?: string | null): string =>
-  detail ? `Case form ${action}: ${assignmentTitle}. ${detail}` : `Case form ${action}: ${assignmentTitle}.`;
+export const noteContent = (
+  action: string,
+  assignmentTitle: string,
+  detail?: string | null
+): string =>
+  detail
+    ? `Case form ${action}: ${assignmentTitle}. ${detail}`
+    : `Case form ${action}: ${assignmentTitle}.`;
 
 export const applyMappings = (
   visibleQuestions: FlattenedQuestion[],
-  answers: Record<string, unknown>
+  answers: Record<string, unknown>,
+  options: { deferWriteback?: boolean } = {}
 ): {
   contactPatch: Record<string, unknown>;
-  caseJsonUpdates: Array<{ container: 'intake_data' | 'custom_data'; key: string; value: unknown }>;
-  audit: CaseFormSubmission['mapping_audit'];
+  caseJsonUpdates: CaseFormMappingJsonUpdate[];
+  audit: CaseFormMappingAuditEntry[];
 } => {
   const contactPatch: Record<string, unknown> = {};
-  const caseJsonUpdates: Array<{ container: 'intake_data' | 'custom_data'; key: string; value: unknown }> = [];
-  const audit: CaseFormSubmission['mapping_audit'] = [];
+  const caseJsonUpdates: CaseFormMappingJsonUpdate[] = [];
+  const audit: CaseFormMappingAuditEntry[] = [];
 
   for (const item of visibleQuestions) {
     const target = item.question.mapping_target;
@@ -445,6 +462,7 @@ export const applyMappings = (
         question_key: item.question.key,
         target,
         applied: false,
+        status: 'skipped',
         reason: 'no_answer',
       });
       continue;
@@ -457,6 +475,7 @@ export const applyMappings = (
           question_key: item.question.key,
           target,
           applied: false,
+          status: 'skipped',
           reason: 'unsupported_contact_field',
           value,
         });
@@ -469,17 +488,22 @@ export const applyMappings = (
           question_key: item.question.key,
           target,
           applied: false,
+          status: 'skipped',
           reason: 'empty_after_normalization',
           value,
         });
         continue;
       }
 
-      contactPatch[target.field] = normalized;
+      if (!options.deferWriteback) {
+        contactPatch[target.field] = normalized;
+      }
       audit.push({
         question_key: item.question.key,
         target,
-        applied: true,
+        applied: !options.deferWriteback,
+        status: options.deferWriteback ? 'pending' : 'applied',
+        reason: options.deferWriteback ? 'pending_staff_review' : null,
         value: normalized,
       });
       continue;
@@ -491,15 +515,19 @@ export const applyMappings = (
       target.key &&
       (target.container === 'intake_data' || target.container === 'custom_data')
     ) {
-      caseJsonUpdates.push({
-        container: target.container,
-        key: target.key,
-        value,
-      });
+      if (!options.deferWriteback) {
+        caseJsonUpdates.push({
+          container: target.container,
+          key: target.key,
+          value,
+        });
+      }
       audit.push({
         question_key: item.question.key,
         target,
-        applied: true,
+        applied: !options.deferWriteback,
+        status: options.deferWriteback ? 'pending' : 'applied',
+        reason: options.deferWriteback ? 'pending_staff_review' : null,
         value,
       });
       continue;
@@ -509,12 +537,105 @@ export const applyMappings = (
       question_key: item.question.key,
       target,
       applied: false,
+      status: 'skipped',
       reason: 'unsupported_mapping_target',
       value,
     });
   }
 
   return { contactPatch, caseJsonUpdates, audit };
+};
+
+export const isPendingMappingAuditEntry = (entry: CaseFormMappingAuditEntry): boolean =>
+  entry.status === 'pending' || (!entry.applied && entry.reason === 'pending_staff_review');
+
+export const countMappingAuditStates = (
+  audit: CaseFormMappingAuditEntry[]
+): { applied: number; pending: number; skipped: number } => {
+  let applied = 0;
+  let pending = 0;
+  let skipped = 0;
+
+  for (const entry of audit) {
+    if (isPendingMappingAuditEntry(entry)) {
+      pending += 1;
+    } else if (entry.applied || entry.status === 'applied') {
+      applied += 1;
+    } else {
+      skipped += 1;
+    }
+  }
+
+  return { applied, pending, skipped };
+};
+
+export const buildPendingMappingApplication = (
+  mappingAudit: CaseFormSubmission['mapping_audit'],
+  userId?: string | null,
+  appliedAt = new Date()
+): {
+  contactPatch: Record<string, unknown>;
+  caseJsonUpdates: CaseFormMappingJsonUpdate[];
+  audit: CaseFormMappingAuditEntry[];
+  appliedCount: number;
+} => {
+  const contactPatch: Record<string, unknown> = {};
+  const caseJsonUpdates: CaseFormMappingJsonUpdate[] = [];
+  let appliedCount = 0;
+  const appliedAtIso = appliedAt.toISOString();
+
+  const audit = (mappingAudit as CaseFormMappingAuditEntry[]).map(
+    (entry): CaseFormMappingAuditEntry => {
+      if (!isPendingMappingAuditEntry(entry)) {
+        return entry;
+      }
+
+      const hasValue = Object.prototype.hasOwnProperty.call(entry, 'value');
+      const target = entry.target;
+      if (!hasValue) {
+        return {
+          ...entry,
+          applied: false,
+          status: 'skipped',
+          reason: 'missing_mapping_value',
+        };
+      }
+
+      if (target.entity === 'contact' && target.field && CONTACT_FIELD_COERCERS[target.field]) {
+        contactPatch[target.field] = entry.value;
+      } else if (
+        target.entity === 'case' &&
+        target.container &&
+        target.key &&
+        (target.container === 'intake_data' || target.container === 'custom_data')
+      ) {
+        caseJsonUpdates.push({
+          container: target.container,
+          key: target.key,
+          value: entry.value,
+        });
+      } else {
+        return {
+          ...entry,
+          applied: false,
+          status: 'skipped',
+          reason: 'unsupported_mapping_target',
+        };
+      }
+
+      appliedCount += 1;
+      return {
+        ...entry,
+        applied: true,
+        status: 'applied',
+        reason: null,
+        applied_at: appliedAtIso,
+        applied_by_user_id: userId || null,
+      };
+    }
+  );
+
+  return { contactPatch, caseJsonUpdates, audit, appliedCount };
 };
 
 export const resolveSelectedAssets = (
@@ -534,13 +655,18 @@ export const resolveSelectedAssets = (
   }
 
   const assetLookup = new Map(assignmentAssets.map((asset) => [asset.id, asset]));
-  const selected = Array.from(assetIds).map((assetId) => assetLookup.get(assetId)).filter(Boolean) as CaseFormAsset[];
+  const selected = Array.from(assetIds)
+    .map((assetId) => assetLookup.get(assetId))
+    .filter(Boolean) as CaseFormAsset[];
   const invalidAsset = selected.find((asset) => asset.assignment_id !== assignmentId);
   if (invalidAsset) {
-    throw Object.assign(new Error('One or more selected assets do not belong to this form assignment'), {
-      statusCode: 400,
-      code: 'invalid_asset',
-    });
+    throw Object.assign(
+      new Error('One or more selected assets do not belong to this form assignment'),
+      {
+        statusCode: 400,
+        code: 'invalid_asset',
+      }
+    );
   }
   if (selected.length !== assetIds.size) {
     throw Object.assign(new Error('One or more selected assets could not be found'), {
@@ -569,7 +695,10 @@ export const buildSubmissionArtifacts = async (input: {
     actorLabel: string;
     answers: Array<{ sectionTitle: string; questionLabel: string; value: string }>;
   }) => Promise<{ fileName: string; buffer: Buffer }>;
-  uploadGeneratedFile: (file: Express.Multer.File, directory: string) => Promise<{
+  uploadGeneratedFile: (
+    file: Express.Multer.File,
+    directory: string
+  ) => Promise<{
     fileName: string;
     filePath: string;
     fileSize: number;
@@ -589,7 +718,9 @@ export const buildSubmissionArtifacts = async (input: {
     caseNumber: input.assignment.case_number ?? null,
     caseTitle: input.assignment.case_title ?? null,
     contactName:
-      [input.assignment.contact_first_name, input.assignment.contact_last_name].filter(Boolean).join(' ') || null,
+      [input.assignment.contact_first_name, input.assignment.contact_last_name]
+        .filter(Boolean)
+        .join(' ') || null,
     submissionNumber: input.submissionNumber,
     submittedAt: new Date().toISOString(),
     actorLabel: toActorLabel(input.actorType),

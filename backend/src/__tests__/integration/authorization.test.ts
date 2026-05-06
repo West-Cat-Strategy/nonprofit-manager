@@ -78,6 +78,7 @@ describe('Authorization Integration Tests', () => {
     });
   };
   const seededAccountName = `Auth Test Organization ${unique()}`;
+  const seededTaxId = `98-765-${unique().slice(-4)}`;
   const seededContactEmail = `auth-test-contact-${unique()}@example.com`;
   const seededEventName = `Admin Test Event ${unique()}`;
   const seededTaskSubject = `Admin Test Task ${unique()}`;
@@ -255,6 +256,7 @@ describe('Authorization Integration Tests', () => {
         account_name: seededAccountName,
         account_type: 'organization',
         category: 'donor',
+        tax_id: seededTaxId,
       });
 
     const accountPayload = unwrap<{ account_id?: string; id?: string }>(accountResponse.body);
@@ -357,7 +359,12 @@ describe('Authorization Integration Tests', () => {
             .set('Authorization', `Bearer ${tokens[role]}`);
 
           expect(response.status).toBe(200);
-          const payload = extractPaginatedData<{ account_id?: string; id?: string; account_name: string }>(
+          const payload = extractPaginatedData<{
+            account_id?: string;
+            id?: string;
+            account_name: string;
+            tax_id?: string;
+          }>(
             response.body as Record<string, unknown>
           );
           expect(payload.pagination).toMatchObject({
@@ -372,7 +379,30 @@ describe('Authorization Integration Tests', () => {
               }),
             ])
           );
+
+          const listedAccount = payload.data.find((account) => account.account_name === testData.accountName);
+          if (role === 'staff') {
+            expect(listedAccount?.tax_id).toEqual(expect.any(String));
+            expect(listedAccount?.tax_id).not.toBe(seededTaxId);
+          } else {
+            expect(listedAccount?.tax_id).toBe(seededTaxId);
+          }
         }
+      });
+
+      it('should omit account tax_id from viewer list responses', async () => {
+        const response = await request(app)
+          .get('/api/v2/accounts')
+          .query({ search: testData.accountName })
+          .set('Authorization', `Bearer ${tokens.viewer}`);
+
+        expect(response.status).toBe(200);
+        const payload = extractPaginatedData<{ account_name: string; tax_id?: string }>(
+          response.body as Record<string, unknown>
+        );
+        const listedAccount = payload.data.find((account) => account.account_name === testData.accountName);
+        expect(listedAccount).toBeDefined();
+        expect(listedAccount).not.toHaveProperty('tax_id');
       });
 
       it('should require authentication', async () => {
@@ -386,13 +416,22 @@ describe('Authorization Integration Tests', () => {
       it('should allow authenticated users to view account details', async () => {
         if (!testData.accountId) return;
 
-        for (const role of ['admin', 'manager', 'staff']) {
+        for (const role of ['admin', 'manager', 'staff', 'viewer']) {
           const response = await request(app)
             .get(`/api/v2/accounts/${testData.accountId}`)
             .set('Authorization', `Bearer ${tokens[role]}`);
 
           expect(response.status).toBe(200);
-          expect(response.body).toHaveProperty('account_name');
+          const payload = unwrap<{ account_name?: string; tax_id?: string }>(response.body);
+          expect(payload.account_name).toBeDefined();
+          if (role === 'staff') {
+            expect(payload.tax_id).toEqual(expect.any(String));
+            expect(payload.tax_id).not.toBe(seededTaxId);
+          } else if (role === 'viewer') {
+            expect(payload).not.toHaveProperty('tax_id');
+          } else {
+            expect(payload.tax_id).toBe(seededTaxId);
+          }
         }
       });
     });
@@ -430,68 +469,30 @@ describe('Authorization Integration Tests', () => {
         }
       });
 
-      it('should allow manager to create accounts', async () => {
-        const accountName = `Manager Created Account ${unique()}`;
+      it.each(['manager', 'staff'] as const)('should forbid %s from creating accounts', async (role) => {
+        const accountName = `${role} Created Account ${unique()}`;
         const response = await request(app)
           .post('/api/v2/accounts')
-          .set('Authorization', `Bearer ${tokens.manager}`)
+          .set('Authorization', `Bearer ${tokens[role]}`)
           .send({
             account_name: accountName,
             account_type: 'individual',
             category: 'donor',
           });
 
-        expect(response.status).toBe(201);
-
-        // Clean up
-        const createdAccount = unwrap<{ account_id?: string; id?: string; account_name?: string }>(
-          response.body
-        );
-        const createdAccountId = createdAccount.account_id ?? createdAccount.id;
-        expect(createdAccount.account_name).toBe(accountName);
-        if (createdAccountId) {
-          const persisted = await pool.query<{ account_name: string; created_by: string }>(
-            'SELECT account_name, created_by FROM accounts WHERE id = $1',
-            [createdAccountId]
-          );
-          expect(persisted.rows[0]).toMatchObject({
-            account_name: accountName,
-            created_by: userIds.manager,
-          });
-          await pool.query('DELETE FROM accounts WHERE id = $1', [createdAccountId]);
-        }
+        expect(response.status).toBe(403);
       });
 
-      it('should allow staff to create accounts', async () => {
-        const accountName = `Staff Created Account ${unique()}`;
+      it('should forbid staff from writing account tax_id through imports', async () => {
         const response = await request(app)
-          .post('/api/v2/accounts')
+          .post('/api/v2/accounts/import/commit')
           .set('Authorization', `Bearer ${tokens.staff}`)
-          .send({
-            account_name: accountName,
-            account_type: 'individual',
-            category: 'donor',
+          .attach('file', Buffer.from('account_name,account_type,tax_id\nBlocked,organization,11-1111111'), {
+            filename: 'accounts-tax-id.csv',
+            contentType: 'text/csv',
           });
 
-        expect(response.status).toBe(201);
-
-        // Clean up
-        const createdAccount = unwrap<{ account_id?: string; id?: string; account_name?: string }>(
-          response.body
-        );
-        const createdAccountId = createdAccount.account_id ?? createdAccount.id;
-        expect(createdAccount.account_name).toBe(accountName);
-        if (createdAccountId) {
-          const persisted = await pool.query<{ account_name: string; created_by: string }>(
-            'SELECT account_name, created_by FROM accounts WHERE id = $1',
-            [createdAccountId]
-          );
-          expect(persisted.rows[0]).toMatchObject({
-            account_name: accountName,
-            created_by: userIds.staff,
-          });
-          await pool.query('DELETE FROM accounts WHERE id = $1', [createdAccountId]);
-        }
+        expect(response.status).toBe(403);
       });
     });
 
@@ -511,19 +512,17 @@ describe('Authorization Integration Tests', () => {
         expect(payload.account_name).toBe('Updated by Admin');
       });
 
-      it('should allow manager to update accounts', async () => {
+      it.each(['manager', 'staff'] as const)('should forbid %s from updating accounts', async (role) => {
         if (!testData.accountId) return;
 
         const response = await request(app)
           .put(`/api/v2/accounts/${testData.accountId}`)
-          .set('Authorization', `Bearer ${tokens.manager}`)
+          .set('Authorization', `Bearer ${tokens[role]}`)
           .send({
-            account_name: 'Updated by Manager',
+            account_name: `Updated by ${role}`,
           });
 
-        expect(response.status).toBe(200);
-        const payload = unwrap<{ account_name?: string }>(response.body);
-        expect(payload.account_name).toBe('Updated by Manager');
+        expect(response.status).toBe(403);
       });
     });
 
@@ -553,6 +552,68 @@ describe('Authorization Integration Tests', () => {
           [accountId]
         );
         expect(persisted.rows[0]).toMatchObject({ is_active: false });
+      });
+
+      it.each(['manager', 'staff'] as const)('should forbid %s from deleting accounts', async (role) => {
+        if (!testData.accountId) return;
+
+        const response = await request(app)
+          .delete(`/api/v2/accounts/${testData.accountId}`)
+          .set('Authorization', `Bearer ${tokens[role]}`);
+
+        expect(response.status).toBe(403);
+      });
+    });
+
+    describe('POST /api/v2/accounts/export', () => {
+      it.each(['admin', 'manager'] as const)('should export full account tax_id for %s', async (role) => {
+        if (!testData.accountId) return;
+
+        const response = await request(app)
+          .post('/api/v2/accounts/export')
+          .set('Authorization', `Bearer ${tokens[role]}`)
+          .send({
+            format: 'csv',
+            ids: [testData.accountId],
+            columns: ['account_name', 'tax_id'],
+          });
+
+        expect(response.status).toBe(200);
+        expect(response.text).toContain('tax_id');
+        expect(response.text).toContain(seededTaxId);
+      });
+
+      it('should export masked account tax_id for staff', async () => {
+        if (!testData.accountId) return;
+
+        const response = await request(app)
+          .post('/api/v2/accounts/export')
+          .set('Authorization', `Bearer ${tokens.staff}`)
+          .send({
+            format: 'csv',
+            ids: [testData.accountId],
+            columns: ['account_name', 'tax_id'],
+          });
+
+        expect(response.status).toBe(200);
+        expect(response.text).toContain('tax_id');
+        expect(response.text).not.toContain(seededTaxId);
+      });
+
+      it('should omit account tax_id from viewer exports', async () => {
+        if (!testData.accountId) return;
+
+        const response = await request(app)
+          .post('/api/v2/accounts/export')
+          .set('Authorization', `Bearer ${tokens.viewer}`)
+          .send({
+            format: 'csv',
+            ids: [testData.accountId],
+            columns: ['account_name', 'tax_id'],
+          });
+
+        expect(response.status).toBe(200);
+        expect(response.text.split('\n')[0]).not.toContain('tax_id');
       });
     });
   });

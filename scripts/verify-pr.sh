@@ -3,11 +3,22 @@ set -euo pipefail
 
 run_legacy="${NONPROFIT_MANAGER_RUN_LEGACY_VERIFY:-0}"
 PR=""
+selector_mode="fast"
+selector_requested=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --run-legacy)
       run_legacy=1
+      shift
+      ;;
+    --mode)
+      selector_mode="${2:-}"
+      selector_requested=1
+      shift 2
+      ;;
+    --print-only)
+      selector_requested=1
       shift
       ;;
     -h|--help)
@@ -37,6 +48,11 @@ EOF
 done
 
 PR="${PR:-9}"
+
+if [[ "$run_legacy" != "1" && "$selector_requested" == "1" ]]; then
+  changed_files="$(gh pr diff "$PR" --name-only | tr '\n' ' ')"
+  exec "$(dirname "$0")/select-checks.sh" --mode "$selector_mode" --files "$changed_files"
+fi
 
 if [[ "$run_legacy" != "1" ]]; then
   cat <<EOF

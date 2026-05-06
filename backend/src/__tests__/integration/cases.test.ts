@@ -199,6 +199,15 @@ describe('Case API Integration Tests', () => {
     userId = registerPayload.user?.id || '';
     expect(userId).toBeTruthy();
 
+    await pool.query('UPDATE users SET role = $1 WHERE id = $2', ['admin', userId]);
+
+    const loginResponse = await request(app)
+      .post('/api/v2/auth/login')
+      .send({ email: testEmail, password: 'Test123!Strong' })
+      .expect(200);
+    authToken = tokenFromResponse(loginResponse.body) || '';
+    expect(authToken).toBeTruthy();
+
     const accountResponse = await request(app)
       .post('/api/v2/accounts')
       .set('Authorization', `Bearer ${authToken}`)

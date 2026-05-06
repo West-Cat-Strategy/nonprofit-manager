@@ -1,6 +1,8 @@
 import React from 'react';
 import type { PageComponent } from '../../../../../types/websiteBuilder';
 import { eventTypeOptions } from './options';
+import { DraftInput } from './DraftPropertyFields';
+import { parseBoundedInteger } from './draftPropertyParsers';
 
 interface EventComponentPropertyEditorProps {
   selectedComponent: PageComponent;
@@ -22,17 +24,14 @@ const EventComponentPropertyEditor: React.FC<EventComponentPropertyEditorProps> 
         <>
           <div>
             <label className="mb-1 block text-sm font-medium text-app-text-muted">Max Events</label>
-            <input
+            <DraftInput
               type="number"
               min={1}
               max={50}
-              value={selectedComponent.maxEvents || 6}
-              onChange={(e) =>
+              value={String(selectedComponent.maxEvents || 6)}
+              onCommit={(value) =>
                 update({
-                  maxEvents: Math.max(
-                    1,
-                    Math.min(50, Number.parseInt(e.target.value || '6', 10) || 6)
-                  ),
+                  maxEvents: parseBoundedInteger(value, 6, 1, 50),
                 })
               }
               className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
@@ -94,10 +93,10 @@ const EventComponentPropertyEditor: React.FC<EventComponentPropertyEditorProps> 
             <label className="mb-1 block text-sm font-medium text-app-text-muted">
               Site Key (Optional)
             </label>
-            <input
+            <DraftInput
               type="text"
               value={selectedComponent.siteKey || ''}
-              onChange={(e) => update({ siteKey: e.target.value.trim() || undefined })}
+              onCommit={(value) => update({ siteKey: value.trim() || undefined })}
               placeholder="Use only when embedding cross-site events"
               className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
             />
@@ -123,17 +122,14 @@ const EventComponentPropertyEditor: React.FC<EventComponentPropertyEditorProps> 
         <>
           <div>
             <label className="mb-1 block text-sm font-medium text-app-text-muted">Max Events</label>
-            <input
+            <DraftInput
               type="number"
               min={1}
               max={50}
-              value={selectedComponent.maxEvents || 8}
-              onChange={(e) =>
+              value={String(selectedComponent.maxEvents || 8)}
+              onCommit={(value) =>
                 update({
-                  maxEvents: Math.max(
-                    1,
-                    Math.min(50, Number.parseInt(e.target.value || '8', 10) || 8)
-                  ),
+                  maxEvents: parseBoundedInteger(value, 8, 1, 50),
                 })
               }
               className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
@@ -229,10 +225,10 @@ const EventComponentPropertyEditor: React.FC<EventComponentPropertyEditorProps> 
             <label className="mb-1 block text-sm font-medium text-app-text-muted">
               Submit Text
             </label>
-            <input
+            <DraftInput
               type="text"
               value={selectedComponent.submitText || 'Register'}
-              onChange={(e) => update({ submitText: e.target.value })}
+              onCommit={(value) => update({ submitText: value || undefined })}
               className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
             />
           </div>

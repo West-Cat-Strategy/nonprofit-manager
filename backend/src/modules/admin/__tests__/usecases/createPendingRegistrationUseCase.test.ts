@@ -95,13 +95,17 @@ describe('createPendingRegistration', () => {
     expect(sendMailMock).toHaveBeenCalledWith(
       expect.objectContaining({
         to: 'admin@example.com',
-        text: expect.stringContaining('Approve request: https://app.example.com/admin-registration-review/'),
+        text: expect.stringContaining(
+          'Approve request: https://app.example.com/admin-registration-review/'
+        ),
         html: expect.stringContaining('Approve request'),
       })
     );
 
     const emailPayload = sendMailMock.mock.calls[0][0];
-    expect(emailPayload.text).toContain('Reject request: https://app.example.com/admin-registration-review/');
+    expect(emailPayload.text).toContain(
+      'Reject request: https://app.example.com/admin-registration-review/'
+    );
     expect(emailPayload.text).not.toContain('?mode=complete');
     expect(emailPayload.html).toContain('Reject request');
     expect(emailPayload.html).toContain('/admin-registration-review/');
@@ -123,6 +127,45 @@ describe('createPendingRegistration', () => {
       pendingRegistration: expect.objectContaining({
         id: '11111111-1111-4111-8111-111111111111',
       }),
+    });
+  });
+
+  it('blocks a duplicate while another registration is still pending', async () => {
+    findPendingByEmailMock.mockResolvedValueOnce('pending-existing');
+
+    await expect(
+      createPendingRegistration({
+        email: 'pending@example.com',
+        password: 'StrongP@ssw0rd',
+        firstName: 'Pending',
+        lastName: 'Person',
+      })
+    ).rejects.toThrow('A registration request for this email is already pending');
+
+    expect(insertPendingRegistrationMock).not.toHaveBeenCalled();
+  });
+
+  it('allows resubmission when only rejected registration history remains', async () => {
+    findPendingByEmailMock.mockResolvedValueOnce(null);
+    findUserByEmailMock.mockResolvedValueOnce(null);
+
+    await expect(
+      createPendingRegistration({
+        email: 'rejected@example.com',
+        password: 'StrongP@ssw0rd',
+        firstName: 'Retry',
+        lastName: 'Applicant',
+      })
+    ).resolves.toMatchObject({
+      pendingRegistration: expect.objectContaining({ status: 'pending' }),
+    });
+
+    expect(findPendingByEmailMock).toHaveBeenCalledWith('rejected@example.com');
+    expect(insertPendingRegistrationMock).toHaveBeenCalledWith({
+      email: 'rejected@example.com',
+      passwordHash: 'hashed-password',
+      firstName: 'Retry',
+      lastName: 'Applicant',
     });
   });
 });

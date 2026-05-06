@@ -296,7 +296,7 @@ describe('WebsiteFormsPage', () => {
     expect(await screen.findByText('Public actions')).toBeInTheDocument();
     expect(screen.getByText('Save the Library')).toBeInTheDocument();
     expect(screen.getByText('Self-referral status')).toBeInTheDocument();
-    expect(screen.getByText('reviewable submissions')).toBeInTheDocument();
+    expect(screen.getByText('recorded submissions')).toBeInTheDocument();
     expect(screen.getByText('Managed form launch verification')).toBeInTheDocument();
     expect(screen.getByText(/Public form: Contact \/ referral/i)).toBeInTheDocument();
     const homeSection = screen.getByRole('heading', { name: 'Home' }).closest('section');
@@ -330,6 +330,125 @@ describe('WebsiteFormsPage', () => {
     });
     expect(thunkMocks.fetchWebsiteForms).toHaveBeenCalledTimes(1);
     expect(screen.getByText('Form settings saved.')).toBeInTheDocument();
+  });
+
+  it('surfaces self-referral operator status and drills into reviewable submissions', async () => {
+    apiMocks.listPublicActions.mockResolvedValue([
+      {
+        id: 'action-1',
+        organizationId: 'org-1',
+        siteId: 'site-1',
+        actionType: 'petition_signature',
+        status: 'published',
+        slug: 'save-the-library',
+        title: 'Save the Library',
+        description: null,
+        settings: {},
+        confirmationMessage: null,
+        publishedAt: '2026-05-01T00:00:00.000Z',
+        closedAt: null,
+        submissionCount: 2,
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:00:00.000Z',
+      },
+      {
+        id: 'action-3',
+        organizationId: 'org-1',
+        siteId: 'site-1',
+        actionType: 'self_referral',
+        status: 'published',
+        slug: 'get-help',
+        title: 'Get Help',
+        description: null,
+        settings: {},
+        confirmationMessage: null,
+        publishedAt: '2026-05-01T00:00:00.000Z',
+        closedAt: null,
+        submissionCount: 4,
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:00:00.000Z',
+      },
+      {
+        id: 'action-4',
+        organizationId: 'org-1',
+        siteId: 'site-1',
+        actionType: 'self_referral',
+        status: 'closed',
+        slug: 'old-intake',
+        title: 'Old Intake',
+        description: null,
+        settings: {},
+        confirmationMessage: null,
+        publishedAt: '2026-04-01T00:00:00.000Z',
+        closedAt: '2026-05-01T00:00:00.000Z',
+        submissionCount: 0,
+        createdAt: '2026-04-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:00:00.000Z',
+      },
+    ]);
+    apiMocks.listPublicActionSubmissions.mockImplementation((_siteId, actionId) => {
+      if (actionId === 'action-3') {
+        return Promise.resolve([
+          {
+            id: 'submission-self-referral',
+            organizationId: 'org-1',
+            siteId: 'site-1',
+            actionId: 'action-3',
+            actionType: 'self_referral',
+            reviewStatus: 'needs_review',
+            contactId: 'contact-3',
+            sourceEntityType: 'contact',
+            sourceEntityId: 'contact-3',
+            duplicateOfSubmissionId: null,
+            consent: {},
+            payloadRedacted: {
+              first_name: 'Maya',
+              last_name: 'Singh',
+              email: 'maya@example.org',
+            },
+            generatedArtifact: {},
+            pagePath: '/get-help',
+            visitorId: null,
+            sessionId: null,
+            referrer: null,
+            submittedAt: '2026-05-04T17:30:00.000Z',
+            createdAt: '2026-05-04T17:30:00.000Z',
+            updatedAt: '2026-05-04T17:30:00.000Z',
+          },
+        ]);
+      }
+
+      return Promise.resolve([]);
+    });
+
+    renderPage();
+
+    const selfReferralPanel = await screen.findByRole('region', {
+      name: 'Self-referral status',
+    });
+
+    expect(await within(selfReferralPanel).findByText('Review queue active')).toBeInTheDocument();
+    expect(
+      within(selfReferralPanel).getByText('4 recorded submissions across 1 open action.')
+    ).toBeInTheDocument();
+    expect(within(selfReferralPanel).getByText('1 open')).toBeInTheDocument();
+    expect(within(selfReferralPanel).getByText('1 draft/closed')).toBeInTheDocument();
+    expect(within(selfReferralPanel).getByText('Get Help')).toBeInTheDocument();
+    expect(
+      within(selfReferralPanel).getByText('Published • /get-help • 4 submissions')
+    ).toBeInTheDocument();
+
+    fireEvent.click(within(selfReferralPanel).getByRole('button', { name: 'Review Get Help' }));
+
+    await waitFor(() => {
+      expect(apiMocks.listPublicActionSubmissions).toHaveBeenLastCalledWith('site-1', 'action-3');
+    });
+    expect(
+      await within(selfReferralPanel).findByText('Recent reviewable self-referrals')
+    ).toBeInTheDocument();
+    expect(await within(selfReferralPanel).findByText('Maya Singh')).toBeInTheDocument();
+    expect(within(selfReferralPanel).getByText(/Needs Review • \/get-help/)).toBeInTheDocument();
+    expect(screen.getByText('Recent submissions for Get Help')).toBeInTheDocument();
   });
 
   it('saves donation form provider defaults alongside the recurring checkout settings', async () => {

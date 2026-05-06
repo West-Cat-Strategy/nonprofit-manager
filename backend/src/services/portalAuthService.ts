@@ -46,6 +46,7 @@ export interface PortalInvitationRow {
   id: string;
   email: string;
   contact_id: string | null;
+  account_id: string | null;
   created_by: string | null;
   expires_at: Date;
   accepted_at: Date | null;
@@ -66,7 +67,9 @@ export interface PortalSignupContactResolution {
 }
 
 export const findContactIdByEmail = async (email: string): Promise<string | null> => {
-  const result = await pool.query<ContactIdRow>('SELECT id FROM contacts WHERE email = $1', [email]);
+  const result = await pool.query<ContactIdRow>('SELECT id FROM contacts WHERE email = $1', [
+    email,
+  ]);
   return result.rows[0]?.id ?? null;
 };
 
@@ -152,13 +155,16 @@ export const resolvePortalSignupContact = async (input: {
 };
 
 export const findPortalUserIdByEmail = async (email: string): Promise<string | null> => {
-  const result = await pool.query<PortalUserIdRow>('SELECT id FROM portal_users WHERE email = $1', [email]);
+  const result = await pool.query<PortalUserIdRow>(
+    'SELECT id FROM portal_users WHERE lower(email) = lower($1) LIMIT 1',
+    [email]
+  );
   return result.rows[0]?.id ?? null;
 };
 
 export const findPendingSignupRequestIdByEmail = async (email: string): Promise<string | null> => {
   const result = await pool.query<SignupRequestIdRow>(
-    'SELECT id FROM portal_signup_requests WHERE email = $1 AND status = $2',
+    'SELECT id FROM portal_signup_requests WHERE lower(email) = lower($1) AND status = $2 LIMIT 1',
     [email, 'pending']
   );
   return result.rows[0]?.id ?? null;
@@ -210,7 +216,8 @@ export const getPortalLoginUserByEmail = async (
   const result = await pool.query<PortalLoginUserRow>(
     `SELECT id, email, password_hash, contact_id, status, is_verified
      FROM portal_users
-     WHERE email = $1`,
+     WHERE lower(email) = lower($1)
+     LIMIT 1`,
     [email]
   );
 
@@ -250,9 +257,16 @@ export const getPortalInvitationByToken = async (
   token: string
 ): Promise<PortalInvitationRow | null> => {
   const result = await pool.query<PortalInvitationRow>(
-    `SELECT id, email, contact_id, created_by, expires_at, accepted_at
-     FROM portal_invitations
-     WHERE token = $1`,
+    `SELECT pi.id,
+            pi.email,
+            pi.contact_id,
+            COALESCE(pi.account_id, c.account_id) AS account_id,
+            pi.created_by,
+            pi.expires_at,
+            pi.accepted_at
+     FROM portal_invitations pi
+     LEFT JOIN contacts c ON c.id = pi.contact_id
+     WHERE pi.token = $1`,
     [token]
   );
 
@@ -260,22 +274,24 @@ export const getPortalInvitationByToken = async (
 };
 
 export const createContactForInvitation = async (input: {
+  accountId: string;
   firstName: string;
   lastName: string;
   email: string;
 }): Promise<string> => {
   const result = await pool.query<ContactIdRow>(
     `INSERT INTO contacts (
-      first_name, last_name, email, created_by, modified_by
-    ) VALUES ($1, $2, $3, $4, $4)
+      account_id, first_name, last_name, email, created_by, modified_by
+    ) VALUES ($1, $2, $3, $4, $5, $5)
     RETURNING id`,
-    [input.firstName, input.lastName, input.email, null]
+    [input.accountId, input.firstName, input.lastName, input.email, null]
   );
 
   return result.rows[0].id;
 };
 
 export const createPortalUserFromInvitation = async (input: {
+  accountId: string;
   contactId: string;
   email: string;
   passwordHash: string;
@@ -283,15 +299,25 @@ export const createPortalUserFromInvitation = async (input: {
 }): Promise<PortalUserAuthRow> => {
   const result = await pool.query<PortalUserAuthRow>(
     `INSERT INTO portal_users (
-      contact_id, email, password_hash, status, is_verified, verified_at, verified_by
-    ) VALUES ($1, $2, $3, $4, $5, NOW(), $6)
+      account_id, contact_id, email, password_hash, status, is_verified, verified_at, verified_by
+    ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7)
     RETURNING id, email, contact_id`,
-    [input.contactId, input.email, input.passwordHash, 'active', true, input.verifiedBy]
+    [
+      input.accountId,
+      input.contactId,
+      input.email,
+      input.passwordHash,
+      'active',
+      true,
+      input.verifiedBy,
+    ]
   );
 
   return result.rows[0];
 };
 
 export const markPortalInvitationAccepted = async (invitationId: string): Promise<void> => {
-  await pool.query('UPDATE portal_invitations SET accepted_at = NOW() WHERE id = $1', [invitationId]);
+  await pool.query('UPDATE portal_invitations SET accepted_at = NOW() WHERE id = $1', [
+    invitationId,
+  ]);
 };

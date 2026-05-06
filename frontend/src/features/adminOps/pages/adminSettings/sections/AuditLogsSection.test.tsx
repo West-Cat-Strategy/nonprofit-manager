@@ -86,6 +86,8 @@ describe('AuditLogsSection', () => {
     expect(screen.getByText(/latest visible event/i)).toBeInTheDocument();
     expect(screen.getByText(/by admin@example.org/i)).toBeInTheDocument();
     expect(screen.getByText(/backend warning: retention window is limited/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /current tab diagnostics/i })).toBeInTheDocument();
+    expect(screen.getByText(/no browser-session diagnostics captured/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /refresh logs/i }));
     await flushAuditLogLoad();

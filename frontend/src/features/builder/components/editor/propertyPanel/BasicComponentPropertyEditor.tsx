@@ -1,5 +1,6 @@
 import React from 'react';
 import { sanitizeBuilderUrl } from '../../../../../utils/validation';
+import { DraftInput } from './DraftPropertyFields';
 import type {
   ButtonSize,
   ButtonVariant,
@@ -153,10 +154,10 @@ const BasicComponentPropertyEditor: React.FC<BasicComponentPropertyEditorProps> 
 
           <div>
             <label className="mb-1 block text-sm font-medium text-app-text-muted">Link URL</label>
-            <input
+            <DraftInput
               type="text"
               value={selectedComponent.href || ''}
-              onChange={(e) => update({ href: sanitizeBuilderUrl(e.target.value) })}
+              onCommit={(value) => update({ href: sanitizeBuilderUrl(value) })}
               placeholder="https://..."
               className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
             />
@@ -210,10 +211,10 @@ const BasicComponentPropertyEditor: React.FC<BasicComponentPropertyEditorProps> 
         <>
           <div>
             <label className="mb-1 block text-sm font-medium text-app-text-muted">Image URL</label>
-            <input
+            <DraftInput
               type="text"
               value={selectedComponent.src}
-              onChange={(e) => update({ src: sanitizeBuilderUrl(e.target.value) })}
+              onCommit={(value) => update({ src: sanitizeBuilderUrl(value) })}
               placeholder="https://..."
               className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
             />

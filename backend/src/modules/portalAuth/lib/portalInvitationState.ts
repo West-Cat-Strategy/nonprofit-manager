@@ -5,6 +5,7 @@ type PortalInvitationRecord = {
   id: string;
   email: string;
   contact_id: string | null;
+  account_id: string | null;
   created_by: string | null;
   expires_at: Date | string;
   accepted_at: Date | string | null;
@@ -18,6 +19,17 @@ export const getValidPortalInvitation = async (
   )) as PortalInvitationRecord | null;
 
   if (!invitation) {
+    return {
+      ok: false,
+      error: {
+        code: 'not_found',
+        message: 'Invitation not found',
+        statusCode: 404,
+      },
+    };
+  }
+
+  if (!invitation.account_id) {
     return {
       ok: false,
       error: {

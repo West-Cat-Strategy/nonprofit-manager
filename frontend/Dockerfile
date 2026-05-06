@@ -1,12 +1,12 @@
 # syntax=docker/dockerfile:1
 
-FROM node:24-alpine@sha256:d1b3b4da11eefd5941e7f0b9cf17783fc99d9c6fc34884a665f40a06dbdfc94f AS base
+FROM node:24-alpine@sha256:d1b3b4da11eefd5941e7f0b9cf17783fc99d9c6fc34884a665f40a06dbdfc94f AS node-tooling
 
 WORKDIR /app
 
 RUN npm install -g npm@11.13.0 && npm cache clean --force
 
-FROM base AS workspace-deps
+FROM node-tooling AS workspace-deps
 
 WORKDIR /workspace
 
@@ -19,7 +19,7 @@ RUN --mount=type=cache,target=/root/.npm,sharing=locked \
     npm ci --workspace frontend --include-workspace-root=false --no-audit --no-fund && \
     mkdir -p frontend/node_modules
 
-FROM base AS deps
+FROM node-tooling AS deps
 
 COPY --from=workspace /frontend/package.json ./package.json
 COPY --from=workspace-deps /workspace/node_modules ./node_modules
@@ -57,9 +57,7 @@ EXPOSE 8005
 # stays runnable even without a bind mount.
 CMD ["npm", "run", "dev"]
 
-FROM nginx:1-alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de AS production
-
-RUN apk upgrade --no-cache
+FROM nginx:1.30-alpine-slim@sha256:2fb5d772cea6ef1a8dab525df1b9485289eee167d26af9613fce27a12c060caa AS production
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html

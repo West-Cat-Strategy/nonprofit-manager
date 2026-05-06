@@ -60,3 +60,43 @@ describe('EventOccurrenceService.syncOccurrencesForEvent', () => {
     expect(deleteCall[1][1]).toEqual([scheduledStart]);
   });
 });
+
+describe('EventOccurrenceService.listOccurrences', () => {
+  const mockQuery = jest.fn();
+  const pool = { query: mockQuery } as unknown as Pool;
+  const service = new EventOccurrenceService(pool);
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('returns public operation fields used by event snapshot drilldowns', async () => {
+    const occurrenceRow = {
+      occurrence_id: 'occ-1',
+      event_id: 'event-1',
+      event_name: 'Community Breakfast',
+      is_public: true,
+      status: EventStatus.PLANNED,
+      registered_count: 24,
+      attended_count: 9,
+      waitlist_enabled: true,
+      public_checkin_enabled: true,
+      public_checkin_pin_configured: true,
+      public_checkin_pin_required: true,
+    };
+
+    mockQuery.mockResolvedValueOnce({ rows: [occurrenceRow] });
+
+    const result = await service.listOccurrences({ is_public: true });
+
+    expect(result).toEqual([occurrenceRow]);
+    const [sql, params] = mockQuery.mock.calls[0] as [string, unknown[]];
+    expect(sql).toContain('eo.registered_count');
+    expect(sql).toContain('eo.attended_count');
+    expect(sql).toContain('eo.waitlist_enabled');
+    expect(sql).toContain('eo.public_checkin_enabled');
+    expect(sql).toContain('public_checkin_pin_configured');
+    expect(sql).toContain('e.is_public = $1');
+    expect(params).toEqual([true]);
+  });
+});

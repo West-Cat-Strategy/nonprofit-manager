@@ -21,6 +21,7 @@ export interface PasswordResetCoreConfig {
   ownerColumn: string;
   userTable: string;
   logContextKey: string;
+  bumpAuthRevisionOnReset?: boolean;
 }
 
 interface PasswordResetMessages {
@@ -165,8 +166,14 @@ export async function performPasswordReset(
   try {
     await client.query('BEGIN');
 
+    const authRevisionUpdate = config.bumpAuthRevisionOnReset
+      ? ', auth_revision = COALESCE(auth_revision, 0) + 1'
+      : '';
     await client.query(
-      `UPDATE ${config.userTable} SET password_hash = $1, updated_at = NOW() WHERE id = $2`,
+      `UPDATE ${config.userTable}
+       SET password_hash = $1${authRevisionUpdate},
+           updated_at = NOW()
+       WHERE id = $2`,
       [passwordHash, matchedToken.owner_id]
     );
 

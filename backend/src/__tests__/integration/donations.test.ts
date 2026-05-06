@@ -6,20 +6,46 @@ describe('Donation API Integration Tests', () => {
   let authToken: string;
   let testAccountId: string;
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const tokenFromResponse = (body: unknown): string | undefined => {
+    if (typeof body !== 'object' || body === null) {
+      return undefined;
+    }
+    const value = body as { token?: string; data?: { token?: string } };
+    return value.token || value.data?.token;
+  };
+  const accountIdFromResponse = (body: unknown): string | undefined => {
+    if (typeof body !== 'object' || body === null) {
+      return undefined;
+    }
+    const value = body as { account_id?: string; data?: { account_id?: string } };
+    return value.account_id || value.data?.account_id;
+  };
 
   beforeAll(async () => {
     // Register and login
+    const email = `donation-test-${unique()}@example.com`;
     const registerResponse = await request(app)
       .post('/api/v2/auth/register')
       .send({
-        email: `donation-test-${unique()}@example.com`,
+        email,
         password: 'Test123!Strong',
         password_confirm: 'Test123!Strong',
         first_name: 'Donation',
         last_name: 'Tester',
       });
 
-    authToken = registerResponse.body.token;
+    const registeredToken = tokenFromResponse(registerResponse.body);
+    expect(registeredToken).toBeTruthy();
+
+    await pool.query('UPDATE users SET role = $1 WHERE email = $2', ['admin', email.toLowerCase()]);
+
+    const loginResponse = await request(app)
+      .post('/api/v2/auth/login')
+      .send({ email, password: 'Test123!Strong' })
+      .expect(200);
+
+    authToken = tokenFromResponse(loginResponse.body) || '';
+    expect(authToken).toBeTruthy();
 
     // Create test account for donations
     const accountResponse = await request(app)
@@ -30,7 +56,8 @@ describe('Donation API Integration Tests', () => {
         account_type: 'individual',
       });
 
-    testAccountId = accountResponse.body.account_id;
+    testAccountId = accountIdFromResponse(accountResponse.body) || '';
+    expect(testAccountId).toBeTruthy();
   });
 
   afterAll(async () => {

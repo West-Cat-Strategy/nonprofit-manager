@@ -138,9 +138,13 @@ test.describe('Public browser proof coverage', () => {
       actionType?: string;
       contactId?: string;
       pledgeId?: string;
+      reviewStatus?: string;
+      submissionId?: string;
     }>(pledgeResponse);
     expect(pledgeBody.actionType).toBe('donation_pledge');
-    expect(pledgeBody.pledgeId).toBeTruthy();
+    expect(pledgeBody.reviewStatus).toBe('new');
+    expect(pledgeBody.submissionId).toBeTruthy();
+    expect(pledgeBody.pledgeId).toBeUndefined();
     if (pledgeBody.contactId) {
       publicBrowserProofArtifacts.contactIds.push(pledgeBody.contactId);
     }
@@ -161,10 +165,14 @@ test.describe('Public browser proof coverage', () => {
     const letterBody = await readSuccessBody<{
       actionType?: string;
       contactId?: string;
+      reviewStatus?: string;
+      submissionId?: string;
       supportLetterId?: string;
     }>(letterResponse);
     expect(letterBody.actionType).toBe('support_letter_request');
-    expect(letterBody.supportLetterId).toBeTruthy();
+    expect(letterBody.reviewStatus).toBe('needs_review');
+    expect(letterBody.submissionId).toBeTruthy();
+    expect(letterBody.supportLetterId).toBeUndefined();
     if (letterBody.contactId) {
       publicBrowserProofArtifacts.contactIds.push(letterBody.contactId);
     }

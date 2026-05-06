@@ -13,6 +13,7 @@ const PASSWORD_RESET_CONFIG: PasswordResetCoreConfig = {
   ownerColumn: 'user_id',
   userTable: 'users',
   logContextKey: 'userId',
+  bumpAuthRevisionOnReset: true,
 };
 
 // ---------------------------------------------------------------------------

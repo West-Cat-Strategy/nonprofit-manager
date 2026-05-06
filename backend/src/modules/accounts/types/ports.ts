@@ -17,7 +17,10 @@ export interface AccountCatalogPort {
   ): Promise<PaginatedAccounts>;
   getAccountById(accountId: string): Promise<Account | null>;
   getAccountByIdWithScope(accountId: string, scope?: DataScopeFilter): Promise<Account | null>;
-  getAccountContacts(accountId: string): Promise<{ contacts: Contact[]; total: number }>;
+  getAccountContacts(
+    accountId: string,
+    scope?: DataScopeFilter
+  ): Promise<{ contacts: Contact[]; total: number }>;
 }
 
 export interface AccountLifecyclePort {

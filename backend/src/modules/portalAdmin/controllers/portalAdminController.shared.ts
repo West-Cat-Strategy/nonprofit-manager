@@ -12,6 +12,7 @@ export interface PortalSignupApprovalRow {
   email: string;
   password_hash: string;
   contact_id: string | null;
+  account_id: string | null;
   status: string;
   resolution_status: PortalSignupResolutionStatus;
 }

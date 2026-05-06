@@ -18,9 +18,14 @@ AUDIT_PARTITION_MONTHS_AHEAD="${AUDIT_PARTITION_MONTHS_AHEAD:-12}"
 
 FAILURES=0
 RLS_FIXTURE_USER_ID="00000000-0000-4000-8000-000000000101"
+RLS_FIXTURE_ADMIN_USER_ID="00000000-0000-4000-8000-000000000102"
+RLS_FIXTURE_NON_ADMIN_USER_ID="00000000-0000-4000-8000-000000000103"
+RLS_FIXTURE_ACCESS_TARGET_USER_ID="00000000-0000-4000-8000-000000000104"
 RLS_FIXTURE_ACCOUNT_ID="00000000-0000-4000-8000-000000000201"
+RLS_FIXTURE_ADMIN_WRITE_ACCOUNT_ID="00000000-0000-4000-8000-000000000202"
 RLS_FIXTURE_CONTACT_ID="00000000-0000-4000-8000-000000000301"
 RLS_FIXTURE_ACCESS_ID="00000000-0000-4000-8000-000000000401"
+RLS_FIXTURE_NON_ADMIN_ACCESS_ID="00000000-0000-4000-8000-000000000402"
 RLS_UNKNOWN_USER_ID="00000000-0000-4000-8000-000000000999"
 
 admin_psql() {
@@ -245,9 +250,14 @@ check_rls_table_contract() {
 seed_rls_fixtures() {
   admin_psql \
     -v fixture_user_id="$RLS_FIXTURE_USER_ID" \
+    -v fixture_admin_user_id="$RLS_FIXTURE_ADMIN_USER_ID" \
+    -v fixture_non_admin_user_id="$RLS_FIXTURE_NON_ADMIN_USER_ID" \
+    -v fixture_access_target_user_id="$RLS_FIXTURE_ACCESS_TARGET_USER_ID" \
     -v fixture_account_id="$RLS_FIXTURE_ACCOUNT_ID" \
+    -v fixture_admin_write_account_id="$RLS_FIXTURE_ADMIN_WRITE_ACCOUNT_ID" \
     -v fixture_contact_id="$RLS_FIXTURE_CONTACT_ID" \
     -v fixture_access_id="$RLS_FIXTURE_ACCESS_ID" \
+    -v fixture_non_admin_access_id="$RLS_FIXTURE_NON_ADMIN_ACCESS_ID" \
     -f "$SCRIPT_DIR/sql/verify_rls_fixtures.sql" >/dev/null
 }
 
@@ -256,7 +266,11 @@ check_app_role_rls_behavior() {
   scoped_counts="$(app_psql \
     -v unknown_user_id="$RLS_UNKNOWN_USER_ID" \
     -v fixture_user_id="$RLS_FIXTURE_USER_ID" \
+    -v fixture_admin_user_id="$RLS_FIXTURE_ADMIN_USER_ID" \
+    -v fixture_non_admin_user_id="$RLS_FIXTURE_NON_ADMIN_USER_ID" \
+    -v fixture_access_target_user_id="$RLS_FIXTURE_ACCESS_TARGET_USER_ID" \
     -v fixture_account_id="$RLS_FIXTURE_ACCOUNT_ID" \
+    -v fixture_admin_write_account_id="$RLS_FIXTURE_ADMIN_WRITE_ACCOUNT_ID" \
     -v fixture_contact_id="$RLS_FIXTURE_CONTACT_ID" \
     -Atq \
     -f "$SCRIPT_DIR/sql/verify_rls_probe.sql")"
@@ -270,6 +284,10 @@ check_app_role_rls_behavior() {
   local inserted_volunteers
   local updated_volunteers
   local deleted_volunteers
+  local admin_inserted_account
+  local admin_updated_account
+  local non_admin_updated_account
+  local admin_access_write
   local scoped_rows=()
   local scoped_row
   while IFS= read -r scoped_row; do
@@ -284,10 +302,14 @@ check_app_role_rls_behavior() {
   inserted_volunteers="${scoped_rows[8]:-}"
   updated_volunteers="${scoped_rows[9]:-}"
   deleted_volunteers="${scoped_rows[10]:-}"
+  admin_inserted_account="${scoped_rows[12]:-}"
+  admin_updated_account="${scoped_rows[13]:-}"
+  non_admin_updated_account="${scoped_rows[15]:-}"
+  admin_access_write="${scoped_rows[17]:-}"
 
-  if [[ "$unknown_accounts" != "0" || "$unknown_contacts" != "0" || "$unknown_volunteers" != "0" || "$known_accounts" != "1" || "$known_contacts" != "1" || "$known_volunteers" != "0" || "$inserted_volunteers" != "1" || "$updated_volunteers" != "1" || "$deleted_volunteers" != "1" ]]; then
+  if [[ "$unknown_accounts" != "0" || "$unknown_contacts" != "0" || "$unknown_volunteers" != "0" || "$known_accounts" != "1" || "$known_contacts" != "1" || "$known_volunteers" != "0" || "$inserted_volunteers" != "1" || "$updated_volunteers" != "1" || "$deleted_volunteers" != "1" || "$admin_inserted_account" != "1" || "$admin_updated_account" != "1" || "$non_admin_updated_account" != "0" || "$admin_access_write" != "1" ]]; then
     echo "Migration verification failed: app role RLS behavior did not match expectations" >&2
-    echo "Observed counts: unknown_accounts=$unknown_accounts unknown_contacts=$unknown_contacts unknown_volunteers=$unknown_volunteers known_accounts=$known_accounts known_contacts=$known_contacts known_volunteers=$known_volunteers inserted_volunteers=$inserted_volunteers updated_volunteers=$updated_volunteers deleted_volunteers=$deleted_volunteers" >&2
+    echo "Observed counts: unknown_accounts=$unknown_accounts unknown_contacts=$unknown_contacts unknown_volunteers=$unknown_volunteers known_accounts=$known_accounts known_contacts=$known_contacts known_volunteers=$known_volunteers inserted_volunteers=$inserted_volunteers updated_volunteers=$updated_volunteers deleted_volunteers=$deleted_volunteers admin_inserted_account=$admin_inserted_account admin_updated_account=$admin_updated_account non_admin_updated_account=$non_admin_updated_account admin_access_write=$admin_access_write" >&2
     return 1
   fi
 

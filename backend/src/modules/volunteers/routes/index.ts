@@ -4,11 +4,14 @@ import { optionalStrictBooleanSchema } from '@validations/shared';
 import pool from '@config/database';
 import { authenticate } from '@middleware/domains/auth';
 import { loadDataScope } from '@middleware/domains/data';
+import { requirePermission } from '@middleware/permissions';
 import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
 import { requireRequestedOrganizationContext } from '@middleware/requireRequestedOrganizationContext';
 import { documentUpload, handleMulterError } from '@middleware/domains/platform';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
+import { Permission } from '@utils/permissions';
 import {
+  approveVolunteerBackgroundCheckSchema,
   createVolunteerSchema,
   updateVolunteerSchema,
   volunteerAssignmentSchema,
@@ -120,6 +123,13 @@ export const createVolunteersRoutes = (): Router => {
     controller.commitImport
   );
 
+  router.post(
+    '/:id/background-check/approve',
+    validateParams(z.object({ id: uuidSchema })),
+    requirePermission(Permission.VOLUNTEER_BACKGROUND_CHECK_APPROVE),
+    validateBody(approveVolunteerBackgroundCheckSchema),
+    controller.approveVolunteerBackgroundCheck
+  );
   router.get('/:id', validateParams(z.object({ id: uuidSchema })), controller.getVolunteerById);
   router.get(
     '/:id/assignments',

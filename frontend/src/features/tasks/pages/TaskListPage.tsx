@@ -21,6 +21,7 @@ import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLa
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
 import { useDebounce } from '../../../hooks/useVirtualList';
+import { useStableSearchParamsWriter } from '../../../hooks/useStableSearchParams';
 import {
   parseAllowedValueOrEmpty,
   parsePositiveInteger,
@@ -48,6 +49,7 @@ const taskSummaryCardClass =
 const TaskList: React.FC = () => {
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { writeSearchParams } = useStableSearchParamsWriter(setSearchParams);
   const dispatch = useAppDispatch();
   const { tasks, pagination, summary, loading, error } = useAppSelector((state) => state.tasks);
 
@@ -126,9 +128,9 @@ const TaskList: React.FC = () => {
     if (filters.priority) params.set('priority', filters.priority);
     if (filters.overdue) params.set('overdue', 'true');
     if (filters.page > 1) params.set('page', String(filters.page));
-    setSearchParams(params, { replace: true });
+    writeSearchParams(params, { replace: true });
     localStorage.setItem(TASK_FILTERS_STORAGE_KEY, JSON.stringify(filters));
-  }, [filters, setSearchParams]);
+  }, [filters, writeSearchParams]);
 
   const handleFilterChange = <K extends keyof TaskListFilters>(
     key: K,

@@ -73,6 +73,16 @@ type PublicActionRecord = {
   letter_title: string | null;
 };
 
+type PublicActionTransitionResult = {
+  submission?: {
+    reviewStatus?: string;
+    contactId?: string | null;
+  };
+  contactId?: string;
+  pledgeId?: string;
+  supportLetterId?: string;
+};
+
 type DonationRecord = {
   id: string;
   contact_id: string | null;
@@ -221,6 +231,30 @@ async function createPublicAction(input: {
   const body = unwrapBody<{ id?: string }>(await response.json());
   expect(body.id).toBeTruthy();
   return body.id as string;
+}
+
+async function transitionPublicActionSubmission(input: {
+  page: import('@playwright/test').Page;
+  authToken: string;
+  siteId: string;
+  actionId: string;
+  submissionId: string;
+  transition: 'accept' | 'fulfill';
+}): Promise<PublicActionTransitionResult> {
+  const headers = await getAuthHeaders(input.page, input.authToken);
+  const response = await input.page.request.post(
+    `${API_URL}/api/v2/sites/${input.siteId}/actions/${input.actionId}/submissions/${input.submissionId}/${input.transition}`,
+    {
+      headers,
+      data: {},
+    }
+  );
+
+  expect(
+    response.ok(),
+    `Failed to ${input.transition} public action submission (${response.status()}): ${await response.text()}`
+  ).toBeTruthy();
+  return unwrapBody<PublicActionTransitionResult>(await response.json());
 }
 
 async function configureDonationProvider(input: {
@@ -421,41 +455,43 @@ test.describe('Public workflow browser proof', () => {
         siteId,
       });
 
-      await createPublicAction({
-        page: authenticatedPage,
-        authToken,
-        siteId,
-        actionType: 'petition_signature',
-        slug: slugs.petition,
-        title: 'Protect community hours',
-        confirmationMessage: 'Signature received.',
-      });
-      await createPublicAction({
-        page: authenticatedPage,
-        authToken,
-        siteId,
-        actionType: 'donation_pledge',
-        slug: slugs.pledge,
-        title: 'Community pledge',
-        confirmationMessage: 'Pledge received.',
-        settings: {
-          currency: 'CAD',
-          pledgeSchedule: 'monthly',
-        },
-      });
-      await createPublicAction({
-        page: authenticatedPage,
-        authToken,
-        siteId,
-        actionType: 'support_letter_request',
-        slug: slugs.supportLetter,
-        title: 'Support letter desk',
-        confirmationMessage: 'Letter request received.',
-        settings: {
-          letterTitle: 'Public support letter',
-          templateVersion: 'p5-t71',
-        },
-      });
+      const actionIds = {
+        petition: await createPublicAction({
+          page: authenticatedPage,
+          authToken,
+          siteId,
+          actionType: 'petition_signature',
+          slug: slugs.petition,
+          title: 'Protect community hours',
+          confirmationMessage: 'Signature received.',
+        }),
+        pledge: await createPublicAction({
+          page: authenticatedPage,
+          authToken,
+          siteId,
+          actionType: 'donation_pledge',
+          slug: slugs.pledge,
+          title: 'Community pledge',
+          confirmationMessage: 'Pledge received.',
+          settings: {
+            currency: 'CAD',
+            pledgeSchedule: 'monthly',
+          },
+        }),
+        supportLetter: await createPublicAction({
+          page: authenticatedPage,
+          authToken,
+          siteId,
+          actionType: 'support_letter_request',
+          slug: slugs.supportLetter,
+          title: 'Support letter desk',
+          confirmationMessage: 'Letter request received.',
+          settings: {
+            letterTitle: 'Public support letter',
+            templateVersion: 'p5-t71',
+          },
+        }),
+      };
 
       await publishWebsiteSite(authenticatedPage, authToken, {
         siteId,
@@ -570,9 +606,19 @@ test.describe('Public workflow browser proof', () => {
         action_type: 'petition_signature',
         review_status: 'new',
       });
-      expect(petition.contact_id).toBeTruthy();
-      if (petition.contact_id) {
-        contactIds.push(petition.contact_id);
+      expect(petition.contact_id).toBeNull();
+      const acceptedPetition = await transitionPublicActionSubmission({
+        page: authenticatedPage,
+        authToken,
+        siteId,
+        actionId: actionIds.petition,
+        submissionId: petition.id,
+        transition: 'accept',
+      });
+      expect(acceptedPetition.submission?.reviewStatus).toBe('accepted');
+      expect(acceptedPetition.contactId).toBeTruthy();
+      if (acceptedPetition.contactId) {
+        contactIds.push(acceptedPetition.contactId);
       }
 
       const pledgeForm = authenticatedPage
@@ -611,10 +657,21 @@ test.describe('Public workflow browser proof', () => {
         review_status: 'new',
         amount: '75',
       });
-      expect(pledge.pledge_id).toBeTruthy();
-      expect(pledge.contact_id).toBeTruthy();
-      if (pledge.contact_id) {
-        contactIds.push(pledge.contact_id);
+      expect(pledge.pledge_id).toBeNull();
+      expect(pledge.contact_id).toBeNull();
+      const acceptedPledge = await transitionPublicActionSubmission({
+        page: authenticatedPage,
+        authToken,
+        siteId,
+        actionId: actionIds.pledge,
+        submissionId: pledge.id,
+        transition: 'accept',
+      });
+      expect(acceptedPledge.submission?.reviewStatus).toBe('accepted');
+      expect(acceptedPledge.pledgeId).toBeTruthy();
+      expect(acceptedPledge.contactId).toBeTruthy();
+      if (acceptedPledge.contactId) {
+        contactIds.push(acceptedPledge.contactId);
       }
 
       const supportLetterForm = authenticatedPage
@@ -651,13 +708,24 @@ test.describe('Public workflow browser proof', () => {
       });
       expect(supportLetter).toMatchObject({
         action_type: 'support_letter_request',
-        review_status: 'new',
-        letter_title: 'Public support letter',
+        review_status: 'needs_review',
       });
-      expect(supportLetter.support_letter_id).toBeTruthy();
-      expect(supportLetter.contact_id).toBeTruthy();
-      if (supportLetter.contact_id) {
-        contactIds.push(supportLetter.contact_id);
+      expect(supportLetter.letter_title).toBeNull();
+      expect(supportLetter.support_letter_id).toBeNull();
+      expect(supportLetter.contact_id).toBeNull();
+      const fulfilledSupportLetter = await transitionPublicActionSubmission({
+        page: authenticatedPage,
+        authToken,
+        siteId,
+        actionId: actionIds.supportLetter,
+        submissionId: supportLetter.id,
+        transition: 'fulfill',
+      });
+      expect(fulfilledSupportLetter.submission?.reviewStatus).toBe('fulfilled');
+      expect(fulfilledSupportLetter.supportLetterId).toBeTruthy();
+      expect(fulfilledSupportLetter.contactId).toBeTruthy();
+      if (fulfilledSupportLetter.contactId) {
+        contactIds.push(fulfilledSupportLetter.contactId);
       }
     } finally {
       await cleanupPublicWorkflowArtifacts({

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { VolunteerFilters } from '@app-types/volunteer';
+import { editableBackgroundCheckStatusSchema } from '@validations/volunteer';
 import type {
   ImportFieldCandidate,
   ImportFieldOption,
@@ -90,7 +91,6 @@ export type ParsedVolunteerImportRow = {
     | 'not_required'
     | 'pending'
     | 'in_progress'
-    | 'approved'
     | 'rejected'
     | 'expired'
     | null;
@@ -169,10 +169,7 @@ export const volunteerFieldSchema = z.object({
   skills: z.array(z.string().trim().min(1)).optional(),
   availability_status: z.enum(['available', 'unavailable', 'limited']).optional(),
   availability_notes: z.string().trim().optional().nullable(),
-  background_check_status: z
-    .enum(['not_required', 'pending', 'in_progress', 'approved', 'rejected', 'expired'])
-    .optional()
-    .nullable(),
+  background_check_status: editableBackgroundCheckStatusSchema.optional().nullable(),
   background_check_date: z.coerce.date().optional().nullable(),
   background_check_expiry: z.coerce.date().optional().nullable(),
   preferred_roles: z.array(z.string().trim().min(1)).optional(),

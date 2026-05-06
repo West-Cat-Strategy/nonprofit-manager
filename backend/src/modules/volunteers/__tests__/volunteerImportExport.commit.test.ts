@@ -186,6 +186,24 @@ describe('volunteer import volunteer persistence', () => {
     expect(params[10]).toBe('Weekends only');
   });
 
+  it('rejects approved background-check status during volunteer inserts', async () => {
+    await expect(
+      insertImportedVolunteer(
+        client as PoolClient,
+        CONTACT_ID,
+        {
+          background_check_status: 'approved',
+        } as never,
+        USER_ID
+      )
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      code: 'validation_error',
+    });
+
+    expect(clientQuery).not.toHaveBeenCalled();
+  });
+
   it('dual-writes availability status and notes during volunteer updates', async () => {
     clientQuery.mockResolvedValueOnce({ rows: [] });
 
@@ -210,5 +228,23 @@ describe('volunteer import volunteer persistence', () => {
     expect(params[2]).toBe('On leave');
     expect(params[3]).toBe('On leave');
     expect(params[params.length - 1]).toBe(VOLUNTEER_ID);
+  });
+
+  it('rejects approved background-check status during volunteer updates', async () => {
+    await expect(
+      updateImportedVolunteer(
+        client as PoolClient,
+        VOLUNTEER_ID,
+        {
+          background_check_status: 'approved',
+        } as never,
+        USER_ID
+      )
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      code: 'validation_error',
+    });
+
+    expect(clientQuery).not.toHaveBeenCalled();
   });
 });

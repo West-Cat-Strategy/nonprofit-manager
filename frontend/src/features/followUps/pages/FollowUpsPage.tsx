@@ -5,6 +5,7 @@ import FollowUpForm from '../../../components/FollowUpForm';
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 import { useToast } from '../../../contexts/useToast';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
+import { useStableSearchParamsWriter } from '../../../hooks/useStableSearchParams';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   cancelFollowUp,
@@ -94,6 +95,8 @@ export default function FollowUpsPage() {
   const dispatch = useAppDispatch();
   const { showError } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { writeSearchParams, shouldApplySearchParams } =
+    useStableSearchParamsWriter(setSearchParams);
   const searchParamsString = searchParams.toString();
   const { followUps, summary, loading, pagination, error } = useAppSelector((state) => state.followUps);
   const { dialogState, confirm, handleCancel, handleConfirm } = useConfirmDialog();
@@ -104,6 +107,7 @@ export default function FollowUpsPage() {
   const statusFilter =
     parseAllowedValue(searchParams.get('status'), FOLLOW_UP_STATUS_VALUES) || '';
   const page = parsePositiveInteger(searchParams.get('page'), 1);
+  const [searchInput, setSearchInput] = useState(search);
   const [editingFollowUp, setEditingFollowUp] = useState<FollowUpWithEntity | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newEntityType, setNewEntityType] = useState<FollowUpEntityType>('case');
@@ -127,9 +131,17 @@ export default function FollowUpsPage() {
       page,
     });
     if (normalizedSearchParams.toString() !== searchParamsString) {
-      setSearchParams(normalizedSearchParams, { replace: true });
+      writeSearchParams(normalizedSearchParams, { replace: true });
     }
-  }, [entityTypeFilter, page, search, searchParamsString, setSearchParams, statusFilter]);
+  }, [entityTypeFilter, page, search, searchParamsString, writeSearchParams, statusFilter]);
+
+  useEffect(() => {
+    if (!shouldApplySearchParams()) {
+      return;
+    }
+
+    setSearchInput(search);
+  }, [search, shouldApplySearchParams]);
 
   useEffect(() => {
     dispatch(fetchFollowUps({ filters, page, limit: PAGE_SIZE }));
@@ -172,7 +184,11 @@ export default function FollowUpsPage() {
       page: number;
     }>
   ) => {
-    setSearchParams(
+    if (typeof patch.search === 'string') {
+      setSearchInput(patch.search);
+    }
+
+    writeSearchParams(
       buildFollowUpSearchParams({
         search: patch.search ?? search,
         entityType: patch.entityType ?? entityTypeFilter,
@@ -326,7 +342,7 @@ export default function FollowUpsPage() {
         <div className="mb-4 grid gap-3 md:grid-cols-4">
           <input
             aria-label="Search follow-ups"
-            value={search}
+            value={searchInput}
             onChange={(event) => updateListSearchParams({ search: event.target.value, page: 1 })}
             placeholder="Search follow-ups"
             className="border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"

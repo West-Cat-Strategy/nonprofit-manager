@@ -26,6 +26,16 @@ export const backgroundCheckStatusSchema = z.enum([
 
 export type BackgroundCheckStatus = z.infer<typeof backgroundCheckStatusSchema>;
 
+export const APPROVED_BACKGROUND_CHECK_GENERIC_PATH_MESSAGE =
+  'Approved background checks must use the dedicated approval endpoint';
+
+export const editableBackgroundCheckStatusSchema = backgroundCheckStatusSchema.refine(
+  (status) => status !== 'approved',
+  {
+    message: APPROVED_BACKGROUND_CHECK_GENERIC_PATH_MESSAGE,
+  }
+);
+
 // Availability status
 export const availabilityStatusSchema = z.enum(['available', 'unavailable', 'limited']);
 
@@ -35,7 +45,7 @@ export type AvailabilityStatus = z.infer<typeof availabilityStatusSchema>;
 export const createVolunteerSchema = z.object({
   contact_id: uuidSchema,
   status: volunteerStatusSchema.default('active'),
-  background_check_status: backgroundCheckStatusSchema.default('not_required'),
+  background_check_status: editableBackgroundCheckStatusSchema.default('not_required'),
   background_check_date: z.coerce.date().optional(),
   availability_status: availabilityStatusSchema.default('available'),
   bio: z.string().max(2000).optional(),
@@ -51,7 +61,7 @@ export type CreateVolunteerInput = z.infer<typeof createVolunteerSchema>;
 export const updateVolunteerSchema = z.object({
   status: volunteerStatusSchema.optional(),
   volunteer_status: z.union([volunteerStatusSchema, availabilityStatusSchema]).optional(),
-  background_check_status: backgroundCheckStatusSchema.optional(),
+  background_check_status: editableBackgroundCheckStatusSchema.optional(),
   background_check_date: z.coerce.date().optional(),
   availability_status: availabilityStatusSchema.optional(),
   bio: z.string().max(2000).optional(),
@@ -62,6 +72,18 @@ export const updateVolunteerSchema = z.object({
 });
 
 export type UpdateVolunteerInput = z.infer<typeof updateVolunteerSchema>;
+
+export const approveVolunteerBackgroundCheckSchema = z
+  .object({
+    background_check_date: z.coerce.date().optional(),
+    background_check_expiry: z.coerce.date().nullable().optional(),
+    notes: z.string().trim().min(1, 'Approval notes are required').max(1000),
+  })
+  .strict();
+
+export type ApproveVolunteerBackgroundCheckInput = z.infer<
+  typeof approveVolunteerBackgroundCheckSchema
+>;
 
 // Volunteer filter
 export const volunteerFilterSchema = z.object({
@@ -137,8 +159,7 @@ export const volunteerAssignmentSchema = z
     ...value,
     event_id: event_id ?? undefined,
     task_id: task_id ?? undefined,
-    assignment_type:
-      assignment_type ?? (task_id ? 'task' : event_id ? 'event' : 'general'),
+    assignment_type: assignment_type ?? (task_id ? 'task' : event_id ? 'event' : 'general'),
     start_time: value.start_time ?? assigned_date ?? new Date(),
   }));
 

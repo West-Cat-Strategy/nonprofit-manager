@@ -192,12 +192,14 @@ describe('ContactList page', () => {
     fireEvent.change(searchInput, { target: { value: 'ale' } });
     fireEvent.change(searchInput, { target: { value: 'alex' } });
 
+    expect(searchInput).toHaveValue('alex');
     expect(getFetchActions()).toHaveLength(1);
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(300);
     });
 
+    expect(searchInput).toHaveValue('alex');
     expect(getFetchActions()).toHaveLength(2);
     expect(getFetchActions()[1]).toEqual({
       type: 'contacts/fetchContacts',

@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
 import ConfirmDialog from '../../../components/ConfirmDialog';
+import type { EventOccurrence } from '../../../types/event';
 import StaffEventsPageShell, {
   staffEventsMetadataBadgeClassName,
   staffEventsPrimaryActionClassName,
@@ -16,6 +17,34 @@ import StaffEventsWorkspaceFiltersPanel from '../calendar/StaffEventsWorkspaceFi
 import StaffEventsWorkspaceCalendarPanel from '../calendar/StaffEventsWorkspaceCalendarPanel';
 import StaffEventsWorkspaceAgendaPanel from '../calendar/StaffEventsWorkspaceAgendaPanel';
 import StaffEventsWorkspaceDetailsPanel from '../calendar/StaffEventsWorkspaceDetailsPanel';
+import {
+  buildEventDetailHref,
+  formatEventType,
+  getOccurrenceDateRange,
+} from '../scheduling/staffCalendarEntries';
+import { parseValidIsoDate } from '../scheduling/staffCalendarQuery';
+
+const inactivePublicEventStatuses = new Set<EventOccurrence['status']>(['cancelled', 'completed']);
+
+const getPendingCheckIns = (occurrence: EventOccurrence): number =>
+  Math.max(0, (occurrence.registered_count || 0) - (occurrence.attended_count || 0));
+
+const getOccurrenceStartTime = (occurrence: EventOccurrence): number =>
+  parseValidIsoDate(occurrence.start_date)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+
+const getWaitlistReadinessLabel = (occurrence: EventOccurrence): string =>
+  occurrence.waitlist_enabled ? 'Ready' : 'Off';
+
+const getCheckInReadinessLabel = (occurrence: EventOccurrence): string => {
+  if (!occurrence.public_checkin_enabled) {
+    return 'Closed';
+  }
+
+  return occurrence.public_checkin_pin_required === false ||
+    occurrence.public_checkin_pin_configured
+    ? 'Ready'
+    : 'Needs PIN';
+};
 
 export default function StaffEventsWorkspaceView() {
   const location = useLocation();
@@ -69,6 +98,13 @@ export default function StaffEventsWorkspaceView() {
         ? [entry.metadata.occurrence]
         : []
     );
+    const sortedPublicOccurrences = [...publicOccurrences].sort(
+      (left, right) => getOccurrenceStartTime(left) - getOccurrenceStartTime(right)
+    );
+    const activePublicOccurrences = sortedPublicOccurrences.filter(
+      (occurrence) => !inactivePublicEventStatuses.has(occurrence.status)
+    );
+    const nextOccurrence = activePublicOccurrences[0] ?? sortedPublicOccurrences[0] ?? null;
 
     return {
       events: publicOccurrences.length,
@@ -76,11 +112,13 @@ export default function StaffEventsWorkspaceView() {
       checkInEnabled: publicOccurrences.filter((occurrence) => occurrence.public_checkin_enabled)
         .length,
       pendingCheckIns: publicOccurrences.reduce(
-        (total, occurrence) =>
-          total +
-          Math.max(0, (occurrence.registered_count || 0) - (occurrence.attended_count || 0)),
+        (total, occurrence) => total + getPendingCheckIns(occurrence),
         0
       ),
+      nextOccurrence,
+      nextPendingCheckIns: nextOccurrence ? getPendingCheckIns(nextOccurrence) : 0,
+      nextWaitlistReadiness: nextOccurrence ? getWaitlistReadinessLabel(nextOccurrence) : null,
+      nextCheckInReadiness: nextOccurrence ? getCheckInReadinessLabel(nextOccurrence) : null,
     };
   }, [entries]);
 
@@ -127,35 +165,131 @@ export default function StaffEventsWorkspaceView() {
         onClearFilters={clearFilters}
       />
 
-      <div className="rounded-lg border p-4">
-        <div className="text-xs uppercase tracking-[0.18em]">
-          Public event operations
-        </div>
-        <div className="mt-3 grid gap-3 text-sm sm:grid-cols-4">
+      <section
+        aria-labelledby="public-event-operations-title"
+        className="rounded-lg border border-app-border bg-app-surface p-4"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div className="text-2xl font-semibold">{publicEventSnapshot.events}</div>
-            <div>public occurrences</div>
+            <h2
+              id="public-event-operations-title"
+              className="text-xs font-semibold uppercase text-app-text-muted"
+            >
+              Public event operations
+            </h2>
+            <p className="mt-1 text-sm text-app-text-muted">Visible public event readiness</p>
+          </div>
+          {publicEventSnapshot.nextOccurrence ? (
+            <span className="rounded-full bg-app-accent-soft px-2 py-1 text-xs font-medium text-app-accent-text">
+              Next in view
+            </span>
+          ) : null}
+        </div>
+
+        <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-4">
+          <div>
+            <dd className="text-2xl font-semibold text-app-text">{publicEventSnapshot.events}</dd>
+            <dt className="text-app-text-muted">public occurrences</dt>
           </div>
           <div>
-            <div className="text-2xl font-semibold">
+            <dd className="text-2xl font-semibold text-app-text">
               {publicEventSnapshot.waitlistEnabled}
-            </div>
-            <div>waitlist enabled</div>
+            </dd>
+            <dt className="text-app-text-muted">waitlist enabled</dt>
           </div>
           <div>
-            <div className="text-2xl font-semibold">
+            <dd className="text-2xl font-semibold text-app-text">
               {publicEventSnapshot.checkInEnabled}
-            </div>
-            <div>check-in enabled</div>
+            </dd>
+            <dt className="text-app-text-muted">check-in enabled</dt>
           </div>
           <div>
-            <div className="text-2xl font-semibold">
+            <dd className="text-2xl font-semibold text-app-text">
               {publicEventSnapshot.pendingCheckIns}
-            </div>
-            <div>pending check-ins</div>
+            </dd>
+            <dt className="text-app-text-muted">pending check-ins</dt>
           </div>
+        </dl>
+
+        <div className="mt-4 border-t border-app-border pt-4">
+          {publicEventSnapshot.nextOccurrence ? (
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase text-app-text-muted">
+                    Next public occurrence
+                  </p>
+                  <h3 className="mt-1 text-base font-semibold text-app-text">
+                    {publicEventSnapshot.nextOccurrence.event_name ||
+                      publicEventSnapshot.nextOccurrence.occurrence_name ||
+                      'Public event'}
+                  </h3>
+                  <p className="mt-1 text-sm text-app-text-muted">
+                    {getOccurrenceDateRange(publicEventSnapshot.nextOccurrence)}
+                    {publicEventSnapshot.nextOccurrence.location_name
+                      ? ` at ${publicEventSnapshot.nextOccurrence.location_name}`
+                      : ''}
+                  </p>
+                </div>
+                <span className="rounded-full border border-app-border bg-app-surface px-2 py-1 text-xs text-app-text-muted">
+                  {formatEventType(publicEventSnapshot.nextOccurrence.event_type)}
+                </span>
+              </div>
+
+              <div className="grid gap-3 text-sm sm:grid-cols-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase text-app-text-muted">Waitlist</p>
+                  <p className="mt-1 font-medium text-app-text">
+                    {publicEventSnapshot.nextWaitlistReadiness}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase text-app-text-muted">Check-in</p>
+                  <p className="mt-1 font-medium text-app-text">
+                    {publicEventSnapshot.nextCheckInReadiness}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase text-app-text-muted">Attendance</p>
+                  <p className="mt-1 font-medium text-app-text">
+                    {publicEventSnapshot.nextPendingCheckIns} pending
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  to={buildEventDetailHref(publicEventSnapshot.nextOccurrence, {
+                    returnTo: workspaceReturnTo,
+                  })}
+                  className={staffEventsPrimaryActionClassName}
+                >
+                  Open details
+                </Link>
+                <Link
+                  to={buildEventDetailHref(publicEventSnapshot.nextOccurrence, {
+                    tab: 'registrations',
+                    returnTo: workspaceReturnTo,
+                  })}
+                  className={staffEventsSecondaryActionClassName}
+                >
+                  Review registrations
+                </Link>
+                {publicEventSnapshot.nextOccurrence.public_checkin_enabled ? (
+                  <Link
+                    to={`/events/check-in?eventId=${publicEventSnapshot.nextOccurrence.event_id}`}
+                    className={staffEventsSecondaryActionClassName}
+                  >
+                    Open check-in desk
+                  </Link>
+                ) : null}
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-app-text-muted">No public event occurrences in this view.</p>
+          )}
         </div>
-      </div>
+      </section>
 
       {error ? (
         <div className="rounded-lg border border-app-border bg-app-accent-soft p-4 text-sm text-app-accent-text">

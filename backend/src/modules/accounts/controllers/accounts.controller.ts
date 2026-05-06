@@ -7,9 +7,17 @@ import type {
   PaginationParams,
 } from '@app-types/account';
 import type { DataScopeFilter } from '@app-types/dataScope';
+import pool from '@config/database';
 import { setTabularDownloadHeaders } from '@modules/shared/export/tabularExport';
 import { parseMultipartJsonField } from '@modules/shared/import/peopleImportParser';
 import { extractPagination, getBoolean, getString } from '@utils/queryHelpers';
+import {
+  applyAccountTaxIdReadPolicy,
+  applyAccountTaxIdReadPolicyToPaginatedAccounts,
+  assertAccountTaxIdWriteAllowed,
+  buildAccountFieldAccessContext,
+  resolveAccountTaxIdPolicy,
+} from '../usecases/accountFieldAccess.usecase';
 import { AccountCatalogUseCase } from '../usecases/accountCatalog.usecase';
 import { AccountImportExportUseCase } from '../usecases/accountImportExport.usecase';
 import { AccountLifecycleUseCase } from '../usecases/accountLifecycle.usecase';
@@ -20,6 +28,16 @@ export const createAccountsController = (
   lifecycleUseCase: AccountLifecycleUseCase,
   importExportUseCase: AccountImportExportUseCase
 ) => {
+  const resolveTaxIdPolicy = (req: AuthRequest) =>
+    resolveAccountTaxIdPolicy(
+      pool,
+      buildAccountFieldAccessContext({
+        userId: req.user?.id,
+        primaryRole: req.authorizationContext?.primaryRole ?? req.user?.role,
+        roles: req.authorizationContext?.roles,
+      })
+    );
+
   const getAccounts = async (
     req: AuthRequest,
     res: Response,
@@ -37,7 +55,8 @@ export const createAccountsController = (
       const pagination: PaginationParams = extractPagination(query);
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
       const result = await catalogUseCase.list(filters, pagination, scope);
-      sendData(res, result);
+      const taxIdPolicy = await resolveTaxIdPolicy(req);
+      sendData(res, applyAccountTaxIdReadPolicyToPaginatedAccounts(result, taxIdPolicy));
     } catch (error) {
       next(error);
     }
@@ -57,7 +76,8 @@ export const createAccountsController = (
         return;
       }
 
-      sendData(res, account);
+      const taxIdPolicy = await resolveTaxIdPolicy(req);
+      sendData(res, applyAccountTaxIdReadPolicy(account, taxIdPolicy));
     } catch (error) {
       next(error);
     }
@@ -75,7 +95,7 @@ export const createAccountsController = (
         return;
       }
 
-      const contacts = await catalogUseCase.listContacts(req.params.id);
+      const contacts = await catalogUseCase.listContacts(req.params.id, scope);
       sendData(res, contacts);
     } catch (error) {
       next(error);
@@ -94,8 +114,10 @@ export const createAccountsController = (
         return;
       }
 
+      const taxIdPolicy = await resolveTaxIdPolicy(req);
+      assertAccountTaxIdWriteAllowed(req.body, taxIdPolicy);
       const account = await lifecycleUseCase.create(req.body, userId);
-      sendData(res, account, 201);
+      sendData(res, applyAccountTaxIdReadPolicy(account, taxIdPolicy), 201);
     } catch (error) {
       next(error);
     }
@@ -120,13 +142,15 @@ export const createAccountsController = (
         return;
       }
 
+      const taxIdPolicy = await resolveTaxIdPolicy(req);
+      assertAccountTaxIdWriteAllowed(req.body, taxIdPolicy);
       const account = await lifecycleUseCase.update(req.params.id, req.body, userId);
       if (!account) {
         sendFailure(res, 'not_found', 'Account not found', 404);
         return;
       }
 
-      sendData(res, account);
+      sendData(res, applyAccountTaxIdReadPolicy(account, taxIdPolicy));
     } catch (error) {
       next(error);
     }
@@ -170,7 +194,8 @@ export const createAccountsController = (
   ): Promise<void> => {
     try {
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
-      const file = await importExportUseCase.exportAccounts(req.body, scope);
+      const taxIdPolicy = await resolveTaxIdPolicy(req);
+      const file = await importExportUseCase.exportAccounts(req.body, scope, taxIdPolicy);
       setTabularDownloadHeaders(res, file);
       res.send(file.buffer);
     } catch (error) {
@@ -185,7 +210,8 @@ export const createAccountsController = (
   ): Promise<void> => {
     try {
       const query = (req.validatedQuery ?? req.query) as { format?: 'csv' | 'xlsx' };
-      const file = await importExportUseCase.getImportTemplate(query.format || 'csv');
+      const taxIdPolicy = await resolveTaxIdPolicy(req);
+      const file = await importExportUseCase.getImportTemplate(query.format || 'csv', taxIdPolicy);
       setTabularDownloadHeaders(res, file);
       res.send(file.buffer);
     } catch (error) {
@@ -206,7 +232,8 @@ export const createAccountsController = (
 
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
       const mapping = parseMultipartJsonField<Record<string, unknown>>(req.body.mapping);
-      const preview = await importExportUseCase.previewImport(req.file, mapping, scope);
+      const taxIdPolicy = await resolveTaxIdPolicy(req);
+      const preview = await importExportUseCase.previewImport(req.file, mapping, scope, taxIdPolicy);
       sendData(res, preview);
     } catch (error) {
       next(error);
@@ -232,7 +259,14 @@ export const createAccountsController = (
 
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
       const mapping = parseMultipartJsonField<Record<string, unknown>>(req.body.mapping);
-      const result = await importExportUseCase.commitImport(req.file, mapping, userId, scope);
+      const taxIdPolicy = await resolveTaxIdPolicy(req);
+      const result = await importExportUseCase.commitImport(
+        req.file,
+        mapping,
+        userId,
+        scope,
+        taxIdPolicy
+      );
       sendData(res, result);
     } catch (error) {
       next(error);

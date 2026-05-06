@@ -10,11 +10,18 @@ import type {
   PublicActionSubmission,
   PublicActionSubmissionRequest,
   PublicActionSubmissionResult,
+  PublicActionSubmissionTransition,
+  PublicActionSubmissionTransitionResult,
   PublicActionSupportLetterArtifact,
   PublicActionType,
   UpdatePublicActionRequest,
 } from '@app-types/websiteBuilder';
 import { SiteManagementService } from './siteManagementService';
+import {
+  ACTION_TYPES_REQUIRING_MANUAL_REVIEW,
+  buildSubmissionPayload,
+  type PublicActionSubmissionSideEffects,
+} from './publicActionSubmissionHelpers';
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -335,6 +342,8 @@ export class PublicActionService {
          AND sl.action_id = $2
          AND sl.submission_id = $3
          AND s.action_type = 'support_letter_request'
+         AND s.review_status IN ('accepted', 'fulfilled')
+         AND sl.approval_status IN ('approved', 'sent')
        LIMIT 1`,
       [siteId, actionId, submissionId]
     );
@@ -388,48 +397,48 @@ export class PublicActionService {
     }
   }
 
-  private async ensureContact(
+  private async ensureContactWithExecutor(
     site: PublishedSite,
     payload: PublicActionSubmissionRequest,
-    tags: string[]
+    tags: string[],
+    executor: Pick<Pool | PoolClient, 'query'>,
+    client?: PoolClient
   ): Promise<string | undefined> {
     const email = asString(payload.email);
     const firstName = asString(payload.first_name) || 'Public';
     const lastName = asString(payload.last_name) || 'Supporter';
     if (!email && !asString(payload.phone)) return undefined;
 
-    return this.withSiteOwnerContext(site, async (executor, client) => {
-      const existing = await this.findExistingContact(site, payload, executor);
-      if (existing) {
-        const nextTags = Array.from(new Set([...(existing.tags || []), ...tags]));
-        await executor.query(
-          `UPDATE contacts
-           SET account_id = COALESCE(account_id, $1),
-               phone = COALESCE(phone, $2),
-               tags = $3,
-               updated_at = CURRENT_TIMESTAMP
-           WHERE id = $4`,
-          [site.organizationId, asString(payload.phone) || null, nextTags, existing.id]
-        );
-        return existing.id;
-      }
-
-      const contact = await services.contact.createContact(
-        {
-          account_id: site.organizationId || undefined,
-          first_name: firstName,
-          last_name: lastName,
-          email: email || null,
-          phone: asString(payload.phone) || null,
-          notes: asString(payload.message),
-          tags,
-        },
-        site.ownerUserId || site.userId,
-        undefined,
-        client
+    const existing = await this.findExistingContact(site, payload, executor);
+    if (existing) {
+      const nextTags = Array.from(new Set([...(existing.tags || []), ...tags]));
+      await executor.query(
+        `UPDATE contacts
+         SET account_id = COALESCE(account_id, $1),
+             phone = COALESCE(phone, $2),
+             tags = $3,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $4`,
+        [site.organizationId, asString(payload.phone) || null, nextTags, existing.id]
       );
-      return contact.contact_id;
-    });
+      return existing.id;
+    }
+
+    const contact = await services.contact.createContact(
+      {
+        account_id: site.organizationId || undefined,
+        first_name: firstName,
+        last_name: lastName,
+        email: email || null,
+        phone: asString(payload.phone) || null,
+        notes: asString(payload.message),
+        tags,
+      },
+      site.ownerUserId || site.userId,
+      undefined,
+      client
+    );
+    return contact.contact_id;
   }
 
   private async findDuplicateSignature(actionId: string, email: string | undefined): Promise<string | null> {
@@ -470,6 +479,300 @@ export class PublicActionService {
         generatedAt: new Date().toISOString(),
       },
     };
+  }
+
+  private getInitialReviewStatus(
+    action: PublicAction,
+    duplicateSubmissionId: string | null
+  ): PublicActionReviewStatus {
+    if (duplicateSubmissionId) return 'duplicate';
+    return ACTION_TYPES_REQUIRING_MANUAL_REVIEW.has(action.actionType) ? 'needs_review' : 'new';
+  }
+
+  private async getActionById(siteId: string, actionId: string): Promise<PublicAction | null> {
+    const result = await this.pool.query(
+      `SELECT a.*,
+              (
+                SELECT COUNT(*)::int
+                FROM website_public_action_submissions s
+                WHERE s.action_id = a.id
+              ) AS submission_count
+       FROM website_public_actions a
+       WHERE a.site_id = $1 AND a.id = $2
+       LIMIT 1`,
+      [siteId, actionId]
+    );
+    return result.rows[0] ? mapActionRow(result.rows[0]) : null;
+  }
+
+  private async getSubmissionById(
+    siteId: string,
+    actionId: string,
+    submissionId: string
+  ): Promise<PublicActionSubmission | null> {
+    const result = await this.pool.query(
+      `SELECT *
+       FROM website_public_action_submissions
+       WHERE site_id = $1 AND action_id = $2 AND id = $3
+       LIMIT 1`,
+      [siteId, actionId, submissionId]
+    );
+    return result.rows[0] ? mapSubmissionRow(result.rows[0]) : null;
+  }
+
+  private async ensureSubmissionSideEffects(
+    site: PublishedSite,
+    action: PublicAction,
+    submission: PublicActionSubmission,
+    userId: string,
+    executor: Pick<Pool | PoolClient, 'query'>,
+    client?: PoolClient
+  ): Promise<PublicActionSubmissionSideEffects> {
+    const payload = buildSubmissionPayload(submission.payloadRedacted);
+    const baseTags = [action.actionType.replace(/_/g, '-')];
+    const existingContactId =
+      submission.contactId ||
+      (submission.sourceEntityType === 'contact' ? submission.sourceEntityId || undefined : undefined);
+    const contactId =
+      existingContactId ||
+      (await this.ensureContactWithExecutor(site, payload, baseTags, executor, client));
+
+    if (action.actionType === 'donation_pledge') {
+      const amount = parseAmount(payload.amount);
+      if (!amount) {
+        throw new Error('Pledge amount is required');
+      }
+
+      const existingPledge = await executor.query<{ id: string }>(
+        `SELECT id
+         FROM website_public_pledges
+         WHERE submission_id = $1
+         LIMIT 1`,
+        [submission.id]
+      );
+      const pledgeId =
+        existingPledge.rows[0]?.id ||
+        (
+          await executor.query<{ id: string }>(
+            `INSERT INTO website_public_pledges (
+               organization_id, site_id, action_id, submission_id, contact_id, campaign_id,
+               amount, currency, schedule, due_date
+             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+             RETURNING id`,
+            [
+              site.organizationId,
+              site.id,
+              action.id,
+              submission.id,
+              contactId || null,
+              asString(action.settings.campaignId) || null,
+              amount,
+              asString(action.settings.currency) || 'CAD',
+              JSON.stringify({
+                cadence:
+                  asString(action.settings.pledgeSchedule) ||
+                  asString(payload.schedule) ||
+                  'one_time',
+              }),
+              asString(payload.due_date) || null,
+            ]
+          )
+        ).rows[0].id;
+
+      return {
+        contactId,
+        pledgeId,
+        sourceEntityType: 'public_pledge',
+        sourceEntityId: pledgeId,
+      };
+    }
+
+    if (action.actionType === 'support_letter_request') {
+      const generated = this.buildSupportLetter(action, payload);
+      const templateVersion = asString(generated.metadata.templateVersion) || 'v1';
+      const existingLetter = await executor.query<{ id: string }>(
+        `SELECT id
+         FROM website_support_letters
+         WHERE submission_id = $1
+         LIMIT 1`,
+        [submission.id]
+      );
+
+      let supportLetterId = existingLetter.rows[0]?.id;
+      if (supportLetterId) {
+        await executor.query(
+          `UPDATE website_support_letters
+           SET contact_id = COALESCE(contact_id, $1),
+               approval_status = CASE
+                 WHEN approval_status = 'sent' THEN approval_status
+                 ELSE 'approved'
+               END,
+               approved_at = COALESCE(approved_at, CURRENT_TIMESTAMP),
+               approved_by = COALESCE(approved_by, $2),
+               updated_at = CURRENT_TIMESTAMP
+           WHERE id = $3`,
+          [contactId || null, userId, supportLetterId]
+        );
+      } else {
+        const letterResult = await executor.query<{ id: string }>(
+          `INSERT INTO website_support_letters (
+             organization_id, site_id, action_id, submission_id, contact_id,
+             template_version, letter_title, letter_body, approval_status,
+             generated_metadata, approved_at, approved_by
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'approved', $9, CURRENT_TIMESTAMP, $10)
+           RETURNING id`,
+          [
+            site.organizationId,
+            site.id,
+            action.id,
+            submission.id,
+            contactId || null,
+            templateVersion,
+            generated.title,
+            generated.body,
+            JSON.stringify(generated.metadata),
+            userId,
+          ]
+        );
+        supportLetterId = letterResult.rows[0].id;
+      }
+
+      return {
+        contactId,
+        supportLetterId,
+        sourceEntityType: 'support_letter',
+        sourceEntityId: supportLetterId,
+      };
+    }
+
+    return {
+      contactId,
+      sourceEntityType: contactId ? 'contact' : submission.sourceEntityType || undefined,
+      sourceEntityId: contactId ? contactId : submission.sourceEntityId || undefined,
+    };
+  }
+
+  private async markSubmissionSideEffectsFulfilled(
+    action: PublicAction,
+    effects: PublicActionSubmissionSideEffects,
+    userId: string,
+    executor: Pick<Pool | PoolClient, 'query'>
+  ): Promise<void> {
+    if (action.actionType === 'donation_pledge' && effects.pledgeId) {
+      await executor.query(
+        `UPDATE website_public_pledges
+         SET status = 'fulfilled',
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1`,
+        [effects.pledgeId]
+      );
+    }
+
+    if (action.actionType === 'support_letter_request' && effects.supportLetterId) {
+      await executor.query(
+        `UPDATE website_support_letters
+         SET approval_status = 'sent',
+             approved_at = COALESCE(approved_at, CURRENT_TIMESTAMP),
+             approved_by = COALESCE(approved_by, $2),
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1`,
+        [effects.supportLetterId, userId]
+      );
+    }
+  }
+
+  async transitionSubmission(
+    siteId: string,
+    actionId: string,
+    submissionId: string,
+    transition: PublicActionSubmissionTransition,
+    userId: string,
+    organizationId?: string
+  ): Promise<PublicActionSubmissionTransitionResult | null> {
+    const site = await this.requireOwnedSite(siteId, userId, organizationId);
+    const [action, submission] = await Promise.all([
+      this.getActionById(site.id, actionId),
+      this.getSubmissionById(site.id, actionId, submissionId),
+    ]);
+
+    if (!action || !submission) {
+      return null;
+    }
+
+    if (transition === 'reject') {
+      if (submission.reviewStatus === 'accepted' || submission.reviewStatus === 'fulfilled') {
+        throw new Error('Cannot reject an accepted public action submission');
+      }
+
+      const result = await this.pool.query(
+        `UPDATE website_public_action_submissions
+         SET review_status = 'rejected',
+             reviewed_at = CURRENT_TIMESTAMP,
+             reviewed_by = $4,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE site_id = $1 AND action_id = $2 AND id = $3
+         RETURNING *`,
+        [site.id, action.id, submission.id, userId]
+      );
+      return {
+        submission: mapSubmissionRow(result.rows[0]),
+      };
+    }
+
+    if (submission.reviewStatus === 'rejected') {
+      throw new Error('Cannot accept or fulfill a rejected public action submission');
+    }
+
+    const nextReviewStatus: PublicActionReviewStatus =
+      transition === 'fulfill' ? 'fulfilled' : submission.reviewStatus === 'fulfilled' ? 'fulfilled' : 'accepted';
+
+    return this.withSiteOwnerContext(site, async (executor, client) => {
+      const effects = await this.ensureSubmissionSideEffects(
+        site,
+        action,
+        submission,
+        userId,
+        executor,
+        client
+      );
+
+      if (transition === 'fulfill') {
+        await this.markSubmissionSideEffectsFulfilled(action, effects, userId, executor);
+      }
+
+      const nextContactId = effects.contactId || submission.contactId || null;
+      const nextSourceEntityType = effects.sourceEntityType || submission.sourceEntityType || null;
+      const nextSourceEntityId = effects.sourceEntityId || submission.sourceEntityId || null;
+      const result = await executor.query(
+        `UPDATE website_public_action_submissions
+         SET review_status = $4,
+             contact_id = $5,
+             source_entity_type = $6,
+             source_entity_id = $7,
+             reviewed_at = CURRENT_TIMESTAMP,
+             reviewed_by = $8,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE site_id = $1 AND action_id = $2 AND id = $3
+         RETURNING *`,
+        [
+          site.id,
+          action.id,
+          submission.id,
+          nextReviewStatus,
+          nextContactId,
+          nextSourceEntityType,
+          nextSourceEntityId,
+          userId,
+        ]
+      );
+
+      return {
+        submission: mapSubmissionRow(result.rows[0]),
+        contactId: effects.contactId,
+        pledgeId: effects.pledgeId,
+        supportLetterId: effects.supportLetterId,
+      };
+    });
   }
 
   async submitPublicAction(
@@ -516,7 +819,6 @@ export class PublicActionService {
           actionType: action.actionType,
           message: action.confirmationMessage || 'Your response has already been received.',
           submissionId: submission.id,
-          contactId: submission.contactId || undefined,
           reviewStatus: submission.reviewStatus,
           idempotentReplay: true,
         };
@@ -528,13 +830,14 @@ export class PublicActionService {
       capturedAt: new Date().toISOString(),
     };
     const email = asString(payload.email);
-    const baseTags = [action.actionType.replace(/_/g, '-')];
     const duplicateId =
       action.actionType === 'petition_signature'
         ? await this.findDuplicateSignature(action.id, email)
         : null;
-    const reviewStatus: PublicActionReviewStatus = duplicateId ? 'duplicate' : 'new';
-    const contactId = duplicateId ? undefined : await this.ensureContact(site, payload, baseTags);
+    const reviewStatus = this.getInitialReviewStatus(action, duplicateId);
+    if (action.actionType === 'donation_pledge' && !parseAmount(payload.amount)) {
+      throw new Error('Pledge amount is required');
+    }
     const payloadRedacted = {
       first_name: asString(payload.first_name) || null,
       last_name: asString(payload.last_name) || null,
@@ -542,120 +845,46 @@ export class PublicActionService {
       phone: asString(payload.phone) || null,
       amount: parseAmount(payload.amount),
       message: asString(payload.message) || null,
+      purpose: asString(payload.purpose) || null,
+      schedule: asString(payload.schedule) || null,
+      due_date: asString(payload.due_date) || null,
     };
 
-    const insertSubmission = async (
-      sourceEntityType?: string,
-      sourceEntityId?: string,
-      generatedArtifact: Record<string, unknown> = {}
-    ): Promise<PublicActionSubmission> => {
-      const result = await this.pool.query(
-        `INSERT INTO website_public_action_submissions (
-           organization_id, site_id, action_id, action_type, review_status, idempotency_key,
-           contact_id, source_entity_type, source_entity_id, duplicate_of_submission_id,
-           consent, payload_redacted, generated_artifact, page_path, visitor_id, session_id,
-           referrer, user_agent
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::uuid, $10, $11, $12, $13, $14, $15, $16, $17, $18)
-         RETURNING *`,
-        [
-          site.organizationId,
-          site.id,
-          action.id,
-          action.actionType,
-          reviewStatus,
-          context.idempotencyKey || null,
-          contactId || null,
-          sourceEntityType || null,
-          sourceEntityId || null,
-          duplicateId,
-          JSON.stringify(consent),
-          JSON.stringify(payloadRedacted),
-          JSON.stringify(generatedArtifact),
-          context.pagePath || null,
-          context.visitorId || asString(payload.visitorId) || null,
-          context.sessionId || asString(payload.sessionId) || null,
-          context.referrer || null,
-          context.userAgent || null,
-        ]
-      );
-      return mapSubmissionRow(result.rows[0]);
-    };
-
-    if (action.actionType === 'donation_pledge') {
-      const amount = parseAmount(payload.amount);
-      if (!amount) {
-        throw new Error('Pledge amount is required');
-      }
-      const submission = await insertSubmission();
-      const pledgeResult = await this.pool.query<{ id: string }>(
-        `INSERT INTO website_public_pledges (
-           organization_id, site_id, action_id, submission_id, contact_id, campaign_id,
-           amount, currency, schedule, due_date
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-         RETURNING id`,
-        [
-          site.organizationId,
-          site.id,
-          action.id,
-          submission.id,
-          contactId || null,
-          asString(action.settings.campaignId) || null,
-          amount,
-          asString(action.settings.currency) || 'CAD',
-          JSON.stringify({
-            cadence: asString(action.settings.pledgeSchedule) || asString(payload.schedule) || 'one_time',
-          }),
-          asString(payload.due_date) || null,
-        ]
-      );
-      return {
-        actionType: action.actionType,
-        message: action.confirmationMessage || 'Your pledge has been recorded.',
-        submissionId: submission.id,
-        contactId,
-        pledgeId: pledgeResult.rows[0].id,
+    const generatedArtifact =
+      action.actionType === 'support_letter_request'
+        ? this.buildSupportLetter(action, payload).metadata
+        : {};
+    const result = await this.pool.query(
+      `INSERT INTO website_public_action_submissions (
+         organization_id, site_id, action_id, action_type, review_status, idempotency_key,
+         contact_id, source_entity_type, source_entity_id, duplicate_of_submission_id,
+         consent, payload_redacted, generated_artifact, page_path, visitor_id, session_id,
+         referrer, user_agent
+       ) VALUES ($1, $2, $3, $4, $5, $6, NULL, NULL, NULL, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+       RETURNING *`,
+      [
+        site.organizationId,
+        site.id,
+        action.id,
+        action.actionType,
         reviewStatus,
-      };
-    }
-
-    if (action.actionType === 'support_letter_request') {
-      const generated = this.buildSupportLetter(action, payload);
-      const submission = await insertSubmission(undefined, undefined, generated.metadata);
-      const templateVersion = asString(generated.metadata.templateVersion) || 'v1';
-      const letterResult = await this.pool.query<{ id: string }>(
-        `INSERT INTO website_support_letters (
-           organization_id, site_id, action_id, submission_id, contact_id,
-           template_version, letter_title, letter_body, generated_metadata
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-         RETURNING id`,
-        [
-          site.organizationId,
-          site.id,
-          action.id,
-          submission.id,
-          contactId || null,
-          templateVersion,
-          generated.title,
-          generated.body,
-          JSON.stringify(generated.metadata),
-        ]
-      );
-      return {
-        actionType: action.actionType,
-        message: action.confirmationMessage || 'Your support letter request has been received.',
-        submissionId: submission.id,
-        contactId,
-        supportLetterId: letterResult.rows[0].id,
-        reviewStatus,
-      };
-    }
-
-    const submission = await insertSubmission(contactId ? 'contact' : undefined, contactId);
+        context.idempotencyKey || null,
+        duplicateId,
+        JSON.stringify(consent),
+        JSON.stringify(payloadRedacted),
+        JSON.stringify(generatedArtifact),
+        context.pagePath || null,
+        context.visitorId || asString(payload.visitorId) || null,
+        context.sessionId || asString(payload.sessionId) || null,
+        context.referrer || null,
+        context.userAgent || null,
+      ]
+    );
+    const submission = mapSubmissionRow(result.rows[0]);
     return {
       actionType: action.actionType,
       message: action.confirmationMessage || 'Your response has been received.',
       submissionId: submission.id,
-      contactId,
       reviewStatus,
     };
   }

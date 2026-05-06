@@ -41,6 +41,7 @@ describe('Volunteer API Integration Tests', () => {
     }
 
     userId = registeredUser.id;
+    await pool.query('UPDATE users SET role = $1 WHERE id = $2', ['admin', userId]);
 
     const orgResult = await pool.query<{ id: string }>(
       `SELECT id
@@ -67,11 +68,19 @@ describe('Volunteer API Integration Tests', () => {
       {
         id: userId,
         email: registeredUser.email ?? email,
-        role: registeredUser.role ?? 'user',
+        role: 'admin',
         organizationId,
       },
       getJwtSecret(),
       { expiresIn: '1h' }
+    );
+
+    await pool.query(
+      `INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active)
+       VALUES ($1, $2, 'admin', $1, TRUE)
+       ON CONFLICT (user_id, account_id)
+       DO UPDATE SET access_level = EXCLUDED.access_level, granted_by = EXCLUDED.granted_by, is_active = TRUE`,
+      [userId, organizationId]
     );
 
     // Create test account
@@ -132,6 +141,10 @@ describe('Volunteer API Integration Tests', () => {
       await pool.query('DELETE FROM accounts WHERE id = $1', [testAccountId]);
     }
     if (organizationId) {
+      await pool.query('DELETE FROM user_account_access WHERE user_id = $1 AND account_id = $2', [
+        userId,
+        organizationId,
+      ]);
       // `accounts.created_by` references `users.id`, so remove test-created org rows before user rows.
       await pool.query('DELETE FROM accounts WHERE id = $1 AND created_by = $2', [organizationId, userId]);
     }
@@ -179,7 +192,7 @@ describe('Volunteer API Integration Tests', () => {
       expect(JSON.stringify(response.body)).toContain('contact_id');
     });
 
-    it('should create volunteer with background check info', async () => {
+    it('should create volunteer with non-approved background check info', async () => {
       const newContactResponse = await request(app)
         .post('/api/v2/contacts')
         .set('Authorization', `Bearer ${authToken}`)
@@ -202,12 +215,44 @@ describe('Volunteer API Integration Tests', () => {
         .send({
           contact_id: contactId,
           skills: ['Mentoring'],
-          background_check_status: 'approved',
+          background_check_status: 'pending',
           background_check_date: '2024-01-15',
         })
         .expect(201);
 
-      expect(response.body.background_check_status).toBe('approved');
+      expect(response.body.background_check_status).toBe('pending');
+    });
+
+    it('should reject approved background check status on generic creation', async () => {
+      const newContactResponse = await request(app)
+        .post('/api/v2/contacts')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          account_id: testAccountId,
+          first_name: 'Background',
+          last_name: 'ApprovalCreate',
+          email: `bg-approval-create-${unique()}@example.com`,
+        });
+
+      const createdContact = unwrap<{ contact_id?: string; id?: string }>(newContactResponse.body);
+      const contactId = createdContact.contact_id ?? createdContact.id;
+      if (!contactId) {
+        throw new Error('Failed to create background-check approval test contact');
+      }
+
+      const response = await request(app)
+        .post('/api/v2/volunteers')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          contact_id: contactId,
+          skills: ['Mentoring'],
+          background_check_status: 'approved',
+        })
+        .expect(400);
+
+      expect(JSON.stringify(response.body)).toContain(
+        'Approved background checks must use the dedicated approval endpoint'
+      );
     });
   });
 
@@ -345,7 +390,7 @@ describe('Volunteer API Integration Tests', () => {
       expect(response.body.volunteer_status).toBe('limited');
     });
 
-    it('should update background check information', async () => {
+    it('should update non-approved background check information', async () => {
       const createContactResponse = await request(app)
         .post('/api/v2/contacts')
         .set('Authorization', `Bearer ${authToken}`)
@@ -377,12 +422,54 @@ describe('Volunteer API Integration Tests', () => {
         .put(`/api/v2/volunteers/${volunteerId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          background_check_status: 'approved',
+          background_check_status: 'in_progress',
           background_check_date: '2024-03-01',
         })
         .expect(200);
 
-      expect(response.body.background_check_status).toBe('approved');
+      expect(response.body.background_check_status).toBe('in_progress');
+    });
+
+    it('should reject approved background check status on generic updates', async () => {
+      const createContactResponse = await request(app)
+        .post('/api/v2/contacts')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          account_id: testAccountId,
+          first_name: 'BG',
+          last_name: 'ApprovalUpdate',
+          email: `bg-approval-update-${unique()}@example.com`,
+        });
+
+      const createdContact = unwrap<{ contact_id?: string; id?: string }>(createContactResponse.body);
+      const contactId = createdContact.contact_id ?? createdContact.id;
+      if (!contactId) {
+        throw new Error('Failed to create background approval update test contact');
+      }
+
+      const createResponse = await request(app)
+        .post('/api/v2/volunteers')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          contact_id: contactId,
+          skills: ['Coaching'],
+          background_check_status: 'pending',
+        });
+
+      const volunteerId = createResponse.body.id;
+
+      const response = await request(app)
+        .put(`/api/v2/volunteers/${volunteerId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          background_check_status: 'approved',
+          background_check_date: '2024-03-01',
+        })
+        .expect(400);
+
+      expect(JSON.stringify(response.body)).toContain(
+        'Approved background checks must use the dedicated approval endpoint'
+      );
     });
 
     it('should return 404 for non-existent volunteer', async () => {

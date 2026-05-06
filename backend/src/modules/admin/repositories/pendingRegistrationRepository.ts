@@ -121,7 +121,7 @@ export const findPendingByEmail = async (
   db: DbClient = pool
 ): Promise<string | null> => {
   const result = await db.query(
-    "SELECT id FROM pending_registrations WHERE email = $1 AND status = 'pending'",
+    "SELECT id FROM pending_registrations WHERE lower(email) = lower($1) AND status = 'pending' LIMIT 1",
     [email]
   );
   return result.rows[0]?.id || null;
@@ -131,7 +131,9 @@ export const findUserByEmail = async (
   email: string,
   db: DbClient = pool
 ): Promise<string | null> => {
-  const result = await db.query('SELECT id FROM users WHERE email = $1', [email]);
+  const result = await db.query('SELECT id FROM users WHERE lower(email) = lower($1) LIMIT 1', [
+    email,
+  ]);
   return result.rows[0]?.id || null;
 };
 
@@ -183,6 +185,22 @@ export const getPendingRegistrationById = async (
     `SELECT ${selectColumns}
      FROM pending_registrations
      WHERE id = $1`,
+    [id]
+  );
+  return result.rows[0] ?? null;
+};
+
+export const getPendingRegistrationByIdForUpdate = async (
+  id: string,
+  includePassword = false,
+  db: DbClient = pool
+): Promise<PendingRegistrationRow | null> => {
+  const selectColumns = await pendingRegistrationSelectColumns(includePassword, db);
+  const result = await db.query<PendingRegistrationRow>(
+    `SELECT ${selectColumns}
+     FROM pending_registrations
+     WHERE id = $1
+     FOR UPDATE`,
     [id]
   );
   return result.rows[0] ?? null;
@@ -245,6 +263,29 @@ export const updatePendingStatus = async (
     [status, reviewedBy, reason, id]
   );
   return result.rows[0];
+};
+
+export const updatePendingStatusIfPending = async (
+  id: string,
+  status: Exclude<PendingStatus, 'pending'>,
+  reviewedBy: string,
+  reason: string | null = null,
+  db: DbClient = pool
+): Promise<PendingRegistrationRow | null> => {
+  const selectColumns = await pendingRegistrationSelectColumns(false, db);
+  const result = await db.query<PendingRegistrationRow>(
+    `UPDATE pending_registrations
+     SET status = $1,
+         reviewed_by = $2,
+         reviewed_at = NOW(),
+         rejection_reason = $3,
+         updated_at = NOW()
+     WHERE id = $4
+       AND status = 'pending'
+     RETURNING ${selectColumns}`,
+    [status, reviewedBy, reason, id]
+  );
+  return result.rows[0] ?? null;
 };
 
 export const createRealUser = async (
