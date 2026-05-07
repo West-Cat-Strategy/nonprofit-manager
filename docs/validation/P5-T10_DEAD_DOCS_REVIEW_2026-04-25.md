@@ -4,6 +4,8 @@
 **Scope:** Review artifact only. No docs were deleted, moved to archive, or consolidated in this pass.
 **Write boundary:** This file only. The live workboard and validation index were read but not edited.
 
+> Supersession note, 2026-05-07: the aggressive docs-prune branch implemented several follow-up decisions from this review. The point-in-time PR #9 verification note was pruned after the legacy verification landing page became the retained historical helper reference.
+
 ## Methodology
 
 - Re-read the current docs entry points: [docs/README.md](../README.md), [docs/validation/README.md](README.md), [docs/phases/archive/README.md](../phases/archive/README.md), and [docs/phases/planning-and-progress.md](../phases/planning-and-progress.md).
@@ -25,7 +27,7 @@ Notable navigation gaps:
 | [docs/deployment/publishing-deployment.md](../deployment/publishing-deployment.md) | No inbound Markdown link was found, but the live workboard names it as an owned path for the `P5-T4` `docs-e2e` lane. | Keep. Add a Markdown link from [docs/README.md](../README.md), [docs/features/TEMPLATE_SYSTEM.md](../features/TEMPLATE_SYSTEM.md), or a future deployment index so the active publishing guide is discoverable outside workboard path text. |
 | [docs/backend/BACKEND_SERVICE_REFACTORING_GUIDE.md](../backend/BACKEND_SERVICE_REFACTORING_GUIDE.md) | It labels itself as historical/planning guidance and has only an archived quick-reference inbound link. | Keep for now. Later either link it from a development archive/reference index or move it under an archive path after confirming `P5-T11` no longer needs it as refactor context. |
 | [docs/verification/VERIFICATION_SYSTEM.md](../verification/VERIFICATION_SYSTEM.md) | No inbound Markdown link; referenced scripts `scripts/verify.sh` and `scripts/verify-pr.sh` still exist and are executable. | Keep or re-home. Add a link from [docs/testing/TESTING.md](../testing/TESTING.md) or [scripts/README.md](../../scripts/README.md) if PR verification remains active; otherwise move the directory to validation or phase archive in a later cleanup. |
-| [docs/verification/PR-9-VERIFICATION.md](../verification/PR-9-VERIFICATION.md) | Point-in-time report for a merged PR with no inbound Markdown link. | Archive later with other dated validation/phase evidence if it remains useful; do not delete in this pass. |
+| `docs/verification/PR-9-VERIFICATION.md` | Point-in-time report for a merged PR with no inbound Markdown link. | Pruned on 2026-05-07; the retained historical verification entry point is [docs/verification/VERIFICATION_SYSTEM.md](../verification/VERIFICATION_SYSTEM.md). |
 | [docs/THEME_SYSTEM.md](../THEME_SYSTEM.md) | Not directly linked as a top-level peer by [docs/README.md](../README.md), but intentionally linked from [docs/ui/README.md](../ui/README.md). | No cleanup needed; current UI index owns this path. |
 
 ## Archive Findings

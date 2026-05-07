@@ -1,5 +1,7 @@
 # Historical Verification Helpers
 
+**Last Updated:** 2026-05-07
+
 This directory is retained for reproducing older verification notes. It is not
 the active verification contract.
 
@@ -22,3 +24,5 @@ index.
 
 Do not use these scripts as signoff gates for new work. Record new validation
 proof against the Make and selector commands above.
+
+Point-in-time PR verification notes that duplicated this guidance were pruned during the 2026-05-07 docs cleanup.

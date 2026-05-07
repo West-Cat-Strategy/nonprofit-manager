@@ -47,8 +47,8 @@ Largest active or navigation-relevant docs by line count:
 | `docs/performance/p4-t9a-startup-request-map.md` | Keep as performance evidence but move behind archive/index navigation. |
 | `docs/performance/p4-t9d-baseline-notes.md` | Keep as performance evidence but move behind archive/index navigation. |
 | `docs/performance/p4-t9d-final-report.md` | Keep as performance evidence but move behind archive/index navigation. |
-| `docs/validation/P5-T67_T71_READY_TOOLING_BROWSER_PROOF_2026-05-03.md` | Prune. Superseded by row-local `P5-T67` and `P5-T71` proof notes plus later workboard/validation entries. |
-| `docs/validation/P5_READY_ROW_BATCH_PROOF_2026-05-04.md` | Prune. Superseded by row-local proof notes for the same batch. |
+| `docs/validation/P5-T67_T71_READY_TOOLING_BROWSER_PROOF_2026-05-03.md` | Pruned in the follow-up cleanup. Superseded by row-local `P5-T67` and `P5-T71` proof notes plus later workboard/validation entries. |
+| `docs/validation/P5_READY_ROW_BATCH_PROOF_2026-05-04.md` | Pruned in the follow-up cleanup. Superseded by row-local proof notes for the same batch. |
 
 ## Stale Wording Scan
 

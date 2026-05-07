@@ -1,6 +1,6 @@
 # Validation & Audit Index
 
-**Last Updated:** 2026-05-06
+**Last Updated:** 2026-05-07
 
 Use this index for active validation references first, and the validation archive second. For live task ownership, blockers, and next steps, use [../phases/planning-and-progress.md](../phases/planning-and-progress.md) instead of treating these files as a workboard. Detailed persona-validation methodology now lives in tracked skill references.
 
@@ -18,6 +18,7 @@ For Phase 5 validation work, treat the proof sequence as host first and Docker s
 | Artifact | Type | Use |
 |---|---|---|
 | [AUTH_ALIAS_USAGE_REPORT_2026-04-14.md](AUTH_ALIAS_USAGE_REPORT_2026-04-14.md) | Operational evidence note | Current deprecation-readiness snapshot for legacy auth alias telemetry and the linked dashboard/query workflow |
+| [DOCS_AGGRESSIVE_PRUNE_INVENTORY_2026-05-07.md](DOCS_AGGRESSIVE_PRUNE_INVENTORY_2026-05-07.md) | Docs inventory and prune decision note | Starting inventory, orphan review, and prune rules for the aggressive docs refactor branch |
 | [P5-T75_AUTH_ALIAS_GATE_HANDOFF_2026-05-05.md](P5-T75_AUTH_ALIAS_GATE_HANDOFF_2026-05-05.md) | Row-local handoff note | Operational handoff for the time-gated auth alias deprecation row, preserving alias compatibility until telemetry gates and the July 1 earliest enforcement date are satisfied |
 | [PERSONA_UI_UX_WORKFLOW_AUDIT_2026-04-22.md](PERSONA_UI_UX_WORKFLOW_AUDIT_2026-04-22.md) | Active validation note | Current six-persona UI/UX workflow audit covering route-contract proof, board read-only posture, thin browser anchors, and documented unmet persona needs |
 | [P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md](P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md) | Superseded row-local proof note | Historical GitHub CI/security pilot closeout proof; superseded by the `P5-T20` local-only CI/CD refactor and the `make release-check` gate |

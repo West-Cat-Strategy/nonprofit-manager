@@ -1,6 +1,6 @@
 # Performance Archive
 
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-05-07
 
 This directory is reserved for retired performance reports and evidence bundles after active reports stop relying on their current locations.
 
@@ -16,5 +16,7 @@ This directory is reserved for retired performance reports and evidence bundles 
 
 ## Current Entry Points
 
+- [../README.md](../README.md)
+- [../PERFORMANCE_OPTIMIZATION.md](../PERFORMANCE_OPTIMIZATION.md)
 - [../PERFORMANCE_OPTIMIZATION_REPORT.md](../PERFORMANCE_OPTIMIZATION_REPORT.md)
 - [../p4-t9h-final-report.md](../p4-t9h-final-report.md)
