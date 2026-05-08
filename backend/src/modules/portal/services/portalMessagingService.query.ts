@@ -8,6 +8,7 @@ import type {
 const THREAD_BASE_SELECT = `
   SELECT
     t.id,
+    t.account_id,
     t.contact_id,
     t.case_id,
     t.portal_user_id,
@@ -73,7 +74,29 @@ const mapPortalMessageRow = (row: Record<string, unknown>): PortalMessageEntry =
   sender_display_name: row.sender_display_name ? String(row.sender_display_name) : null,
 });
 
-export const getThreadById = async (threadId: string): Promise<PortalThreadSummary | null> => {
+const tenantThreadCondition = (paramName: string): string => `
+  (
+    t.account_id = ${paramName}
+    OR c.account_id = ${paramName}
+    OR pu.account_id = ${paramName}
+  )
+`;
+
+export const getThreadById = async (
+  threadId: string,
+  accountId?: string | null,
+  portalUserId?: string | null
+): Promise<PortalThreadSummary | null> => {
+  const values: string[] = [threadId];
+  const tenantWhere = accountId ? ` AND ${tenantThreadCondition('$2')}` : '';
+  if (accountId) {
+    values.push(accountId);
+  }
+  const portalUserWhere = portalUserId ? ` AND t.portal_user_id = $${values.length + 1}` : '';
+  if (portalUserId) {
+    values.push(portalUserId);
+  }
+
   const result = await pool.query(
     `${THREAD_BASE_SELECT}
      LEFT JOIN LATERAL (
@@ -84,8 +107,8 @@ export const getThreadById = async (threadId: string): Promise<PortalThreadSumma
          AND pm.read_by_portal_at IS NULL
          AND pm.is_internal = false
      ) unread ON true
-     WHERE t.id = $1`,
-    [threadId]
+     WHERE t.id = $1${tenantWhere}${portalUserWhere}`,
+    values
   );
 
   if (!result.rows[0]) {
@@ -234,6 +257,7 @@ export const listPortalThreads = async (
 };
 
 export const listStaffThreads = async (filters?: {
+  accountId?: string | null;
   status?: 'open' | 'closed' | 'archived';
   caseId?: string;
   pointpersonUserId?: string;
@@ -243,6 +267,11 @@ export const listStaffThreads = async (filters?: {
 }): Promise<PortalThreadSummary[]> => {
   const conditions: string[] = [];
   const values: Array<string | number> = [];
+
+  if (filters?.accountId) {
+    values.push(filters.accountId);
+    conditions.push(tenantThreadCondition(`$${values.length}`));
+  }
 
   if (filters?.status) {
     values.push(filters.status);
@@ -374,8 +403,11 @@ export const getPortalThread = async (
   return { thread, messages };
 };
 
-export const getStaffThread = async (threadId: string): Promise<ThreadWithMessages | null> => {
-  const thread = await getThreadById(threadId);
+export const getStaffThread = async (
+  threadId: string,
+  accountId?: string | null
+): Promise<ThreadWithMessages | null> => {
+  const thread = await getThreadById(threadId, accountId);
   if (!thread) {
     return null;
   }

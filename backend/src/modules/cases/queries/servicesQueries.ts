@@ -12,11 +12,36 @@ interface ExternalServiceProviderRow {
 
 const normalizeProviderName = (name: string): string => name.trim().replace(/\s+/g, ' ');
 
+const getCaseAccountIdQuery = async (db: PgExecutor, caseId: string): Promise<string | null> => {
+  const result = await db.query<{ account_id: string | null }>(
+    'SELECT account_id FROM cases WHERE id = $1',
+    [caseId]
+  );
+
+  return result.rows[0]?.account_id ?? null;
+};
+
+const getCaseServiceAccountIdQuery = async (
+  db: PgExecutor,
+  serviceId: string
+): Promise<string | null> => {
+  const result = await db.query<{ account_id: string | null }>(
+    `SELECT c.account_id
+     FROM case_services cs
+     JOIN cases c ON c.id = cs.case_id
+     WHERE cs.id = $1`,
+    [serviceId]
+  );
+
+  return result.rows[0]?.account_id ?? null;
+};
+
 const getExternalProviderByIdQuery = async (
   db: PgExecutor,
-  providerId?: string | null
+  providerId?: string | null,
+  accountId?: string | null
 ): Promise<ExternalServiceProviderRow | null> => {
-  if (!providerId) {
+  if (!providerId || !accountId) {
     return null;
   }
 
@@ -25,9 +50,10 @@ const getExternalProviderByIdQuery = async (
     SELECT id, provider_name
     FROM external_service_providers
     WHERE id = $1
+      AND account_id = $2
     LIMIT 1
   `,
-    [providerId]
+    [providerId, accountId]
   );
 
   return result.rows[0] || null;
@@ -35,11 +61,12 @@ const getExternalProviderByIdQuery = async (
 
 const resolveExternalServiceProviderIdQuery = async (
   db: PgExecutor,
+  accountId: string | null,
   providerName?: string | null,
   providerType?: string | null,
   userId?: string
 ): Promise<{ providerId: string | null; providerName: string | null }> => {
-  if (!providerName || !providerName.trim()) {
+  if (!providerName || !providerName.trim() || !accountId) {
     return { providerId: null, providerName: null };
   }
 
@@ -49,9 +76,10 @@ const resolveExternalServiceProviderIdQuery = async (
     SELECT id, provider_name
     FROM external_service_providers
     WHERE LOWER(BTRIM(provider_name)) = LOWER(BTRIM($1))
+      AND account_id = $2
     LIMIT 1
   `,
-    [normalizedName]
+    [normalizedName, accountId]
   );
 
   if (existing.rows[0]) {
@@ -63,8 +91,9 @@ const resolveExternalServiceProviderIdQuery = async (
         SET provider_type = COALESCE(provider_type, $1),
             modified_by = $2
         WHERE id = $3
+          AND account_id = $4
       `,
-        [providerType.trim(), userId || null, row.id]
+        [providerType.trim(), userId || null, row.id, accountId]
       );
     }
 
@@ -73,11 +102,13 @@ const resolveExternalServiceProviderIdQuery = async (
 
   const inserted = await db.query<ExternalServiceProviderRow>(
     `
-    INSERT INTO external_service_providers (provider_name, provider_type, created_by, modified_by)
-    VALUES ($1, $2, $3, $4)
+    INSERT INTO external_service_providers (
+      account_id, provider_name, provider_type, created_by, modified_by
+    )
+    VALUES ($1, $2, $3, $4, $5)
     RETURNING id, provider_name
   `,
-    [normalizedName, providerType?.trim() || null, userId || null, userId || null]
+    [accountId, normalizedName, providerType?.trim() || null, userId || null, userId || null]
   );
 
   return {
@@ -131,15 +162,21 @@ export const createCaseServiceQuery = async (
   data: CreateCaseServiceDTO,
   userId?: string
 ): Promise<CaseServiceType> => {
+  const accountId = await getCaseAccountIdQuery(db, caseId);
   let providerResolution = await resolveExternalServiceProviderIdQuery(
     db,
+    accountId,
     data.service_provider,
     data.service_type || null,
     userId
   );
 
   if (data.external_service_provider_id) {
-    const selectedProvider = await getExternalProviderByIdQuery(db, data.external_service_provider_id);
+    const selectedProvider = await getExternalProviderByIdQuery(
+      db,
+      data.external_service_provider_id,
+      accountId
+    );
     if (selectedProvider) {
       providerResolution = {
         providerId: selectedProvider.id,
@@ -160,7 +197,7 @@ export const createCaseServiceQuery = async (
       data.service_name,
       data.service_type || null,
       providerResolution.providerName || null,
-      data.external_service_provider_id || providerResolution.providerId || null,
+      providerResolution.providerId || null,
       data.service_date,
       data.start_time || null,
       data.end_time || null,
@@ -195,10 +232,12 @@ export const updateCaseServiceQuery = async (
   let idx = 1;
 
   const payload: Record<string, unknown> = { ...data };
+  const accountId = await getCaseServiceAccountIdQuery(db, serviceId);
 
   if (data.service_provider !== undefined) {
     const providerResolution = await resolveExternalServiceProviderIdQuery(
       db,
+      accountId,
       data.service_provider,
       data.service_type || null,
       userId
@@ -206,7 +245,12 @@ export const updateCaseServiceQuery = async (
     payload.service_provider = providerResolution.providerName;
     payload.external_service_provider_id = providerResolution.providerId;
   } else if (data.external_service_provider_id !== undefined) {
-    const selectedProvider = await getExternalProviderByIdQuery(db, data.external_service_provider_id);
+    const selectedProvider = await getExternalProviderByIdQuery(
+      db,
+      data.external_service_provider_id,
+      accountId
+    );
+    payload.external_service_provider_id = selectedProvider?.id || null;
     payload.service_provider = selectedProvider?.provider_name || null;
   }
 

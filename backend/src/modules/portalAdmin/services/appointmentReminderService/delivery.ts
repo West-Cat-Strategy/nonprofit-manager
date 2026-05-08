@@ -26,6 +26,7 @@ interface SendReminderContext {
   triggerType: 'manual' | 'automated';
   sentBy?: string | null;
   jobId?: string | null;
+  accountId?: string | null;
 }
 
 type RecordDeliveryArgs = {
@@ -82,7 +83,7 @@ export async function sendAppointmentReminders(
   options: SendReminderOptions,
   context: SendReminderContext
 ): Promise<AppointmentReminderSendSummary> {
-  const appointment = await getReminderContext(appointmentId);
+  const appointment = await getReminderContext(appointmentId, context.accountId);
   if (!appointment) {
     throw new Error('Appointment not found');
   }

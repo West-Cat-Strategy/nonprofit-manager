@@ -7,12 +7,13 @@ import { createHash, timingSafeEqual } from 'crypto';
 import { Router, type NextFunction, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
+import { mailchimpWebhookLimiterMiddleware } from '@middleware/domains/platform';
 import { requirePermission } from '@middleware/permissions';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import * as mailchimpController from '../controllers';
 import { Permission } from '@utils/permissions';
 import { emailSchema, isoDateTimeSchema, uuidSchema } from '@validations/shared';
-import { unauthorized } from '@utils/responseHelpers';
+import { serviceUnavailable, unauthorized } from '@utils/responseHelpers';
 import { logger } from '@config/logger';
 
 const router = Router();
@@ -172,8 +173,8 @@ const requireMailchimpWebhookSecret = (
 ): void => {
   const expectedSecret = getMailchimpWebhookSecret();
   if (!expectedSecret) {
-    logger.warn('MAILCHIMP_WEBHOOK_SECRET is not configured; Mailchimp webhook endpoint is unauthenticated');
-    next();
+    logger.warn('MAILCHIMP_WEBHOOK_SECRET is not configured; Mailchimp webhook endpoint is disabled');
+    serviceUnavailable(res, 'Mailchimp webhook is not configured');
     return;
   }
 
@@ -224,7 +225,12 @@ const draftCampaignTestSendSchema = createCampaignSchema
  * POST /api/mailchimp/webhook
  * Mailchimp webhook handler (no auth - Mailchimp sends webhooks)
  */
-router.post('/webhook', requireMailchimpWebhookSecret, mailchimpController.handleWebhook);
+router.post(
+  '/webhook',
+  mailchimpWebhookLimiterMiddleware,
+  requireMailchimpWebhookSecret,
+  mailchimpController.handleWebhook
+);
 
 router.use(authenticate, requirePermission(Permission.ADMIN_SETTINGS));
 

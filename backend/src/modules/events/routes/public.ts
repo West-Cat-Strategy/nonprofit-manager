@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import { services } from '@container/services';
 import publishingService from '@services/publishing';
-import { publicEventCheckInLimiterMiddleware } from '@middleware/domains/platform';
+import {
+  publicEventCheckInLimiterMiddleware,
+  publicEventRegistrationLimiterMiddleware,
+} from '@middleware/domains/platform';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import {
   eventIdParamsSchema,
@@ -37,6 +40,7 @@ export const createPublicEventsV2Routes = (): Router => {
 
   publicEventsV2Routes.post(
     '/:id/registrations',
+    publicEventRegistrationLimiterMiddleware,
     validateParams(eventIdParamsSchema),
     validateQuery(publicEventsQuerySchema.partial()),
     validateBody(publicEventRegistrationSchema),

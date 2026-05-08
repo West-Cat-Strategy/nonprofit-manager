@@ -471,6 +471,70 @@ async function provisionPublicCaseFormFallback(input: {
   }
 }
 
+async function provisionPublicCaseFormAccessLinkFallback(input: {
+  assignmentId: string;
+  caseId: string;
+  contactId: string;
+  recipientEmail: string;
+  userId: string;
+}): Promise<{
+  accessToken: string;
+  accessLinkUrl: string;
+}> {
+  const accessToken = crypto.randomBytes(24).toString('base64url');
+  const tokenHash = crypto.createHash('sha256').update(accessToken).digest('hex');
+  const client = new PgClient(getTestDatabaseConfig());
+
+  try {
+    await client.connect();
+    await client.query('BEGIN');
+    await client.query(
+      `UPDATE case_form_assignments
+       SET status = 'sent',
+           delivery_target = 'email',
+           delivery_channels = ARRAY['email']::text[],
+           recipient_email = $1,
+           sent_at = NOW(),
+           updated_at = NOW(),
+           updated_by = $2
+       WHERE id = $3`,
+      [input.recipientEmail, input.userId, input.assignmentId]
+    );
+    await client.query(
+      `INSERT INTO case_form_access_tokens (
+         assignment_id,
+         case_id,
+         contact_id,
+         recipient_email,
+         delivery_channel,
+         token_hash,
+         expires_at,
+         created_by
+       )
+       VALUES ($1, $2, $3, $4, 'email', $5, NOW() + INTERVAL '7 days', $6)`,
+      [
+        input.assignmentId,
+        input.caseId,
+        input.contactId,
+        input.recipientEmail,
+        tokenHash,
+        input.userId,
+      ]
+    );
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => undefined);
+    throw error;
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+
+  return {
+    accessToken,
+    accessLinkUrl: `${frontendURL()}/public/case-forms/${accessToken}`,
+  };
+}
+
 export async function createStaffInvitationLink(page: Page, token: string): Promise<{
   invitationId: string;
   invitationToken: string;
@@ -744,27 +808,17 @@ export async function createPublicCaseFormLink(
     });
     await ensureCaseFormAssignmentReady(page, token, caseId, fallback.assignmentId);
 
-    const sendAssignmentResponse = await retryFixtureApiRequest(
-      'Failed to send public case-form assignment',
-      () =>
-        postJSON(
-          page,
-          token,
-          `/api/v2/cases/${caseId}/forms/${fallback.assignmentId}/send`,
-          {
-            delivery_target: 'email',
-            recipient_email: recipientEmail,
-            expires_in_days: 7,
-          }
-        )
-    );
-    const sendBody = unwrapBody<{ access_link_url?: string | null }>(await sendAssignmentResponse.json());
-    const accessLinkUrl = sendBody.access_link_url;
-    if (typeof accessLinkUrl !== 'string' || accessLinkUrl.length === 0) {
-      throw new Error(`Public case-form send response missing access link: ${JSON.stringify(sendBody)}`);
+    const userId = getTokenUserId(token);
+    if (!userId) {
+      throw new Error('Unable to derive a user id for the public case-form access-link fixture fallback.');
     }
-
-    const accessToken = extractTrailingUrlSegment(accessLinkUrl, 'Public case-form access link');
+    const { accessToken, accessLinkUrl } = await provisionPublicCaseFormAccessLinkFallback({
+      assignmentId: fallback.assignmentId,
+      caseId,
+      contactId,
+      recipientEmail,
+      userId,
+    });
     await ensurePublicCaseFormTokenReady(page, accessToken);
 
     return {

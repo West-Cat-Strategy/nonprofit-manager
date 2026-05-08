@@ -570,7 +570,9 @@ export const resetPortalUserPassword = async (
 
     const result = await pool.query(
       `UPDATE portal_users pu
-       SET password_hash = $1, updated_at = NOW()
+       SET password_hash = $1,
+           auth_revision = COALESCE(auth_revision, 0) + 1,
+           updated_at = NOW()
        WHERE pu.id = $2
          AND ${portalUserTenantScopeSql('$3')}
        RETURNING pu.id`,

@@ -50,6 +50,7 @@ export const listPortalAppointmentSlots = async (
 };
 
 export const listAdminAppointmentSlots = async (filters?: {
+  accountId?: string | null;
   status?: 'open' | 'closed' | 'cancelled';
   pointpersonUserId?: string;
   caseId?: string;
@@ -60,6 +61,11 @@ export const listAdminAppointmentSlots = async (filters?: {
 }): Promise<AppointmentSlot[]> => {
   const conditions: string[] = [];
   const values: Array<string | number> = [];
+
+  if (filters?.accountId) {
+    values.push(filters.accountId);
+    conditions.push(`(s.account_id = $${values.length} OR c.account_id = $${values.length})`);
+  }
 
   if (filters?.status) {
     values.push(filters.status);
@@ -109,6 +115,7 @@ export const listAdminAppointmentSlots = async (filters?: {
 };
 
 export const listAdminAppointments = async (filters?: {
+  accountId?: string | null;
   status?: 'requested' | 'confirmed' | 'cancelled' | 'completed';
   requestType?: 'manual_request' | 'slot_booking';
   caseId?: string;
@@ -124,6 +131,13 @@ export const listAdminAppointments = async (filters?: {
 
   const conditions: string[] = [];
   const values: Array<string | number> = [];
+
+  if (filters?.accountId) {
+    values.push(filters.accountId);
+    conditions.push(
+      `(a.account_id = $${values.length} OR c.account_id = $${values.length} OR contact.account_id = $${values.length})`
+    );
+  }
 
   if (filters?.status) {
     values.push(filters.status);
@@ -155,6 +169,8 @@ export const listAdminAppointments = async (filters?: {
   const countResult = await pool.query<{ total: string }>(
     `SELECT COUNT(*)::text AS total
      FROM appointments a
+     LEFT JOIN cases c ON c.id = a.case_id
+     LEFT JOIN contacts contact ON contact.id = a.contact_id
      ${whereClause}`,
     values
   );
@@ -248,11 +264,16 @@ export const listPortalAppointments = async (
   return result.rows as PortalAppointment[];
 };
 
-export const getSlotById = async (slotId: string): Promise<AppointmentSlot | null> => {
+export const getSlotById = async (
+  slotId: string,
+  accountId?: string | null
+): Promise<AppointmentSlot | null> => {
+  const values = accountId ? [slotId, accountId] : [slotId];
   const result = await pool.query(
     `${SLOT_SELECT}
-     WHERE s.id = $1`,
-    [slotId]
+     WHERE s.id = $1
+       ${accountId ? 'AND (s.account_id = $2 OR c.account_id = $2)' : ''}`,
+    values
   );
 
   if (!result.rows[0]) {
@@ -262,11 +283,20 @@ export const getSlotById = async (slotId: string): Promise<AppointmentSlot | nul
   return normalizeSlot(result.rows[0] as Record<string, unknown>);
 };
 
-export const getAppointmentById = async (appointmentId: string): Promise<PortalAppointment | null> => {
+export const getAppointmentById = async (
+  appointmentId: string,
+  accountId?: string | null
+): Promise<PortalAppointment | null> => {
+  const values = accountId ? [appointmentId, accountId] : [appointmentId];
   const result = await pool.query(
     `${APPOINTMENT_SELECT}
-     WHERE a.id = $1`,
-    [appointmentId]
+     WHERE a.id = $1
+       ${
+         accountId
+           ? 'AND (a.account_id = $2 OR c.account_id = $2 OR contact.account_id = $2)'
+           : ''
+       }`,
+    values
   );
 
   return (result.rows[0] as PortalAppointment | undefined) || null;

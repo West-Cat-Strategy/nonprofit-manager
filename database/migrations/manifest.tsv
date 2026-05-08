@@ -121,3 +121,4 @@
 121	121_portal_account_scope.sql
 122	122_pending_email_uniqueness.sql
 123	123_volunteer_background_check_approval.sql
+124	124_tenant_session_boundary_remediation.sql

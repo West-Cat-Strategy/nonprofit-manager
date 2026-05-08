@@ -34,15 +34,17 @@ export const createPortalThreadWithMessage = async (input: {
 
     const threadResult = await client.query(
       `INSERT INTO portal_threads (
+        account_id,
         contact_id,
         case_id,
         portal_user_id,
         pointperson_user_id,
         subject,
         status
-      ) VALUES ($1, $2, $3, $4, $5, 'open')
+      ) VALUES ($1, $2, $3, $4, $5, $6, 'open')
       RETURNING *`,
       [
+        selectedCase.account_id ?? null,
         input.contactId,
         selectedCase.case_id,
         input.portalUserId,
@@ -207,10 +209,15 @@ export const addStaffMessage = async (input: {
   threadId: string;
   senderUserId: string;
   messageText: string;
+  accountId?: string | null;
   isInternal?: boolean;
   clientMessageId?: string;
 }): Promise<PortalMessageEntry> => {
   const internal = Boolean(input.isInternal);
+  const thread = await getThreadById(input.threadId, input.accountId);
+  if (!thread) {
+    throw new Error('Thread not found');
+  }
 
   if (input.clientMessageId) {
     const existing = await getPortalMessageByClientMessageId({
@@ -270,7 +277,6 @@ export const addStaffMessage = async (input: {
     throw error;
   }
 
-  const thread = await getThreadById(input.threadId);
   const messages = await getThreadMessages(input.threadId, true);
   const message = messages.find((entry) => entry.id === insertResult.rows[0].id);
 
@@ -337,7 +343,15 @@ export const markPortalThreadRead = async (
   return updated;
 };
 
-export const markStaffThreadRead = async (threadId: string): Promise<number> => {
+export const markStaffThreadRead = async (
+  threadId: string,
+  accountId?: string | null
+): Promise<number> => {
+  const thread = await getThreadById(threadId, accountId);
+  if (!thread) {
+    return 0;
+  }
+
   const result = await pool.query(
     `UPDATE portal_messages
      SET read_by_staff_at = NOW()
@@ -349,17 +363,14 @@ export const markStaffThreadRead = async (threadId: string): Promise<number> => 
 
   const updated = result.rowCount || 0;
   if (updated > 0) {
-    const thread = await getThreadById(threadId);
-    if (thread) {
-      await publishPortalThreadUpdate({
-        thread: await buildRealtimeThreadSnapshot(thread),
-        status: thread.status,
-        actorType: 'staff',
-        source: 'admin.thread.read',
-        contactId: thread.contact_id,
-        action: 'thread.read',
-      });
-    }
+    await publishPortalThreadUpdate({
+      thread: await buildRealtimeThreadSnapshot(thread),
+      status: thread.status,
+      actorType: 'staff',
+      source: 'admin.thread.read',
+      contactId: thread.contact_id,
+      action: 'thread.read',
+    });
   }
 
   return updated;
@@ -373,6 +384,8 @@ export const updateThread = async (input: {
   subject?: string | null;
   actorType?: 'portal' | 'staff' | 'system';
   closedBy?: string | null;
+  accountId?: string | null;
+  portalUserId?: string | null;
 }): Promise<PortalThreadSummary | null> => {
   const fields: string[] = [];
   const values: Array<string | null> = [];
@@ -409,16 +422,27 @@ export const updateThread = async (input: {
   }
 
   if (fields.length === 0) {
-    return getThreadById(input.threadId);
+    return getThreadById(input.threadId, input.accountId, input.portalUserId);
   }
 
   fields.push('updated_at = NOW()');
   values.push(input.threadId);
+  const threadIdParam = values.length;
+  if (input.accountId) {
+    values.push(input.accountId);
+  }
+  const accountIdParam = input.accountId ? threadIdParam + 1 : null;
+  if (input.portalUserId) {
+    values.push(input.portalUserId);
+  }
+  const portalUserIdParam = input.portalUserId ? values.length : null;
 
   const result = await pool.query(
     `UPDATE portal_threads
      SET ${fields.join(', ')}
-     WHERE id = $${values.length}
+     WHERE id = $${threadIdParam}
+       ${accountIdParam ? `AND account_id = $${accountIdParam}` : ''}
+       ${portalUserIdParam ? `AND portal_user_id = $${portalUserIdParam}` : ''}
      RETURNING id`,
     values
   );
@@ -427,7 +451,7 @@ export const updateThread = async (input: {
     return null;
   }
 
-  const updatedThread = await getThreadById(input.threadId);
+  const updatedThread = await getThreadById(input.threadId, input.accountId, input.portalUserId);
   if (!updatedThread) {
     return null;
   }

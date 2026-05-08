@@ -4,6 +4,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
 
+GITLEAKS_DOCKER_IMAGE="${GITLEAKS_DOCKER_IMAGE:-ghcr.io/gitleaks/gitleaks:latest@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f}"
+
 scan_audit() {
   local dir="$1"
   if [[ -d "$dir" ]]; then
@@ -29,34 +31,67 @@ create_gitleaks_scan_root() {
   printf '%s' "$scan_root"
 }
 
-scan_secrets_with_gitleaks() {
+run_gitleaks_worktree_scan() {
   local scan_root
+  local status
   scan_root="$(create_gitleaks_scan_root)"
-  trap "rm -rf -- '$scan_root'" RETURN
 
   if command -v gitleaks >/dev/null 2>&1; then
+    status=0
     (
       cd "$scan_root"
       run gitleaks detect --no-git --no-banner --redact --source . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore
+    ) || status=$?
+    rm -rf -- "$scan_root"
+    return "$status"
+  fi
+
+  if command -v docker >/dev/null 2>&1; then
+    if ! docker info >/dev/null 2>&1; then
+      echo "gitleaks is not installed and Docker is unavailable, so the secret scan cannot run." >&2
+      rm -rf -- "$scan_root"
+      return 1
+    fi
+
+    status=0
+    run docker run --rm \
+      -v "$scan_root:/repo" \
+      -w /repo \
+      "$GITLEAKS_DOCKER_IMAGE" \
+      detect --no-git --no-banner --redact --source . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore || status=$?
+    rm -rf -- "$scan_root"
+    return "$status"
+  fi
+
+  echo "gitleaks is required for secret scanning. Install gitleaks or make Docker available, then rerun make security-scan." >&2
+  rm -rf -- "$scan_root"
+  return 1
+}
+
+run_gitleaks_history_scan() {
+  if command -v gitleaks >/dev/null 2>&1; then
+    (
+      cd "$PROJECT_ROOT"
+      run gitleaks detect --no-banner --redact --source . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore
     )
     return 0
   fi
 
   if command -v docker >/dev/null 2>&1; then
     if ! docker info >/dev/null 2>&1; then
-      echo "gitleaks is not installed and Docker is unavailable, so the secret scan cannot run." >&2
+      echo "gitleaks is not installed and Docker is unavailable, so the git-history secret scan cannot run." >&2
       return 1
     fi
 
     run docker run --rm \
-      -v "$scan_root:/repo" \
+      -v "$PROJECT_ROOT:/repo" \
       -w /repo \
-      ghcr.io/gitleaks/gitleaks:latest \
-      detect --no-git --no-banner --redact --source . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore
+      "$GITLEAKS_DOCKER_IMAGE" \
+      detect --no-banner --redact --source . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore
     return 0
   fi
 
-  echo "gitleaks is required for secret scanning. Install gitleaks or make Docker available, then rerun make security-scan." >&2
+  echo "gitleaks is required for git-history secret scanning. Install gitleaks or make Docker available, then rerun make security-scan." >&2
   return 1
 }
 
@@ -72,7 +107,11 @@ if ! scan_audit frontend; then
   overall_status=1
 fi
 
-if ! run scan_secrets_with_gitleaks; then
+if ! run run_gitleaks_worktree_scan; then
+  overall_status=1
+fi
+
+if ! run run_gitleaks_history_scan; then
   overall_status=1
 fi
 

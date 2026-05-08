@@ -6,6 +6,7 @@ import { publishAppointmentUpdated, publishSlotUpdated } from './delivery';
 import { getAppointmentById, getSlotById } from './queries';
 
 export const createAppointmentSlot = async (input: {
+  accountId: string;
   pointpersonUserId: string;
   caseId?: string | null;
   title?: string | null;
@@ -18,6 +19,7 @@ export const createAppointmentSlot = async (input: {
 }): Promise<AppointmentSlot> => {
   const result = await pool.query(
     `INSERT INTO appointment_availability_slots (
+      account_id,
       pointperson_user_id,
       case_id,
       title,
@@ -28,9 +30,10 @@ export const createAppointmentSlot = async (input: {
       capacity,
       created_by,
       updated_by
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10)
     RETURNING id`,
     [
+      input.accountId,
       input.pointpersonUserId,
       input.caseId || null,
       input.title?.trim() || null,
@@ -43,7 +46,7 @@ export const createAppointmentSlot = async (input: {
     ]
   );
 
-  const slot = await getSlotById(result.rows[0].id as string);
+  const slot = await getSlotById(result.rows[0].id as string, input.accountId);
   if (!slot) {
     throw new Error('Failed to create slot');
   }
@@ -62,6 +65,7 @@ export const createAppointmentSlot = async (input: {
 };
 
 export const updateAppointmentSlot = async (input: {
+  accountId: string;
   slotId: string;
   pointpersonUserId?: string;
   caseId?: string | null;
@@ -93,17 +97,19 @@ export const updateAppointmentSlot = async (input: {
   if (input.status !== undefined) pushField('status', input.status);
 
   if (fields.length === 0) {
-    return getSlotById(input.slotId);
+    return getSlotById(input.slotId, input.accountId);
   }
 
   pushField('updated_by', input.userId);
   fields.push('updated_at = NOW()');
-  values.push(input.slotId);
+  values.push(input.slotId, input.accountId);
+  const slotIdParam = values.length - 1;
 
   const result = await pool.query(
     `UPDATE appointment_availability_slots
      SET ${fields.join(', ')}
-     WHERE id = $${values.length}
+     WHERE id = $${slotIdParam}
+       AND account_id = $${slotIdParam + 1}
      RETURNING id`,
     values
   );
@@ -112,7 +118,7 @@ export const updateAppointmentSlot = async (input: {
     return null;
   }
 
-  const updatedSlot = await getSlotById(input.slotId);
+  const updatedSlot = await getSlotById(input.slotId, input.accountId);
   if (!updatedSlot) {
     return null;
   }
@@ -130,8 +136,11 @@ export const updateAppointmentSlot = async (input: {
   return updatedSlot;
 };
 
-export const deleteAppointmentSlot = async (slotId: string): Promise<boolean> => {
-  const existingSlot = await getSlotById(slotId);
+export const deleteAppointmentSlot = async (
+  slotId: string,
+  accountId?: string | null
+): Promise<boolean> => {
+  const existingSlot = await getSlotById(slotId, accountId);
   if (!existingSlot) {
     return false;
   }
@@ -140,8 +149,9 @@ export const deleteAppointmentSlot = async (slotId: string): Promise<boolean> =>
     `SELECT COUNT(*)::int AS count
      FROM appointments
      WHERE slot_id = $1
+      AND ($2::uuid IS NULL OR account_id = $2)
       AND status != 'cancelled'`,
-    [slotId]
+    [slotId, accountId ?? null]
   );
 
   const count = Number(appointmentsUsingSlot.rows[0]?.count || 0);
@@ -149,10 +159,11 @@ export const deleteAppointmentSlot = async (slotId: string): Promise<boolean> =>
     await pool.query(
       `UPDATE appointment_availability_slots
        SET status = 'cancelled', updated_at = NOW()
-       WHERE id = $1`,
-      [slotId]
+       WHERE id = $1
+         AND ($2::uuid IS NULL OR account_id = $2)`,
+      [slotId, accountId ?? null]
     );
-    const cancelledSlot = await getSlotById(slotId);
+    const cancelledSlot = await getSlotById(slotId, accountId);
     const contactId = await getCaseContactId(pool, cancelledSlot?.case_id ?? existingSlot.case_id);
     publishSlotUpdated({
       entityId: slotId,
@@ -166,8 +177,11 @@ export const deleteAppointmentSlot = async (slotId: string): Promise<boolean> =>
   }
 
   const result = await pool.query(
-    'DELETE FROM appointment_availability_slots WHERE id = $1 RETURNING id',
-    [slotId]
+    `DELETE FROM appointment_availability_slots
+     WHERE id = $1
+       AND ($2::uuid IS NULL OR account_id = $2)
+     RETURNING id`,
+    [slotId, accountId ?? null]
   );
   const deleted = Boolean(result.rows[0]);
   if (deleted) {
@@ -205,6 +219,7 @@ export const createPortalManualAppointmentRequest = async (input: {
   const result = await pool.query(
     `INSERT INTO appointments (
       contact_id,
+      account_id,
       title,
       description,
       start_time,
@@ -215,10 +230,11 @@ export const createPortalManualAppointmentRequest = async (input: {
       case_id,
       pointperson_user_id,
       request_type
-    ) VALUES ($1, $2, $3, $4, $5, 'requested', $6, $7, $8, $9, 'manual_request')
+    ) VALUES ($1, $2, $3, $4, $5, $6, 'requested', $7, $8, $9, $10, 'manual_request')
     RETURNING id`,
     [
       input.contactId,
+      selectedCase.account_id,
       input.title.trim(),
       input.description?.trim() || null,
       input.startTime,
@@ -230,7 +246,7 @@ export const createPortalManualAppointmentRequest = async (input: {
     ]
   );
 
-  const appointment = await getAppointmentById(result.rows[0].id as string);
+  const appointment = await getAppointmentById(result.rows[0].id as string, selectedCase.account_id);
   if (!appointment) {
     throw new Error('Failed to create appointment request');
   }

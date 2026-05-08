@@ -14,6 +14,7 @@ describe('Portal Messaging Integration', () => {
   let contactId: string;
   let portalUserId: string;
   let portalEmail: string;
+  let accountId: string;
   let caseTypeId: string;
   let activeStatusId: string;
   let assignedCaseId: string;
@@ -25,11 +26,16 @@ describe('Portal Messaging Integration', () => {
   const createdPortalUserIds: string[] = [];
   const createdContactIds: string[] = [];
   const createdUserIds: string[] = [];
+  const createdAccountIds: string[] = [];
 
   const buildAdminToken = () =>
-    jwt.sign({ id: adminUserId, email: adminEmail, role: 'admin' }, getJwtSecret(), {
-      expiresIn: '1h',
-    });
+    jwt.sign(
+      { id: adminUserId, email: adminEmail, role: 'admin', organizationId: accountId },
+      getJwtSecret(),
+      {
+        expiresIn: '1h',
+      }
+    );
 
   const buildPortalToken = () =>
     jwt.sign(
@@ -108,6 +114,15 @@ describe('Portal Messaging Integration', () => {
     adminUserId = userResult.rows[0].id as string;
     createdUserIds.push(adminUserId);
 
+    const accountResult = await pool.query(
+      `INSERT INTO accounts (account_name, account_type, created_by, modified_by)
+       VALUES ($1, 'organization', $2, $2)
+       RETURNING id`,
+      [`Portal Messaging Account ${suffix}`, adminUserId]
+    );
+    accountId = accountResult.rows[0].id as string;
+    createdAccountIds.push(accountId);
+
     const caseTypeResult = await pool.query(
       `INSERT INTO case_types (name, description, created_at, updated_at)
        VALUES ($1, 'Messaging test type', NOW(), NOW())
@@ -128,19 +143,19 @@ describe('Portal Messaging Integration', () => {
 
     portalEmail = `portal-client-${suffix}@example.com`;
     const contactResult = await pool.query(
-      `INSERT INTO contacts (first_name, last_name, email, created_by, modified_by)
-       VALUES ('Portal', 'Client', $1, NULL, NULL)
+      `INSERT INTO contacts (account_id, first_name, last_name, email, created_by, modified_by)
+       VALUES ($1, 'Portal', 'Client', $2, NULL, NULL)
        RETURNING id`,
-      [portalEmail]
+      [accountId, portalEmail]
     );
     contactId = contactResult.rows[0].id as string;
     createdContactIds.push(contactId);
 
     const portalUserResult = await pool.query(
-      `INSERT INTO portal_users (contact_id, email, password_hash, status, is_verified)
-       VALUES ($1, $2, $3, 'active', true)
+      `INSERT INTO portal_users (account_id, contact_id, email, password_hash, status, is_verified)
+       VALUES ($1, $2, $3, $4, 'active', true)
        RETURNING id`,
-      [contactId, portalEmail, '$2a$10$012345678901234567890uI6TTMsnx6Vf7hYhVJrV2N4mcoX8f6mG']
+      [accountId, contactId, portalEmail, '$2a$10$012345678901234567890uI6TTMsnx6Vf7hYhVJrV2N4mcoX8f6mG']
     );
     portalUserId = portalUserResult.rows[0].id as string;
     createdPortalUserIds.push(portalUserId);
@@ -148,6 +163,7 @@ describe('Portal Messaging Integration', () => {
     const assignedCaseResult = await pool.query(
       `INSERT INTO cases (
          case_number,
+         account_id,
          contact_id,
          case_type_id,
          status_id,
@@ -158,9 +174,17 @@ describe('Portal Messaging Integration', () => {
          modified_by,
          created_at,
          updated_at
-       ) VALUES ($1, $2, $3, $4, $5, true, $6, $6, $6, NOW(), NOW())
+       ) VALUES ($1, $2, $3, $4, $5, $6, true, $7, $7, $7, NOW(), NOW())
        RETURNING id`,
-      [`PORTAL-MSG-${suffix}`, contactId, caseTypeId, activeStatusId, 'Assigned Messaging Case', adminUserId]
+      [
+        `PORTAL-MSG-${suffix}`,
+        accountId,
+        contactId,
+        caseTypeId,
+        activeStatusId,
+        'Assigned Messaging Case',
+        adminUserId,
+      ]
     );
     assignedCaseId = assignedCaseResult.rows[0].id as string;
     createdCaseIds.push(assignedCaseId);
@@ -168,6 +192,7 @@ describe('Portal Messaging Integration', () => {
     const unassignedCaseResult = await pool.query(
       `INSERT INTO cases (
          case_number,
+         account_id,
          contact_id,
          case_type_id,
          status_id,
@@ -178,9 +203,17 @@ describe('Portal Messaging Integration', () => {
          modified_by,
          created_at,
          updated_at
-       ) VALUES ($1, $2, $3, $4, $5, true, NULL, $6, $6, NOW(), NOW())
+       ) VALUES ($1, $2, $3, $4, $5, $6, true, NULL, $7, $7, NOW(), NOW())
        RETURNING id`,
-      [`PORTAL-NOASSIGN-${suffix}`, contactId, caseTypeId, activeStatusId, 'Unassigned Messaging Case', adminUserId]
+      [
+        `PORTAL-NOASSIGN-${suffix}`,
+        accountId,
+        contactId,
+        caseTypeId,
+        activeStatusId,
+        'Unassigned Messaging Case',
+        adminUserId,
+      ]
     );
     unassignedCaseId = unassignedCaseResult.rows[0].id as string;
     createdCaseIds.push(unassignedCaseId);
@@ -195,6 +228,7 @@ describe('Portal Messaging Integration', () => {
     await pool.query('DELETE FROM contacts WHERE id = ANY($1)', [createdContactIds]);
     await pool.query('DELETE FROM case_statuses WHERE id = ANY($1)', [createdStatusIds]);
     await pool.query('DELETE FROM case_types WHERE id = ANY($1)', [createdCaseTypeIds]);
+    await pool.query('DELETE FROM accounts WHERE id = ANY($1)', [createdAccountIds]);
     await pool.query('DELETE FROM users WHERE id = ANY($1)', [createdUserIds]);
   });
 

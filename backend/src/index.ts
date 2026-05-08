@@ -1,4 +1,4 @@
-import express, { Application } from 'express';
+import express, { Application, Request } from 'express';
 import compression from 'compression';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -15,6 +15,7 @@ import { csrfMiddleware } from './middleware/csrf';
 import { correlationIdMiddleware, CORRELATION_ID_HEADER } from './middleware/correlationId';
 import { metricsMiddleware, metricsRouter } from './middleware/metrics';
 import { legacyApiTombstoneMiddleware } from './middleware/legacyApiTombstone';
+import { redactUrlForLogs } from '@utils/logRedaction';
 import healthRoutes, { setHealthCheckPool } from '@routes/health';
 import { registerV2Routes } from '@routes/v2';
 import { setPaymentPool } from '@modules/payments';
@@ -56,7 +57,7 @@ if (process.env.NODE_ENV === 'production') {
 
   if (fatalErrors.length > 0) {
     fatalErrors.forEach((e) => logger.error(`SECURITY ERROR: ${e}`));
-    logger.error('Exiting due to invalid production database at-rest encryption configuration.');
+    logger.error('Exiting due to invalid production security configuration.');
     process.exit(1);
   }
 
@@ -76,6 +77,9 @@ setPaymentPool(pool);
 initializeSentry();
 
 const app: Application = express();
+morgan.token('redacted-url', (req) =>
+  redactUrlForLogs((req as Request).originalUrl || req.url)
+);
 
 const PORT = Number(process.env.PORT) || 3000;
 const requestLoggingEnabled =
@@ -221,7 +225,7 @@ app.use('/api/v2/health', healthRoutes);
 if (requestLoggingEnabled) {
   app.use(
     morgan(
-      `:method :url :status :res[content-length] - :response-time ms - :req[${CORRELATION_ID_HEADER}]`,
+      `:method :redacted-url :status :res[content-length] - :response-time ms - :req[${CORRELATION_ID_HEADER}]`,
       { stream: { write: (message: string) => logger.info(message.trim()) } }
     )
   );

@@ -103,6 +103,68 @@ function writeOpenApiFixture(root, text) {
   fs.writeFileSync(path.join(apiDir, 'openapi.yaml'), text, 'utf8');
 }
 
+test('Docker image policy allows digest pins and local build aliases', () => {
+  const root = createTempDir();
+  const composeFile = path.join(root, 'docker-compose.policy.yml');
+  const helperFile = path.join(root, 'helper.sh');
+
+  fs.writeFileSync(
+    composeFile,
+    `
+services:
+  local_app:
+    image: \${BACKEND_DOCKER_IMAGE:-nonprofit-manager-backend:latest}
+  pinned_external:
+    image: redis:8-alpine@sha256:${'a'.repeat(64)}
+`,
+    'utf8'
+  );
+  fs.writeFileSync(
+    helperFile,
+    `HELPER_DOCKER_IMAGE="\${HELPER_DOCKER_IMAGE:-ghcr.io/example/helper:1.0.0@sha256:${'b'.repeat(64)}}"\n`,
+    'utf8'
+  );
+
+  const result = run('node', [
+    'scripts/check-docker-image-policy.mjs',
+    '--files',
+    composeFile,
+    helperFile,
+  ]);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Docker image policy passed/);
+});
+
+test('Docker image policy rejects external tag-only images', () => {
+  const root = createTempDir();
+  const composeFile = path.join(root, 'docker-compose.policy.yml');
+  const helperFile = path.join(root, 'helper.sh');
+
+  fs.writeFileSync(
+    composeFile,
+    `
+services:
+  external:
+    image: redis:8-alpine
+`,
+    'utf8'
+  );
+  fs.writeFileSync(helperFile, 'docker run --rm ghcr.io/example/helper:latest detect\n', 'utf8');
+
+  const result = run('node', [
+    'scripts/check-docker-image-policy.mjs',
+    '--files',
+    composeFile,
+    helperFile,
+  ]);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /Docker image policy failed/);
+  assert.match(result.stderr, /redis:8-alpine/);
+  assert.match(result.stderr, /ghcr.io\/example\/helper:latest/);
+});
+
 test('route audit collects catalog entries across split files', () => {
   const catalogFileA = collectRouteCatalogTargetsFromSource(
     '/repo/frontend/src/routes/routeCatalog/staffPeople.ts',

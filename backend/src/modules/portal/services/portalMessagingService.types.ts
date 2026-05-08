@@ -1,5 +1,6 @@
 export interface PortalThreadSummary {
   id: string;
+  account_id: string | null;
   contact_id: string;
   case_id: string | null;
   portal_user_id: string;

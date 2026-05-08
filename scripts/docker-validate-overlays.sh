@@ -5,6 +5,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
+CADDY_DOCKER_IMAGE="${CADDY_DOCKER_IMAGE:-caddy:2-alpine@sha256:834468128c7696cec0ceea6172f7d692daf645ae51983ca76e39da54a97c570d}"
+
+echo "Checking Docker image pinning policy..."
+node scripts/check-docker-image-policy.mjs
+
 if [[ -n "${DOCKER_COMPOSE:-}" ]]; then
   read -r -a compose_cmd <<< "$DOCKER_COMPOSE"
 elif docker compose version >/dev/null 2>&1; then
@@ -80,4 +85,4 @@ docker run --rm \
   -e CADDY_BACKEND_UPSTREAM=host.docker.internal:8004 \
   -e CADDY_FRONTEND_UPSTREAM=host.docker.internal:8005 \
   -e CADDY_PUBLIC_SITE_UPSTREAM=host.docker.internal:8006 \
-  caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile
+  "$CADDY_DOCKER_IMAGE" caddy validate --config /etc/caddy/Caddyfile

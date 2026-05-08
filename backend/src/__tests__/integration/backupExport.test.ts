@@ -17,6 +17,7 @@ describe('Backup Export API', () => {
   let adminEmail = '';
   let userEmail = '';
   let previousExcludedTables: string | undefined;
+  let previousSecretExportEnabled: string | undefined;
 
   const password = 'Test123!Strong';
 
@@ -52,6 +53,7 @@ describe('Backup Export API', () => {
 
     // Keep this integration test bounded even if the shared test DB contains large tables.
     previousExcludedTables = process.env.BACKUP_EXCLUDED_TABLES;
+    previousSecretExportEnabled = process.env.BACKUP_INCLUDE_SECRETS_ENABLED;
     const allTables = await pool.query<{ table_name: string }>(`
       SELECT table_name
       FROM information_schema.tables
@@ -118,6 +120,12 @@ describe('Backup Export API', () => {
     } else {
       process.env.BACKUP_EXCLUDED_TABLES = previousExcludedTables;
     }
+
+    if (previousSecretExportEnabled === undefined) {
+      delete process.env.BACKUP_INCLUDE_SECRETS_ENABLED;
+    } else {
+      process.env.BACKUP_INCLUDE_SECRETS_ENABLED = previousSecretExportEnabled;
+    }
   });
 
   it('rejects non-admin export', async () => {
@@ -152,11 +160,32 @@ describe('Backup Export API', () => {
     expect(adminRow.password_hash).toBeNull();
   });
 
-  it('can export an unredacted (full) backup', async () => {
+  it('rejects secret-bearing exports unless the environment gate and confirmation are both present', async () => {
+    delete process.env.BACKUP_INCLUDE_SECRETS_ENABLED;
+
+    await request(app)
+      .post('/api/v2/backup/export')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ include_secrets: true, confirm_secrets_export: 'EXPORT_UNREDACTED_BACKUP' })
+      .expect(403);
+
+    process.env.BACKUP_INCLUDE_SECRETS_ENABLED = 'true';
+
     const response = await request(app)
       .post('/api/v2/backup/export')
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ include_secrets: true, compress: true })
+      .send({ include_secrets: true, confirm_secrets_export: 'export_unredacted_backup' });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('can export an unredacted (full) backup when explicitly gated and confirmed', async () => {
+    process.env.BACKUP_INCLUDE_SECRETS_ENABLED = 'true';
+
+    const response = await request(app)
+      .post('/api/v2/backup/export')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ include_secrets: true, confirm_secrets_export: 'EXPORT_UNREDACTED_BACKUP', compress: true })
       .buffer(true)
       .parse(parseBinaryResponse);
 

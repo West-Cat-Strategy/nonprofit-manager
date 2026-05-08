@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response, Router } from 'express';
 import { Counter, Gauge, Histogram, Registry, collectDefaultMetrics } from 'prom-client';
 import { forbidden } from '@utils/responseHelpers';
+import { singleHeaderValue, timingSafeEqualString } from '@utils/constantTime';
 
 const metricsRegistry = new Registry();
 
@@ -129,16 +130,14 @@ const resolveOutcome = (statusCode: number): string => {
   return 'success';
 };
 
-const isMetricsProtected = (): boolean =>
-  process.env.NODE_ENV === 'production' && Boolean(process.env.METRICS_AUTH_KEY);
-
 const rejectUnauthorizedMetricsRequest = (req: Request, res: Response): boolean => {
-  if (!isMetricsProtected()) {
+  if (process.env.NODE_ENV !== 'production') {
     return false;
   }
 
-  const authHeader = req.headers['x-metrics-key'];
-  if (authHeader === process.env.METRICS_AUTH_KEY) {
+  const expectedKey = process.env.METRICS_AUTH_KEY?.trim();
+  const authHeader = singleHeaderValue(req.headers['x-metrics-key']);
+  if (expectedKey && authHeader && timingSafeEqualString(authHeader, expectedKey)) {
     return false;
   }
 

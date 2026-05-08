@@ -11,6 +11,58 @@ const INSECURE_EXAMPLE_ENCRYPTION_KEYS = new Set([
 ]);
 
 const isAbsolutePath = (value: string): boolean => value.startsWith('/');
+const hasPlaceholderValue = (value: string): boolean =>
+  /change|changeme|default|dev|example|placeholder|test|your_|not-for-production/i.test(value);
+
+const validateRequiredSecret = (
+  env: NodeJS.ProcessEnv,
+  key: string,
+  fatalErrors: string[]
+): void => {
+  const value = (env[key] || '').trim();
+  if (!value) {
+    fatalErrors.push(`${key} must be set in production`);
+    return;
+  }
+
+  if (value.length < 32 || hasPlaceholderValue(value)) {
+    fatalErrors.push(
+      `${key} must be at least 32 characters and must not contain placeholder, dev, test, example, or change-me values in production`
+    );
+  }
+};
+
+const validateOptionalStripeConfig = (
+  env: NodeJS.ProcessEnv,
+  fatalErrors: string[]
+): void => {
+  const stripeSecretKey = (env.STRIPE_SECRET_KEY || '').trim();
+  const stripePublishableKey = (env.STRIPE_PUBLISHABLE_KEY || '').trim();
+  const stripeWebhookSecret = (env.STRIPE_WEBHOOK_SECRET || '').trim();
+  const stripeValues = [stripeSecretKey, stripePublishableKey, stripeWebhookSecret];
+
+  if (!stripeValues.some(Boolean)) {
+    return;
+  }
+
+  if (!/^sk_live_[A-Za-z0-9_]+$/.test(stripeSecretKey)) {
+    fatalErrors.push(
+      'STRIPE_SECRET_KEY must be a live Stripe secret key when Stripe is configured in production'
+    );
+  }
+
+  if (!/^pk_live_[A-Za-z0-9_]+$/.test(stripePublishableKey)) {
+    fatalErrors.push(
+      'STRIPE_PUBLISHABLE_KEY must be a live Stripe publishable key when Stripe is configured in production'
+    );
+  }
+
+  if (!/^whsec_[A-Za-z0-9_]+$/.test(stripeWebhookSecret) || hasPlaceholderValue(stripeWebhookSecret)) {
+    fatalErrors.push(
+      'STRIPE_WEBHOOK_SECRET must be an actual Stripe webhook secret when Stripe is configured in production'
+    );
+  }
+};
 
 export function validateProductionSecurityConfig(
   env: NodeJS.ProcessEnv
@@ -29,30 +81,16 @@ export function validateProductionSecurityConfig(
     );
   }
 
-  const jwtSecret = env.JWT_SECRET || '';
-  if (jwtSecret.includes('dev') || jwtSecret.includes('placeholder') || jwtSecret.length < 32) {
-    warnings.push(
-      'JWT_SECRET appears insecure (contains "dev"/"placeholder" or is less than 32 characters)'
-    );
-  }
+  validateRequiredSecret(env, 'JWT_SECRET', fatalErrors);
+  validateRequiredSecret(env, 'CSRF_SECRET', fatalErrors);
+  validateRequiredSecret(env, 'HEALTH_CHECK_KEY', fatalErrors);
+  validateRequiredSecret(env, 'METRICS_AUTH_KEY', fatalErrors);
 
   if (env.DB_PASSWORD === 'postgres') {
     errors.push('DB_PASSWORD is set to default value "postgres"');
   }
 
-  const csrfSecret = env.CSRF_SECRET || '';
-  if (csrfSecret.includes('change') || csrfSecret.includes('placeholder') || csrfSecret.length < 32) {
-    warnings.push(
-      'CSRF_SECRET appears insecure (contains "change"/"placeholder" or is less than 32 characters)'
-    );
-  }
-
-  const stripeWebhookSecret = env.STRIPE_WEBHOOK_SECRET || '';
-  if (stripeWebhookSecret.includes('placeholder') || stripeWebhookSecret.includes('test')) {
-    errors.push(
-      'STRIPE_WEBHOOK_SECRET must be set to actual Stripe webhook secret (not placeholder or test value)'
-    );
-  }
+  validateOptionalStripeConfig(env, fatalErrors);
 
   if (!env.PAYPAL_CLIENT_ID || !env.PAYPAL_CLIENT_SECRET) {
     warnings.push(

@@ -538,9 +538,9 @@ export class EventPublicService {
           event_id: eventId,
           occurrence_id: defaultOccurrence.occurrence_id,
           contact_id: contactId,
-          registration_status: data.registration_status,
-          enrollment_scope: data.enrollment_scope,
-          send_confirmation_email: data.send_confirmation_email,
+          registration_status: undefined,
+          enrollment_scope: undefined,
+          send_confirmation_email: false,
           notes: data.notes,
         },
         this.getPublicMutationContext(series)

@@ -18,6 +18,7 @@ import {
 } from '../services/appointmentReminderService';
 import {
   ensurePortalAdmin,
+  getPortalAdminTenantId,
   getPortalAdminQuery,
   handlePortalAppointmentError,
   handlePortalReminderError,
@@ -41,8 +42,10 @@ export const listPortalAdminAppointmentSlots = async (
       limit?: number;
       offset?: number;
     }>(req);
+    const tenantId = getPortalAdminTenantId(req);
 
     const slots = await listAdminAppointmentSlots({
+      accountId: tenantId,
       status: query.status,
       caseId: query.case_id,
       pointpersonUserId: query.pointperson_user_id,
@@ -65,8 +68,14 @@ export const createPortalAdminAppointmentSlot = async (
 ): Promise<void> => {
   try {
     if (!ensurePortalAdmin(req, res)) return;
+    const tenantId = getPortalAdminTenantId(req);
+    if (!tenantId) {
+      notFoundMessage(res, 'Appointment slot not found');
+      return;
+    }
 
     const slot = await createAppointmentSlot({
+      accountId: tenantId,
       pointpersonUserId: req.body.pointperson_user_id,
       caseId: req.body.case_id || null,
       title: req.body.title || null,
@@ -93,7 +102,13 @@ export const updatePortalAdminAppointmentSlot = async (
     if (!ensurePortalAdmin(req, res)) return;
 
     const { slotId } = req.params;
+    const tenantId = getPortalAdminTenantId(req);
+    if (!tenantId) {
+      notFoundMessage(res, 'Appointment slot not found');
+      return;
+    }
     const slot = await updateAppointmentSlot({
+      accountId: tenantId,
       slotId,
       pointpersonUserId: req.body.pointperson_user_id,
       caseId: req.body.case_id,
@@ -127,7 +142,8 @@ export const deletePortalAdminAppointmentSlot = async (
     if (!ensurePortalAdmin(req, res)) return;
 
     const { slotId } = req.params;
-    const deleted = await deleteAppointmentSlot(slotId);
+    const tenantId = getPortalAdminTenantId(req);
+    const deleted = await deleteAppointmentSlot(slotId, tenantId);
 
     if (!deleted) {
       notFoundMessage(res, 'Appointment slot not found');
@@ -158,8 +174,10 @@ export const listPortalAdminAppointments = async (
       page?: number;
       limit?: number;
     }>(req);
+    const tenantId = getPortalAdminTenantId(req);
 
     const result = await listAdminAppointments({
+      accountId: tenantId,
       status: query.status,
       requestType: query.request_type,
       caseId: query.case_id,
@@ -185,13 +203,14 @@ export const getPortalAdminAppointmentReminders = async (
     if (!ensurePortalAdmin(req, res)) return;
 
     const { id } = req.params;
-    const appointment = await getAppointmentById(id);
+    const tenantId = getPortalAdminTenantId(req);
+    const appointment = await getAppointmentById(id, tenantId);
     if (!appointment) {
       notFoundMessage(res, 'Appointment not found');
       return;
     }
 
-    const reminders = await listAppointmentReminders(id);
+    const reminders = await listAppointmentReminders(id, tenantId);
     sendSuccess(res, reminders);
   } catch (error) {
     next(error);
@@ -207,7 +226,8 @@ export const sendPortalAdminAppointmentReminders = async (
     if (!ensurePortalAdmin(req, res)) return;
 
     const { id } = req.params;
-    const appointment = await getAppointmentById(id);
+    const tenantId = getPortalAdminTenantId(req);
+    const appointment = await getAppointmentById(id, tenantId);
     if (!appointment) {
       notFoundMessage(res, 'Appointment not found');
       return;
@@ -223,6 +243,7 @@ export const sendPortalAdminAppointmentReminders = async (
       {
         triggerType: 'manual',
         sentBy: req.user?.id ?? null,
+        accountId: tenantId,
       }
     );
 
@@ -244,7 +265,9 @@ export const checkInPortalAdminAppointment = async (
     if (!ensurePortalAdmin(req, res)) return;
 
     const { id } = req.params;
+    const tenantId = getPortalAdminTenantId(req);
     const appointment = await checkInAppointmentByStaff({
+      accountId: tenantId,
       appointmentId: id,
       checkedInBy: req.user!.id,
       resolutionNote: req.body.resolution_note,
@@ -275,6 +298,7 @@ export const updatePortalAdminAppointmentStatus = async (
     if (!ensurePortalAdmin(req, res)) return;
 
     const { id } = req.params;
+    const tenantId = getPortalAdminTenantId(req);
     const { status } = req.body as {
       status: 'requested' | 'confirmed' | 'cancelled' | 'completed';
       resolution_note?: string;
@@ -283,6 +307,7 @@ export const updatePortalAdminAppointmentStatus = async (
     };
 
     const appointment = await updateAppointmentStatusByStaff({
+      accountId: tenantId,
       appointmentId: id,
       status,
       checkedInBy: status === 'completed' ? req.user!.id : null,
@@ -296,7 +321,7 @@ export const updatePortalAdminAppointmentStatus = async (
       return;
     }
 
-    const refreshed = await getAppointmentById(id);
+    const refreshed = await getAppointmentById(id, tenantId);
     if (refreshed?.portal_email) {
       const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
       await notifyPortalUser({

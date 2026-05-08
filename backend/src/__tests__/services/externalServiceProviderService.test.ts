@@ -28,6 +28,7 @@ describe('ExternalServiceProviderService', () => {
     mockQuery.mockResolvedValueOnce({ rows: [{ id: 'provider-1' }] });
 
     const result = await service.listProviders({
+      accountId: 'account-1',
       search: '  Alpha  ',
       provider_type: ' clinical ',
       limit: 999,
@@ -35,8 +36,9 @@ describe('ExternalServiceProviderService', () => {
 
     expect(mockQuery).toHaveBeenCalledWith(
       expect.stringContaining('esp.is_active = true'),
-      ['%Alpha%', 'clinical', 200]
+      ['account-1', '%Alpha%', 'clinical', 200]
     );
+    expect(mockQuery.mock.calls[0][0]).toContain('esp.account_id = $1');
     expect(result).toEqual([{ id: 'provider-1' }]);
   });
 
@@ -44,7 +46,7 @@ describe('ExternalServiceProviderService', () => {
     mockQuery.mockResolvedValueOnce({ rows: [{ id: 'provider-1' }] });
 
     await expect(
-      service.createProvider({
+      service.createProvider('account-1', {
         provider_name: '  Alpha   Health  ',
       })
     ).rejects.toThrow('External service provider already exists');
@@ -52,7 +54,7 @@ describe('ExternalServiceProviderService', () => {
     expect(mockQuery).toHaveBeenCalledTimes(1);
     expect(mockQuery).toHaveBeenCalledWith(
       expect.stringContaining('FROM external_service_providers'),
-      ['Alpha Health']
+      ['Alpha Health', 'account-1']
     );
   });
 
@@ -70,6 +72,7 @@ describe('ExternalServiceProviderService', () => {
       .mockResolvedValueOnce({ rows: [createdRow] });
 
     const result = await service.createProvider(
+      'account-1',
       {
         provider_name: '  Alpha   Health  ',
         provider_type: ' clinical ',
@@ -81,7 +84,7 @@ describe('ExternalServiceProviderService', () => {
     expect(mockQuery).toHaveBeenNthCalledWith(
       2,
       expect.stringContaining('INSERT INTO external_service_providers'),
-      ['Alpha Health', 'clinical', 'Referral partner', true, 'user-1', 'user-1']
+      ['account-1', 'Alpha Health', 'clinical', 'Referral partner', true, 'user-1', 'user-1']
     );
     expect(result).toEqual(createdRow);
   });
@@ -98,6 +101,7 @@ describe('ExternalServiceProviderService', () => {
     mockQuery.mockResolvedValueOnce({ rows: [updatedRow] });
 
     const result = await service.updateProvider(
+      'account-1',
       'provider-3',
       {
         provider_name: '  Alpha   Health  ',
@@ -109,9 +113,10 @@ describe('ExternalServiceProviderService', () => {
     );
 
     expect(mockQuery).toHaveBeenCalledWith(
-      expect.stringContaining('UPDATE external_service_providers SET'),
-      ['Alpha Health', null, 'Updated note', false, 'user-2', 'provider-3']
+      expect.stringMatching(/UPDATE external_service_providers\s+SET/),
+      ['Alpha Health', null, 'Updated note', false, 'user-2', 'provider-3', 'account-1']
     );
+    expect(mockQuery.mock.calls[0][0]).toContain('account_id = $7');
     expect(result).toEqual(updatedRow);
   });
 
@@ -120,7 +125,7 @@ describe('ExternalServiceProviderService', () => {
       .mockResolvedValueOnce({ rows: [{ id: 'provider-4' }] })
       .mockResolvedValueOnce({ rows: [] });
 
-    await expect(service.deleteProvider('provider-4')).resolves.toBe(true);
-    await expect(service.deleteProvider('missing-provider')).resolves.toBe(false);
+    await expect(service.deleteProvider('account-1', 'provider-4')).resolves.toBe(true);
+    await expect(service.deleteProvider('account-1', 'missing-provider')).resolves.toBe(false);
   });
 });

@@ -19,24 +19,14 @@ const getUserId = (req: Request): string | undefined => {
   return user?.id;
 };
 
-const getOrganizationId = (req: Request): string | undefined => {
+const getRequestOrganizationId = (req: Request): string | undefined => {
   const withOrg = req as Request & {
     organizationId?: string;
     accountId?: string;
     tenantId?: string;
   };
 
-  const scopedId =
-    withOrg.organizationId ||
-    withOrg.accountId ||
-    withOrg.tenantId ||
-    (typeof req.headers['x-organization-id'] === 'string'
-      ? req.headers['x-organization-id']
-      : undefined) ||
-    (typeof req.headers['x-account-id'] === 'string' ? req.headers['x-account-id'] : undefined) ||
-    (typeof req.headers['x-tenant-id'] === 'string' ? req.headers['x-tenant-id'] : undefined);
-
-  return scopedId || undefined;
+  return withOrg.organizationId || withOrg.accountId || withOrg.tenantId || undefined;
 };
 
 const getBodyValue = (req: Request, key: string): string | undefined => {
@@ -50,8 +40,10 @@ const getParamValue = (req: Request, key: string, fallback: string): string => {
   return typeof value === 'string' && value.trim().length > 0 ? value : fallback;
 };
 
-const hashIdentifier = (value: string): string =>
-  crypto.createHash('sha256').update(value).digest('hex').slice(0, 24);
+const normalizeIdentifier = (value: string): string => value.trim().toLowerCase();
+
+export const hashIdentifier = (value: string): string =>
+  crypto.createHash('sha256').update(normalizeIdentifier(value)).digest('hex').slice(0, 24);
 
 const buildScopedRateLimitKey = (
   scope: string,
@@ -69,27 +61,40 @@ export const rateLimitKeys = {
     return buildScopedRateLimitKey(
       'api',
       getUserId(req) || getIp(req),
-      getOrganizationId(req)
+      getRequestOrganizationId(req)
     );
   },
 
   auth(req: Request): string {
     const email = getBodyValue(req, 'email');
-    const identifier = `${email || '_'}:${getIp(req)}`;
-    return buildScopedRateLimitKey('auth', identifier, getOrganizationId(req));
+    const identifier = `${email ? hashIdentifier(email) : '_'}:${getIp(req)}`;
+    return buildScopedRateLimitKey('auth', identifier, undefined);
   },
 
   passwordReset(req: Request): string {
     const email = getBodyValue(req, 'email');
     return buildScopedRateLimitKey(
       'password-reset',
-      email || getIp(req),
-      getOrganizationId(req)
+      `${email ? hashIdentifier(email) : '_'}:${getIp(req)}`,
+      undefined
     );
   },
 
   registration(req: Request): string {
-    return buildScopedRateLimitKey('registration', getIp(req), getOrganizationId(req));
+    return buildScopedRateLimitKey('registration', getIp(req), undefined);
+  },
+
+  mailchimpWebhook(req: Request): string {
+    return buildScopedRateLimitKey('mailchimp-webhook', getIp(req), undefined);
+  },
+
+  publicEventRegistration(req: Request): string {
+    const eventId = getParamValue(req, 'id', 'unknown-event');
+    return buildScopedRateLimitKey(
+      'public-event-registration',
+      `${eventId}:${getIp(req)}`,
+      undefined
+    );
   },
 
   publicEventCheckIn(req: Request): string {
@@ -135,6 +140,33 @@ export const rateLimitKeys = {
     return buildScopedRateLimitKey(
       'public-site-analytics',
       `${siteId}:${getIp(req)}`,
+      undefined
+    );
+  },
+
+  publicCaseFormDraft(req: Request): string {
+    const token = getParamValue(req, 'token', 'unknown-token');
+    return buildScopedRateLimitKey(
+      'public-case-form-draft',
+      `${hashIdentifier(token)}:${getIp(req)}`,
+      undefined
+    );
+  },
+
+  publicCaseFormSubmit(req: Request): string {
+    const token = getParamValue(req, 'token', 'unknown-token');
+    return buildScopedRateLimitKey(
+      'public-case-form-submit',
+      `${hashIdentifier(token)}:${getIp(req)}`,
+      undefined
+    );
+  },
+
+  publicCaseFormAsset(req: Request): string {
+    const token = getParamValue(req, 'token', 'unknown-token');
+    return buildScopedRateLimitKey(
+      'public-case-form-asset',
+      `${hashIdentifier(token)}:${getIp(req)}`,
       undefined
     );
   },

@@ -26,6 +26,7 @@ export interface PortalLoginUserRow {
   contact_id: string | null;
   status: string;
   is_verified: boolean;
+  auth_revision: number;
 }
 
 export interface PortalUserProfileRow {
@@ -40,6 +41,7 @@ export interface PortalUserProfileRow {
   last_name: string | null;
   phone: string | null;
   mobile_phone: string | null;
+  auth_revision: number;
 }
 
 export interface PortalInvitationRow {
@@ -56,6 +58,7 @@ export interface PortalUserAuthRow {
   id: string;
   email: string;
   contact_id: string | null;
+  auth_revision: number;
 }
 
 export type PortalSignupResolutionStatus = 'resolved' | 'needs_contact_resolution';
@@ -214,7 +217,7 @@ export const getPortalLoginUserByEmail = async (
   email: string
 ): Promise<PortalLoginUserRow | null> => {
   const result = await pool.query<PortalLoginUserRow>(
-    `SELECT id, email, password_hash, contact_id, status, is_verified
+    `SELECT id, email, password_hash, contact_id, status, is_verified, COALESCE(auth_revision, 0) AS auth_revision
      FROM portal_users
      WHERE lower(email) = lower($1)
      LIMIT 1`,
@@ -243,7 +246,8 @@ export const getPortalUserProfileById = async (
       c.first_name,
       c.last_name,
       c.phone,
-      c.mobile_phone
+      c.mobile_phone,
+      COALESCE(pu.auth_revision, 0) AS auth_revision
      FROM portal_users pu
      LEFT JOIN contacts c ON c.id = pu.contact_id
      WHERE pu.id = $1`,
@@ -301,7 +305,7 @@ export const createPortalUserFromInvitation = async (input: {
     `INSERT INTO portal_users (
       account_id, contact_id, email, password_hash, status, is_verified, verified_at, verified_by
     ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7)
-    RETURNING id, email, contact_id`,
+    RETURNING id, email, contact_id, COALESCE(auth_revision, 0) AS auth_revision`,
     [
       input.accountId,
       input.contactId,

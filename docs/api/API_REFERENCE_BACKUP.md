@@ -10,6 +10,7 @@ Admin-only API documentation for exporting a full data backup.
 The Backup API generates an on-demand export of all tables in the `public` schema as a single **gzipped JSON** file.
 
 By default, known secret fields are **redacted** (set to `null`) unless you explicitly request a full export.
+Unredacted exports are disabled unless the backend is started with `BACKUP_INCLUDE_SECRETS_ENABLED=true`, and the request must include an exact confirmation phrase.
 
 ## Authentication & Authorization
 
@@ -32,6 +33,7 @@ POST /api/v2/backup/export
 {
   "filename": "my-backup-20260203",
   "include_secrets": false,
+  "confirm_secrets_export": null,
   "compress": true
 }
 ```
@@ -40,6 +42,7 @@ POST /api/v2/backup/export
 |------|------|----------|---------|------|
 | `filename` | string | No | auto | Base filename (extension is added automatically) |
 | `include_secrets` | boolean | No | `false` | When `false`, secret fields are redacted |
+| `confirm_secrets_export` | string | Only when `include_secrets=true` | none | Must exactly equal `EXPORT_UNREDACTED_BACKUP`, and the server must have `BACKUP_INCLUDE_SECRETS_ENABLED=true` |
 | `compress` | boolean | No | `true` | When `true`, output is `.json.gz` |
 
 **Response:**

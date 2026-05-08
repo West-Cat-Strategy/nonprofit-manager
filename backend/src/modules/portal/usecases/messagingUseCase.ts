@@ -84,12 +84,14 @@ export class PortalMessagingUseCase {
 
   updateThread(input: {
     threadId: string;
+    portalUserId: string;
     status?: 'open' | 'closed' | 'archived';
     subject?: string | null;
     actorType?: 'portal' | 'staff' | 'system';
   }): Promise<unknown | null> {
     return this.messagingPort.updateThread({
       threadId: input.threadId,
+      portalUserId: input.portalUserId,
       status: input.status,
       subject: input.subject,
       actorType: input.actorType,

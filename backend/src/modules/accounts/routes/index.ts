@@ -23,6 +23,27 @@ const accountCategorySchema = z.enum([
   'other',
 ]);
 const sortOrderSchema = z.enum(['asc', 'desc']);
+const websiteUrlSchema = z.preprocess((value) => {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value !== 'string') {
+    return value;
+  }
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? undefined : trimmed;
+}, z
+  .string()
+  .max(2048)
+  .refine((value) => {
+    try {
+      const parsed = new URL(value);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }, 'Website must be a valid http:// or https:// URL')
+  .optional());
 
 const accountIdParamsSchema = z.object({
   id: uuidSchema,
@@ -47,7 +68,7 @@ const createAccountSchema = z.object({
   category: accountCategorySchema.optional(),
   email: z.string().trim().optional(),
   phone: z.string().trim().optional(),
-  website: z.string().trim().optional(),
+  website: websiteUrlSchema,
   description: z.string().trim().optional(),
   address_line1: z.string().trim().optional(),
   address_line2: z.string().trim().optional(),
@@ -64,7 +85,7 @@ const updateAccountSchema = z.object({
   category: accountCategorySchema.optional(),
   email: z.string().trim().optional(),
   phone: z.string().trim().optional(),
-  website: z.string().trim().optional(),
+  website: websiteUrlSchema,
   description: z.string().trim().optional(),
   address_line1: z.string().trim().optional(),
   address_line2: z.string().trim().optional(),

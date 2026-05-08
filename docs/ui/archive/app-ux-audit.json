@@ -91,9 +91,9 @@
       "brokenTargets": [],
       "styleAudit": {
         "hardcodedColorUtilities": 1517,
-        "semanticTokenUtilities": 9911,
+        "semanticTokenUtilities": 9933,
         "inlineStyleUsages": 60,
-        "ratioSemanticToHardcoded": 6.5333
+        "ratioSemanticToHardcoded": 6.5478
       },
       "disallowedInlineStylePaths": []
     },

@@ -52,6 +52,7 @@ describe('portalAuth middleware', () => {
       contact_id: 'contact-live',
       status: 'active',
       is_verified: true,
+      auth_revision: 0,
     });
 
     const context = await runWithRequestContext(
@@ -98,6 +99,7 @@ describe('portalAuth middleware', () => {
       contact_id: 'contact-2',
       status: 'suspended',
       is_verified: true,
+      auth_revision: 0,
     });
 
     const context = await runWithRequestContext({ correlationId: 'corr-2' }, async () => {
@@ -109,6 +111,37 @@ describe('portalAuth middleware', () => {
     expect(context).toMatchObject({ correlationId: 'corr-2' });
     expect(context?.portalUserId).toBeUndefined();
     expect(context?.portalContactId).toBeUndefined();
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('rejects portal tokens with stale auth revision', async () => {
+    const req = {
+      cookies: { portal_auth_token: 'stale-token' },
+      headers: {},
+    } as PortalAuthRequest;
+    const res = createMockResponse() as unknown as Response;
+    const next = jest.fn();
+
+    verifyTokenWithOptionalIssuer.mockReturnValue({
+      id: 'portal-user-3',
+      email: 'portal@example.com',
+      contactId: 'contact-3',
+      type: 'portal',
+      authRevision: 1,
+    });
+    portalAuthService.getPortalUserProfileById.mockResolvedValue({
+      id: 'portal-user-3',
+      email: 'portal@example.com',
+      contact_id: 'contact-3',
+      status: 'active',
+      is_verified: true,
+      auth_revision: 2,
+    });
+
+    await authenticatePortal(req, res, next);
+
+    expect(req.portalUser).toBeUndefined();
     expect(res.status).toHaveBeenCalledWith(401);
     expect(next).not.toHaveBeenCalled();
   });

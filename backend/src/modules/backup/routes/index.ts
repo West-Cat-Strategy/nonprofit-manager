@@ -15,6 +15,7 @@ const router = Router();
 const backupExportSchema = z.object({
   filename: z.string().optional(),
   include_secrets: optionalStrictBooleanSchema,
+  confirm_secrets_export: z.string().optional(),
   compress: optionalStrictBooleanSchema,
 });
 

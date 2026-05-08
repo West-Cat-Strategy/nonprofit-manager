@@ -136,6 +136,7 @@ export const createPortalMessagingController = (useCase: PortalMessagingUseCase)
 
       const thread = await useCase.updateThread({
         threadId: req.params.threadId,
+        portalUserId: req.portalUser.id,
         status: normalizePortalStatus(req.body.status),
         subject: (req.body.subject as string | null | undefined) ?? undefined,
         actorType: 'portal',

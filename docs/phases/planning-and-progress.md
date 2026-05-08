@@ -1,6 +1,6 @@
 # Planning & Progress
 
-**Last Updated:** 2026-05-07
+**Last Updated:** 2026-05-08
 
 Use this file only for live tracked work. Historical phase closeouts, earlier workboard material, and completed-row proof live in [archive/README.md](archive/README.md), [archive/WORKBOARD_HISTORY_2026.md](archive/WORKBOARD_HISTORY_2026.md), and [../validation/README.md](../validation/README.md).
 
@@ -9,9 +9,9 @@ Use this file only for live tracked work. Historical phase closeouts, earlier wo
 | Snapshot | Value |
 |---|---:|
 | Current phase | Phase 5 - Email, Website, Portal, and Reliability |
-| Active rows | 20 |
+| Active rows | 25 |
 | In Progress | 0 |
-| Review | 19 |
+| Review | 24 |
 | Ready | 0 |
 | Blocked | 1 |
 | Phase 4 carry-over rows | 0 |
@@ -32,6 +32,10 @@ Use this file only for live tracked work. Historical phase closeouts, earlier wo
 
 | Status | ID | Task | Immediate Next Move | Evidence |
 |---|---|---|---|---|
+| Review | P5-T86 | Security remediation: tenant/session boundaries | Review tenant-scope and portal session-revision proof for external service providers, portal conversations, portal appointments/reminders, and portal password resets. | [../validation/P5-T86_T89_SECURITY_REMEDIATION_PROOF_2026-05-06.md](../validation/P5-T86_T89_SECURITY_REMEDIATION_PROOF_2026-05-06.md) |
+| Review | P5-T87 | Security remediation: public ingress, rate limits, and validation | Review fail-closed public/provider ingress, non-caller-controlled rate-limit buckets, and public/staff boundary validation proof. | [../validation/P5-T86_T89_SECURITY_REMEDIATION_PROOF_2026-05-06.md](../validation/P5-T86_T89_SECURITY_REMEDIATION_PROOF_2026-05-06.md) |
+| Review | P5-T88 | Security remediation: production secrets, redaction, backups, health/metrics, and scans | Review production secret policy, token redaction, guarded backup export, health/metrics protection, browser diagnostic redaction, and history-aware secret-scan proof. | [../validation/P5-T86_T89_SECURITY_REMEDIATION_PROOF_2026-05-06.md](../validation/P5-T86_T89_SECURITY_REMEDIATION_PROOF_2026-05-06.md) |
+| Review | P5-T89 | Security remediation: dependency audit and Docker image policy | Review clean dependency audits and digest-pinned Docker image-policy proof; broader Docker CI/audit follow-on remains owned by `P5-T85`. | [../validation/P5-T86_T89_SECURITY_REMEDIATION_PROOF_2026-05-06.md](../validation/P5-T86_T89_SECURITY_REMEDIATION_PROOF_2026-05-06.md) |
 | Review | P5-T6 | Follow-on backlog: workflow/customization, memberships/appeals, finance/program ops | Keep live as the scope-control gate. Use the capability packet, backlog synthesis, and reference consolidation to reject unscoped implementation; future typed appeals, restrictions, donation batches, memberships, finance breadth, service-site routing, closure continuity, local communications follow-through, and generic workflow tooling need separately signed-out rows. | [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md), [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md), [../development/reference-patterns/P5-T6-reference-repo-consolidation-2026-05-01.md](../development/reference-patterns/P5-T6-reference-repo-consolidation-2026-05-01.md) |
 | Review | P5-T63 | Fence preview bootstrap auth modes | Review fake-auth removal, login-response cache seeding, and frontend proof. | [../validation/P5-T63_PREVIEW_BOOTSTRAP_AUTH_HARDENING_PROOF_2026-05-05.md](../validation/P5-T63_PREVIEW_BOOTSTRAP_AUTH_HARDENING_PROOF_2026-05-05.md) |
 | Review | P5-T64 | Mailchimp campaign-run cancel/reschedule contract cleanup | Review explicit `405` cancel/reschedule route behavior and focused proof. | [../validation/P5-T64_MAILCHIMP_CANCEL_RESCHEDULE_CONTRACT_PROOF_2026-05-05.md](../validation/P5-T64_MAILCHIMP_CANCEL_RESCHEDULE_CONTRACT_PROOF_2026-05-05.md) |
@@ -51,7 +55,8 @@ Use this file only for live tracked work. Historical phase closeouts, earlier wo
 | Review | P5-T82 | Case-form review-gated mapping remediation | Review portal/public pending mapping audit and staff-reviewed application proof. | [../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md](../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md) |
 | Review | P5-T83 | Public-action approval transition remediation | Review capture-only public submissions and staff accept/reject/fulfill side-effect proof. | [../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md](../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md) |
 | Review | P5-T84 | Volunteer background-check approval remediation | Review generic-edit rejection and dedicated audited approval-route proof. | [../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md](../validation/P5-T79_T84_AUTH_ACCOUNTS_APPROVALS_REMEDIATION_PROOF_2026-05-05.md) |
-| Review | P5-T85 | Docker stack efficiency refactor and fresh rebuild | Review slimmer app images, compose overlay validation, fresh `nonprofit-dev` rebuild, Docker smoke pass, and local Caddy port `443` blocker. | [../validation/P5-T85_DOCKER_STACK_EFFICIENCY_PROOF_2026-05-06.md](../validation/P5-T85_DOCKER_STACK_EFFICIENCY_PROOF_2026-05-06.md) |
+| Review | P5-T85 | Docker stack efficiency refactor and fresh rebuild | Review deferred Docker CI/audit follow-up: fresh review stack, full desktop matrix with two rerun-clean Firefox flakes, mobile tail pass, and Docker audit pass. | [../validation/P5-T85_DOCKER_STACK_EFFICIENCY_PROOF_2026-05-06.md](../validation/P5-T85_DOCKER_STACK_EFFICIENCY_PROOF_2026-05-06.md) |
+| Review | P5-T90 | Volunteer staff background-check approval follow-up | Review focused volunteer approval-flow proof; rerun the direct integration-route test once the local Jest DB listener is available. | [../validation/P5-T90_VOLUNTEER_APPROVAL_FLOW_PROOF_2026-05-06.md](../validation/P5-T90_VOLUNTEER_APPROVAL_FLOW_PROOF_2026-05-06.md) |
 
 ## Ready Queue
 
@@ -62,7 +67,9 @@ No row is currently ready.
 - The Phase 5 roadmap lives in [PHASE_5_DEVELOPMENT_PLAN.md](PHASE_5_DEVELOPMENT_PLAN.md).
 - Completed Phase 5 planning, validation, runtime, cleanup, email, website, portal, and Docker rows are archived under [archive/README.md](archive/README.md).
 - Durable validation and audit proof is indexed from [../validation/README.md](../validation/README.md).
-- `P5-T6` remains the only backlog-scope gate. Treat all future product expansion as new signed-out rows unless this board explicitly says otherwise.
+- `P5-T6` remains the backlog-scope gate. Treat all future product expansion as new signed-out rows unless this board explicitly says otherwise.
+- `P5-T86` through `P5-T89` are in review with focused security validation recorded, separate from `P5-T79` through `P5-T85` review proof; the deferred Docker CI/audit follow-up for `P5-T85` is now recorded in review.
+- `P5-T90` is in validation/signoff review and stays scoped to volunteer staff background-check approval follow-up.
 
 ## Status Keys
 

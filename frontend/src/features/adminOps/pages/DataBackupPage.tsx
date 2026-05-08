@@ -5,6 +5,8 @@ import ErrorBanner from '../../../components/ErrorBanner';
 import { useApiError } from '../../../hooks/useApiError';
 import AdminWorkspaceShell from '../components/AdminWorkspaceShell';
 
+const CONFIRM_UNREDACTED_BACKUP = 'EXPORT_UNREDACTED_BACKUP';
+
 function getFilenameFromContentDisposition(headerValue: string | undefined): string | null {
   if (!headerValue) return null;
 
@@ -37,12 +39,28 @@ export default function DataBackup() {
   }, [includeSecrets]);
 
   const downloadBackup = async () => {
-    setDownloading(true);
     clear();
+
+    const confirmation = includeSecrets
+      ? window.prompt(`Type ${CONFIRM_UNREDACTED_BACKUP} to export an unredacted backup.`)
+      : null;
+    if (includeSecrets && confirmation !== CONFIRM_UNREDACTED_BACKUP) {
+      setFromError(
+        new Error('Unredacted backup export was not confirmed.'),
+        `Type ${CONFIRM_UNREDACTED_BACKUP} to export an unredacted backup.`
+      );
+      return;
+    }
+
+    setDownloading(true);
     try {
       const response = await api.post(
         '/backup/export',
-        { include_secrets: includeSecrets, compress: true },
+        {
+          include_secrets: includeSecrets,
+          confirm_secrets_export: includeSecrets ? CONFIRM_UNREDACTED_BACKUP : undefined,
+          compress: true,
+        },
         { responseType: 'blob' }
       );
 

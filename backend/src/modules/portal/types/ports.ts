@@ -26,6 +26,7 @@ export interface PortalMessagingPort {
   markPortalThreadRead(portalUserId: string, threadId: string): Promise<number>;
   updateThread(input: {
     threadId: string;
+    portalUserId?: string;
     status?: 'open' | 'closed' | 'archived';
     subject?: string | null;
     actorType?: 'portal' | 'staff' | 'system';

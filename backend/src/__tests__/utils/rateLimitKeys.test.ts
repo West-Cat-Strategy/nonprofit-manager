@@ -50,15 +50,24 @@ describe('rateLimitKeys', () => {
     expect(rateLimitKeys.api(reqOne)).not.toBe(rateLimitKeys.api(reqTwo));
   });
 
-  it('uses organization headers when request context fields are absent', () => {
+  it('ignores organization headers for unauthenticated auth-family keys', () => {
     const req = buildRequest({
+      body: { email: 'Person@Example.com' },
       headers: {
         'x-organization-id': 'org-from-header',
+        'x-account-id': 'account-from-header',
+        'x-tenant-id': 'tenant-from-header',
       },
     });
 
+    expect(rateLimitKeys.auth(req)).toBe(
+      'rate-limit:global:auth:542d240129883c019e106e3b%3A203.0.113.10'
+    );
+    expect(rateLimitKeys.passwordReset(req)).toBe(
+      'rate-limit:global:password-reset:542d240129883c019e106e3b%3A203.0.113.10'
+    );
     expect(rateLimitKeys.registration(req)).toBe(
-      'rate-limit:org:org-from-header:registration:203.0.113.10'
+      'rate-limit:global:registration:203.0.113.10'
     );
   });
 
@@ -68,7 +77,25 @@ describe('rateLimitKeys', () => {
     });
 
     expect(rateLimitKeys.auth(req)).toBe(
-      'rate-limit:global:auth:person%40example.com%3A203.0.113.10'
+      'rate-limit:global:auth:542d240129883c019e106e3b%3A203.0.113.10'
+    );
+  });
+
+  it('builds public event registration and case-form token keys without raw tokens', () => {
+    const eventReq = buildRequest({ params: { id: 'event-1' } });
+    const caseReq = buildRequest({ params: { token: 'case-token' } });
+
+    expect(rateLimitKeys.publicEventRegistration(eventReq)).toBe(
+      'rate-limit:global:public-event-registration:event-1%3A203.0.113.10'
+    );
+    expect(rateLimitKeys.publicCaseFormDraft(caseReq)).toBe(
+      'rate-limit:global:public-case-form-draft:68422947e634bbe26eeacdfc%3A203.0.113.10'
+    );
+    expect(rateLimitKeys.publicCaseFormSubmit(caseReq)).toBe(
+      'rate-limit:global:public-case-form-submit:68422947e634bbe26eeacdfc%3A203.0.113.10'
+    );
+    expect(rateLimitKeys.publicCaseFormAsset(caseReq)).toBe(
+      'rate-limit:global:public-case-form-asset:68422947e634bbe26eeacdfc%3A203.0.113.10'
     );
   });
 

@@ -92,4 +92,28 @@ describe('portalPasswordResetService', () => {
 
     await expect(resetPortalPassword('invalid', 'NewPass123!')).resolves.toBe(false);
   });
+
+  it('bumps portal auth revision when a reset token is consumed', async () => {
+    const tokenId = '00000000-0000-0000-0000-000000000002';
+    const secret = 'b'.repeat(64);
+    const tokenHash = await bcrypt.hash(secret, 4);
+    const client = {
+      query: jest.fn().mockResolvedValue({ rows: [] }),
+      release: jest.fn(),
+    };
+
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ id: tokenId, owner_id: 'portal-user-456', token_hash: tokenHash }],
+    });
+    mockConnect.mockResolvedValueOnce(client);
+
+    await expect(resetPortalPassword(`${tokenId}.${secret}`, 'NewPass123!')).resolves.toBe(true);
+
+    expect(client.query).toHaveBeenCalledWith('BEGIN');
+    expect(client.query.mock.calls[1][0]).toContain(
+      'auth_revision = COALESCE(auth_revision, 0) + 1'
+    );
+    expect(client.query).toHaveBeenCalledWith('COMMIT');
+    expect(client.release).toHaveBeenCalled();
+  });
 });

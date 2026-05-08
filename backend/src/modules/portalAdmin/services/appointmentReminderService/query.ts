@@ -14,8 +14,10 @@ import type { AppointmentReminderJob, AppointmentReminderDelivery } from '../app
 import type { AppointmentReminderListResult } from '../appointmentReminderService';
 
 export const getReminderContext = async (
-  appointmentId: string
+  appointmentId: string,
+  accountId?: string | null
 ): Promise<AppointmentReminderContextRow | null> => {
+  const values = accountId ? [appointmentId, accountId] : [appointmentId];
   const result = await pool.query<AppointmentReminderContextRow>(
     `SELECT
        a.id AS appointment_id,
@@ -35,28 +37,35 @@ export const getReminderContext = async (
      JOIN contacts c ON c.id = a.contact_id
      LEFT JOIN portal_users pu ON pu.id = a.requested_by_portal
      WHERE a.id = $1
+       ${accountId ? 'AND (a.account_id = $2 OR c.account_id = $2)' : ''}
      LIMIT 1`,
-    [appointmentId]
+    values
   );
 
   return result.rows[0] ?? null;
 };
 
-export const listAppointmentReminders = async (appointmentId: string): Promise<AppointmentReminderListResult> => {
+export const listAppointmentReminders = async (
+  appointmentId: string,
+  accountId?: string | null
+): Promise<AppointmentReminderListResult> => {
+  const values = accountId ? [appointmentId, accountId] : [appointmentId];
   const [jobsResult, deliveriesResult] = await Promise.all([
     pool.query<AppointmentReminderJobRow>(
       `SELECT ${APPOINTMENT_REMINDER_JOB_SELECT_COLUMNS}
        FROM appointment_reminder_jobs
        WHERE appointment_id = $1
+         ${accountId ? 'AND account_id = $2' : ''}
        ORDER BY scheduled_for ASC, channel ASC`,
-      [appointmentId]
+      values
     ),
     pool.query<AppointmentReminderDeliveryRow>(
       `SELECT ${APPOINTMENT_REMINDER_DELIVERY_COLUMNS}
        FROM appointment_reminder_deliveries
        WHERE appointment_id = $1
+         ${accountId ? 'AND account_id = $2' : ''}
        ORDER BY sent_at DESC`,
-      [appointmentId]
+      values
     ),
   ]);
 

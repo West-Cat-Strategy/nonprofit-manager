@@ -26,6 +26,7 @@ export interface PortalSessionTokenPayload {
   email: string;
   contactId: string | null;
   type?: 'portal';
+  authRevision?: number;
   iss?: string;
 }
 
@@ -95,6 +96,7 @@ export const issuePortalSessionToken = (input: {
   id: string;
   email: string;
   contactId: string | null;
+  authRevision?: number;
 }): string =>
   jwt.sign(
     {
@@ -102,6 +104,7 @@ export const issuePortalSessionToken = (input: {
       email: input.email,
       contactId: input.contactId,
       type: 'portal' as const,
+      authRevision: input.authRevision ?? 0,
     },
     getJwtSecret(),
     {

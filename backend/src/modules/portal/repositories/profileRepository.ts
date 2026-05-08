@@ -84,7 +84,11 @@ export class PortalProfileRepository {
 
   async updatePortalUserPassword(portalUserId: string, passwordHash: string): Promise<void> {
     await this.pool.query(
-      'UPDATE portal_users SET password_hash = $1, updated_at = NOW() WHERE id = $2',
+      `UPDATE portal_users
+       SET password_hash = $1,
+           auth_revision = COALESCE(auth_revision, 0) + 1,
+           updated_at = NOW()
+       WHERE id = $2`,
       [passwordHash, portalUserId]
     );
   }

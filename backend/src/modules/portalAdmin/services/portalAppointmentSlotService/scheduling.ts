@@ -78,6 +78,7 @@ export const bookPortalAppointmentSlot = async (input: {
     const appointmentInsert = await client.query(
       `INSERT INTO appointments (
         contact_id,
+        account_id,
         title,
         description,
         start_time,
@@ -89,10 +90,11 @@ export const bookPortalAppointmentSlot = async (input: {
         pointperson_user_id,
         slot_id,
         request_type
-      ) VALUES ($1, $2, $3, $4, $5, 'confirmed', $6, $7, $8, $9, $10, 'slot_booking')
+      ) VALUES ($1, $2, $3, $4, $5, $6, 'confirmed', $7, $8, $9, $10, $11, 'slot_booking')
       RETURNING id`,
       [
         input.contactId,
+        selectedCase.account_id,
         input.title?.trim() || (slot.title as string | null) || 'Appointment',
         input.description?.trim() || (slot.details as string | null) || null,
         slot.start_time as string,
@@ -116,12 +118,15 @@ export const bookPortalAppointmentSlot = async (input: {
 
     await client.query('COMMIT');
 
-    const appointment = await getAppointmentById(appointmentInsert.rows[0].id as string);
+    const appointment = await getAppointmentById(
+      appointmentInsert.rows[0].id as string,
+      selectedCase.account_id
+    );
     if (!appointment) {
       throw new Error('Failed to load booked appointment');
     }
 
-    const updatedSlot = await getSlotById(slot.id as string);
+    const updatedSlot = await getSlotById(slot.id as string, selectedCase.account_id);
     publishAppointmentUpdated({
       entityId: appointment.id,
       caseId: appointment.case_id,
@@ -249,6 +254,7 @@ export const cancelPortalAppointment = async (input: {
 };
 
 export const updateAppointmentStatusByStaff = async (input: {
+  accountId?: string | null;
   appointmentId: string;
   status: 'requested' | 'confirmed' | 'cancelled' | 'completed';
   checkedInBy?: string | null;
@@ -265,8 +271,9 @@ export const updateAppointmentStatusByStaff = async (input: {
       `SELECT id, status, slot_id, case_id
        FROM appointments
        WHERE id = $1
+         AND ($2::uuid IS NULL OR account_id = $2)
        FOR UPDATE`,
-      [input.appointmentId]
+      [input.appointmentId, input.accountId ?? null]
     );
 
     const current = currentResult.rows[0] as {
@@ -325,7 +332,7 @@ export const updateAppointmentStatusByStaff = async (input: {
     });
 
     await client.query('COMMIT');
-    const updatedAppointment = await getAppointmentById(input.appointmentId);
+    const updatedAppointment = await getAppointmentById(input.appointmentId, input.accountId);
     if (!updatedAppointment) {
       return null;
     }
@@ -340,7 +347,7 @@ export const updateAppointmentStatusByStaff = async (input: {
     });
 
     if (current.slot_id && current.status !== input.status) {
-      const updatedSlot = await getSlotById(current.slot_id);
+      const updatedSlot = await getSlotById(current.slot_id, input.accountId);
       if (updatedSlot) {
         publishSlotUpdated({
           entityId: updatedSlot.id,
@@ -380,6 +387,7 @@ export const updateAppointmentStatusByStaff = async (input: {
 };
 
 export const checkInAppointmentByStaff = async (input: {
+  accountId?: string | null;
   appointmentId: string;
   checkedInBy: string;
   resolutionNote?: string;
@@ -388,6 +396,7 @@ export const checkInAppointmentByStaff = async (input: {
 }): Promise<PortalAppointment | null> =>
   updateAppointmentStatusByStaff({
     appointmentId: input.appointmentId,
+    accountId: input.accountId,
     status: 'completed',
     checkedInBy: input.checkedInBy,
     resolutionNote: input.resolutionNote,

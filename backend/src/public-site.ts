@@ -1,4 +1,4 @@
-import express, { type Application } from 'express';
+import express, { type Application, type Request } from 'express';
 import compression from 'compression';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -16,6 +16,7 @@ import { csrfMiddleware } from './middleware/csrf';
 import { correlationIdMiddleware, CORRELATION_ID_HEADER } from './middleware/correlationId';
 import { metricsMiddleware, metricsRouter } from './middleware/metrics';
 import { legacyApiTombstoneMiddleware } from './middleware/legacyApiTombstone';
+import { redactUrlForLogs } from '@utils/logRedaction';
 import { validateBody, validateParams } from './middleware/zodValidation';
 import { publicSiteAnalyticsLimiterMiddleware } from '@middleware/domains/platform';
 import {
@@ -54,7 +55,7 @@ if (process.env.NODE_ENV === 'production') {
   errors.forEach((error) => logger.error(`SECURITY ERROR: ${error}`));
   fatalErrors.forEach((error) => logger.error(`SECURITY ERROR: ${error}`));
   if (fatalErrors.length > 0) {
-    logger.error('Exiting due to invalid production database at-rest encryption configuration.');
+    logger.error('Exiting due to invalid production security configuration.');
     process.exit(1);
   }
   if (errors.length > 0 && process.env.ENFORCE_SECURE_CONFIG === 'true') {
@@ -67,6 +68,9 @@ setHealthCheckPool(pool);
 initializeSentry();
 
 const app: Application = express();
+morgan.token('redacted-url', (req) =>
+  redactUrlForLogs((req as Request).originalUrl || req.url)
+);
 const PORT = Number(process.env.PORT) || 8006;
 
 const resolveConnectSrc = (developmentFallback: string): string[] => {
@@ -150,7 +154,7 @@ app.use(metricsMiddleware);
 
 if (process.env.REQUEST_LOGGING_ENABLED !== 'false') {
   app.use(
-    morgan(`:method :url :status :res[content-length] - :response-time ms - :req[${CORRELATION_ID_HEADER}]`, {
+    morgan(`:method :redacted-url :status :res[content-length] - :response-time ms - :req[${CORRELATION_ID_HEADER}]`, {
       stream: { write: (message: string) => logger.info(message.trim()) },
     })
   );

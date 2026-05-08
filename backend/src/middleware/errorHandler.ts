@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '@config/logger';
 import { sendError } from '@modules/shared/http/envelope';
+import { redactUrlForLogs } from '@utils/logRedaction';
 
 interface ErrorWithStatus extends Error {
   statusCode?: number;
@@ -21,7 +22,7 @@ export const errorHandler = (
   logger.error({
     message: err.message,
     stack: err.stack,
-    url: req.url,
+    url: redactUrlForLogs(req.originalUrl || req.url),
     method: req.method,
     correlationId: req.correlationId,
   });

@@ -357,12 +357,12 @@ describe('mailchimp routes authorization', () => {
     expect(mailchimpControllerMocks.rescheduleCampaignRun).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps the Mailchimp webhook public', async () => {
+  it('fails closed when the Mailchimp webhook secret is not configured', async () => {
     const app = buildApp();
 
-    await request(app).post('/api/v2/mailchimp/webhook').send({}).expect(200);
+    await request(app).post('/api/v2/mailchimp/webhook').send({}).expect(503);
 
-    expect(mailchimpControllerMocks.handleWebhook).toHaveBeenCalledTimes(1);
+    expect(mailchimpControllerMocks.handleWebhook).not.toHaveBeenCalled();
   });
 
   it('accepts the Mailchimp webhook query secret when configured', async () => {

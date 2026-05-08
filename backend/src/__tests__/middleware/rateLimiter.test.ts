@@ -46,6 +46,10 @@ describe('rateLimiter defaults', () => {
     delete process.env.REGISTRATION_RATE_LIMIT_MAX_REQUESTS;
     delete process.env.PUBLIC_EVENT_CHECKIN_RATE_LIMIT_WINDOW_MS;
     delete process.env.PUBLIC_EVENT_CHECKIN_RATE_LIMIT_MAX_REQUESTS;
+    delete process.env.MAILCHIMP_WEBHOOK_RATE_LIMIT_WINDOW_MS;
+    delete process.env.MAILCHIMP_WEBHOOK_RATE_LIMIT_MAX_REQUESTS;
+    delete process.env.PUBLIC_EVENT_REGISTRATION_RATE_LIMIT_WINDOW_MS;
+    delete process.env.PUBLIC_EVENT_REGISTRATION_RATE_LIMIT_MAX_REQUESTS;
     delete process.env.PUBLIC_WEBSITE_FORM_RATE_LIMIT_WINDOW_MS;
     delete process.env.PUBLIC_WEBSITE_FORM_RATE_LIMIT_MAX_REQUESTS;
     delete process.env.PUBLIC_WEBSITE_ACTION_RATE_LIMIT_WINDOW_MS;
@@ -54,6 +58,12 @@ describe('rateLimiter defaults', () => {
     delete process.env.PUBLIC_NEWSLETTER_CONFIRM_RATE_LIMIT_MAX_REQUESTS;
     delete process.env.PUBLIC_SITE_ANALYTICS_RATE_LIMIT_WINDOW_MS;
     delete process.env.PUBLIC_SITE_ANALYTICS_RATE_LIMIT_MAX_REQUESTS;
+    delete process.env.PUBLIC_CASE_FORM_DRAFT_RATE_LIMIT_WINDOW_MS;
+    delete process.env.PUBLIC_CASE_FORM_DRAFT_RATE_LIMIT_MAX_REQUESTS;
+    delete process.env.PUBLIC_CASE_FORM_SUBMIT_RATE_LIMIT_WINDOW_MS;
+    delete process.env.PUBLIC_CASE_FORM_SUBMIT_RATE_LIMIT_MAX_REQUESTS;
+    delete process.env.PUBLIC_CASE_FORM_ASSET_RATE_LIMIT_WINDOW_MS;
+    delete process.env.PUBLIC_CASE_FORM_ASSET_RATE_LIMIT_MAX_REQUESTS;
     Object.assign(process.env, overrides);
   };
 
@@ -84,7 +94,7 @@ describe('rateLimiter defaults', () => {
   it('configures the higher shared-IP ceilings in production defaults', async () => {
     await loadRateLimiterModule();
 
-    expect(mockRateLimit).toHaveBeenCalledTimes(9);
+    expect(mockRateLimit).toHaveBeenCalledTimes(14);
 
     const [
       apiOptions,
@@ -92,10 +102,15 @@ describe('rateLimiter defaults', () => {
       passwordResetOptions,
       registrationOptions,
       publicEventOptions,
+      mailchimpWebhookOptions,
+      publicEventRegistrationOptions,
       publicWebsiteFormOptions,
       publicWebsiteActionOptions,
       publicNewsletterConfirmationOptions,
       publicSiteAnalyticsOptions,
+      publicCaseFormDraftOptions,
+      publicCaseFormSubmitOptions,
+      publicCaseFormAssetOptions,
     ] =
       mockRateLimit.mock.calls.map(([options]) => options as Record<string, unknown>);
 
@@ -125,6 +140,16 @@ describe('rateLimiter defaults', () => {
       max: RATE_LIMIT.PUBLIC_EVENT_CHECKIN_MAX_REQUESTS,
     });
 
+    expect(mailchimpWebhookOptions).toMatchObject({
+      windowMs: 10 * 60 * 1000,
+      max: 60,
+    });
+
+    expect(publicEventRegistrationOptions).toMatchObject({
+      windowMs: 10 * 60 * 1000,
+      max: 60,
+    });
+
     expect(publicWebsiteFormOptions).toMatchObject({
       windowMs: 10 * 60 * 1000,
       max: 60,
@@ -144,6 +169,21 @@ describe('rateLimiter defaults', () => {
       windowMs: 10 * 60 * 1000,
       max: 240,
     });
+
+    expect(publicCaseFormDraftOptions).toMatchObject({
+      windowMs: 10 * 60 * 1000,
+      max: 120,
+    });
+
+    expect(publicCaseFormSubmitOptions).toMatchObject({
+      windowMs: 15 * 60 * 1000,
+      max: 30,
+    });
+
+    expect(publicCaseFormAssetOptions).toMatchObject({
+      windowMs: 15 * 60 * 1000,
+      max: 20,
+    });
   });
 
   it('honors explicit env overrides for the production ceilings', async () => {
@@ -157,6 +197,10 @@ describe('rateLimiter defaults', () => {
       REGISTRATION_RATE_LIMIT_MAX_REQUESTS: '2',
       PUBLIC_EVENT_CHECKIN_RATE_LIMIT_WINDOW_MS: '120000',
       PUBLIC_EVENT_CHECKIN_RATE_LIMIT_MAX_REQUESTS: '320',
+      MAILCHIMP_WEBHOOK_RATE_LIMIT_WINDOW_MS: '121000',
+      MAILCHIMP_WEBHOOK_RATE_LIMIT_MAX_REQUESTS: '321',
+      PUBLIC_EVENT_REGISTRATION_RATE_LIMIT_WINDOW_MS: '122000',
+      PUBLIC_EVENT_REGISTRATION_RATE_LIMIT_MAX_REQUESTS: '322',
       PUBLIC_WEBSITE_FORM_RATE_LIMIT_WINDOW_MS: '180000',
       PUBLIC_WEBSITE_FORM_RATE_LIMIT_MAX_REQUESTS: '31',
       PUBLIC_WEBSITE_ACTION_RATE_LIMIT_WINDOW_MS: '181000',
@@ -165,9 +209,15 @@ describe('rateLimiter defaults', () => {
       PUBLIC_NEWSLETTER_CONFIRM_RATE_LIMIT_MAX_REQUESTS: '33',
       PUBLIC_SITE_ANALYTICS_RATE_LIMIT_WINDOW_MS: '183000',
       PUBLIC_SITE_ANALYTICS_RATE_LIMIT_MAX_REQUESTS: '34',
+      PUBLIC_CASE_FORM_DRAFT_RATE_LIMIT_WINDOW_MS: '184000',
+      PUBLIC_CASE_FORM_DRAFT_RATE_LIMIT_MAX_REQUESTS: '35',
+      PUBLIC_CASE_FORM_SUBMIT_RATE_LIMIT_WINDOW_MS: '185000',
+      PUBLIC_CASE_FORM_SUBMIT_RATE_LIMIT_MAX_REQUESTS: '36',
+      PUBLIC_CASE_FORM_ASSET_RATE_LIMIT_WINDOW_MS: '186000',
+      PUBLIC_CASE_FORM_ASSET_RATE_LIMIT_MAX_REQUESTS: '37',
     });
 
-    expect(mockRateLimit).toHaveBeenCalledTimes(9);
+    expect(mockRateLimit).toHaveBeenCalledTimes(14);
 
     const [
       apiOptions,
@@ -175,10 +225,15 @@ describe('rateLimiter defaults', () => {
       passwordResetOptions,
       registrationOptions,
       publicEventOptions,
+      mailchimpWebhookOptions,
+      publicEventRegistrationOptions,
       publicWebsiteFormOptions,
       publicWebsiteActionOptions,
       publicNewsletterConfirmationOptions,
       publicSiteAnalyticsOptions,
+      publicCaseFormDraftOptions,
+      publicCaseFormSubmitOptions,
+      publicCaseFormAssetOptions,
     ] =
       mockRateLimit.mock.calls.map(([options]) => options as Record<string, unknown>);
 
@@ -207,6 +262,16 @@ describe('rateLimiter defaults', () => {
       max: 320,
     });
 
+    expect(mailchimpWebhookOptions).toMatchObject({
+      windowMs: 121000,
+      max: 321,
+    });
+
+    expect(publicEventRegistrationOptions).toMatchObject({
+      windowMs: 122000,
+      max: 322,
+    });
+
     expect(publicWebsiteFormOptions).toMatchObject({
       windowMs: 180000,
       max: 31,
@@ -225,6 +290,21 @@ describe('rateLimiter defaults', () => {
     expect(publicSiteAnalyticsOptions).toMatchObject({
       windowMs: 183000,
       max: 34,
+    });
+
+    expect(publicCaseFormDraftOptions).toMatchObject({
+      windowMs: 184000,
+      max: 35,
+    });
+
+    expect(publicCaseFormSubmitOptions).toMatchObject({
+      windowMs: 185000,
+      max: 36,
+    });
+
+    expect(publicCaseFormAssetOptions).toMatchObject({
+      windowMs: 186000,
+      max: 37,
     });
   });
 
@@ -270,7 +350,7 @@ describe('rateLimiter defaults', () => {
   it('keeps the canonical 429 envelope for public write limiters', async () => {
     await loadRateLimiterModule();
 
-    const publicFormOptions = mockRateLimit.mock.calls[5]?.[0] as
+    const publicFormOptions = mockRateLimit.mock.calls[7]?.[0] as
       | {
           handler?: (req: Request, res: Response) => void;
         }
@@ -314,14 +394,26 @@ describe('rateLimiter defaults', () => {
     module.publicWebsiteActionLimiterMiddleware({} as Request, {} as Response, next);
     module.publicNewsletterConfirmationLimiterMiddleware({} as Request, {} as Response, next);
     module.publicSiteAnalyticsLimiterMiddleware({} as Request, {} as Response, next);
+    module.mailchimpWebhookLimiterMiddleware({} as Request, {} as Response, next);
+    module.publicEventRegistrationLimiterMiddleware({} as Request, {} as Response, next);
+    module.publicCaseFormDraftLimiterMiddleware({} as Request, {} as Response, next);
+    module.publicCaseFormSubmitLimiterMiddleware({} as Request, {} as Response, next);
+    module.publicCaseFormAssetLimiterMiddleware({} as Request, {} as Response, next);
 
-    expect(next).toHaveBeenCalledTimes(4);
+    expect(next).toHaveBeenCalledTimes(9);
     expect(module.publicWebsiteFormLimiterMiddleware).not.toBe(module.publicWebsiteFormLimiter);
     expect(module.publicWebsiteActionLimiterMiddleware).not.toBe(module.publicWebsiteActionLimiter);
     expect(module.publicNewsletterConfirmationLimiterMiddleware).not.toBe(
       module.publicNewsletterConfirmationLimiter
     );
     expect(module.publicSiteAnalyticsLimiterMiddleware).not.toBe(module.publicSiteAnalyticsLimiter);
+    expect(module.mailchimpWebhookLimiterMiddleware).not.toBe(module.mailchimpWebhookLimiter);
+    expect(module.publicEventRegistrationLimiterMiddleware).not.toBe(
+      module.publicEventRegistrationLimiter
+    );
+    expect(module.publicCaseFormDraftLimiterMiddleware).not.toBe(module.publicCaseFormDraftLimiter);
+    expect(module.publicCaseFormSubmitLimiterMiddleware).not.toBe(module.publicCaseFormSubmitLimiter);
+    expect(module.publicCaseFormAssetLimiterMiddleware).not.toBe(module.publicCaseFormAssetLimiter);
   });
 
   it('skips startup auth and CSRF read-only checks in the shared API limiter', async () => {

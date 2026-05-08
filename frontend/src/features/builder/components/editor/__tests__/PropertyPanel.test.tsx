@@ -31,6 +31,7 @@ describe('PropertyPanel event-list controls', () => {
     fireEvent.change(maxEventsInput, {
       target: { value: '8' },
     });
+    fireEvent.blur(maxEventsInput);
 
     expect(onUpdateComponent).toHaveBeenCalledWith('event-list-1', { maxEvents: 8 });
 
@@ -79,9 +80,11 @@ describe('PropertyPanel referral-form controls', () => {
     expect(screen.getByText('Default Tags')).toBeInTheDocument();
     expect(screen.getByText('Account ID')).toBeInTheDocument();
 
-    fireEvent.change(screen.getByDisplayValue('Submit Referral'), {
+    const submitTextInput = screen.getByDisplayValue('Submit Referral');
+    fireEvent.change(submitTextInput, {
       target: { value: 'Send Referral' },
     });
+    fireEvent.blur(submitTextInput);
 
     expect(onUpdateComponent).toHaveBeenCalledWith('referral-form-1', {
       submitText: 'Send Referral',
@@ -99,6 +102,7 @@ describe('PropertyPanel referral-form controls', () => {
     fireEvent.change(defaultTagsInput, {
       target: { value: 'intake, urgent referral' },
     });
+    fireEvent.blur(defaultTagsInput);
 
     expect(onUpdateComponent).toHaveBeenCalledWith('referral-form-1', {
       defaultTags: ['intake', 'urgent referral'],

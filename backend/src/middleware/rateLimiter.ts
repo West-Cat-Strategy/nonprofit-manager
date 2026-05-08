@@ -258,6 +258,54 @@ export const publicEventCheckInLimiter = rateLimit({
 });
 export const publicEventCheckInLimiterMiddleware = isTestEnv ? noopLimiter : publicEventCheckInLimiter;
 
+export const mailchimpWebhookLimiter = rateLimit({
+  windowMs: parseInt(process.env.MAILCHIMP_WEBHOOK_RATE_LIMIT_WINDOW_MS || String(10 * 60 * 1000)),
+  max: isTestEnv ? 10000 : parseInt(process.env.MAILCHIMP_WEBHOOK_RATE_LIMIT_MAX_REQUESTS || '60'),
+  keyGenerator: (req) => rateLimitKeys.mailchimpWebhook(req),
+  skipSuccessfulRequests: false,
+  skip: shouldSkipRateLimit,
+  message: ERROR_MESSAGES.TOO_MANY_REQUESTS,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: buildStore('rl:mailchimp-webhook:'),
+  handler: (req, res) => {
+    sendError(
+      res,
+      'rate_limit_exceeded',
+      ERROR_MESSAGES.TOO_MANY_REQUESTS,
+      HTTP_STATUS.TOO_MANY_REQUESTS,
+      buildRetryDetails(req, 'mailchimp_webhook'),
+      req.correlationId
+    );
+  },
+});
+export const mailchimpWebhookLimiterMiddleware = isTestEnv ? noopLimiter : mailchimpWebhookLimiter;
+
+export const publicEventRegistrationLimiter = rateLimit({
+  windowMs: parseInt(process.env.PUBLIC_EVENT_REGISTRATION_RATE_LIMIT_WINDOW_MS || String(10 * 60 * 1000)),
+  max: isTestEnv ? 10000 : parseInt(process.env.PUBLIC_EVENT_REGISTRATION_RATE_LIMIT_MAX_REQUESTS || '60'),
+  keyGenerator: (req) => rateLimitKeys.publicEventRegistration(req),
+  skipSuccessfulRequests: false,
+  skip: shouldSkipRateLimit,
+  message: ERROR_MESSAGES.TOO_MANY_REQUESTS,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: buildStore('rl:public-event-registration:'),
+  handler: (req, res) => {
+    sendError(
+      res,
+      'rate_limit_exceeded',
+      ERROR_MESSAGES.TOO_MANY_REQUESTS,
+      HTTP_STATUS.TOO_MANY_REQUESTS,
+      buildRetryDetails(req, 'public_event_registration'),
+      req.correlationId
+    );
+  },
+});
+export const publicEventRegistrationLimiterMiddleware = isTestEnv
+  ? noopLimiter
+  : publicEventRegistrationLimiter;
+
 export const publicWebsiteFormLimiter = rateLimit({
   windowMs: parseInt(process.env.PUBLIC_WEBSITE_FORM_RATE_LIMIT_WINDOW_MS || String(10 * 60 * 1000)),
   max: isTestEnv ? 10000 : parseInt(process.env.PUBLIC_WEBSITE_FORM_RATE_LIMIT_MAX_REQUESTS || '60'),
@@ -351,3 +399,78 @@ export const publicSiteAnalyticsLimiter = rateLimit({
   },
 });
 export const publicSiteAnalyticsLimiterMiddleware = isTestEnv ? noopLimiter : publicSiteAnalyticsLimiter;
+
+export const publicCaseFormDraftLimiter = rateLimit({
+  windowMs: parseInt(process.env.PUBLIC_CASE_FORM_DRAFT_RATE_LIMIT_WINDOW_MS || String(10 * 60 * 1000)),
+  max: isTestEnv ? 10000 : parseInt(process.env.PUBLIC_CASE_FORM_DRAFT_RATE_LIMIT_MAX_REQUESTS || '120'),
+  keyGenerator: (req) => rateLimitKeys.publicCaseFormDraft(req),
+  skipSuccessfulRequests: false,
+  skip: shouldSkipRateLimit,
+  message: ERROR_MESSAGES.TOO_MANY_REQUESTS,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: buildStore('rl:public-case-form-draft:'),
+  handler: (req, res) => {
+    sendError(
+      res,
+      'rate_limit_exceeded',
+      ERROR_MESSAGES.TOO_MANY_REQUESTS,
+      HTTP_STATUS.TOO_MANY_REQUESTS,
+      buildRetryDetails(req, 'public_case_form_draft'),
+      req.correlationId
+    );
+  },
+});
+export const publicCaseFormDraftLimiterMiddleware = isTestEnv
+  ? noopLimiter
+  : publicCaseFormDraftLimiter;
+
+export const publicCaseFormSubmitLimiter = rateLimit({
+  windowMs: parseInt(process.env.PUBLIC_CASE_FORM_SUBMIT_RATE_LIMIT_WINDOW_MS || String(15 * 60 * 1000)),
+  max: isTestEnv ? 10000 : parseInt(process.env.PUBLIC_CASE_FORM_SUBMIT_RATE_LIMIT_MAX_REQUESTS || '30'),
+  keyGenerator: (req) => rateLimitKeys.publicCaseFormSubmit(req),
+  skipSuccessfulRequests: false,
+  skip: shouldSkipRateLimit,
+  message: ERROR_MESSAGES.TOO_MANY_REQUESTS,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: buildStore('rl:public-case-form-submit:'),
+  handler: (req, res) => {
+    sendError(
+      res,
+      'rate_limit_exceeded',
+      ERROR_MESSAGES.TOO_MANY_REQUESTS,
+      HTTP_STATUS.TOO_MANY_REQUESTS,
+      buildRetryDetails(req, 'public_case_form_submit'),
+      req.correlationId
+    );
+  },
+});
+export const publicCaseFormSubmitLimiterMiddleware = isTestEnv
+  ? noopLimiter
+  : publicCaseFormSubmitLimiter;
+
+export const publicCaseFormAssetLimiter = rateLimit({
+  windowMs: parseInt(process.env.PUBLIC_CASE_FORM_ASSET_RATE_LIMIT_WINDOW_MS || String(15 * 60 * 1000)),
+  max: isTestEnv ? 10000 : parseInt(process.env.PUBLIC_CASE_FORM_ASSET_RATE_LIMIT_MAX_REQUESTS || '20'),
+  keyGenerator: (req) => rateLimitKeys.publicCaseFormAsset(req),
+  skipSuccessfulRequests: false,
+  skip: shouldSkipRateLimit,
+  message: ERROR_MESSAGES.TOO_MANY_REQUESTS,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: buildStore('rl:public-case-form-asset:'),
+  handler: (req, res) => {
+    sendError(
+      res,
+      'rate_limit_exceeded',
+      ERROR_MESSAGES.TOO_MANY_REQUESTS,
+      HTTP_STATUS.TOO_MANY_REQUESTS,
+      buildRetryDetails(req, 'public_case_form_asset'),
+      req.correlationId
+    );
+  },
+});
+export const publicCaseFormAssetLimiterMiddleware = isTestEnv
+  ? noopLimiter
+  : publicCaseFormAssetLimiter;

@@ -34,6 +34,7 @@ describe('servicesQueries', () => {
 
   it('creates a case service using an existing provider match', async () => {
     query
+      .mockResolvedValueOnce({ rows: [{ account_id: 'account-1' }] })
       .mockResolvedValueOnce({ rows: [{ id: 'provider-1', provider_name: 'Acme Support' }] })
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [{ id: 'service-1' }] })
@@ -60,16 +61,21 @@ describe('servicesQueries', () => {
     });
     expect(query).toHaveBeenNthCalledWith(
       1,
-      expect.stringContaining('FROM external_service_providers'),
-      ['Acme Support']
+      'SELECT account_id FROM cases WHERE id = $1',
+      ['case-1']
     );
     expect(query).toHaveBeenNthCalledWith(
       2,
-      expect.stringContaining('UPDATE external_service_providers'),
-      ['housing', 'user-1', 'provider-1']
+      expect.stringContaining('FROM external_service_providers'),
+      ['Acme Support', 'account-1']
     );
     expect(query).toHaveBeenNthCalledWith(
       3,
+      expect.stringContaining('UPDATE external_service_providers'),
+      ['housing', 'user-1', 'provider-1', 'account-1']
+    );
+    expect(query).toHaveBeenNthCalledWith(
+      4,
       expect.stringContaining('INSERT INTO case_services'),
       [
         'case-1',
@@ -93,6 +99,7 @@ describe('servicesQueries', () => {
 
   it('updates a case service and preserves provider resolution', async () => {
     query
+      .mockResolvedValueOnce({ rows: [{ account_id: 'account-1' }] })
       .mockResolvedValueOnce({ rows: [{ id: 'provider-2', provider_name: 'Bridge Health' }] })
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [{ id: 'service-1' }] })
@@ -116,12 +123,22 @@ describe('servicesQueries', () => {
       external_service_provider_name: 'Bridge Health',
     });
     expect(query).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('FROM case_services cs'),
+      ['service-1']
+    );
+    expect(query).toHaveBeenNthCalledWith(
       2,
-      expect.stringContaining('UPDATE external_service_providers'),
-      ['medical', 'user-2', 'provider-2']
+      expect.stringContaining('FROM external_service_providers'),
+      ['Bridge Health', 'account-1']
     );
     expect(query).toHaveBeenNthCalledWith(
       3,
+      expect.stringContaining('UPDATE external_service_providers'),
+      ['medical', 'user-2', 'provider-2', 'account-1']
+    );
+    expect(query).toHaveBeenNthCalledWith(
+      4,
       expect.stringContaining('UPDATE case_services SET'),
       ['Bridge Health', 'medical', 'completed', 'provider-2', 'service-1']
     );

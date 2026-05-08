@@ -1,5 +1,6 @@
 export interface AppointmentSlot {
   id: string;
+  account_id: string | null;
   pointperson_user_id: string;
   case_id: string | null;
   title: string | null;
@@ -24,6 +25,7 @@ export interface AppointmentSlot {
 
 export interface PortalAppointment {
   id: string;
+  account_id: string | null;
   contact_id: string;
   case_id: string | null;
   pointperson_user_id: string | null;

@@ -420,9 +420,6 @@ export const publicEventRegistrationSchema = z
     email: emailSchema,
     phone: phoneSchema.optional(),
     notes: z.string().max(1000).optional(),
-    registration_status: registrationStatusSchema.optional(),
-    enrollment_scope: eventEnrollmentScopeSchema.optional(),
-    send_confirmation_email: optionalStrictBooleanSchema,
     visitorId: z.string().trim().optional(),
     sessionId: z.string().trim().optional(),
   })

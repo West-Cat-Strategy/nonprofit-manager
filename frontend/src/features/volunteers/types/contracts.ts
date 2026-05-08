@@ -27,6 +27,9 @@ export interface Volunteer {
   background_check_status: (typeof VOLUNTEER_BACKGROUND_CHECK_STATUS_VALUES)[number];
   background_check_date: string | null;
   background_check_expiry: string | null;
+  background_check_approved_by: string | null;
+  background_check_approved_at: string | null;
+  background_check_approval_notes: string | null;
   preferred_roles: string[] | null;
   max_hours_per_week: number | null;
   emergency_contact_name: string | null;
@@ -76,7 +79,26 @@ export interface PaginatedVolunteers {
   };
 }
 
-export type VolunteerMutationInput = Partial<Volunteer>;
+export type EditableVolunteerBackgroundCheckStatus = Exclude<
+  Volunteer['background_check_status'],
+  'approved'
+>;
+export type VolunteerMutationInput = Partial<
+  Omit<
+    Volunteer,
+    | 'background_check_status'
+    | 'background_check_approved_by'
+    | 'background_check_approved_at'
+    | 'background_check_approval_notes'
+  >
+> & {
+  background_check_status?: EditableVolunteerBackgroundCheckStatus;
+};
+export interface VolunteerBackgroundCheckApprovalInput {
+  notes: string;
+  background_check_date: string;
+  background_check_expiry?: string | null;
+}
 export type AssignmentMutationInput = Partial<VolunteerAssignment>;
 
 export interface VolunteersCatalogPort {
@@ -89,6 +111,10 @@ export interface VolunteersCatalogPort {
 export interface VolunteersMutationPort {
   createVolunteer(payload: VolunteerMutationInput): Promise<Volunteer>;
   updateVolunteer(volunteerId: string, payload: VolunteerMutationInput): Promise<Volunteer>;
+  approveVolunteerBackgroundCheck(
+    volunteerId: string,
+    payload: VolunteerBackgroundCheckApprovalInput
+  ): Promise<Volunteer>;
   deleteVolunteer(volunteerId: string): Promise<void>;
   createAssignment(payload: AssignmentMutationInput): Promise<VolunteerAssignment>;
   updateAssignment(assignmentId: string, payload: AssignmentMutationInput): Promise<VolunteerAssignment>;

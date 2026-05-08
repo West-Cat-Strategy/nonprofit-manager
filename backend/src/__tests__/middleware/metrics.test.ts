@@ -85,4 +85,15 @@ describe('metrics middleware', () => {
 
     expect(response.text).toContain('app_info');
   });
+
+  it('fails closed when production metrics key is missing', async () => {
+    process.env.NODE_ENV = 'production';
+    delete process.env.METRICS_AUTH_KEY;
+
+    const app = express();
+    app.use('/metrics', metricsRouter);
+
+    await request(app).get('/metrics').expect(403);
+    await request(app).get('/metrics/json').expect(403);
+  });
 });

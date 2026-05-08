@@ -1,5 +1,11 @@
 import { Router } from 'express';
-import { documentUpload, handleMulterError } from '@middleware/domains/platform';
+import {
+  documentUpload,
+  handleMulterError,
+  publicCaseFormAssetLimiterMiddleware,
+  publicCaseFormDraftLimiterMiddleware,
+  publicCaseFormSubmitLimiterMiddleware,
+} from '@middleware/domains/platform';
 import { validateBody, validateParams } from '@middleware/zodValidation';
 import {
   caseFormAssetUploadSchema,
@@ -20,6 +26,7 @@ export const createPublicCaseFormsRoutes = (): Router => {
   router.get('/:token', validateParams(caseFormTokenParamsSchema), controller.getForm);
   router.post(
     '/:token/assets',
+    publicCaseFormAssetLimiterMiddleware,
     validateParams(caseFormTokenParamsSchema),
     documentUpload.single('file'),
     handleMulterError,
@@ -28,12 +35,14 @@ export const createPublicCaseFormsRoutes = (): Router => {
   );
   router.post(
     '/:token/draft',
+    publicCaseFormDraftLimiterMiddleware,
     validateParams(caseFormTokenParamsSchema),
     validateBody(caseFormDraftSchema),
     controller.saveDraft
   );
   router.post(
     '/:token/submit',
+    publicCaseFormSubmitLimiterMiddleware,
     validateParams(caseFormTokenParamsSchema),
     validateBody(caseFormSubmitSchema),
     controller.submit

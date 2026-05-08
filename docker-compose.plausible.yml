@@ -18,7 +18,7 @@ services:
       start_period: 10s
 
   plausible_events_db:
-    image: clickhouse/clickhouse-server:23.3.7.5-alpine
+    image: clickhouse/clickhouse-server:23.3.7.5-alpine@sha256:181dea4c5e362916f5193c05762eeddafca93c21678ad9e95d4c33f92f3f8b42
     restart: unless-stopped
     expose:
       - "8123"
@@ -33,7 +33,7 @@ services:
         hard: 262144
 
   plausible:
-    image: ghcr.io/plausible/community-edition:v3.1.0
+    image: ghcr.io/plausible/community-edition:v3.1.0@sha256:9703f89e41f7109bda6ae4fc64298474e8bc11f559e791cdda4b04218a92acb1
     restart: unless-stopped
     command: sh -c "/entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
     depends_on:

@@ -3,6 +3,7 @@ import type { AppointmentSlot } from '../portalAppointmentSlotService';
 export const APPOINTMENT_SELECT = `
   SELECT
     a.id,
+    a.account_id,
     a.contact_id,
     a.case_id,
     a.pointperson_user_id,

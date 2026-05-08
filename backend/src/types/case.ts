@@ -62,6 +62,7 @@ export type CaseOutcomeWorkflowStage =
 
 export interface ExternalServiceProvider {
   id: string;
+  account_id?: string | null;
   provider_name: string;
   provider_type?: string | null;
   is_active: boolean;

@@ -69,7 +69,7 @@ help:
 	@echo "  make install-dev    Install dependencies plus git hooks and dev tooling"
 	@echo "  make docker-build   Build backend/frontend Docker images directly"
 	@echo "  make docker-validate Validate both Dockerfiles and workspace dependency stages with clean direct builds"
-	@echo "  make docker-validate-overlays Validate Docker Compose overlays and Caddyfile wiring"
+	@echo "  make docker-validate-overlays Validate Compose image policy, overlays, and Caddyfile wiring"
 	@echo "  make docker-rebuild Rebuild backend/frontend Docker images without cache"
 	@echo "  make dev-lite       Start the lean compose dev stack (API, app, Postgres, Redis)"
 	@echo "  make dev            Start the full compose dev stack, including public-site"

@@ -46,6 +46,10 @@ export const authenticatePortal = async (
       return unauthorized(res, 'Invalid or expired token');
     }
 
+    if ((decoded.authRevision ?? 0) !== Number(profile.auth_revision || 0)) {
+      return unauthorized(res, 'Invalid or expired token');
+    }
+
     req.portalUser = {
       ...decoded,
       id: profile.id,

@@ -7,6 +7,8 @@ import pool from '@config/database';
 import { badRequest, notFoundMessage, serverError } from '@utils/responseHelpers';
 import { sendSuccess } from '@modules/shared/http/envelope';
 
+const getTenantId = (req: AuthRequest): string | null => req.organizationId ?? req.accountId ?? null;
+
 const getRequestUserAgent = (req: AuthRequest): string | null => {
   const userAgent = req.headers['user-agent'];
   if (Array.isArray(userAgent)) {
@@ -36,8 +38,14 @@ export const getExternalServiceProviders = async (req: AuthRequest, res: Respons
         ? query.limit
         : parseInt(String(query.limit ?? ''), 10);
     const limit = Number.isFinite(parsedLimit) ? parsedLimit : 100;
+    const accountId = getTenantId(req);
+    if (!accountId) {
+      badRequest(res, 'Organization context is required');
+      return;
+    }
 
     const providers = await externalServiceProviderService.listProviders({
+      accountId,
       search: query.search,
       provider_type: query.provider_type,
       include_inactive: includeInactive,
@@ -58,8 +66,14 @@ export const createExternalServiceProvider = async (req: AuthRequest, res: Respo
       badRequest(res, 'provider_name is required');
       return;
     }
+    const accountId = getTenantId(req);
+    if (!accountId) {
+      badRequest(res, 'Organization context is required');
+      return;
+    }
 
     const provider = await externalServiceProviderService.createProvider(
+      accountId,
       {
         provider_name,
         provider_type: req.body?.provider_type,
@@ -99,7 +113,13 @@ export const createExternalServiceProvider = async (req: AuthRequest, res: Respo
 export const updateExternalServiceProvider = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
+    const accountId = getTenantId(req);
+    if (!accountId) {
+      badRequest(res, 'Organization context is required');
+      return;
+    }
     const provider = await externalServiceProviderService.updateProvider(
+      accountId,
       id,
       {
         provider_name: req.body?.provider_name,
@@ -140,7 +160,12 @@ export const updateExternalServiceProvider = async (req: AuthRequest, res: Respo
 export const deleteExternalServiceProvider = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const deleted = await externalServiceProviderService.deleteProvider(id);
+    const accountId = getTenantId(req);
+    if (!accountId) {
+      badRequest(res, 'Organization context is required');
+      return;
+    }
+    const deleted = await externalServiceProviderService.deleteProvider(accountId, id);
     if (!deleted) {
       notFoundMessage(res, 'Provider not found');
       return;

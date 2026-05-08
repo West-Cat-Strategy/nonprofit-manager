@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   fetchVolunteerById,
   fetchVolunteerAssignments,
   clearCurrentVolunteer,
+  approveVolunteerBackgroundCheck,
   updateAssignment,
 } from '../state';
 import type { VolunteerAssignment } from '../state';
@@ -42,6 +43,13 @@ const VolunteerDetail = () => {
     date: Date;
     assignments: VolunteerAssignment[];
   } | null>(null);
+  const [approvalForm, setApprovalForm] = useState({
+    notes: '',
+    background_check_date: '',
+    background_check_expiry: '',
+  });
+  const [approvalError, setApprovalError] = useState<string | null>(null);
+  const [isApprovingBackgroundCheck, setIsApprovingBackgroundCheck] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -83,6 +91,7 @@ const VolunteerDetail = () => {
   }
 
   const fullName = `${currentVolunteer.first_name} ${currentVolunteer.last_name}`;
+  const isBackgroundCheckApproved = currentVolunteer.background_check_status === 'approved';
   const activeAssignments = assignments.filter(
     (assignment) => assignment.status === 'scheduled' || assignment.status === 'in_progress'
   );
@@ -95,6 +104,55 @@ const VolunteerDetail = () => {
     { id: 'activity', label: 'Activity' },
   ] as const;
   type VolunteerTab = (typeof tabs)[number]['id'];
+
+  const handleApprovalChange = (
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = event.target;
+    setApprovalForm((current) => ({ ...current, [name]: value }));
+    if (approvalError) {
+      setApprovalError(null);
+    }
+  };
+
+  const handleApproveBackgroundCheck = async (event: FormEvent) => {
+    event.preventDefault();
+
+    const notes = approvalForm.notes.trim();
+    const backgroundCheckDate = approvalForm.background_check_date;
+
+    if (!notes || !backgroundCheckDate) {
+      setApprovalError('Approval notes and approval date are required.');
+      return;
+    }
+
+    setIsApprovingBackgroundCheck(true);
+
+    try {
+      await dispatch(
+        approveVolunteerBackgroundCheck({
+          volunteerId: currentVolunteer.volunteer_id,
+          data: {
+            notes,
+            background_check_date: backgroundCheckDate,
+            ...(approvalForm.background_check_expiry
+              ? { background_check_expiry: approvalForm.background_check_expiry }
+              : {}),
+          },
+        })
+      ).unwrap();
+      setApprovalForm({
+        notes: '',
+        background_check_date: '',
+        background_check_expiry: '',
+      });
+      setApprovalError(null);
+    } catch {
+      setApprovalError('Failed to approve background check. Please try again.');
+    } finally {
+      setIsApprovingBackgroundCheck(false);
+    }
+  };
 
   return (
     <PeopleDetailContainer
@@ -230,6 +288,103 @@ const VolunteerDetail = () => {
                 </p>
               </div>
             </div>
+            {(currentVolunteer.background_check_approved_at ||
+              currentVolunteer.background_check_approval_notes) && (
+              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-app-text-muted">
+                    Approved At
+                  </label>
+                  <p className="mt-1">
+                    {currentVolunteer.background_check_approved_at
+                      ? new Date(currentVolunteer.background_check_approved_at).toLocaleString()
+                      : '-'}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-app-text-muted">
+                    Approval Notes
+                  </label>
+                  <p className="mt-1 text-app-text-muted">
+                    {currentVolunteer.background_check_approval_notes || '-'}
+                  </p>
+                </div>
+              </div>
+            )}
+            {!isBackgroundCheckApproved && (
+              <form
+                aria-label="Background check approval"
+                className="mt-5 rounded-lg border border-app-border bg-app-surface-muted p-4"
+                onSubmit={handleApproveBackgroundCheck}
+              >
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div className="md:col-span-3">
+                    <label
+                      htmlFor="background_check_approval_notes"
+                      className="block text-sm font-medium text-app-text-label"
+                    >
+                      Approval Notes
+                    </label>
+                    <textarea
+                      id="background_check_approval_notes"
+                      name="notes"
+                      rows={3}
+                      value={approvalForm.notes}
+                      onChange={handleApprovalChange}
+                      className="mt-1 block w-full rounded-md border border-app-input-border px-3 py-2 text-sm shadow-sm focus:border-app-accent focus:outline-none focus:ring-app-accent"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="background_check_approval_date"
+                      className="block text-sm font-medium text-app-text-label"
+                    >
+                      Approval Date
+                    </label>
+                    <input
+                      id="background_check_approval_date"
+                      name="background_check_date"
+                      type="date"
+                      value={approvalForm.background_check_date}
+                      onChange={handleApprovalChange}
+                      className="mt-1 block w-full rounded-md border border-app-input-border px-3 py-2 text-sm shadow-sm focus:border-app-accent focus:outline-none focus:ring-app-accent"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="background_check_approval_expiry"
+                      className="block text-sm font-medium text-app-text-label"
+                    >
+                      Expiry Date
+                    </label>
+                    <input
+                      id="background_check_approval_expiry"
+                      name="background_check_expiry"
+                      type="date"
+                      value={approvalForm.background_check_expiry}
+                      onChange={handleApprovalChange}
+                      className="mt-1 block w-full rounded-md border border-app-input-border px-3 py-2 text-sm shadow-sm focus:border-app-accent focus:outline-none focus:ring-app-accent"
+                    />
+                  </div>
+                  <div className="flex items-end justify-start md:justify-end">
+                    <button
+                      type="submit"
+                      disabled={isApprovingBackgroundCheck}
+                      className="rounded-md bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] shadow-sm hover:bg-app-accent-hover disabled:cursor-not-allowed disabled:bg-app-text-subtle"
+                    >
+                      {isApprovingBackgroundCheck
+                        ? 'Approving...'
+                        : 'Approve background check'}
+                    </button>
+                  </div>
+                </div>
+                {approvalError && (
+                  <p className="mt-3 text-sm text-app-accent" role="alert">
+                    {approvalError}
+                  </p>
+                )}
+              </form>
+            )}
           </div>
 
           {/* Emergency Contact */}

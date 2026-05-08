@@ -6,6 +6,9 @@ import {
   approvePortalSignupRequest,
   createPortalInvitation,
   getPortalUserActivity,
+  getPortalAdminAppointmentReminders,
+  listPortalAdminAppointments,
+  listPortalAdminConversations,
   listPortalInvitations,
   listPortalSignupRequests,
   listPortalUsers,
@@ -105,6 +108,18 @@ const mockBadRequest = badRequest as jest.MockedFunction<typeof badRequest>;
 const mockConflict = conflict as jest.MockedFunction<typeof conflict>;
 const mockNotFoundMessage = notFoundMessage as jest.MockedFunction<typeof notFoundMessage>;
 const mockSendSuccess = sendSuccess as jest.MockedFunction<typeof sendSuccess>;
+const portalMessagingService = jest.requireMock('@modules/portal/services/portalMessagingService') as {
+  listStaffThreads: jest.Mock;
+};
+const portalAppointmentSlotService = jest.requireMock(
+  '../../services/portalAppointmentSlotService'
+) as {
+  getAppointmentById: jest.Mock;
+  listAdminAppointments: jest.Mock;
+};
+const appointmentReminderService = jest.requireMock('../../services/appointmentReminderService') as {
+  listAppointmentReminders: jest.Mock;
+};
 
 const createRequest = (overrides: Partial<AuthRequest> = {}): AuthRequest =>
   ({
@@ -642,6 +657,9 @@ describe('portalAdminController account-management flows', () => {
       'portal-user-5',
       'account-1',
     ]);
+    expect(mockQuery.mock.calls[0][0]).toContain(
+      'auth_revision = COALESCE(auth_revision, 0) + 1'
+    );
     expect(mockSendSuccess).toHaveBeenCalledWith(res, {
       message: 'Portal user password updated',
     });
@@ -685,6 +703,83 @@ describe('portalAdminController account-management flows', () => {
 
     expect(mockNotFoundMessage).toHaveBeenCalledWith(res, 'Portal user not found');
     expect(mockSendSuccess).not.toHaveBeenCalled();
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('passes tenant scope into portal admin conversation lists', async () => {
+    const conversations = [{ id: 'thread-1' }];
+    const req = createRequest({
+      validatedQuery: {
+        status: 'open',
+      },
+    });
+    const res = createResponse();
+    const next = createNext();
+
+    portalMessagingService.listStaffThreads.mockResolvedValueOnce(conversations);
+
+    await listPortalAdminConversations(req, res, next);
+
+    expect(portalMessagingService.listStaffThreads).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountId: 'account-1',
+        status: 'open',
+      })
+    );
+    expect(mockSendSuccess).toHaveBeenCalledWith(res, { conversations });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('passes tenant scope into portal admin appointment lists', async () => {
+    const result = { data: [], pagination: { page: 1, limit: 20, total: 0, total_pages: 0 } };
+    const req = createRequest({
+      validatedQuery: {
+        status: 'confirmed',
+      },
+    });
+    const res = createResponse();
+    const next = createNext();
+
+    portalAppointmentSlotService.listAdminAppointments.mockResolvedValueOnce(result);
+
+    await listPortalAdminAppointments(req, res, next);
+
+    expect(portalAppointmentSlotService.listAdminAppointments).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountId: 'account-1',
+        status: 'confirmed',
+      })
+    );
+    expect(mockSendSuccess).toHaveBeenCalledWith(res, result);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('checks tenant scope before listing appointment reminders', async () => {
+    const req = createRequest({
+      params: { id: 'appointment-1' },
+    });
+    const res = createResponse();
+    const next = createNext();
+
+    portalAppointmentSlotService.getAppointmentById.mockResolvedValueOnce({
+      id: 'appointment-1',
+    });
+    appointmentReminderService.listAppointmentReminders.mockResolvedValueOnce({
+      jobs: [],
+      deliveries: [],
+    });
+
+    await getPortalAdminAppointmentReminders(req, res, next);
+
+    expect(portalAppointmentSlotService.getAppointmentById).toHaveBeenCalledWith(
+      'appointment-1',
+      'account-1'
+    );
+    expect(appointmentReminderService.listAppointmentReminders).toHaveBeenCalledWith(
+      'appointment-1',
+      'account-1'
+    );
+    expect(mockSendSuccess).toHaveBeenCalledWith(res, { jobs: [], deliveries: [] });
     expect(next).not.toHaveBeenCalled();
   });
 });

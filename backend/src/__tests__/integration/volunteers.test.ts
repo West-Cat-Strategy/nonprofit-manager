@@ -490,6 +490,72 @@ describe('Volunteer API Integration Tests', () => {
     });
   });
 
+  describe('POST /api/v2/volunteers/:id/background-check/approve', () => {
+    it('approves a background check through the dedicated endpoint with notes and approval date', async () => {
+      const createContactResponse = await request(app)
+        .post('/api/v2/contacts')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          account_id: testAccountId,
+          first_name: 'BG',
+          last_name: 'ApprovalFlow',
+          email: `bg-approval-flow-${unique()}@example.com`,
+        });
+
+      const createdContact = unwrap<{ contact_id?: string; id?: string }>(
+        createContactResponse.body
+      );
+      const contactId = createdContact.contact_id ?? createdContact.id;
+      if (!contactId) {
+        throw new Error('Failed to create background approval flow test contact');
+      }
+
+      const createResponse = await request(app)
+        .post('/api/v2/volunteers')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          contact_id: contactId,
+          skills: ['Screening'],
+          background_check_status: 'pending',
+        })
+        .expect(201);
+
+      const createdVolunteer = unwrap<{ volunteer_id?: string; id?: string }>(
+        createResponse.body
+      );
+      const volunteerId = createdVolunteer.volunteer_id ?? createdVolunteer.id;
+      if (!volunteerId) {
+        throw new Error('Failed to create background approval flow test volunteer');
+      }
+
+      const response = await request(app)
+        .post(`/api/v2/volunteers/${volunteerId}/background-check/approve`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          notes: 'Cleared by staff after reviewing the vendor report.',
+          background_check_date: '2026-05-06',
+          background_check_expiry: '2027-05-06',
+        })
+        .expect(200);
+
+      const approvedVolunteer = unwrap<{
+        background_check_status: string;
+        background_check_date?: string;
+        background_check_expiry?: string;
+        background_check_approved_by?: string;
+        background_check_approval_notes?: string;
+      }>(response.body);
+
+      expect(approvedVolunteer.background_check_status).toBe('approved');
+      expect(approvedVolunteer.background_check_approval_notes).toBe(
+        'Cleared by staff after reviewing the vendor report.'
+      );
+      expect(approvedVolunteer.background_check_approved_by).toBe(userId);
+      expect(String(approvedVolunteer.background_check_date)).toContain('2026-05-06');
+      expect(String(approvedVolunteer.background_check_expiry)).toContain('2027-05-06');
+    });
+  });
+
   describe('DELETE /api/v2/volunteers/:id', () => {
     it('should soft delete a volunteer', async () => {
       const createContactResponse = await request(app)

@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { volunteersApiClient } from '../api/volunteersApiClient';
 import type {
   Volunteer,
+  VolunteerBackgroundCheckApprovalInput,
   VolunteerMutationInput,
 } from '../types/contracts';
 
@@ -35,6 +36,19 @@ export const updateVolunteer = createAsyncThunk(
   'volunteersCore/updateVolunteer',
   async ({ volunteerId, data }: { volunteerId: string; data: VolunteerMutationInput }) => {
     return volunteersApiClient.updateVolunteer(volunteerId, data);
+  }
+);
+
+export const approveVolunteerBackgroundCheck = createAsyncThunk(
+  'volunteersCore/approveVolunteerBackgroundCheck',
+  async ({
+    volunteerId,
+    data,
+  }: {
+    volunteerId: string;
+    data: VolunteerBackgroundCheckApprovalInput;
+  }) => {
+    return volunteersApiClient.approveVolunteerBackgroundCheck(volunteerId, data);
   }
 );
 
@@ -95,6 +109,17 @@ const volunteersCoreSlice = createSlice({
       .addCase(updateVolunteer.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Failed to update volunteer';
+      })
+      .addCase(approveVolunteerBackgroundCheck.pending, (state) => {
+        state.error = null;
+      })
+      .addCase(approveVolunteerBackgroundCheck.fulfilled, (state, action) => {
+        if (state.currentVolunteer?.volunteer_id === action.payload.volunteer_id) {
+          state.currentVolunteer = action.payload;
+        }
+      })
+      .addCase(approveVolunteerBackgroundCheck.rejected, (state, action) => {
+        state.error = action.error.message || 'Failed to approve background check';
       })
       .addCase(deleteVolunteer.fulfilled, (state, action) => {
         if (state.currentVolunteer?.volunteer_id === action.payload) {

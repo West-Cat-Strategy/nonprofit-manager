@@ -4,6 +4,7 @@ import { logger } from '@config/logger';
 import type { ExternalServiceProvider } from '@app-types/case';
 
 interface ListOptions {
+  accountId: string;
   search?: string;
   provider_type?: string;
   limit?: number;
@@ -31,9 +32,9 @@ export class ExternalServiceProviderService {
     return name.trim().replace(/\s+/g, ' ');
   }
 
-  async listProviders(options: ListOptions = {}): Promise<ExternalServiceProvider[]> {
-    const filters: string[] = [];
-    const params: unknown[] = [];
+  async listProviders(options: ListOptions): Promise<ExternalServiceProvider[]> {
+    const filters: string[] = ['esp.account_id = $1'];
+    const params: unknown[] = [options.accountId];
 
     if (options.search?.trim()) {
       params.push(`%${options.search.trim()}%`);
@@ -58,10 +59,12 @@ export class ExternalServiceProviderService {
       `
       SELECT
         esp.*,
-        COUNT(cs.id)::int AS attached_services_count,
-        COUNT(DISTINCT cs.case_id)::int AS attached_cases_count
+        COUNT(cs.id) FILTER (WHERE linked_case.id IS NOT NULL)::int AS attached_services_count,
+        COUNT(DISTINCT cs.case_id) FILTER (WHERE linked_case.id IS NOT NULL)::int AS attached_cases_count
       FROM external_service_providers esp
       LEFT JOIN case_services cs ON cs.external_service_provider_id = esp.id
+      LEFT JOIN cases linked_case ON linked_case.id = cs.case_id
+        AND linked_case.account_id = esp.account_id
       ${whereClause}
       GROUP BY esp.id
       ORDER BY esp.provider_name ASC
@@ -73,16 +76,21 @@ export class ExternalServiceProviderService {
     return result.rows;
   }
 
-  async createProvider(data: CreateExternalServiceProviderDTO, userId?: string): Promise<ExternalServiceProvider> {
+  async createProvider(
+    accountId: string,
+    data: CreateExternalServiceProviderDTO,
+    userId?: string
+  ): Promise<ExternalServiceProvider> {
     const normalizedName = this.normalizeProviderName(data.provider_name);
     const existing = await this.pool.query(
       `
       SELECT id
       FROM external_service_providers
       WHERE LOWER(BTRIM(provider_name)) = LOWER(BTRIM($1))
+        AND account_id = $2
       LIMIT 1
     `,
-      [normalizedName]
+      [normalizedName, accountId]
     );
 
     if (existing.rows[0]) {
@@ -91,11 +99,14 @@ export class ExternalServiceProviderService {
 
     const result = await this.pool.query(
       `
-      INSERT INTO external_service_providers (provider_name, provider_type, notes, is_active, created_by, modified_by)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO external_service_providers (
+        account_id, provider_name, provider_type, notes, is_active, created_by, modified_by
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `,
       [
+        accountId,
         normalizedName,
         data.provider_type?.trim() || null,
         data.notes?.trim() || null,
@@ -109,7 +120,12 @@ export class ExternalServiceProviderService {
     return result.rows[0];
   }
 
-  async updateProvider(id: string, data: UpdateExternalServiceProviderDTO, userId?: string): Promise<ExternalServiceProvider | null> {
+  async updateProvider(
+    accountId: string,
+    id: string,
+    data: UpdateExternalServiceProviderDTO,
+    userId?: string
+  ): Promise<ExternalServiceProvider | null> {
     const fields: string[] = [];
     const values: unknown[] = [];
     let idx = 1;
@@ -141,20 +157,28 @@ export class ExternalServiceProviderService {
     fields.push(`modified_by = $${idx++}`);
     values.push(userId || null);
 
-    values.push(id);
+    values.push(id, accountId);
 
     const result = await this.pool.query(
-      `UPDATE external_service_providers SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE external_service_providers
+       SET ${fields.join(', ')}
+       WHERE id = $${idx}
+         AND account_id = $${idx + 1}
+       RETURNING *`,
       values
     );
 
     return result.rows[0] || null;
   }
 
-  async deleteProvider(id: string): Promise<boolean> {
+  async deleteProvider(accountId: string, id: string): Promise<boolean> {
     const result = await this.pool.query(
-      `UPDATE external_service_providers SET is_active = false WHERE id = $1 RETURNING id`,
-      [id]
+      `UPDATE external_service_providers
+       SET is_active = false
+       WHERE id = $1
+         AND account_id = $2
+       RETURNING id`,
+      [id, accountId]
     );
     return Boolean(result.rows[0]);
   }

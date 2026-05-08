@@ -33,6 +33,9 @@
     "path-to-regexp": "^8.4.0",
     "postcss": "^8.5.14",
     "rollup": "^4.59.0",
+    "express-rate-limit": {
+      "ip-address": "10.1.1"
+    },
     "test-exclude": {
       "minimatch": "3.1.5"
     },
@@ -49,6 +52,7 @@
     "vite": "^8.0.10"
   },
   "devDependencies": {
+    "express-rate-limit": "8.5.0",
     "knip": "^6.11.0",
     "yaml": "^2.8.3"
   }

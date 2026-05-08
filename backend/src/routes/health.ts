@@ -8,6 +8,7 @@ import { Pool } from 'pg';
 import { getRedisClient } from '@config/redis';
 import { logger } from '@config/logger';
 import { errorPayload, forbidden } from '@utils/responseHelpers';
+import { singleHeaderValue, timingSafeEqualString } from '@utils/constantTime';
 
 const router = Router();
 
@@ -158,8 +159,9 @@ router.get('/ready', async (_req: Request, res: Response) => {
 router.get('/detailed', async (req: Request, res: Response) => {
   // In production, require auth header or internal network
   if (process.env.NODE_ENV === 'production') {
-    const authHeader = req.headers['x-health-check-key'];
-    if (authHeader !== process.env.HEALTH_CHECK_KEY) {
+    const expectedKey = process.env.HEALTH_CHECK_KEY?.trim();
+    const authHeader = singleHeaderValue(req.headers['x-health-check-key']);
+    if (!expectedKey || !authHeader || !timingSafeEqualString(authHeader, expectedKey)) {
       forbidden(res, 'Forbidden');
       return;
     }

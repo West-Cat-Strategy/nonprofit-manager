@@ -2,8 +2,10 @@ import { Response, NextFunction } from 'express';
 import { services } from '@container/services';
 import { AuthRequest } from '@middleware/auth';
 import { logger } from '@config/logger';
+import { badRequest, forbidden } from '@utils/responseHelpers';
 
 const backupService = services.backup;
+export const CONFIRM_SECRETS_EXPORT_PHRASE = 'EXPORT_UNREDACTED_BACKUP';
 
 /**
  * POST /api/backup/export
@@ -20,6 +22,21 @@ export const exportBackup = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    if (req.body?.include_secrets === true) {
+      if (process.env.BACKUP_INCLUDE_SECRETS_ENABLED !== 'true') {
+        forbidden(res, 'Secret-bearing backup exports are disabled');
+        return;
+      }
+
+      if (req.body?.confirm_secrets_export !== CONFIRM_SECRETS_EXPORT_PHRASE) {
+        badRequest(
+          res,
+          `confirm_secrets_export must exactly equal "${CONFIRM_SECRETS_EXPORT_PHRASE}" when include_secrets is true`
+        );
+        return;
+      }
+    }
+
     const filepath = await backupService.createBackupFile({
       filename: req.body?.filename,
       includeSecrets: Boolean(req.body?.include_secrets),

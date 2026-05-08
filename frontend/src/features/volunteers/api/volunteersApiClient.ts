@@ -3,6 +3,7 @@ import type {
   AssignmentMutationInput,
   PaginatedVolunteers,
   Volunteer,
+  VolunteerBackgroundCheckApprovalInput,
   VolunteerAssignment,
   VolunteerMutationInput,
   VolunteersCatalogPort,
@@ -48,6 +49,17 @@ export class VolunteersApiClient implements VolunteersCatalogPort, VolunteersMut
 
   async updateVolunteer(volunteerId: string, payload: VolunteerMutationInput): Promise<Volunteer> {
     const response = await api.put<Volunteer>(`/v2/volunteers/${volunteerId}`, payload);
+    return response.data;
+  }
+
+  async approveVolunteerBackgroundCheck(
+    volunteerId: string,
+    payload: VolunteerBackgroundCheckApprovalInput
+  ): Promise<Volunteer> {
+    const response = await api.post<Volunteer>(
+      `/v2/volunteers/${volunteerId}/background-check/approve`,
+      payload
+    );
     return response.data;
   }
 

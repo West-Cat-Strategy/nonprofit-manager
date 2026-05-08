@@ -13,7 +13,11 @@ import {
   openPortalRealtimeStream,
 } from '@services/portalRealtimeService';
 import { badRequest, notFoundMessage } from '@utils/responseHelpers';
-import { ensurePortalAdmin, getPortalAdminQuery } from './portalAdminController.shared';
+import {
+  ensurePortalAdmin,
+  getPortalAdminQuery,
+  getPortalAdminTenantId,
+} from './portalAdminController.shared';
 
 export const listPortalAdminConversations = async (
   req: AuthRequest,
@@ -31,8 +35,10 @@ export const listPortalAdminConversations = async (
       limit?: number;
       offset?: number;
     }>(req);
+    const tenantId = getPortalAdminTenantId(req);
 
     const conversations = await listStaffThreads({
+      accountId: tenantId,
       status: query.status,
       caseId: query.case_id,
       pointpersonUserId: query.pointperson_user_id,
@@ -56,14 +62,15 @@ export const getPortalAdminConversation = async (
     if (!ensurePortalAdmin(req, res)) return;
 
     const { threadId } = req.params;
-    const conversation = await getStaffThread(threadId);
+    const tenantId = getPortalAdminTenantId(req);
+    const conversation = await getStaffThread(threadId, tenantId);
 
     if (!conversation) {
       notFoundMessage(res, 'Conversation not found');
       return;
     }
 
-    await markStaffThreadRead(threadId);
+    await markStaffThreadRead(threadId, tenantId);
     sendSuccess(res, conversation);
   } catch (error) {
     next(error);
@@ -79,13 +86,14 @@ export const replyPortalAdminConversation = async (
     if (!ensurePortalAdmin(req, res)) return;
 
     const { threadId } = req.params;
+    const tenantId = getPortalAdminTenantId(req);
     const { message, is_internal } = req.body as {
       message: string;
       client_message_id?: string;
       is_internal?: boolean;
     };
 
-    const existing = await getStaffThread(threadId);
+    const existing = await getStaffThread(threadId, tenantId);
     if (!existing) {
       notFoundMessage(res, 'Conversation not found');
       return;
@@ -99,12 +107,13 @@ export const replyPortalAdminConversation = async (
     const created = await addStaffMessage({
       threadId,
       senderUserId: req.user!.id,
+      accountId: tenantId,
       messageText: message,
       isInternal: Boolean(is_internal),
       clientMessageId: (req.body.client_message_id as string | undefined) ?? undefined,
     });
 
-    await markStaffThreadRead(threadId);
+    await markStaffThreadRead(threadId, tenantId);
     sendSuccess(res, { message: created }, 201);
   } catch (error) {
     next(error);
@@ -120,6 +129,7 @@ export const updatePortalAdminConversation = async (
     if (!ensurePortalAdmin(req, res)) return;
 
     const { threadId } = req.params;
+    const tenantId = getPortalAdminTenantId(req);
     const status =
       req.body.status === 'open' || req.body.status === 'closed' || req.body.status === 'archived'
         ? req.body.status
@@ -145,6 +155,7 @@ export const updatePortalAdminConversation = async (
       subject,
       actorType: 'staff',
       closedBy: status === 'closed' ? req.user!.id : null,
+      accountId: tenantId,
     });
 
     if (!updated) {

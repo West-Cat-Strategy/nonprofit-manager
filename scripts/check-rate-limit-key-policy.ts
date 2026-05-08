@@ -17,6 +17,16 @@ const sourceFiles = walkFiles(path.join(repoRoot, 'backend/src'), {
 const issues = [];
 let expectedFileHits = 0;
 
+const rateLimitKeyFile = path.join(repoRoot, 'backend/src/utils/rateLimitKeys.ts');
+const rateLimitKeySource = readText(rateLimitKeyFile);
+for (const headerName of ['x-organization-id', 'x-account-id', 'x-tenant-id']) {
+  if (rateLimitKeySource.includes(headerName)) {
+    issues.push(
+      `${relativeToRepo(rateLimitKeyFile)} reads caller-controlled ${headerName} when building rate-limit keys`
+    );
+  }
+}
+
 for (const filePath of sourceFiles) {
   const text = readText(filePath);
   const keyGeneratorMatches = [...text.matchAll(/keyGenerator\s*:/g)];

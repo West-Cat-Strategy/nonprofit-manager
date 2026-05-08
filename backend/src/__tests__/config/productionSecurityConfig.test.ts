@@ -8,12 +8,18 @@ describe('validateProductionSecurityConfig', () => {
     '0011223344556677',
   ].join('');
   const trackedExampleEncryptionKey = `${'1'.repeat(32)}${'2'.repeat(32)}`;
+  const stripeKey = (prefix: string, mode: string, value: string): string =>
+    `${prefix}_${mode}_${value}`;
 
   const baseEnv = {
     NODE_ENV: 'production',
     JWT_SECRET: 'super-secure-production-ready-jwt-secret-at-least-32-chars',
     CSRF_SECRET: 'super-secure-production-ready-csrf-secret-at-least-32-chars',
-    STRIPE_WEBHOOK_SECRET: 'whsec_live_webhook_secret',
+    HEALTH_CHECK_KEY: 'super-secure-production-health-key-at-least-32-chars',
+    METRICS_AUTH_KEY: 'super-secure-production-metrics-key-at-least-32-chars',
+    STRIPE_SECRET_KEY: stripeKey('sk', 'live', 'productionreadysecretkey'),
+    STRIPE_PUBLISHABLE_KEY: stripeKey('pk', 'live', 'productionreadypublishablekey'),
+    STRIPE_WEBHOOK_SECRET: stripeKey('whsec', 'live', 'webhook_secret'),
     ENCRYPTION_KEY: validProductionEncryptionKey,
     DB_PASSWORD: 'super-secret-db-password',
     PAYPAL_CLIENT_ID: 'paypal-client-id',
@@ -53,6 +59,65 @@ describe('validateProductionSecurityConfig', () => {
     expect(result.errors).toContain(
       'ENCRYPTION_KEY is set to the tracked example key; generate a unique 64-character hex key for production'
     );
+  });
+
+  it('treats weak production JWT, CSRF, health, and metrics keys as fatal', () => {
+    const result = validateProductionSecurityConfig({
+      ...baseEnv,
+      JWT_SECRET: 'dev-jwt-secret',
+      CSRF_SECRET: 'change-me',
+      HEALTH_CHECK_KEY: 'health-placeholder',
+      METRICS_AUTH_KEY: '',
+      DB_HOST: 'prod-db.example.com',
+      DB_AT_REST_ENCRYPTION_MODE: 'managed',
+      DB_AT_REST_PROVIDER: 'rds',
+      DB_AT_REST_VERIFIED: 'true',
+    });
+
+    expect(result.fatalErrors).toEqual(
+      expect.arrayContaining([
+        'JWT_SECRET must be at least 32 characters and must not contain placeholder, dev, test, example, or change-me values in production',
+        'CSRF_SECRET must be at least 32 characters and must not contain placeholder, dev, test, example, or change-me values in production',
+        'HEALTH_CHECK_KEY must be at least 32 characters and must not contain placeholder, dev, test, example, or change-me values in production',
+        'METRICS_AUTH_KEY must be set in production',
+      ])
+    );
+  });
+
+  it('fails only configured Stripe production keys that are incomplete or non-live', () => {
+    const result = validateProductionSecurityConfig({
+      ...baseEnv,
+      STRIPE_SECRET_KEY: stripeKey('sk', 'test', 'not_allowed'),
+      STRIPE_PUBLISHABLE_KEY: '',
+      STRIPE_WEBHOOK_SECRET: stripeKey('whsec', 'test', 'placeholder'),
+      DB_HOST: 'prod-db.example.com',
+      DB_AT_REST_ENCRYPTION_MODE: 'managed',
+      DB_AT_REST_PROVIDER: 'rds',
+      DB_AT_REST_VERIFIED: 'true',
+    });
+
+    expect(result.fatalErrors).toEqual(
+      expect.arrayContaining([
+        'STRIPE_SECRET_KEY must be a live Stripe secret key when Stripe is configured in production',
+        'STRIPE_PUBLISHABLE_KEY must be a live Stripe publishable key when Stripe is configured in production',
+        'STRIPE_WEBHOOK_SECRET must be an actual Stripe webhook secret when Stripe is configured in production',
+      ])
+    );
+  });
+
+  it('allows production without Stripe keys when Stripe is not configured', () => {
+    const result = validateProductionSecurityConfig({
+      ...baseEnv,
+      STRIPE_SECRET_KEY: '',
+      STRIPE_PUBLISHABLE_KEY: '',
+      STRIPE_WEBHOOK_SECRET: '',
+      DB_HOST: 'prod-db.example.com',
+      DB_AT_REST_ENCRYPTION_MODE: 'managed',
+      DB_AT_REST_PROVIDER: 'rds',
+      DB_AT_REST_VERIFIED: 'true',
+    });
+
+    expect(result.fatalErrors).toEqual([]);
   });
 
   it('fails when managed configuration is missing provider and verification attestation', () => {

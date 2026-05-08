@@ -13,6 +13,7 @@ const PORTAL_PASSWORD_RESET_CONFIG: PasswordResetCoreConfig = {
   ownerColumn: 'portal_user_id',
   userTable: 'portal_users',
   logContextKey: 'portalUserId',
+  bumpAuthRevisionOnReset: true,
 };
 
 export async function requestPortalPasswordReset(email: string): Promise<void> {

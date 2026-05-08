@@ -4,6 +4,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { createVolunteer, updateVolunteer } from '../features/volunteers/state';
 import { fetchContacts } from '../features/contacts/state';
 import type { Volunteer as StoreVolunteer } from '../features/volunteers/state';
+import type { VolunteerMutationInput } from '../features/volunteers/types/contracts';
 import { useUnsavedChangesGuard } from '../hooks/useUnsavedChangesGuard';
 
 type Volunteer = Partial<StoreVolunteer> & Pick<StoreVolunteer, 'contact_id' | 'skills' | 'availability_status' | 'background_check_status'>;
@@ -12,6 +13,21 @@ interface VolunteerFormProps {
   volunteer?: Volunteer;
   mode: 'create' | 'edit';
 }
+
+const editableBackgroundCheckStatuses = [
+  'not_required',
+  'pending',
+  'in_progress',
+  'rejected',
+  'expired',
+] as const;
+
+const isEditableBackgroundCheckStatus = (
+  status: Volunteer['background_check_status']
+): status is (typeof editableBackgroundCheckStatuses)[number] =>
+  editableBackgroundCheckStatuses.includes(
+    status as (typeof editableBackgroundCheckStatuses)[number]
+  );
 
 export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode }) => {
   const navigate = useNavigate();
@@ -167,9 +183,13 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
 
     try {
       // Clean up the data
-      const cleanedData: Partial<Volunteer> = {
-        ...formData,
+      const cleanedData: VolunteerMutationInput = {
         contact_id: formData.contact_id || undefined,
+        skills: formData.skills,
+        availability_status: formData.availability_status,
+        ...(isEditableBackgroundCheckStatus(formData.background_check_status)
+          ? { background_check_status: formData.background_check_status }
+          : {}),
         availability_notes: formData.availability_notes || undefined,
         background_check_date: formData.background_check_date || undefined,
         background_check_expiry: formData.background_check_expiry || undefined,
@@ -181,6 +201,7 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
         emergency_contact_name: formData.emergency_contact_name || undefined,
         emergency_contact_phone: formData.emergency_contact_phone || undefined,
         emergency_contact_relationship: formData.emergency_contact_relationship || undefined,
+        is_active: formData.is_active,
       };
 
       if (mode === 'create') {
@@ -398,6 +419,9 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
         <h2 className="text-lg font-medium text-app-text-heading mb-4">Background Check</h2>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div>
+            {formData.background_check_status === 'approved' && (
+              <p className="mb-2 text-sm font-medium text-app-text">Current status: Approved</p>
+            )}
             <label
               htmlFor="background_check_status"
               className="block text-sm font-medium text-app-text-label"
@@ -407,14 +431,20 @@ export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode })
             <select
               name="background_check_status"
               id="background_check_status"
-              value={formData.background_check_status}
+              value={
+                isEditableBackgroundCheckStatus(formData.background_check_status)
+                  ? formData.background_check_status
+                  : ''
+              }
               onChange={handleChange}
               className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
             >
+              <option value="" disabled>
+                Select status
+              </option>
               <option value="not_required">Not Required</option>
               <option value="pending">Pending</option>
               <option value="in_progress">In Progress</option>
-              <option value="approved">Approved</option>
               <option value="rejected">Rejected</option>
               <option value="expired">Expired</option>
             </select>

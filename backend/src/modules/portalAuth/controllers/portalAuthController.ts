@@ -44,7 +44,12 @@ const mapPortalSessionUser = (user: {
   contactId: user.contact_id ?? user.contactId ?? null,
 });
 
-const buildPortalToken = (payload: { id: string; email: string; contactId: string | null }) => {
+const buildPortalToken = (payload: {
+  id: string;
+  email: string;
+  contactId: string | null;
+  authRevision?: number;
+}) => {
   return issuePortalSessionToken(payload);
 };
 
@@ -148,7 +153,12 @@ export const portalLogin = async (
       userAgent: req.headers['user-agent'] || null,
     });
 
-    const token = buildPortalToken({ id: user.id, email: user.email, contactId: user.contact_id });
+    const token = buildPortalToken({
+      id: user.id,
+      email: user.email,
+      contactId: user.contact_id,
+      authRevision: user.auth_revision,
+    });
 
     // Set HTTP-only cookie instead of returning token in JSON
     setPortalAuthCookie(res, token);
@@ -355,6 +365,7 @@ export const acceptPortalInvitation = async (
       id: portalUser.id,
       email: portalUser.email,
       contactId: portalUser.contact_id,
+      authRevision: portalUser.auth_revision,
     });
 
     // Prefer secure cookie-based session. Keep optional token in body only when explicitly enabled.

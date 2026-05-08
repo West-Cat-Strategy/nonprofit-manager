@@ -1,7 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { VolunteerForm } from '../VolunteerForm';
 import { renderWithProviders, createTestStore } from '../../test/testUtils';
+import { volunteersApiClient } from '../../features/volunteers/api/volunteersApiClient';
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -20,6 +21,10 @@ const renderVolunteerForm = (component: React.ReactElement) => {
 describe('VolunteerForm', () => {
   beforeEach(() => {
     mockNavigate.mockClear();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   describe('Create Mode', () => {
@@ -150,6 +155,36 @@ describe('VolunteerForm', () => {
         expect(screen.getByText('Teaching')).toBeInTheDocument();
       });
     });
+
+    it('omits an existing approved background check from generic edit submissions', async () => {
+      const updatedVolunteer = {
+        ...mockVolunteer,
+        background_check_expiry: null,
+        background_check_approved_by: 'staff-1',
+        background_check_approved_at: '2026-01-15T12:00:00.000Z',
+        background_check_approval_notes: 'Cleared by prior approval.',
+        preferred_roles: null,
+        max_hours_per_week: null,
+        emergency_contact_relationship: null,
+        volunteer_since: '2026-01-15',
+        total_hours_logged: 0,
+        created_at: '2026-01-15T12:00:00.000Z',
+        updated_at: '2026-01-15T12:00:00.000Z',
+      } as Awaited<ReturnType<typeof volunteersApiClient.updateVolunteer>>;
+      const updateVolunteerSpy = vi
+        .spyOn(volunteersApiClient, 'updateVolunteer')
+        .mockResolvedValue(updatedVolunteer);
+
+      renderVolunteerForm(<VolunteerForm mode="edit" volunteer={mockVolunteer} />);
+      fireEvent.click(screen.getByRole('button', { name: /update volunteer/i }));
+
+      await waitFor(() => {
+        expect(updateVolunteerSpy).toHaveBeenCalled();
+      });
+      expect(updateVolunteerSpy.mock.calls[0][1]).not.toHaveProperty(
+        'background_check_status'
+      );
+    });
   });
 
   describe('Availability Status Selection', () => {
@@ -179,12 +214,15 @@ describe('VolunteerForm', () => {
   });
 
   describe('Background Check', () => {
-    it('allows selecting background check status', () => {
+    it('allows selecting non-approved background check status only', () => {
       renderVolunteerForm(<VolunteerForm mode="create" />);
 
       const bgCheckSelect = screen.getByLabelText(/background check status/i) as HTMLSelectElement;
-      fireEvent.change(bgCheckSelect, { target: { value: 'approved' } });
-      expect(bgCheckSelect.value).toBe('approved');
+      const optionValues = Array.from(bgCheckSelect.options).map((option) => option.value);
+
+      expect(optionValues).not.toContain('approved');
+      fireEvent.change(bgCheckSelect, { target: { value: 'in_progress' } });
+      expect(bgCheckSelect.value).toBe('in_progress');
     });
 
     it('allows entering background check date', () => {
