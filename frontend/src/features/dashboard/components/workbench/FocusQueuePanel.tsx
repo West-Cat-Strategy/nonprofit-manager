@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppSelector } from '../../../../store/hooks';
-import { queueViewsApiClient } from '../../../cases/api/queueViewsApiClient';
-import type { QueueViewDefinition } from '../../../cases/api/queueViewsApiClient';
+import { queueViewsApiClient } from '../../../queueViews/api/queueViewsApiClient';
+import type { QueueViewDefinition } from '../../../queueViews/api/queueViewsApiClient';
 import { dashboardApiClient } from '../../api/dashboardApiClient';
 import type { DashboardWorkqueueSummaryCard } from '../../api/dashboardApiClient';
 import {

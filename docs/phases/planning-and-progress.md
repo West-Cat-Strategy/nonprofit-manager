@@ -9,9 +9,9 @@ Use this file only for live tracked work. Historical phase closeouts, earlier wo
 | Snapshot | Value |
 |---|---:|
 | Current phase | Phase 5 - Email, Website, Portal, and Reliability |
-| Active rows | 25 |
+| Active rows | 26 |
 | In Progress | 0 |
-| Review | 24 |
+| Review | 25 |
 | Ready | 0 |
 | Blocked | 1 |
 | Phase 4 carry-over rows | 0 |
@@ -32,6 +32,7 @@ Use this file only for live tracked work. Historical phase closeouts, earlier wo
 
 | Status | ID | Task | Immediate Next Move | Evidence |
 |---|---|---|---|---|
+| Review | P5-T91 | Full-stack queue-view modularity refactor | Review behavior-preserving queue-view modularity proof: backend implementation moved to shared module resources, frontend API/types moved to a canonical feature resource, and compatibility re-exports preserve existing imports. | [../validation/P5-T91_QUEUE_VIEW_MODULARITY_PROOF_2026-05-08.md](../validation/P5-T91_QUEUE_VIEW_MODULARITY_PROOF_2026-05-08.md) |
 | Review | P5-T86 | Security remediation: tenant/session boundaries | Review tenant-scope and portal session-revision proof for external service providers, portal conversations, portal appointments/reminders, and portal password resets. | [../validation/P5-T86_T89_SECURITY_REMEDIATION_PROOF_2026-05-06.md](../validation/P5-T86_T89_SECURITY_REMEDIATION_PROOF_2026-05-06.md) |
 | Review | P5-T87 | Security remediation: public ingress, rate limits, and validation | Review fail-closed public/provider ingress, non-caller-controlled rate-limit buckets, and public/staff boundary validation proof. | [../validation/P5-T86_T89_SECURITY_REMEDIATION_PROOF_2026-05-06.md](../validation/P5-T86_T89_SECURITY_REMEDIATION_PROOF_2026-05-06.md) |
 | Review | P5-T88 | Security remediation: production secrets, redaction, backups, health/metrics, and scans | Review production secret policy, token redaction, guarded backup export, health/metrics protection, browser diagnostic redaction, and history-aware secret-scan proof. | [../validation/P5-T86_T89_SECURITY_REMEDIATION_PROOF_2026-05-06.md](../validation/P5-T86_T89_SECURITY_REMEDIATION_PROOF_2026-05-06.md) |
@@ -70,6 +71,7 @@ No row is currently ready.
 - `P5-T6` remains the backlog-scope gate. Treat all future product expansion as new signed-out rows unless this board explicitly says otherwise.
 - `P5-T86` through `P5-T89` are in review with focused security validation recorded, separate from `P5-T79` through `P5-T85` review proof; the deferred Docker CI/audit follow-up for `P5-T85` is now recorded in review.
 - `P5-T90` is in validation/signoff review and stays scoped to volunteer staff background-check approval follow-up.
+- `P5-T91` is in review with focused backend/frontend queue-view behavior proof plus root lint, typecheck, docs link, and diff checks recorded.
 
 ## Status Keys
 

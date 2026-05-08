@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { CaseFilter, CasePriority } from '../../../types/case';
 import type { CaseListFilterOverrides, QuickFilter } from './useCaseListQueryState';
-import { queueViewsApiClient } from '../api/queueViewsApiClient';
-import type { QueueViewDefinition } from '../api/queueViewsApiClient';
+import { queueViewsApiClient } from '../../queueViews/api/queueViewsApiClient';
+import type { QueueViewDefinition } from '../../queueViews/api/queueViewsApiClient';
 
 export interface SavedCaseView {
   id: string;

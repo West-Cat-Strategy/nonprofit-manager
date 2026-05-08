@@ -118,7 +118,7 @@ vi.mock('../../../../contexts/useToast', () => ({
   useToast: () => ({ showSuccess: vi.fn(), showError: vi.fn() }),
 }));
 
-vi.mock('../../api/queueViewsApiClient', () => ({
+vi.mock('../../../queueViews/api/queueViewsApiClient', () => ({
   queueViewsApiClient: {
     listQueueViews: (...args: unknown[]) => listQueueViewsMock(...args),
     saveQueueView: (...args: unknown[]) => saveQueueViewMock(...args),

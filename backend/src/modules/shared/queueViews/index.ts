@@ -5,7 +5,7 @@ export {
   listQueueViewDefinitions,
   queueViewDefinitionService,
   upsertQueueViewDefinition,
-} from '@modules/shared/queueViews/queueViewDefinitionService';
+} from './queueViewDefinitionService';
 
 export type {
   ArchiveQueueViewDefinitionInput,
@@ -16,6 +16,6 @@ export type {
   QueueViewRowActionStyle,
   QueueViewSurface,
   UpsertQueueViewDefinitionInput,
-} from '@modules/shared/queueViews/queueViewDefinitionService';
+} from './queueViewDefinitionService';
 
-export { default } from '@modules/shared/queueViews/queueViewDefinitionService';
+export { registerQueueViewRoutes } from './queueViewRoutes';

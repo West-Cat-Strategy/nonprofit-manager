@@ -1,12 +1,10 @@
 import type { Router } from 'express';
 import { z } from 'zod';
 import { validateBody, validateParams } from '@middleware/zodValidation';
-import { sendSuccess } from '@modules/shared/http/envelope';
 import {
-  archiveQueueViewDefinition,
-  listQueueViewDefinitions,
-  upsertQueueViewDefinition,
-} from '@services/queueViewDefinitionService';
+  registerQueueViewRoutes,
+  type UpsertQueueViewDefinitionInput,
+} from '@modules/shared/queueViews';
 import { requirePermission } from '@middleware/permissions';
 import { scopedQueueViewDefinitionSchema } from '@validations/portal';
 import { uuidSchema } from '@validations/shared';
@@ -17,58 +15,41 @@ const queueViewParamsSchema = z.object({
 });
 
 export const registerCaseQueueViewRoutes = (router: Router): void => {
-  router.get(
-    '/queue-views',
-    requirePermission(Permission.CASE_VIEW),
-    async (req, res, next) => {
-      try {
-        const views = await listQueueViewDefinitions('cases', req.user?.id ?? null, [
-          'cases',
-        ]);
-        sendSuccess(res, views);
-      } catch (error) {
-        next(error);
-      }
-    }
-  );
-
-  router.post(
-    '/queue-views',
-    validateBody(scopedQueueViewDefinitionSchema),
-    requirePermission(Permission.CASE_VIEW),
-    async (req, res, next) => {
-      try {
-        const view = await upsertQueueViewDefinition({
-          ...(req.body as Parameters<typeof upsertQueueViewDefinition>[0]),
-          surface: 'cases',
-          ownerUserId: req.user?.id ?? null,
-          permissionScope: ['cases'],
-          userId: req.user?.id ?? null,
-        });
-        sendSuccess(res, view, 201);
-      } catch (error) {
-        next(error);
-      }
-    }
-  );
-
-  router.delete(
-    '/queue-views/:viewId',
-    validateParams(queueViewParamsSchema),
-    requirePermission(Permission.CASE_VIEW),
-    async (req, res, next) => {
-      try {
-        const view = await archiveQueueViewDefinition({
-          id: String(req.params.viewId),
-          surface: 'cases',
-          ownerUserId: req.user?.id ?? null,
-          permissionScopes: ['cases'],
-          userId: req.user?.id ?? null,
-        });
-        sendSuccess(res, view);
-      } catch (error) {
-        next(error);
-      }
-    }
-  );
+  registerQueueViewRoutes(router, {
+    list: {
+      middleware: [requirePermission(Permission.CASE_VIEW)],
+      resolve: (req) => ({
+        surface: 'cases',
+        ownerUserId: req.user?.id ?? null,
+        permissionScopes: ['cases'],
+      }),
+    },
+    upsert: {
+      middleware: [
+        validateBody(scopedQueueViewDefinitionSchema),
+        requirePermission(Permission.CASE_VIEW),
+      ],
+      resolve: (req) => ({
+        ...(req.body as UpsertQueueViewDefinitionInput),
+        surface: 'cases',
+        ownerUserId: req.user?.id ?? null,
+        permissionScope: ['cases'],
+        userId: req.user?.id ?? null,
+      }),
+    },
+    archive: {
+      path: '/queue-views/:viewId',
+      middleware: [
+        validateParams(queueViewParamsSchema),
+        requirePermission(Permission.CASE_VIEW),
+      ],
+      resolve: (req) => ({
+        id: String(req.params.viewId),
+        surface: 'cases',
+        ownerUserId: req.user?.id ?? null,
+        permissionScopes: ['cases'],
+        userId: req.user?.id ?? null,
+      }),
+    },
+  });
 };
