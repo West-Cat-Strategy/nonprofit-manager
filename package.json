@@ -48,11 +48,10 @@
     "@sentry/node": {
       "minimatch": "10.2.5"
     },
-    "undici": "^8.2.0",
+    "undici": "^7.25.0",
     "vite": "^8.0.10"
   },
   "devDependencies": {
-    "express-rate-limit": "8.5.0",
     "knip": "^6.11.0",
     "yaml": "^2.8.3"
   }

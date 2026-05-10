@@ -105,8 +105,8 @@ export interface UpdateVolunteerDTO {
 }
 
 export interface ApproveVolunteerBackgroundCheckDTO {
-  background_check_date?: Date;
-  background_check_expiry?: Date | null;
+  background_check_date?: string | Date;
+  background_check_expiry?: string | Date | null;
   notes: string;
 }
 
