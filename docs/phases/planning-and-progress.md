@@ -9,9 +9,9 @@ Use this file only for live tracked work. Historical phase closeouts, earlier wo
 | Snapshot | Value |
 |---|---:|
 | Current phase | Phase 5 - Email, Website, Portal, and Reliability |
-| Active rows | 6 |
+| Active rows | 7 |
 | In Progress | 0 |
-| Review | 5 |
+| Review | 6 |
 | Ready | 0 |
 | Blocked | 1 |
 | Phase 4 carry-over rows | 0 |
@@ -34,6 +34,7 @@ Use this file only for live tracked work. Historical phase closeouts, earlier wo
 - Coordinated exception, 2026-05-10: the remaining blocker wave is split into disjoint subagent lanes for `P5-T90` backend-size cleanup, `P5-T91` queue Knip cleanup, `P5-T92` frontend reject-click proof, `P5-T93` read-only case-form diagnostics review, `P5-T71`/`P5-T78` host E2E fixture recovery, and `P5-T85` Docker evidence reconciliation. The lead lane owns this board, validation notes, and archive/index updates; `P5-T75` remains time-gated and out of scope for this wave.
 - Coordinated exception, 2026-05-10: `P5-T95` worker-container parity and hardening is split into deployment-runtime and backend-worker subagent lanes in a clean sibling worktree. The lead lane owns this board, proof note, validation index, and final reconciliation; async report exports remain out of scope.
 - Coordinated exception, 2026-05-10: `P5-T96` small-VPS refactor is split into backend/export-worker, frontend initial-load, and deployment-runtime subagent lanes. The lead lane owns this board, proof note, validation index, and final reconciliation.
+- Coordinated exception, 2026-05-10: `P5-T97` controller helper modularity is split into reports-controller and saved/scheduled-report controller adoption lanes in the clean sibling worktree `codex/p5-t97-controller-helper-modularity`. The lead lane owns this board, the shared helper API, proof note, validation index, and final reconciliation; route registrars, frontend code, Docker/runtime files, and database migrations remain out of scope.
 
 ## Priority Board
 
@@ -42,6 +43,7 @@ Use this file only for live tracked work. Historical phase closeouts, earlier wo
 | Review | P5-T95 | Worker container parity and hardening | Review the clean sibling branch `codex/p5-t95-worker-container-parity` and its proof note, then merge after signoff. Async report exports remain out of scope. | [../validation/P5-T95_WORKER_CONTAINER_PARITY_PROOF_2026-05-10.md](../validation/P5-T95_WORKER_CONTAINER_PARITY_PROOF_2026-05-10.md) |
 | Review | P5-T93 | Case-form authoring diagnostics | Review the fixed single-checkbox diagnostics false-positive and refreshed focused proof; the documented Vitest command now passes without the serial flag. | [../validation/P5-T93_CASE_FORM_AUTHORING_DIAGNOSTICS_PROOF_2026-05-10.md](../validation/P5-T93_CASE_FORM_AUTHORING_DIAGNOSTICS_PROOF_2026-05-10.md), [../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md](../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md) |
 | Review | P5-T94 | Residual local validation gate cleanup | Review the completed Mailchimp campaign-dialog modularity extraction, scoped semantic cleanup, and passing local gates; `npm run knip`, `make lint`, and `make typecheck` are green in this checkout. | [../validation/P5-T94_MAILCHIMP_MODULARITY_GATE_CLEANUP_PROOF_2026-05-10.md](../validation/P5-T94_MAILCHIMP_MODULARITY_GATE_CLEANUP_PROOF_2026-05-10.md), [../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md](../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md) |
+| Review | P5-T97 | Controller helper modularity | Review the clean sibling branch `codex/p5-t97-controller-helper-modularity` after the shared backend controller auth/org-context helper landed with focused Jest, policy, lint, typecheck, and link proof. | [../validation/P5-T97_CONTROLLER_HELPER_MODULARITY_PROOF_2026-05-10.md](../validation/P5-T97_CONTROLLER_HELPER_MODULARITY_PROOF_2026-05-10.md) |
 | Review | P5-T6 | Follow-on backlog: workflow/customization, memberships/appeals, finance/program ops | Keep live as the scope-control gate. May 9 revalidation confirmed the backlog/reference docs still reject unscoped runtime implementation and direct source copying; future typed appeals, restrictions, donation batches, memberships, finance breadth, service-site routing, closure continuity, local communications follow-through, and generic workflow tooling need separately signed-out rows. | [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md), [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md), [../development/reference-patterns/P5-T6-reference-repo-consolidation-2026-05-01.md](../development/reference-patterns/P5-T6-reference-repo-consolidation-2026-05-01.md), [../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md](../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md) |
 | Review | P5-T96 | Small-VPS runtime and export refactor | Review the completed worker-owned queued report export and small-VPS runtime proof, including the passing Docker overlay/build/validation/smoke gates. | [../validation/P5-T96_SMALL_VPS_RUNTIME_EXPORT_PROOF_2026-05-10.md](../validation/P5-T96_SMALL_VPS_RUNTIME_EXPORT_PROOF_2026-05-10.md) |
 | Blocked | P5-T75 | Auth alias deprecation gate | Managed time-gated blocker. Review telemetry and exceptions on June 17, 2026; July 1, 2026 is the earliest enforcement date. | [../security/AUTH_ALIAS_DEPRECATION_CHECKLIST.md](../security/AUTH_ALIAS_DEPRECATION_CHECKLIST.md), [../validation/AUTH_ALIAS_USAGE_REPORT_2026-04-14.md](../validation/AUTH_ALIAS_USAGE_REPORT_2026-04-14.md), [../validation/P5-T75_AUTH_ALIAS_GATE_HANDOFF_2026-05-05.md](../validation/P5-T75_AUTH_ALIAS_GATE_HANDOFF_2026-05-05.md) |
@@ -64,6 +66,7 @@ Use this file only for live tracked work. Historical phase closeouts, earlier wo
 - `P5-T94` is in review after Mailchimp campaign-dialog modularization and scoped semantic cleanup; `npm run knip`, `make lint`, and `make typecheck` passed in the active checkout.
 - `P5-T95` is in review from the clean sibling branch; it does not move manual report exports out of API request time.
 - `P5-T96` host-side and Docker runtime checks passed; row is in review for signoff.
+- `P5-T97` is in review from the clean sibling branch after extracting reports-style controller auth/org-context helpers. It deliberately avoids `P5-T96`, `P5-T93`, and `P5-T94`.
 
 ## Status Keys
 

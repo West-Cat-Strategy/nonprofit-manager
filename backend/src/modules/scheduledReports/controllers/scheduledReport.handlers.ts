@@ -2,28 +2,12 @@ import type { Response } from 'express';
 import type { AuthRequest } from '@middleware/auth';
 import { sendSuccess } from '@modules/shared/http/envelope';
 import { badRequest, notFoundMessage, serverError, unauthorized } from '@utils/responseHelpers';
-import {
-  requirePermissionSafe,
-  sendForbidden,
-  sendUnauthorized,
-} from '@services/authGuardService';
 import { Permission } from '@utils/permissions';
+import {
+  ensureRequestPermission as ensurePermission,
+  getRequestOrganizationId as getOrgId,
+} from '@modules/shared/http/controllerAuth';
 import { scheduledReportService } from '../services/scheduledReportService';
-
-const getOrgId = (req: AuthRequest): string | null => req.organizationId || req.accountId || req.tenantId || null;
-
-const ensurePermission = (req: AuthRequest, res: Response, permission: Permission): boolean => {
-  const guard = requirePermissionSafe(req, permission);
-  if (!guard.ok) {
-    if (guard.error.code === 'unauthorized') {
-      sendUnauthorized(res, guard.error.message);
-    } else {
-      sendForbidden(res, guard.error.message || 'Forbidden');
-    }
-    return false;
-  }
-  return true;
-};
 
 const handleServiceError = (res: Response, error: unknown, fallbackMessage: string): void => {
   const message = error instanceof Error ? error.message : fallbackMessage;

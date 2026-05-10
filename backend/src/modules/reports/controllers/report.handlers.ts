@@ -6,6 +6,10 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '@middleware/auth';
 import { setTabularDownloadHeaders } from '@modules/shared/export/tabularExport';
+import {
+  ensureRequestPermission,
+  getRequestOrganizationId,
+} from '@modules/shared/http/controllerAuth';
 import { sendError, sendSuccess } from '@modules/shared/http/envelope';
 import { REPORT_ENTITIES, type ReportDefinition, type ReportEntity } from '@app-types/report';
 import {
@@ -18,34 +22,10 @@ import {
   reportService,
 } from '@modules/reports/services/reportService';
 import { badRequest, conflict, notFoundMessage, unauthorized } from '@utils/responseHelpers';
-import {
-  requirePermissionSafe,
-  sendForbidden,
-  sendUnauthorized,
-} from '@services/authGuardService';
 import { Permission } from '@utils/permissions';
 
 const DIRECT_EXPORT_TOO_LARGE_MESSAGE =
   'Report is too large for direct export. Use /v2/reports/exports to create an export job.';
-const getOrgId = (req: AuthRequest): string | null =>
-  req.organizationId || req.accountId || req.tenantId || null;
-
-const ensurePermission = (
-  req: AuthRequest,
-  res: Response,
-  permission: Permission
-): boolean => {
-  const guard = requirePermissionSafe(req, permission);
-  if (!guard.ok) {
-    if (guard.error.code === 'unauthorized') {
-      sendUnauthorized(res, guard.error.message);
-    } else {
-      sendForbidden(res, guard.error.message || 'Forbidden');
-    }
-    return false;
-  }
-  return true;
-};
 
 /**
  * POST /api/reports/generate
@@ -57,7 +37,7 @@ export const generateReport = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    if (!ensurePermission(req, res, Permission.REPORT_CREATE)) return;
+    if (!ensureRequestPermission(req, res, Permission.REPORT_CREATE)) return;
 
     const definition: ReportDefinition = req.body;
 
@@ -76,7 +56,7 @@ export const generateReport = async (
       return;
     }
 
-    const organizationId = getOrgId(req);
+    const organizationId = getRequestOrganizationId(req);
     if (!organizationId) {
       unauthorized(res, 'Organization context required');
       return;
@@ -99,7 +79,7 @@ export const getAvailableFields = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    if (!ensurePermission(req, res, Permission.REPORT_VIEW)) return;
+    if (!ensureRequestPermission(req, res, Permission.REPORT_VIEW)) return;
 
     const entity = req.params.entity as ReportEntity;
 
@@ -125,7 +105,7 @@ export const exportReport = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    if (!ensurePermission(req, res, Permission.REPORT_EXPORT)) return;
+    if (!ensureRequestPermission(req, res, Permission.REPORT_EXPORT)) return;
 
     const { definition, format } = req.body;
 
@@ -139,7 +119,7 @@ export const exportReport = async (
       return;
     }
 
-    const organizationId = getOrgId(req);
+    const organizationId = getRequestOrganizationId(req);
     if (!organizationId) {
       unauthorized(res, 'Organization context required');
       return;
@@ -165,7 +145,7 @@ export const createExportJob = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    if (!ensurePermission(req, res, Permission.REPORT_EXPORT)) return;
+    if (!ensureRequestPermission(req, res, Permission.REPORT_EXPORT)) return;
 
     const { definition, format, savedReportId, scheduledReportId, idempotencyKey } = req.body as {
       definition: ReportDefinition;
@@ -180,7 +160,7 @@ export const createExportJob = async (
       return;
     }
 
-    const organizationId = getOrgId(req);
+    const organizationId = getRequestOrganizationId(req);
     if (!organizationId) {
       unauthorized(res, 'Organization context required');
       return;
@@ -220,9 +200,9 @@ export const listExportJobs = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    if (!ensurePermission(req, res, Permission.REPORT_VIEW)) return;
+    if (!ensureRequestPermission(req, res, Permission.REPORT_VIEW)) return;
 
-    const organizationId = getOrgId(req);
+    const organizationId = getRequestOrganizationId(req);
     if (!organizationId) {
       unauthorized(res, 'Organization context required');
       return;
@@ -245,9 +225,9 @@ export const getExportJob = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    if (!ensurePermission(req, res, Permission.REPORT_VIEW)) return;
+    if (!ensureRequestPermission(req, res, Permission.REPORT_VIEW)) return;
 
-    const organizationId = getOrgId(req);
+    const organizationId = getRequestOrganizationId(req);
     if (!organizationId) {
       unauthorized(res, 'Organization context required');
       return;
@@ -271,9 +251,9 @@ export const downloadExportJob = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    if (!ensurePermission(req, res, Permission.REPORT_EXPORT)) return;
+    if (!ensureRequestPermission(req, res, Permission.REPORT_EXPORT)) return;
 
-    const organizationId = getOrgId(req);
+    const organizationId = getRequestOrganizationId(req);
     if (!organizationId) {
       unauthorized(res, 'Organization context required');
       return;
