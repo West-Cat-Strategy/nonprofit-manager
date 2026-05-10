@@ -7,36 +7,16 @@ import type { NextFunction, Request, Response } from 'express';
 import { AuthRequest } from '@middleware/auth';
 import { services } from '@container/services';
 import { badRequest, notFoundMessage, unauthorized } from '@utils/responseHelpers';
-import {
-  requirePermissionSafe,
-  sendForbidden,
-  sendUnauthorized,
-} from '@services/authGuardService';
+import { sendForbidden } from '@services/authGuardService';
 import { Permission } from '@utils/permissions';
 import { publicReportSnapshotService } from '@services/publicReportSnapshotService';
 import { sendSuccess } from '@modules/shared/http/envelope';
+import {
+  ensureRequestPermission as ensurePermission,
+  getRequestOrganizationId as getOrgId,
+} from '@modules/shared/http/controllerAuth';
 
 const savedReportService = services.savedReport;
-
-const getOrgId = (req: AuthRequest): string | null =>
-  req.organizationId || req.accountId || req.tenantId || null;
-
-const ensurePermission = (
-  req: AuthRequest,
-  res: Response,
-  permission: Permission
-): boolean => {
-  const guard = requirePermissionSafe(req, permission);
-  if (!guard.ok) {
-    if (guard.error.code === 'unauthorized') {
-      sendUnauthorized(res, guard.error.message);
-    } else {
-      sendForbidden(res, guard.error.message || 'Forbidden');
-    }
-    return false;
-  }
-  return true;
-};
 
 const handleOwnershipOrLookupError = (res: Response, error: unknown): void => {
   const message = error instanceof Error ? error.message : 'Request failed';

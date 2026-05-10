@@ -1,31 +1,15 @@
 import type { Response } from 'express';
 import type { AuthRequest } from '@middleware/auth';
-import {
-  requirePermissionSafe,
-  sendForbidden,
-  sendUnauthorized,
-} from '@services/authGuardService';
+import { ensureRequestPermission } from '@modules/shared/http/controllerAuth';
+import { sendForbidden } from '@services/authGuardService';
 import { Permission } from '@utils/permissions';
 import { serverError } from '@utils/responseHelpers';
 import * as outcomeReportService from '../services/outcomesReportService';
 import type { OutcomeReportFilters } from '@app-types/outcomes';
 import { sendSuccess } from '@modules/shared/http/envelope';
 
-const guardReportPermission = (req: AuthRequest, res: Response): boolean => {
-  const guardResult = requirePermissionSafe(req, Permission.OUTCOMES_VIEW_REPORTS);
-  if (!guardResult.ok) {
-    if (guardResult.error.code === 'unauthorized') {
-      sendUnauthorized(res, guardResult.error.message);
-    } else {
-      sendForbidden(res, guardResult.error.message || 'Forbidden');
-    }
-    return false;
-  }
-  return true;
-};
-
 export const getOutcomesReport = async (req: AuthRequest, res: Response): Promise<void> => {
-  if (!guardReportPermission(req, res)) {
+  if (!ensureRequestPermission(req, res, Permission.OUTCOMES_VIEW_REPORTS)) {
     return;
   }
 

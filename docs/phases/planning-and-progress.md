@@ -9,9 +9,9 @@ Use this file only for live tracked work. Historical phase closeouts, earlier wo
 | Snapshot | Value |
 |---|---:|
 | Current phase | Phase 5 - Email, Website, Portal, and Reliability |
-| Active rows | 5 |
+| Active rows | 6 |
 | In Progress | 0 |
-| Review | 3 |
+| Review | 4 |
 | Ready | 1 |
 | Blocked | 1 |
 | Phase 4 carry-over rows | 0 |
@@ -33,12 +33,14 @@ Use this file only for live tracked work. Historical phase closeouts, earlier wo
 - Completed coordinated exception, 2026-05-09: the original 26 Review rows were split across validation-only review lanes and reconciled by the lead. Proof-complete rows were removed from this live board and preserved in [archive/P5_REVIEW_SUBAGENT_WAVE_CLOSEOUT_2026-05-09.md](archive/P5_REVIEW_SUBAGENT_WAVE_CLOSEOUT_2026-05-09.md); current blockers and remaining review rows use [../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md](../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md) as the current revalidation note. `P5-T93` appeared after the initial wave baseline and remains live but was not part of the 26-row closeout.
 - Coordinated exception, 2026-05-10: the remaining blocker wave is split into disjoint subagent lanes for `P5-T90` backend-size cleanup, `P5-T91` queue Knip cleanup, `P5-T92` frontend reject-click proof, `P5-T93` read-only case-form diagnostics review, `P5-T71`/`P5-T78` host E2E fixture recovery, and `P5-T85` Docker evidence reconciliation. The lead lane owns this board, validation notes, and archive/index updates; `P5-T75` remains time-gated and out of scope for this wave.
 - Coordinated exception, 2026-05-10: `P5-T95` worker-container parity and hardening is split into deployment-runtime and backend-worker subagent lanes in a clean sibling worktree. The lead lane owns this board, proof note, validation index, and final reconciliation; async report exports remain out of scope.
+- Coordinated exception, 2026-05-10: `P5-T97` controller helper modularity is split into reports-controller and saved/scheduled-report controller adoption lanes in the clean sibling worktree `codex/p5-t97-controller-helper-modularity`. The lead lane owns this board, the shared helper API, proof note, validation index, and final reconciliation; `P5-T96`, `P5-T93`, `P5-T94`, route registrars, frontend code, Docker/runtime files, and database migrations remain out of scope.
 
 ## Priority Board
 
 | Status | ID | Task | Immediate Next Move | Evidence |
 |---|---|---|---|---|
 | Review | P5-T95 | Worker container parity and hardening | Review the clean sibling branch `codex/p5-t95-worker-container-parity` and its proof note, then merge after signoff. Async report exports remain out of scope. | [../validation/P5-T95_WORKER_CONTAINER_PARITY_PROOF_2026-05-10.md](../validation/P5-T95_WORKER_CONTAINER_PARITY_PROOF_2026-05-10.md) |
+| Review | P5-T97 | Controller helper modularity | Review the clean sibling branch `codex/p5-t97-controller-helper-modularity` after the shared backend controller auth/org-context helper landed with focused Jest, policy, lint, typecheck, and link proof. | [../validation/P5-T97_CONTROLLER_HELPER_MODULARITY_PROOF_2026-05-10.md](../validation/P5-T97_CONTROLLER_HELPER_MODULARITY_PROOF_2026-05-10.md) |
 | Review | P5-T93 | Case-form authoring diagnostics | Fix the review finding that valid single-checkbox questions are flagged as option-less, add a regression test, and make the focused Vitest proof reproducible under the documented command or explicitly document the serial flag. | [../validation/P5-T93_CASE_FORM_AUTHORING_DIAGNOSTICS_PROOF_2026-05-10.md](../validation/P5-T93_CASE_FORM_AUTHORING_DIAGNOSTICS_PROOF_2026-05-10.md), [../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md](../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md) |
 | Ready | P5-T94 | Residual local validation gate cleanup | Resolve the May 10 residual gate failures: `npm run knip` still reports two unused Mailchimp files plus the root `express-rate-limit` devDependency, and `make lint` still fails UI audit baseline enforcement with `1517/9933/60` expected versus `1524/9934/60` observed. | [../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md](../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md) |
 | Review | P5-T6 | Follow-on backlog: workflow/customization, memberships/appeals, finance/program ops | Keep live as the scope-control gate. May 9 revalidation confirmed the backlog/reference docs still reject unscoped runtime implementation and direct source copying; future typed appeals, restrictions, donation batches, memberships, finance breadth, service-site routing, closure continuity, local communications follow-through, and generic workflow tooling need separately signed-out rows. | [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md), [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md), [../development/reference-patterns/P5-T6-reference-repo-consolidation-2026-05-01.md](../development/reference-patterns/P5-T6-reference-repo-consolidation-2026-05-01.md), [../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md](../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md) |
@@ -61,6 +63,7 @@ Use this file only for live tracked work. Historical phase closeouts, earlier wo
 - `P5-T93` remains in review after a diagnostics false-positive finding on valid single-checkbox questions and a focused Vitest reproducibility note.
 - `P5-T94` tracks residual local gate cleanup for unrelated Knip findings and UI audit baseline drift found during final lead gates.
 - `P5-T95` is in review from the clean sibling branch; it does not move manual report exports out of API request time.
+- `P5-T97` is in review from the clean sibling branch after extracting reports-style controller auth/org-context helpers. It deliberately avoids `P5-T96`, `P5-T93`, and `P5-T94`.
 
 ## Status Keys
 
