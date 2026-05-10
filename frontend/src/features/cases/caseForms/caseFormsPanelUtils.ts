@@ -40,6 +40,16 @@ export const CONTACT_MAPPING_FIELDS = [
   'do_not_voicemail',
 ];
 
+const CHOICE_QUESTION_TYPES: CaseFormQuestionType[] = ['select', 'radio', 'checkbox'];
+const UPLOAD_QUESTION_TYPES: CaseFormQuestionType[] = ['file', 'signature'];
+const MIME_TYPE_PATTERN = /^[a-z0-9!#$&^_.+-]+\/(?:[a-z0-9!#$&^_.+-]+|\*)$/i;
+
+export interface CaseFormAuthoringDiagnostic {
+  id: string;
+  questionId?: string;
+  message: string;
+}
+
 export const createId = (): string =>
   typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
     ? crypto.randomUUID()
@@ -115,6 +125,119 @@ export const parseLogicRulesText = (value: string): CaseFormQuestion['visible_wh
   } catch {
     return undefined;
   }
+};
+
+const parseLogicDraftForDiagnostics = (
+  value: string
+): { rules?: CaseFormQuestion['visible_when']; invalid?: boolean } => {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    return Array.isArray(parsed) ? { rules: parsed } : { invalid: true };
+  } catch {
+    return { invalid: true };
+  }
+};
+
+export const collectCaseFormAuthoringDiagnostics = (
+  schema: CaseFormSchema,
+  logicDrafts: Record<string, string> = {}
+): CaseFormAuthoringDiagnostic[] => {
+  const diagnostics: CaseFormAuthoringDiagnostic[] = [];
+  const questions = schema.sections.flatMap((section) => section.questions);
+  const keyCounts = new Map<string, number>();
+
+  questions.forEach((question) => {
+    const key = question.key.trim();
+    if (key) {
+      keyCounts.set(key, (keyCounts.get(key) || 0) + 1);
+    }
+  });
+
+  const knownKeys = new Set(Array.from(keyCounts.keys()));
+
+  questions.forEach((question) => {
+    const label = question.label.trim() || question.key.trim() || 'Untitled question';
+    const key = question.key.trim();
+    const pushDiagnostic = (id: string, message: string): void => {
+      diagnostics.push({
+        id: `${question.id}:${id}`,
+        questionId: question.id,
+        message: `${label}: ${message}`,
+      });
+    };
+
+    if (!key) {
+      pushDiagnostic('blank-key', 'add a question key before saving.');
+    } else if ((keyCounts.get(key) || 0) > 1) {
+      pushDiagnostic('duplicate-key', `question key "${key}" is used more than once.`);
+    }
+
+    if (CHOICE_QUESTION_TYPES.includes(question.type)) {
+      const hasOption = question.options?.some(
+        (option) => option.label.trim().length > 0 && option.value.trim().length > 0
+      );
+      if (!hasOption) {
+        pushDiagnostic('missing-options', 'add at least one option with a label and value.');
+      }
+    }
+
+    if (UPLOAD_QUESTION_TYPES.includes(question.type)) {
+      const acceptedTypes = question.upload_config?.accept || [];
+      if (acceptedTypes.length === 0) {
+        pushDiagnostic('missing-mime-types', 'add accepted MIME types for uploads.');
+      }
+
+      acceptedTypes
+        .map((mimeType) => mimeType.trim())
+        .filter(Boolean)
+        .forEach((mimeType) => {
+          if (!MIME_TYPE_PATTERN.test(mimeType)) {
+            pushDiagnostic('invalid-mime-type', `"${mimeType}" is not a valid MIME type.`);
+          }
+        });
+    }
+
+    if (question.mapping_target?.entity === 'contact') {
+      if (!question.mapping_target.field?.trim()) {
+        pushDiagnostic('blank-contact-mapping', 'choose a contact field or remove the mapping.');
+      }
+    }
+
+    if (question.mapping_target?.entity === 'case') {
+      if (!question.mapping_target.key?.trim()) {
+        pushDiagnostic('blank-case-mapping', 'add a case JSON key or remove the mapping.');
+      }
+    }
+
+    const logicDraft = logicDrafts[question.id] ?? formatLogicRulesText(question);
+    const { rules, invalid } = parseLogicDraftForDiagnostics(logicDraft);
+    if (invalid) {
+      pushDiagnostic('invalid-conditional-json', 'fix conditional visibility JSON.');
+      return;
+    }
+
+    rules?.forEach((rule, index) => {
+      const referencedKey =
+        rule && typeof rule === 'object' && typeof rule.question_key === 'string'
+          ? rule.question_key.trim()
+          : '';
+      if (!referencedKey) {
+        pushDiagnostic(`missing-reference-${index}`, 'conditional rule needs a question_key.');
+      } else if (!knownKeys.has(referencedKey)) {
+        pushDiagnostic(
+          `unknown-reference-${index}`,
+          `conditional rule references missing question key "${referencedKey}".`
+        );
+      }
+    });
+  });
+
+  return diagnostics;
 };
 
 export const updateQuestionMappingTarget = (

@@ -21,6 +21,7 @@ import type {
   WebsitePublicAction,
   WebsitePublicActionCreateRequest,
   WebsitePublicActionSubmission,
+  WebsitePublicActionSubmissionTransitionResult,
   WebsitePublicActionSupportLetterArtifact,
   WebsitePublicActionUpdateRequest,
   WebsiteSearchParams,
@@ -100,6 +101,45 @@ export class WebsitesApiClient {
   ): Promise<WebsitePublicActionSubmission[]> {
     return api
       .get<WebsitePublicActionSubmission[]>(`/sites/${siteId}/actions/${actionId}/submissions`)
+      .then((response) => response.data);
+  }
+
+  acceptPublicActionSubmission(
+    siteId: string,
+    actionId: string,
+    submissionId: string
+  ): Promise<WebsitePublicActionSubmissionTransitionResult> {
+    return api
+      .post<WebsitePublicActionSubmissionTransitionResult>(
+        `/sites/${siteId}/actions/${actionId}/submissions/${submissionId}/accept`,
+        {}
+      )
+      .then((response) => response.data);
+  }
+
+  rejectPublicActionSubmission(
+    siteId: string,
+    actionId: string,
+    submissionId: string
+  ): Promise<WebsitePublicActionSubmissionTransitionResult> {
+    return api
+      .post<WebsitePublicActionSubmissionTransitionResult>(
+        `/sites/${siteId}/actions/${actionId}/submissions/${submissionId}/reject`,
+        {}
+      )
+      .then((response) => response.data);
+  }
+
+  fulfillPublicActionSubmission(
+    siteId: string,
+    actionId: string,
+    submissionId: string
+  ): Promise<WebsitePublicActionSubmissionTransitionResult> {
+    return api
+      .post<WebsitePublicActionSubmissionTransitionResult>(
+        `/sites/${siteId}/actions/${actionId}/submissions/${submissionId}/fulfill`,
+        {}
+      )
       .then((response) => response.data);
   }
 

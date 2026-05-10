@@ -63,7 +63,7 @@ vi.mock('../../../../components/dashboard', () => ({
   QuickLookupWidget: () => <div>Quick Lookup</div>,
 }));
 
-vi.mock('../../../../features/cases/api/queueViewsApiClient', () => ({
+vi.mock('../../../queueViews/api/queueViewsApiClient', () => ({
   queueViewsApiClient: {
     listQueueViews: (...args: unknown[]) => listQueueViewsMock(...args),
   },

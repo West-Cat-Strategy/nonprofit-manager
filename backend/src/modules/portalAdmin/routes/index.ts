@@ -1,13 +1,12 @@
-import { Router } from 'express';
+import { Router, type RequestHandler } from 'express';
 import { authenticate } from '@middleware/domains/auth';
 import type { AuthRequest } from '@middleware/auth';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
-import { sendSuccess } from '@modules/shared/http/envelope';
 import {
-  archiveQueueViewDefinition,
-  listQueueViewDefinitions,
-  upsertQueueViewDefinition,
-} from '@services/queueViewDefinitionService';
+  registerQueueViewRoutes,
+  type QueueViewSurface,
+  type UpsertQueueViewDefinitionInput,
+} from '@modules/shared/queueViews';
 import { ensurePortalAdmin, getPortalAdminQuery } from '../controllers/portalAdminController.shared';
 import {
   listPortalSignupRequests,
@@ -63,75 +62,65 @@ import {
 
 const router = Router();
 
+const requirePortalAdmin: RequestHandler = (req, res, next) => {
+  if (!ensurePortalAdmin(req as AuthRequest, res)) {
+    return;
+  }
+  next();
+};
+
 router.use(authenticate);
 router.get('/stream', validateQuery(portalAdminRealtimeStreamQuerySchema), streamPortalAdminRealtime);
 
-router.get(
-  '/queue-views',
-  validateQuery(portalAdminQueueViewQuerySchema),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!ensurePortalAdmin(req, res)) {
-        return;
-      }
-      const query = getPortalAdminQuery<{ surface: Parameters<typeof listQueueViewDefinitions>[0] }>(req);
-      const views = await listQueueViewDefinitions(query.surface, req.user?.id ?? null, [
-        'portal_admin',
-      ]);
-      sendSuccess(res, views);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-router.post(
-  '/queue-views',
-  validateBody(portalAdminQueueViewSchema),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!ensurePortalAdmin(req, res)) {
-        return;
-      }
-      const body = req.body as Parameters<typeof upsertQueueViewDefinition>[0];
-      const view = await upsertQueueViewDefinition({
+registerQueueViewRoutes(router, {
+  list: {
+    middleware: [validateQuery(portalAdminQueueViewQuerySchema), requirePortalAdmin],
+    resolve: (req) => {
+      const authReq = req as AuthRequest;
+      const query = getPortalAdminQuery<{ surface: QueueViewSurface }>(authReq);
+      return {
+        surface: query.surface,
+        ownerUserId: authReq.user?.id ?? null,
+        permissionScopes: ['portal_admin'],
+      };
+    },
+  },
+  upsert: {
+    middleware: [validateBody(portalAdminQueueViewSchema), requirePortalAdmin],
+    resolve: (req) => {
+      const authReq = req as AuthRequest;
+      const body = authReq.body as UpsertQueueViewDefinitionInput;
+      return {
         ...body,
-        ownerUserId: req.user?.id ?? null,
+        ownerUserId: authReq.user?.id ?? null,
         permissionScope:
           Array.isArray(body.permissionScope) && body.permissionScope.length > 0
             ? body.permissionScope
             : ['portal_admin'],
-        userId: req.user?.id ?? null,
-      });
-      sendSuccess(res, view, 201);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-router.delete(
-  '/queue-views/:id',
-  validateParams(portalUuidParamsSchema),
-  validateQuery(portalAdminQueueViewQuerySchema),
-  async (req: AuthRequest, res, next) => {
-    try {
-      if (!ensurePortalAdmin(req, res)) {
-        return;
-      }
-      const query = getPortalAdminQuery<{ surface: Parameters<typeof listQueueViewDefinitions>[0] }>(req);
-      const view = await archiveQueueViewDefinition({
-        id: String(req.params.id),
+        userId: authReq.user?.id ?? null,
+      };
+    },
+  },
+  archive: {
+    path: '/queue-views/:id',
+    middleware: [
+      validateParams(portalUuidParamsSchema),
+      validateQuery(portalAdminQueueViewQuerySchema),
+      requirePortalAdmin,
+    ],
+    resolve: (req) => {
+      const authReq = req as AuthRequest;
+      const query = getPortalAdminQuery<{ surface: QueueViewSurface }>(authReq);
+      return {
+        id: String(authReq.params.id),
         surface: query.surface,
-        ownerUserId: req.user?.id ?? null,
+        ownerUserId: authReq.user?.id ?? null,
         permissionScopes: ['portal_admin'],
-        userId: req.user?.id ?? null,
-      });
-      sendSuccess(res, view);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
+        userId: authReq.user?.id ?? null,
+      };
+    },
+  },
+});
 
 router.get('/requests', listPortalSignupRequests);
 router.post(

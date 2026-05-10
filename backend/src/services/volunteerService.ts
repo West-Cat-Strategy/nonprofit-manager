@@ -96,6 +96,9 @@ const genericApprovalError = (): ClientError =>
 const isClientError = (error: unknown): error is ClientError =>
   error instanceof Error && typeof (error as ClientError).statusCode === 'number';
 
+const toDateOnlyInput = (value: Date | string | null | undefined): string | null =>
+  value instanceof Date ? value.toISOString().slice(0, 10) : value ?? null;
+
 const assertGenericBackgroundCheckStatus = (value: unknown): void => {
   if (value === BackgroundCheckStatus.APPROVED || value === 'approved') {
     throw genericApprovalError();
@@ -623,12 +626,16 @@ export class VolunteerService {
         `modified_by = $1`,
         `updated_at = CURRENT_TIMESTAMP`,
       ];
-      const values: QueryValue[] = [userId, approvalNotes, data.background_check_date ?? null];
+      const values: QueryValue[] = [
+        userId,
+        approvalNotes,
+        toDateOnlyInput(data.background_check_date),
+      ];
       let paramCounter = 4;
 
       if (data.background_check_expiry !== undefined) {
         fields.push(`background_check_expiry = $${paramCounter}::date`);
-        values.push(data.background_check_expiry);
+        values.push(toDateOnlyInput(data.background_check_expiry));
         paramCounter++;
       }
 

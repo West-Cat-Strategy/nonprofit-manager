@@ -4,7 +4,7 @@
  */
 
 import crypto from 'crypto';
-import { PoolClient } from 'pg';
+import type { Pool, PoolClient } from 'pg';
 import pool from '@config/database';
 import { logger } from '@config/logger';
 import { normalizeRoleSlug } from '@utils/roleSlug';
@@ -50,6 +50,8 @@ interface InvitationRow {
   created_by_name?: string;
 }
 
+type InvitationQueryClient = Pick<Pool | PoolClient, 'query'>;
+
 /**
  * Generate a secure random token for invitation URL
  */
@@ -94,10 +96,9 @@ export const createInvitation = async (
   const executor = client || pool;
 
   // Check if email already has a user account
-  const existingUser = await executor.query(
-    'SELECT id FROM users WHERE email = $1',
-    [data.email.toLowerCase()]
-  );
+  const existingUser = await executor.query('SELECT id FROM users WHERE email = $1', [
+    data.email.toLowerCase(),
+  ]);
   if (existingUser.rows.length > 0) {
     throw new Error('A user with this email already exists');
   }
@@ -180,11 +181,20 @@ export const getInvitationById = async (id: string): Promise<UserInvitation | nu
  * Get invitation by token (for acceptance flow)
  */
 export const getInvitationByToken = async (token: string): Promise<UserInvitation | null> => {
-  const result = await pool.query<InvitationRow>(
+  return getInvitationByTokenWithClient(token, pool);
+};
+
+export const getInvitationByTokenWithClient = async (
+  token: string,
+  client: InvitationQueryClient,
+  options: { lock?: boolean } = {}
+): Promise<UserInvitation | null> => {
+  const result = await client.query<InvitationRow>(
     `SELECT i.*, CONCAT(u.first_name, ' ', u.last_name) as created_by_name
      FROM user_invitations i
      LEFT JOIN users u ON i.created_by = u.id
-     WHERE i.token = $1`,
+     WHERE i.token = $1
+     ${options.lock ? 'FOR UPDATE OF i' : ''}`,
     [token]
   );
 
@@ -195,15 +205,26 @@ export const getInvitationByToken = async (token: string): Promise<UserInvitatio
   return mapRowToInvitation(result.rows[0]);
 };
 
+export const getInvitationByTokenForUpdate = async (
+  token: string,
+  client: InvitationQueryClient
+): Promise<UserInvitation | null> => getInvitationByTokenWithClient(token, client, { lock: true });
+
 /**
  * Validate if an invitation can be accepted
  */
-export const validateInvitation = async (token: string): Promise<{
+export const validateInvitationForAcceptance = async (
+  token: string,
+  client: InvitationQueryClient = pool,
+  options: { lock?: boolean } = {}
+): Promise<{
   valid: boolean;
   invitation: UserInvitation | null;
   error?: string;
 }> => {
-  const invitation = await getInvitationByToken(token);
+  const invitation = await getInvitationByTokenWithClient(token, client, {
+    lock: options.lock,
+  });
 
   if (!invitation) {
     return { valid: false, invitation: null, error: 'Invitation not found' };
@@ -222,10 +243,9 @@ export const validateInvitation = async (token: string): Promise<{
   }
 
   // Check if email already has a user account (someone may have created one since invitation)
-  const existingUser = await pool.query(
-    'SELECT id FROM users WHERE email = $1',
-    [invitation.email]
-  );
+  const existingUser = await client.query('SELECT id FROM users WHERE email = $1', [
+    invitation.email,
+  ]);
   if (existingUser.rows.length > 0) {
     return { valid: false, invitation, error: 'A user with this email already exists' };
   }
@@ -233,21 +253,40 @@ export const validateInvitation = async (token: string): Promise<{
   return { valid: true, invitation };
 };
 
+export const validateInvitation = async (
+  token: string
+): Promise<{
+  valid: boolean;
+  invitation: UserInvitation | null;
+  error?: string;
+}> => validateInvitationForAcceptance(token, pool);
+
 /**
  * Mark invitation as accepted
  */
 export const markInvitationAccepted = async (
   invitationId: string,
-  userId: string
-): Promise<void> => {
-  await pool.query(
+  userId: string,
+  client: InvitationQueryClient = pool
+): Promise<UserInvitation | null> => {
+  const result = await client.query<InvitationRow>(
     `UPDATE user_invitations
      SET accepted_at = NOW(), accepted_by = $1
-     WHERE id = $2`,
+     WHERE id = $2
+       AND is_revoked = false
+       AND accepted_at IS NULL
+       AND expires_at > NOW()
+     RETURNING *`,
     [userId, invitationId]
   );
 
+  if (result.rows.length === 0) {
+    return null;
+  }
+
   logger.info(`Invitation ${invitationId} accepted`, { userId });
+
+  return mapRowToInvitation(result.rows[0]);
 };
 
 /**

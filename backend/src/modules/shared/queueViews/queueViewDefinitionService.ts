@@ -58,6 +58,14 @@ export interface QueueViewPreviewResponse<T = unknown> extends QueueViewCountRes
   emptyState: Record<string, unknown>;
 }
 
+export interface ArchiveQueueViewDefinitionInput {
+  id: string;
+  ownerUserId?: string | null;
+  surface: QueueViewSurface;
+  permissionScopes?: string[];
+  userId?: string | null;
+}
+
 interface QueueViewDefinitionRow {
   id: string;
   owner_user_id: string | null;
@@ -272,13 +280,9 @@ export async function upsertQueueViewDefinition(
   return mapRow(result.rows[0]);
 }
 
-export async function archiveQueueViewDefinition(args: {
-  id: string;
-  ownerUserId?: string | null;
-  surface: QueueViewSurface;
-  permissionScopes?: string[];
-  userId?: string | null;
-}): Promise<QueueViewDefinition> {
+export async function archiveQueueViewDefinition(
+  args: ArchiveQueueViewDefinitionInput
+): Promise<QueueViewDefinition> {
   assertSupportedSurface(args.surface);
 
   const result = await pool.query<QueueViewDefinitionRow>(
@@ -345,16 +349,6 @@ export function buildQueueViewPreviewResponse<T>(args: {
     emptyState: args.view?.emptyState ?? {},
   };
 }
-
-export const queueViewDefinitionService = {
-  archiveQueueViewDefinition,
-  buildQueueViewCountResponse,
-  buildQueueViewPreviewResponse,
-  listQueueViewDefinitions,
-  upsertQueueViewDefinition,
-};
-
-export default queueViewDefinitionService;
 
 const normalizePermissionScope = (scope: string[]): string[] =>
   Array.from(

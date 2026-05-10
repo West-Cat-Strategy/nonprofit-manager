@@ -551,8 +551,31 @@ describe('Volunteer API Integration Tests', () => {
         'Cleared by staff after reviewing the vendor report.'
       );
       expect(approvedVolunteer.background_check_approved_by).toBe(userId);
-      expect(String(approvedVolunteer.background_check_date)).toContain('2026-05-06');
-      expect(String(approvedVolunteer.background_check_expiry)).toContain('2027-05-06');
+
+      const storedApproval = await pool.query<{
+        background_check_date: string;
+        background_check_expiry: string;
+        background_check_approved_by: string;
+        background_check_approval_notes: string;
+      }>(
+        `
+          SELECT
+            to_char(background_check_date, 'YYYY-MM-DD') AS background_check_date,
+            to_char(background_check_expiry, 'YYYY-MM-DD') AS background_check_expiry,
+            background_check_approved_by,
+            background_check_approval_notes
+          FROM volunteers
+          WHERE id = $1
+        `,
+        [volunteerId]
+      );
+
+      expect(storedApproval.rows[0]).toMatchObject({
+        background_check_date: '2026-05-06',
+        background_check_expiry: '2027-05-06',
+        background_check_approved_by: userId,
+        background_check_approval_notes: 'Cleared by staff after reviewing the vendor report.',
+      });
     });
   });
 

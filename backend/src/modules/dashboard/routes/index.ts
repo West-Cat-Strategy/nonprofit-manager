@@ -7,10 +7,9 @@ import { createDashboardController } from '../controllers/dashboard.controller';
 import { sendSuccess } from '@modules/shared/http/envelope';
 import { scopedQueueViewDefinitionSchema } from '@validations/portal';
 import {
-  archiveQueueViewDefinition,
-  listQueueViewDefinitions,
-  upsertQueueViewDefinition,
-} from '@services/queueViewDefinitionService';
+  registerQueueViewRoutes,
+  type UpsertQueueViewDefinitionInput,
+} from '@modules/shared/queueViews';
 import { getDashboardWorkqueueSummary } from '../services/workqueueSummaryService';
 
 const dashboardIdParamsSchema = z.object({
@@ -49,52 +48,36 @@ export const createDashboardRoutes = (): Router => {
 
   router.use(authenticate);
 
-  router.get('/queue-views', async (req, res, next) => {
-    try {
-      const views = await listQueueViewDefinitions('workbench', req.user?.id ?? null, [
-        'workbench',
-      ]);
-      sendSuccess(res, views);
-    } catch (error) {
-      next(error);
-    }
+  registerQueueViewRoutes(router, {
+    list: {
+      resolve: (req) => ({
+        surface: 'workbench',
+        ownerUserId: req.user?.id ?? null,
+        permissionScopes: ['workbench'],
+      }),
+    },
+    upsert: {
+      middleware: [validateBody(scopedQueueViewDefinitionSchema)],
+      resolve: (req) => ({
+        ...(req.body as UpsertQueueViewDefinitionInput),
+        surface: 'workbench',
+        ownerUserId: req.user?.id ?? null,
+        permissionScope: ['workbench'],
+        userId: req.user?.id ?? null,
+      }),
+    },
+    archive: {
+      path: '/queue-views/:viewId',
+      middleware: [validateParams(queueViewParamsSchema)],
+      resolve: (req) => ({
+        id: String(req.params.viewId),
+        surface: 'workbench',
+        ownerUserId: req.user?.id ?? null,
+        permissionScopes: ['workbench'],
+        userId: req.user?.id ?? null,
+      }),
+    },
   });
-  router.post(
-    '/queue-views',
-    validateBody(scopedQueueViewDefinitionSchema),
-    async (req, res, next) => {
-      try {
-        const view = await upsertQueueViewDefinition({
-          ...(req.body as Parameters<typeof upsertQueueViewDefinition>[0]),
-          surface: 'workbench',
-          ownerUserId: req.user?.id ?? null,
-          permissionScope: ['workbench'],
-          userId: req.user?.id ?? null,
-        });
-        sendSuccess(res, view, 201);
-      } catch (error) {
-        next(error);
-      }
-    }
-  );
-  router.delete(
-    '/queue-views/:viewId',
-    validateParams(queueViewParamsSchema),
-    async (req, res, next) => {
-      try {
-        const view = await archiveQueueViewDefinition({
-          id: String(req.params.viewId),
-          surface: 'workbench',
-          ownerUserId: req.user?.id ?? null,
-          permissionScopes: ['workbench'],
-          userId: req.user?.id ?? null,
-        });
-        sendSuccess(res, view);
-      } catch (error) {
-        next(error);
-      }
-    }
-  );
 
   router.get('/workqueue-summary', async (req, res, next) => {
     try {
