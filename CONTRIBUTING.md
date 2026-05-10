@@ -1,6 +1,6 @@
 # Contributing to Nonprofit Manager
 
-**Last Updated:** 2026-04-30
+**Last Updated:** 2026-05-09
 
 Use this guide when you want to contribute code, documentation, validation, release support, or review help to Nonprofit Manager. The root [README.md](README.md) is the organization-facing project overview; this file is the contributor workflow and validation entry point. Runtime setup details live in [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md).
 
@@ -82,10 +82,11 @@ Use the smallest validation set that still covers your change.
 |---|---|
 | Docs-only | `make check-links` |
 | Docs with API wording/examples | `make check-links` and `make lint-doc-api-versioning` |
+| Runtime-facing docs or test-wrapper wording | `make check-links` and `./scripts/select-checks.sh --base HEAD~1 --mode strict` |
 | Database, migration, or DB contract work | `make db-verify` and the narrowest behavior check that matches the changed surface |
 | Smaller scoped code change | `./scripts/select-checks.sh --base HEAD~1 --mode fast` (use `--mode strict` for shared runtime, hook, Docker, or runtime-doc changes) |
 | Broader code change | `make lint`, `make typecheck`, and `make test` |
-| Higher-confidence validation | `make ci` or `make ci-full` as appropriate |
+| Higher-confidence validation | `make ci` for lint/typecheck/test/build, or `make ci-full` for the coverage/full gate plus build and `make security-audit` |
 | Release-facing validation | `make release-check` |
 
 Prefer root commands first. Use package-level scripts only when the change is narrow enough that a package-specific check is the clearest fit.
@@ -93,6 +94,10 @@ Prefer root commands first. Use package-level scripts only when the change is na
 `make ci-fast` is a lint + typecheck-only static pass. It is useful for quick feedback, but it is not a test lane or a full-confidence pass.
 
 `make typecheck` includes the backend, frontend, and shared `contracts` export smoke check.
+
+`cd backend && npm test` is the supported backend runner. It invokes `backend/scripts/run-full-tests.sh`, prepares and verifies the isolated test DB on `127.0.0.1:8012/nonprofit_manager_test`, then runs Jest.
+
+The selector includes committed, dirty, staged, and untracked files by default. Use `--mode strict` when docs or scripts change runtime semantics, Docker modes, wrapper behavior, ports, or orchestration expectations; strict runtime-doc changes can broaden into `make test-coverage-full`.
 
 Use [docs/testing/TESTING.md](docs/testing/TESTING.md) for the current meaning of `make ci*`, `make test-coverage*`, and `make db-verify`, including current review-lane caveats.
 

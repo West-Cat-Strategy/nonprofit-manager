@@ -451,7 +451,7 @@ test:
 	@echo "$(BLUE)Preparing isolated test database...$(RESET)"
 	@$(CI_TEST_DB_ENV) ./scripts/db-migrate.sh
 	@echo "$(BLUE)Running backend tests...$(RESET)"
-	cd backend && npm test -- --runInBand
+	cd backend && SKIP_INTEGRATION_DB_PREP=1 npm test -- --runInBand
 	@echo "$(BLUE)Running frontend tests...$(RESET)"
 	cd frontend && npm test -- --run
 	@echo "$(BLUE)Running Playwright E2E host CI matrix...$(RESET)"

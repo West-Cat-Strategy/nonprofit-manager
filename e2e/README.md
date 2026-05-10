@@ -1,6 +1,6 @@
 # E2E Tests
 
-**Last Updated:** 2026-04-21
+**Last Updated:** 2026-05-09
 
 Playwright tests live here. For the overall testing strategy, see [../docs/testing/TESTING.md](../docs/testing/TESTING.md).
 
@@ -32,6 +32,8 @@ The wrapper-driven runtime commands are mode-defining:
 - `npm run test:docker*` default to the externally managed Docker contract on `127.0.0.1:8005/8004/8006` with `SKIP_WEBSERVER=1`.
 - Those wrapper contracts also pin `BYPASS_REGISTRATION_POLICY_IN_TEST=false` for host runs and `BYPASS_REGISTRATION_POLICY_IN_TEST=true` for docker runs. For the Docker review lane, the already-running backend must also be launched with `NODE_ENV=test`; the wrapper cannot change backend env after the stack is up.
 - Docker dev/review stacks now keep Mailchimp disabled unless you explicitly set `DEV_MAILCHIMP_API_KEY` and `DEV_MAILCHIMP_SERVER_PREFIX`, which prevents the placeholder `.env.development` values from turning admin route-health into false `500` probes.
+
+The repo-root isolated smoke gate is a third mode, separate from the long-lived Docker dev/review stack: `make test-e2e-docker-smoke` provisions `nonprofit-smoke` on `127.0.0.1:18005/18004/18006`, points the Docker wrapper at that stack, and tears it down unless `KEEP_SMOKE_STACK=1`.
 
 The wrapper still enforces the host-vs-docker mode contract, but explicit overrides for `BASE_URL`, `API_URL`, `E2E_BACKEND_PORT`, `E2E_FRONTEND_PORT`, `E2E_PUBLIC_SITE_PORT`, and `E2E_DB_PORT` are honored inside that mode. That makes it possible to point `npm run test:docker*` at an alternate externally managed stack such as the repo's isolated smoke project.
 Host wrapper runs now default to fresh Playwright-managed services (`PW_REUSE_EXISTING_SERVER=0`) and let Playwright own the web-server readiness check. The shared runner still preflights ports for every mode, and it preflights HTTP readiness URLs for Docker-backed runs plus explicit host reuse runs so externally managed stacks fail on the real endpoints instead of silently falling back to the default `8005/8004/8006` contract.
@@ -91,6 +93,7 @@ npm run test:report
 
 `Mobile Safari` and `Tablet` are defined in `playwright.config.ts` for manual/ad hoc `--project` runs. They are intentionally excluded from the CI wrappers above.
 `npm run test:report` still opens the default last-run report in `e2e/playwright-report`; use `npm run test:ci:report` when you need a preserved archived report for the full host CI lane.
+For E2E docs-only edits, run `make check-links` from the repo root; add `make lint-doc-api-versioning` only when API route wording or examples changed. Use `./scripts/select-checks.sh --base HEAD~1 --mode strict` from the repo root when this file changes runtime semantics, wrapper behavior, ports, or Docker mode expectations.
 
 ## Preserved Host CI Reports
 
@@ -119,7 +122,7 @@ Optional overrides:
 
 Repo-root CI flows call these E2E commands today:
 
-- `make test`: backend tests, frontend tests, `npm run test:ci`, then the named Docker-backed smoke gate `make test-e2e-docker-smoke`
+- `make test`: backend tests through `backend/scripts/run-full-tests.sh`, frontend tests, `npm run test:ci`, then the named Docker-backed smoke gate `make test-e2e-docker-smoke`
 - `make test-e2e-docker-smoke`: provisions the isolated `nonprofit-smoke` compose project on `18005/18004/18006`, runs `npm run test:docker:smoke` against that stack, then tears it down unless `KEEP_SMOKE_STACK=1`
 - `make test-coverage`: backend/frontend coverage, `npm run test:smoke`, then `make test-e2e-docker-smoke`
 - `make test-coverage-full`: backend/frontend coverage, `npm run test:ci`, then `make test-e2e-docker-smoke`
@@ -128,7 +131,7 @@ Repo-root CI flows call these E2E commands today:
 
 `make ci-unit` is the unit-only coverage lane and intentionally skips Playwright.
 `make ci-full` is the plain repo-root host/full lane. It already includes the isolated Docker-backed smoke gate through `make test-coverage-full`.
-The default gate stops there. Docker cross-browser, Docker audit, `Mobile Safari`, and `Tablet` remain explicit review-lane follow-ons rather than CI-gated defaults.
+The default gate stops there. Docker cross-browser, Docker audit, fresh starter-only MFA proof, `Mobile Safari`, and `Tablet` remain explicit review-lane follow-ons rather than CI-gated defaults.
 The coverage-backed root lanes now self-supply the CI Redis URL and backend coverage heap from the wrapper layer. Run them from a clean shell and do not export the full `.env.development` contract into the lane, because it can override the isolated test DB contract.
 Even the host review lane still depends on Docker for the Redis sidecar and isolated test DB bootstrap before Playwright starts.
 
@@ -154,6 +157,13 @@ That sequence gives you:
 If `make ci-full` already completed cleanly and you do not need to rerun the isolated smoke proof, go straight from `make ci-full` to the two `npm run test:docker:*` follow-ons.
 
 If the host frontend port is occupied, rerun the host command with `E2E_FRONTEND_PORT=<open-port>` such as `E2E_FRONTEND_PORT=5317 make ci-full`.
+
+Use the Docker and mobile follow-ons when they cover risk outside the default gate:
+
+- `npm run test:docker:ci`: release/review rows, Docker-only browser risk, public-site/Caddy runtime changes, or wrapper/env changes.
+- `npm run test:docker:audit`: dark-mode, route-health, accessibility, or visual-audit changes.
+- Fresh starter-only MFA proof: setup, MFA, registration-policy, session, or first-user changes.
+- Manual `Mobile Safari` or `Tablet`: Safari/tablet-specific risk, responsive work beyond `Mobile Chrome`, or reviewer request.
 
 ## Docker App Stack Runtime
 

@@ -13,7 +13,7 @@ lock/preflight wrapper or the command directly.
 
 Modes:
   host    Playwright-managed frontend/backend runtime on 127.0.0.1:5173/3001
-  docker  Externally managed runtime on 127.0.0.1:8005/8004
+  docker  Externally managed frontend/backend/public-site runtime on 127.0.0.1:8005/8004/8006
 EOF
 }
 
