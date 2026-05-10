@@ -9,7 +9,7 @@ type NotifyFn = (message: string) => void;
 const asRecord = (value: unknown): Record<string, unknown> | null =>
   value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
 
-const readList = <T,>(value: unknown, keys: string[]): T[] => {
+const readList = <T>(value: unknown, keys: string[]): T[] => {
   if (Array.isArray(value)) {
     return value as T[];
   }
@@ -173,14 +173,19 @@ export const useStaffInvitations = ({
     async (invitation: Pick<StaffInvitation, 'id' | 'email' | 'role' | 'message'>) => {
       try {
         const response = await api.post(`/invitations/${invitation.id}/resend`);
+        const emailDelivery = readInvitationEmailDelivery(asRecord(response.data)?.emailDelivery);
         setInviteEmail(invitation.email);
         setInviteRole(invitation.role);
         setInviteMessage(invitation.message || '');
         setInviteUrl(readInviteUrl(response.data));
-        setInviteEmailDelivery(readInvitationEmailDelivery(asRecord(response.data)?.emailDelivery));
+        setInviteEmailDelivery(emailDelivery);
         clearFormError();
         setShowInviteModal(true);
-        showSuccess('Invitation resent');
+        if (emailDelivery?.requested && emailDelivery.sent) {
+          showSuccess('Invitation email resent');
+        } else {
+          showSuccess('Invitation link regenerated');
+        }
         await fetchInvitations();
       } catch {
         showError('Failed to resend invitation');

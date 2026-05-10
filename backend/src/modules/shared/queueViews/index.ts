@@ -3,7 +3,6 @@ export {
   buildQueueViewCountResponse,
   buildQueueViewPreviewResponse,
   listQueueViewDefinitions,
-  queueViewDefinitionService,
   upsertQueueViewDefinition,
 } from './queueViewDefinitionService';
 

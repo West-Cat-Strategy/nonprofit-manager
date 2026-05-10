@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-06
 **Row:** P5-T90
-**Status:** Review
+**Status:** Proof complete
 
 ## Scope
 
@@ -25,6 +25,7 @@ Out of scope: broad volunteer lifecycle redesign, volunteer dispatch changes, ho
 - `VolunteerDetailPage` now includes a focused staff approval form for non-approved background checks with notes, approval date, and optional expiry date.
 - `volunteersApiClient.approveVolunteerBackgroundCheck` and the volunteer core thunk post to `/v2/volunteers/:id/background-check/approve`.
 - Added DB-free controller proof and a direct integration-route test for the dedicated endpoint. The integration test is ready to run when the local Jest DB listener is available.
+- May 9 follow-up fixed the dedicated approval service's date-only persistence so `background_check_date` and `background_check_expiry` store the submitted calendar dates instead of shifting one day early under local time zones.
 
 ## Validation
 
@@ -45,7 +46,37 @@ Blocked:
 - `cd backend && npx jest src/__tests__/integration/volunteers.test.ts --runInBand`
   - Result: blocked before test execution because the local Jest database listener was unavailable: `connect ECONNREFUSED 127.0.0.1:8012`.
 
+Follow-up passed on 2026-05-09:
+
+- `DB_HOST=127.0.0.1 DB_PORT=8012 DB_NAME=nonprofit_manager_test DB_USER=postgres DB_PASSWORD=postgres COMPOSE_MODE=ci ./scripts/db-migrate.sh`
+  - Result: isolated test database rebuilt and ready on `127.0.0.1:8012/nonprofit_manager_test`.
+- `cd backend && npx jest src/__tests__/integration/volunteers.test.ts --runInBand`
+  - Result: 1 suite passed, 22 tests passed.
+- `cd backend && npx jest src/__tests__/integration/volunteers.test.ts --runInBand -t "approves a background check through the dedicated endpoint with notes and approval date"`
+  - Result: 1 suite passed, 1 test passed, 21 tests skipped.
+- `cd backend && npm run type-check`
+- `cd backend && npm run lint -- --max-warnings=0 src/services/volunteerService.ts src/__tests__/integration/volunteers.test.ts`
+
+Final isolated rerun on 2026-05-09:
+
+- `DB_HOST=127.0.0.1 DB_PORT=8012 DB_NAME=nonprofit_manager_test DB_USER=postgres DB_PASSWORD=postgres COMPOSE_MODE=ci ./scripts/db-migrate.sh`
+  - Result: isolated test database rebuilt and ready on `127.0.0.1:8012/nonprofit_manager_test`.
+- `cd backend && npx jest src/__tests__/integration/volunteers.test.ts --runInBand -t "approves a background check through the dedicated endpoint with notes and approval date"`
+  - Result: 1 suite passed, 1 test passed, 21 tests skipped.
+
+Remaining-blocker rerun on 2026-05-10:
+
+- `node scripts/check-implementation-size-policy.ts`
+  - Result: passed; `backend/src/services/volunteerService.ts` is now 894 lines.
+- `cd backend && npm test -- src/__tests__/integration/volunteers.test.ts -t "approves a background check through the dedicated endpoint with notes and approval date"`
+  - Result: 1 test passed, 21 tests skipped.
+- `git diff --check -- backend/src/services/volunteerService.ts`
+  - Result: passed.
+- `make lint`
+  - Result: implementation-size policy passed; root lint later failed at unrelated UI audit baseline drift now tracked under `P5-T94`.
+
 ## Notes
 
 - No database migration was needed; the existing dedicated approval route already accepts notes, approval/check date, and optional expiry date.
-- The direct integration test was added for the next DB-backed validation pass, but the DB-free backend proof above covers controller routing, notes/date forwarding, existing service approval metadata, and approval schema validation.
+- The May 9 rerun first reproduced the prior listener blocker. Starting Docker Desktop made the repo's isolated test database bootstrap available again; the proof used the documented `8012/nonprofit_manager_test` contract.
+- The DB-backed approval-route proof now verifies the persisted `background_check_date`, `background_check_expiry`, approving user, and approval notes directly from the volunteer row, avoiding JSON timestamp/time-zone ambiguity while staying on the dedicated approval route.

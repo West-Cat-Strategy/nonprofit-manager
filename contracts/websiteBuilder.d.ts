@@ -928,6 +928,15 @@ export interface PublicActionSubmission {
   updatedAt: string;
 }
 
+export type PublicActionSubmissionTransition = 'accept' | 'reject' | 'fulfill';
+
+export interface PublicActionSubmissionTransitionResult {
+  submission: PublicActionSubmission;
+  contactId?: string;
+  pledgeId?: string;
+  supportLetterId?: string;
+}
+
 export interface PublicActionSupportLetterArtifact {
   id: string;
   organizationId: string;

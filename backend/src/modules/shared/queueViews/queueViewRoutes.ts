@@ -1,5 +1,4 @@
 import type { Request, RequestHandler, Router } from 'express';
-import type { RequestHandlerParams } from 'express-serve-static-core';
 import { sendSuccess } from '@modules/shared/http/envelope';
 import {
   archiveQueueViewDefinition,
@@ -37,8 +36,8 @@ interface RegisterQueueViewRoutesOptions {
 
 const defaultQueueViewsPath = '/queue-views';
 
-const asRouteMiddleware = (middleware: unknown[] | undefined): RequestHandlerParams[] =>
-  (middleware ?? []) as RequestHandlerParams[];
+const asRouteMiddleware = (middleware: unknown[] | undefined): RequestHandler[] =>
+  (middleware ?? []) as RequestHandler[];
 
 export const registerQueueViewRoutes = (
   router: Router,

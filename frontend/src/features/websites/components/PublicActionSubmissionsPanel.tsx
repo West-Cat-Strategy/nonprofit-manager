@@ -9,8 +9,12 @@ interface PublicActionSubmissionsPanelProps {
   submissions: WebsitePublicActionSubmission[];
   supportLetterArtifact: WebsitePublicActionSupportLetterArtifact | null;
   supportLetterArtifactLoadingId: string | null;
+  submissionTransitionLoadingId: string | null;
   supportLetterCopyNotice: string | null;
   onPreviewSupportLetter: (submissionId: string) => void;
+  onAcceptSubmission: (submissionId: string) => void;
+  onRejectSubmission: (submissionId: string) => void;
+  onFulfillSubmission: (submissionId: string) => void;
   onCopySupportLetter: () => void;
   onDownloadSupportLetter: () => void;
 }
@@ -20,8 +24,12 @@ export default function PublicActionSubmissionsPanel({
   submissions,
   supportLetterArtifact,
   supportLetterArtifactLoadingId,
+  submissionTransitionLoadingId,
   supportLetterCopyNotice,
   onPreviewSupportLetter,
+  onAcceptSubmission,
+  onRejectSubmission,
+  onFulfillSubmission,
   onCopySupportLetter,
   onDownloadSupportLetter,
 }: PublicActionSubmissionsPanelProps) {
@@ -63,6 +71,43 @@ export default function PublicActionSubmissionsPanel({
                     : 'Preview letter'}
                 </button>
               ) : null}
+              <div className="flex flex-wrap gap-2">
+                {submission.reviewStatus === 'new' ||
+                submission.reviewStatus === 'needs_review' ||
+                submission.reviewStatus === 'duplicate' ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => onAcceptSubmission(submission.id)}
+                      disabled={submissionTransitionLoadingId === submission.id}
+                      className="rounded-full border px-3 py-1 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Accept
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onRejectSubmission(submission.id)}
+                      disabled={submissionTransitionLoadingId === submission.id}
+                      className="rounded-full border px-3 py-1 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Reject
+                    </button>
+                  </>
+                ) : null}
+                {submission.reviewStatus === 'new' ||
+                submission.reviewStatus === 'needs_review' ||
+                submission.reviewStatus === 'duplicate' ||
+                submission.reviewStatus === 'accepted' ? (
+                  <button
+                    type="button"
+                    onClick={() => onFulfillSubmission(submission.id)}
+                    disabled={submissionTransitionLoadingId === submission.id}
+                    className="rounded-full border px-3 py-1 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Fulfill
+                  </button>
+                ) : null}
+              </div>
             </div>
           ))
         )}

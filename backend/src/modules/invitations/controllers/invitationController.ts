@@ -5,17 +5,77 @@
 
 import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import pool from '@config/database';
-import { withUserContextTransaction } from '@config/database';
+import { setCurrentUserId, withDatabaseTransaction } from '@config/database';
 import { logger } from '@config/logger';
-import { getJwtSecret } from '@config/jwt';
 import { AuthRequest } from '@middleware/auth';
-import { PASSWORD, JWT } from '@config/constants';
+import { PASSWORD } from '@config/constants';
 import { seedDefaultOrganizationAccess } from '@services/accountAccessService';
 import { invitationService, syncUserRole } from '../services/invitationService';
 import { getEmailSettings, sendInvitationEmail } from '../services/invitationEmailService';
 import { badRequest, conflict, notFoundMessage } from '@utils/responseHelpers';
+import { setAuthCookie } from '@utils/cookieHelper';
+import { buildAuthTokenResponse, generateAuthSessionCsrfToken } from '@utils/authResponse';
+import { issueAppSessionToken } from '@utils/sessionTokens';
+import { sendSuccess } from '@modules/shared/http/envelope';
+import { mapAuthUser } from '@modules/auth/lib/authResponseMappers';
+
+type InvitationEmailDelivery = {
+  requested: boolean;
+  sent: boolean;
+  reason?: string;
+};
+
+const getInviterName = async (userId: string): Promise<string> => {
+  const inviterRow = await pool.query<{ first_name: string; last_name: string }>(
+    'SELECT first_name, last_name FROM users WHERE id = $1',
+    [userId]
+  );
+
+  return inviterRow.rows[0]
+    ? `${inviterRow.rows[0].first_name} ${inviterRow.rows[0].last_name}`.trim()
+    : 'An administrator';
+};
+
+const deliverInvitationEmail = async (
+  invitation: {
+    email: string;
+    token: string;
+    role: string;
+    message?: string | null;
+  },
+  inviterId: string,
+  requested: boolean
+): Promise<InvitationEmailDelivery> => {
+  const emailDelivery: InvitationEmailDelivery = {
+    requested,
+    sent: false,
+  };
+
+  if (!requested) {
+    return emailDelivery;
+  }
+
+  const emailSettings = await getEmailSettings();
+  if (!emailSettings?.isConfigured) {
+    emailDelivery.reason = 'Email is not configured. Configure SMTP in Admin > Email settings.';
+    return emailDelivery;
+  }
+
+  const sent = await sendInvitationEmail(
+    invitation.email,
+    invitation.token,
+    await getInviterName(inviterId),
+    invitation.role,
+    invitation.message
+  );
+  emailDelivery.sent = sent;
+  if (!sent) {
+    emailDelivery.reason = 'Email delivery failed. Share the invitation link manually.';
+  }
+
+  return emailDelivery;
+};
 
 /**
  * POST /api/invitations
@@ -27,7 +87,13 @@ export const createInvitation = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const { email, role, message, expiresInDays, sendEmail = false } = req.body as {
+    const {
+      email,
+      role,
+      message,
+      expiresInDays,
+      sendEmail = false,
+    } = req.body as {
       email: string;
       role: string;
       message?: string;
@@ -44,39 +110,11 @@ export const createInvitation = async (
     const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const inviteUrl = `${baseUrl}/accept-invitation/${invitation.token}`;
 
-    const emailDelivery: {
-      requested: boolean;
-      sent: boolean;
-      reason?: string;
-    } = {
-      requested: Boolean(sendEmail),
-      sent: false,
-    };
-
-    if (sendEmail) {
-      const emailSettings = await getEmailSettings();
-      if (!emailSettings?.isConfigured) {
-        emailDelivery.reason = 'Email is not configured. Configure SMTP in Admin > Email settings.';
-      } else {
-        const inviterRow = await pool.query<{ first_name: string; last_name: string }>(
-          'SELECT first_name, last_name FROM users WHERE id = $1', [req.user!.id]
-        );
-        const inviterName = inviterRow.rows[0]
-          ? `${inviterRow.rows[0].first_name} ${inviterRow.rows[0].last_name}`.trim()
-          : 'An administrator';
-        const sent = await sendInvitationEmail(
-          invitation.email,
-          invitation.token,
-          inviterName,
-          invitation.role,
-          invitation.message
-        );
-        emailDelivery.sent = sent;
-        if (!sent) {
-          emailDelivery.reason = 'Email delivery failed. Share the invitation link manually.';
-        }
-      }
-    }
+    const emailDelivery = await deliverInvitationEmail(
+      invitation,
+      req.user!.id,
+      Boolean(sendEmail)
+    );
 
     return res.status(201).json({
       invitation: {
@@ -208,70 +246,104 @@ export const acceptInvitation = async (
     const { token } = req.params;
     const { firstName, lastName, password } = req.body;
 
-    // Validate the invitation
-    const validation = await invitationService.validateInvitation(token);
-    if (!validation.valid || !validation.invitation) {
-      return badRequest(res, validation.error || 'Invalid invitation');
+    const initialValidation = await invitationService.validateInvitation(token);
+    if (!initialValidation.valid || !initialValidation.invitation) {
+      return badRequest(res, initialValidation.error || 'Invalid invitation');
     }
 
-    const invitation = validation.invitation;
-
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, PASSWORD.BCRYPT_SALT_ROUNDS);
 
-    // Create the user
-    const userResult = await pool.query(
-      `INSERT INTO users (email, password_hash, first_name, last_name, role, is_active, created_at, updated_at, created_by)
-       VALUES ($1, $2, $3, $4, $5, true, NOW(), NOW(), $6)
-       RETURNING id, email, first_name, last_name, role, is_active, created_at`,
-      [invitation.email, hashedPassword, firstName, lastName, invitation.role, invitation.createdBy]
-    );
+    const outcome = await withDatabaseTransaction(async (client) => {
+      const validation = await invitationService.validateInvitationForAcceptance(token, client, {
+        lock: true,
+      });
+      if (!validation.valid || !validation.invitation) {
+        return {
+          valid: false as const,
+          error: validation.error || 'Invalid invitation',
+        };
+      }
 
-    const newUser = userResult.rows[0];
+      const invitation = validation.invitation;
+      const userResult = await client.query(
+        `INSERT INTO users (email, password_hash, first_name, last_name, role, is_active, created_at, updated_at, created_by)
+         VALUES ($1, $2, $3, $4, $5, true, NOW(), NOW(), $6)
+         RETURNING id, email, first_name, last_name, role, profile_picture, is_active, created_at, COALESCE(auth_revision, 0) AS auth_revision`,
+        [
+          invitation.email,
+          hashedPassword,
+          firstName,
+          lastName,
+          invitation.role,
+          invitation.createdBy,
+        ]
+      );
 
-    await syncUserRole(newUser.id, newUser.role);
-    await withUserContextTransaction(newUser.id, (client) =>
-      seedDefaultOrganizationAccess(
+      const newUser = userResult.rows[0];
+
+      await setCurrentUserId(client, newUser.id, { local: true });
+      await syncUserRole(newUser.id, newUser.role, client);
+      const organizationId = await seedDefaultOrganizationAccess(
         {
           userId: newUser.id,
           role: newUser.role,
           grantedBy: invitation.createdBy,
         },
         client
-      )
-    );
+      );
 
-    // Mark invitation as accepted
-    await invitationService.markInvitationAccepted(invitation.id, newUser.id);
+      const acceptedInvitation = await invitationService.markInvitationAccepted(
+        invitation.id,
+        newUser.id,
+        client
+      );
+      if (!acceptedInvitation) {
+        return {
+          valid: false as const,
+          error: 'This invitation has already been used',
+        };
+      }
 
-    // Generate JWT token for automatic login
-    const jwtToken = jwt.sign(
-      {
-        id: newUser.id,
-        email: newUser.email,
-        role: newUser.role,
-      },
-      getJwtSecret(),
-      { expiresIn: JWT.ACCESS_TOKEN_EXPIRY }
-    );
+      return {
+        valid: true as const,
+        invitation,
+        organizationId,
+        user: newUser,
+      };
+    });
+
+    if (!outcome.valid) {
+      return badRequest(res, outcome.error);
+    }
+
+    const { invitation, organizationId, user: newUser } = outcome;
+    const sessionToken = issueAppSessionToken({
+      id: newUser.id,
+      email: newUser.email,
+      role: newUser.role,
+      organizationId,
+      authRevision: newUser.auth_revision ?? 0,
+    });
 
     logger.info(`User created via invitation: ${newUser.email}`, {
       userId: newUser.id,
       invitationId: invitation.id,
     });
 
-    return res.status(201).json({
-      message: 'Account created successfully',
-      token: jwtToken,
-      user: {
-        id: newUser.id,
-        email: newUser.email,
-        firstName: newUser.first_name,
-        lastName: newUser.last_name,
-        role: newUser.role,
-        profilePicture: null,
+    setAuthCookie(res, sessionToken);
+    const csrfToken = generateAuthSessionCsrfToken(req as AuthRequest, res, sessionToken);
+
+    return sendSuccess(
+      res,
+      {
+        message: 'Account created successfully',
+        ...buildAuthTokenResponse(sessionToken),
+        csrfToken,
+        organizationId,
+        user: mapAuthUser(newUser),
       },
-    });
+      201
+    );
   } catch (error) {
     next(error);
   }
@@ -321,22 +393,12 @@ export const resendInvitation = async (
     const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const inviteUrl = `${baseUrl}/accept-invitation/${invitation.token}`;
 
-    // Resend invitation email
-    const inviterRow2 = await pool.query<{ first_name: string; last_name: string }>(
-      'SELECT first_name, last_name FROM users WHERE id = $1', [req.user!.id]
-    );
-    const inviterName2 = inviterRow2.rows[0]
-      ? `${inviterRow2.rows[0].first_name} ${inviterRow2.rows[0].last_name}`.trim()
-      : 'An administrator';
-    await sendInvitationEmail(
-      invitation.email,
-      invitation.token,
-      inviterName2,
-      invitation.role
-    );
+    const emailDelivery = await deliverInvitationEmail(invitation, req.user!.id, true);
 
     return res.json({
-      message: 'Invitation resent successfully',
+      message: emailDelivery.sent
+        ? 'Invitation email resent successfully'
+        : 'Invitation link regenerated',
       invitation: {
         id: invitation.id,
         email: invitation.email,
@@ -344,6 +406,7 @@ export const resendInvitation = async (
         expiresAt: invitation.expiresAt,
       },
       inviteUrl,
+      emailDelivery,
     });
   } catch (error) {
     next(error);

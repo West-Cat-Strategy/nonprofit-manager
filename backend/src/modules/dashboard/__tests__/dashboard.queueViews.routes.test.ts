@@ -4,7 +4,7 @@ import request from 'supertest';
 import {
   listQueueViewDefinitions,
   upsertQueueViewDefinition,
-} from '@modules/shared/queueViews/queueViewDefinitionService';
+} from '@modules/shared/queueViews';
 import { getDashboardWorkqueueSummary } from '../services/workqueueSummaryService';
 
 jest.mock('@middleware/domains/auth', () => {

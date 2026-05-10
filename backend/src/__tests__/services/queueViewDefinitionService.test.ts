@@ -5,7 +5,7 @@ import {
   buildQueueViewPreviewResponse,
   listQueueViewDefinitions,
   upsertQueueViewDefinition,
-} from '@services/queueViewDefinitionService';
+} from '@modules/shared/queueViews';
 
 jest.mock('@config/database', () => ({
   __esModule: true,

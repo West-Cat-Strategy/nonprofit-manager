@@ -109,6 +109,9 @@ const WebsitePublicActionsSection: React.FC<WebsitePublicActionsSectionProps> = 
   const [supportLetterArtifactLoadingId, setSupportLetterArtifactLoadingId] = useState<
     string | null
   >(null);
+  const [submissionTransitionLoadingId, setSubmissionTransitionLoadingId] = useState<
+    string | null
+  >(null);
   const [supportLetterCopyNotice, setSupportLetterCopyNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -257,6 +260,55 @@ const WebsitePublicActionsSection: React.FC<WebsitePublicActionsSectionProps> = 
       onNotice({ tone: 'error', message: 'Failed to update public action.' });
     } finally {
       setIsActionLoading(false);
+    }
+  };
+
+  const transitionPublicActionSubmission = async (
+    submissionId: string,
+    transition: 'accept' | 'reject' | 'fulfill'
+  ) => {
+    if (!selectedPublicActionId) return;
+
+    setSubmissionTransitionLoadingId(submissionId);
+    try {
+      const result =
+        transition === 'accept'
+          ? await websitesApiClient.acceptPublicActionSubmission(
+              siteId,
+              selectedPublicActionId,
+              submissionId
+            )
+          : transition === 'reject'
+            ? await websitesApiClient.rejectPublicActionSubmission(
+                siteId,
+                selectedPublicActionId,
+                submissionId
+              )
+            : await websitesApiClient.fulfillPublicActionSubmission(
+                siteId,
+                selectedPublicActionId,
+                submissionId
+              );
+
+      setPublicActionSubmissions((current) =>
+        current.map((submission) =>
+          submission.id === result.submission.id ? result.submission : submission
+        )
+      );
+
+      if (supportLetterArtifact?.submissionId === result.submission.id) {
+        setSupportLetterArtifact(null);
+        setSupportLetterCopyNotice(null);
+      }
+
+      onNotice({
+        tone: 'success',
+        message: `Submission ${transition === 'fulfill' ? 'fulfilled' : `${transition}ed`}.`,
+      });
+    } catch {
+      onNotice({ tone: 'error', message: 'Failed to update submission review status.' });
+    } finally {
+      setSubmissionTransitionLoadingId(null);
     }
   };
 
@@ -593,8 +645,18 @@ const WebsitePublicActionsSection: React.FC<WebsitePublicActionsSectionProps> = 
               submissions={publicActionSubmissions}
               supportLetterArtifact={supportLetterArtifact}
               supportLetterArtifactLoadingId={supportLetterArtifactLoadingId}
+              submissionTransitionLoadingId={submissionTransitionLoadingId}
               supportLetterCopyNotice={supportLetterCopyNotice}
               onPreviewSupportLetter={(submissionId) => void previewSupportLetterArtifact(submissionId)}
+              onAcceptSubmission={(submissionId) =>
+                void transitionPublicActionSubmission(submissionId, 'accept')
+              }
+              onRejectSubmission={(submissionId) =>
+                void transitionPublicActionSubmission(submissionId, 'reject')
+              }
+              onFulfillSubmission={(submissionId) =>
+                void transitionPublicActionSubmission(submissionId, 'fulfill')
+              }
               onCopySupportLetter={() => void copySupportLetterArtifact()}
               onDownloadSupportLetter={downloadSupportLetterArtifact}
             />

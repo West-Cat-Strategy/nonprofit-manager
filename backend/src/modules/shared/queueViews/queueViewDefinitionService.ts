@@ -350,16 +350,6 @@ export function buildQueueViewPreviewResponse<T>(args: {
   };
 }
 
-export const queueViewDefinitionService = {
-  archiveQueueViewDefinition,
-  buildQueueViewCountResponse,
-  buildQueueViewPreviewResponse,
-  listQueueViewDefinitions,
-  upsertQueueViewDefinition,
-};
-
-export default queueViewDefinitionService;
-
 const normalizePermissionScope = (scope: string[]): string[] =>
   Array.from(
     new Set(

@@ -20,7 +20,9 @@ import {
   getInvitations,
   getInvitationById,
   getInvitationByToken,
+  getInvitationByTokenForUpdate,
   validateInvitation,
+  validateInvitationForAcceptance,
   markInvitationAccepted,
   revokeInvitation,
 } from '../../services/invitationService';
@@ -53,9 +55,9 @@ describe('createInvitation', () => {
   it('creates an invitation when no existing user or pending invite', async () => {
     const row = makeInvitationRow();
     mockQuery
-      .mockResolvedValueOnce({ rows: [] })        // no existing user
-      .mockResolvedValueOnce({ rows: [] })        // no pending invitation
-      .mockResolvedValueOnce({ rows: [row] });    // INSERT
+      .mockResolvedValueOnce({ rows: [] }) // no existing user
+      .mockResolvedValueOnce({ rows: [] }) // no pending invitation
+      .mockResolvedValueOnce({ rows: [row] }); // INSERT
 
     const result = await createInvitation(
       { email: 'new@example.com', role: 'staff' },
@@ -88,7 +90,10 @@ describe('createInvitation', () => {
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [row] });
 
-    await createInvitation({ email: 'test@example.com', role: 'viewer', expiresInDays: 30 }, 'admin');
+    await createInvitation(
+      { email: 'test@example.com', role: 'viewer', expiresInDays: 30 },
+      'admin'
+    );
 
     // The expires_at is passed as the 4th param to the INSERT
     const insertParams = mockQuery.mock.calls[2][1] as Date[];
@@ -124,7 +129,10 @@ describe('getInvitations', () => {
   beforeEach(() => mockQuery.mockReset());
 
   it('returns mapped invitations', async () => {
-    const rows = [makeInvitationRow(), makeInvitationRow({ id: 'inv-2', email: 'other@example.com' })];
+    const rows = [
+      makeInvitationRow(),
+      makeInvitationRow({ id: 'inv-2', email: 'other@example.com' }),
+    ];
     mockQuery.mockResolvedValueOnce({ rows });
 
     const result = await getInvitations({});
@@ -190,6 +198,24 @@ describe('getInvitationByToken', () => {
   });
 });
 
+// ─── getInvitationByTokenForUpdate ───────────────────────────────────────────
+
+describe('getInvitationByTokenForUpdate', () => {
+  beforeEach(() => mockQuery.mockReset());
+
+  it('locks the invitation row with the provided transaction client', async () => {
+    const client = { query: jest.fn().mockResolvedValueOnce({ rows: [makeInvitationRow()] }) };
+
+    const result = await getInvitationByTokenForUpdate('secure-token-abc', client);
+
+    expect(result).not.toBeNull();
+    expect(client.query).toHaveBeenCalledWith(expect.stringContaining('FOR UPDATE OF i'), [
+      'secure-token-abc',
+    ]);
+    expect(mockQuery).not.toHaveBeenCalled();
+  });
+});
+
 // ─── validateInvitation ──────────────────────────────────────────────────────
 
 describe('validateInvitation', () => {
@@ -198,8 +224,8 @@ describe('validateInvitation', () => {
   it('returns valid=true for a fresh, unaccepted invitation', async () => {
     const row = makeInvitationRow();
     mockQuery
-      .mockResolvedValueOnce({ rows: [row] })   // getInvitationByToken
-      .mockResolvedValueOnce({ rows: [] });      // no existing user
+      .mockResolvedValueOnce({ rows: [row] }) // getInvitationByToken
+      .mockResolvedValueOnce({ rows: [] }); // no existing user
 
     const result = await validateInvitation('secure-token-abc');
     expect(result.valid).toBe(true);
@@ -252,20 +278,60 @@ describe('validateInvitation', () => {
   });
 });
 
+// ─── validateInvitationForAcceptance ────────────────────────────────────────
+
+describe('validateInvitationForAcceptance', () => {
+  beforeEach(() => mockQuery.mockReset());
+
+  it('uses the supplied transaction client for the locked invitation and user checks', async () => {
+    const client = {
+      query: jest
+        .fn()
+        .mockResolvedValueOnce({ rows: [makeInvitationRow()] })
+        .mockResolvedValueOnce({ rows: [] }),
+    };
+
+    const result = await validateInvitationForAcceptance('secure-token-abc', client, {
+      lock: true,
+    });
+
+    expect(result.valid).toBe(true);
+    expect(client.query).toHaveBeenNthCalledWith(1, expect.stringContaining('FOR UPDATE OF i'), [
+      'secure-token-abc',
+    ]);
+    expect(client.query).toHaveBeenNthCalledWith(2, 'SELECT id FROM users WHERE email = $1', [
+      'new@example.com',
+    ]);
+    expect(mockQuery).not.toHaveBeenCalled();
+  });
+});
+
 // ─── markInvitationAccepted ──────────────────────────────────────────────────
 
 describe('markInvitationAccepted', () => {
   beforeEach(() => mockQuery.mockReset());
 
-  it('executes an UPDATE setting accepted_at and accepted_by', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [] });
-    await markInvitationAccepted('inv-1', 'new-user-id');
+  it('updates only pending active invitations and returns the accepted invitation', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [makeInvitationRow({ accepted_at: new Date(), accepted_by: 'new-user-id' })],
+    });
+    const result = await markInvitationAccepted('inv-1', 'new-user-id');
 
     const sql = mockQuery.mock.calls[0][0] as string;
     const params = mockQuery.mock.calls[0][1] as unknown[];
     expect(sql).toMatch(/accepted_at = NOW\(\)/);
+    expect(sql).toMatch(/is_revoked = false/);
+    expect(sql).toMatch(/accepted_at IS NULL/);
+    expect(sql).toMatch(/expires_at > NOW\(\)/);
     expect(params).toContain('new-user-id');
     expect(params).toContain('inv-1');
+    expect(result?.acceptedBy).toBe('new-user-id');
+  });
+
+  it('returns null when the invitation is already accepted, revoked, or expired', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+
+    await expect(markInvitationAccepted('inv-1', 'new-user-id')).resolves.toBeNull();
   });
 });
 
@@ -275,7 +341,11 @@ describe('revokeInvitation', () => {
   beforeEach(() => mockQuery.mockReset());
 
   it('returns the revoked invitation on success', async () => {
-    const row = makeInvitationRow({ is_revoked: true, revoked_by: 'admin', revoked_at: new Date() });
+    const row = makeInvitationRow({
+      is_revoked: true,
+      revoked_by: 'admin',
+      revoked_at: new Date(),
+    });
     mockQuery.mockResolvedValueOnce({ rows: [row] });
 
     const result = await revokeInvitation('inv-1', 'admin');

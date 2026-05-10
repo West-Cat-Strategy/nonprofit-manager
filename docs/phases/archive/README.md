@@ -1,6 +1,6 @@
 # Phase Documentation Archive
 
-**Last Updated:** 2026-05-04
+**Last Updated:** 2026-05-10
 
 Use this directory for historical phase notes, closeout artifacts, and earlier workboard material.
 
@@ -33,6 +33,7 @@ Do not use the files in this archive as the source of truth for current status.
 - [P5_REVIEW_CLOSEOUT_BATCH_2026-05-04.md](P5_REVIEW_CLOSEOUT_BATCH_2026-05-04.md)
 - [P5_MAINTENANCE_CLEANUP_CLOSEOUT_2026-05-04.md](P5_MAINTENANCE_CLEANUP_CLOSEOUT_2026-05-04.md)
 - [P5_LOCAL_CAMPAIGN_BROWSER_VIEW_CLOSEOUT_2026-05-05.md](P5_LOCAL_CAMPAIGN_BROWSER_VIEW_CLOSEOUT_2026-05-05.md)
+- [P5_REVIEW_SUBAGENT_WAVE_CLOSEOUT_2026-05-09.md](P5_REVIEW_SUBAGENT_WAVE_CLOSEOUT_2026-05-09.md) - May 9 review-wave closeout plus May 10 remaining-blocker removals.
 
 ### Phase 4 Transition And Closeout
 

@@ -145,4 +145,77 @@ describe('useStaffInvitations', () => {
     expect(setFormErrorFromError).not.toHaveBeenCalled();
     expect(showError).not.toHaveBeenCalled();
   });
+
+  it('resends an invitation with honest delivery status and refreshes the list', async () => {
+    const invitation = {
+      id: 'invite-1',
+      email: 'invitee@example.com',
+      role: 'staff',
+      expiresAt: '2026-12-31T00:00:00.000Z',
+      acceptedAt: null,
+      isRevoked: false,
+      message: 'Welcome aboard',
+      createdAt: '2026-04-19T00:00:00.000Z',
+      createdByName: 'Alex Admin',
+    };
+    const refreshedInvitations = [{ ...invitation, expiresAt: '2027-01-07T00:00:00.000Z' }];
+
+    mockedApi.get.mockImplementation((url: string) => {
+      if (url === '/invitations') {
+        return Promise.resolve({ data: { invitations: refreshedInvitations } });
+      }
+
+      return Promise.resolve({ data: {} });
+    });
+    mockedApi.post.mockImplementation((url: string) => {
+      if (url === '/invitations/invite-1/resend') {
+        return Promise.resolve({
+          data: {
+            inviteUrl: 'https://invite.local/regenerated',
+            emailDelivery: {
+              requested: true,
+              sent: false,
+              reason: 'Email is not configured. Configure SMTP in Admin > Email settings.',
+            },
+          },
+        });
+      }
+
+      return Promise.resolve({ data: {} });
+    });
+
+    const { result } = renderHook(() =>
+      useStaffInvitations({
+        confirm: vi.fn().mockResolvedValue(true),
+        setFormErrorFromError,
+        clearFormError,
+        showSuccess,
+        showError,
+      })
+    );
+
+    await act(async () => {
+      await result.current.handleResendInvitation(invitation);
+    });
+
+    expect(mockedApi.post).toHaveBeenCalledWith('/invitations/invite-1/resend');
+    expect(clearFormError).toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(result.current.showInviteModal).toBe(true);
+      expect(result.current.inviteEmail).toBe('invitee@example.com');
+      expect(result.current.inviteRole).toBe('staff');
+      expect(result.current.inviteMessage).toBe('Welcome aboard');
+      expect(result.current.inviteUrl).toBe('https://invite.local/regenerated');
+      expect(result.current.inviteEmailDelivery).toEqual({
+        requested: true,
+        sent: false,
+        reason: 'Email is not configured. Configure SMTP in Admin > Email settings.',
+      });
+      expect(result.current.invitations).toEqual(refreshedInvitations);
+    });
+
+    expect(showSuccess).toHaveBeenCalledWith('Invitation link regenerated');
+    expect(showError).not.toHaveBeenCalled();
+  });
 });

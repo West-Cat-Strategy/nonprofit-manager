@@ -26,6 +26,9 @@ const apiMocks = vi.hoisted(() => ({
   createPublicAction: vi.fn(),
   updatePublicAction: vi.fn(),
   listPublicActionSubmissions: vi.fn(),
+  acceptPublicActionSubmission: vi.fn(),
+  rejectPublicActionSubmission: vi.fn(),
+  fulfillPublicActionSubmission: vi.fn(),
   getPublicActionSupportLetterArtifact: vi.fn(),
   getPublicActionSubmissionsExportUrl: vi.fn(
     (siteId: string, actionId: string) => `/api/v2/sites/${siteId}/actions/${actionId}/export`
@@ -225,6 +228,79 @@ describe('WebsiteFormsPage', () => {
         updatedAt: '2026-05-01T00:00:00.000Z',
       },
     ]);
+    apiMocks.acceptPublicActionSubmission.mockResolvedValue({
+      submission: {
+        id: 'submission-1',
+        organizationId: 'org-1',
+        siteId: 'site-1',
+        actionId: 'action-1',
+        actionType: 'petition_signature',
+        reviewStatus: 'accepted',
+        contactId: 'contact-1',
+        sourceEntityType: 'contact',
+        sourceEntityId: 'contact-1',
+        duplicateOfSubmissionId: null,
+        consent: {},
+        payloadRedacted: {},
+        generatedArtifact: {},
+        pagePath: '/petition',
+        visitorId: null,
+        sessionId: null,
+        referrer: null,
+        submittedAt: '2026-05-01T00:00:00.000Z',
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:05:00.000Z',
+      },
+      contactId: 'contact-1',
+    });
+    apiMocks.rejectPublicActionSubmission.mockResolvedValue({
+      submission: {
+        id: 'submission-1',
+        organizationId: 'org-1',
+        siteId: 'site-1',
+        actionId: 'action-1',
+        actionType: 'petition_signature',
+        reviewStatus: 'rejected',
+        contactId: 'contact-1',
+        sourceEntityType: 'contact',
+        sourceEntityId: 'contact-1',
+        duplicateOfSubmissionId: null,
+        consent: {},
+        payloadRedacted: {},
+        generatedArtifact: {},
+        pagePath: '/petition',
+        visitorId: null,
+        sessionId: null,
+        referrer: null,
+        submittedAt: '2026-05-01T00:00:00.000Z',
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:05:00.000Z',
+      },
+    });
+    apiMocks.fulfillPublicActionSubmission.mockResolvedValue({
+      submission: {
+        id: 'submission-1',
+        organizationId: 'org-1',
+        siteId: 'site-1',
+        actionId: 'action-1',
+        actionType: 'petition_signature',
+        reviewStatus: 'fulfilled',
+        contactId: 'contact-1',
+        sourceEntityType: 'contact',
+        sourceEntityId: 'contact-1',
+        duplicateOfSubmissionId: null,
+        consent: {},
+        payloadRedacted: {},
+        generatedArtifact: {},
+        pagePath: '/petition',
+        visitorId: null,
+        sessionId: null,
+        referrer: null,
+        submittedAt: '2026-05-01T00:00:00.000Z',
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:05:00.000Z',
+      },
+    });
     apiMocks.createPublicAction.mockResolvedValue({
       id: 'action-2',
       organizationId: 'org-1',
@@ -520,6 +596,341 @@ describe('WebsiteFormsPage', () => {
       });
     });
     expect(screen.getByText('Public action created.')).toBeInTheDocument();
+  });
+
+  it('accepts pledge submissions from the forms workspace review panel', async () => {
+    apiMocks.listPublicActions.mockResolvedValue([
+      {
+        id: 'action-pledge',
+        organizationId: 'org-1',
+        siteId: 'site-1',
+        actionType: 'donation_pledge',
+        status: 'published',
+        slug: 'spring-pledge',
+        title: 'Spring Pledge',
+        description: null,
+        settings: {},
+        confirmationMessage: null,
+        publishedAt: '2026-05-01T00:00:00.000Z',
+        closedAt: null,
+        submissionCount: 1,
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:00:00.000Z',
+      },
+    ]);
+    apiMocks.listPublicActionSubmissions.mockResolvedValue([
+      {
+        id: 'submission-pledge',
+        organizationId: 'org-1',
+        siteId: 'site-1',
+        actionId: 'action-pledge',
+        actionType: 'donation_pledge',
+        reviewStatus: 'new',
+        contactId: null,
+        sourceEntityType: 'submission',
+        sourceEntityId: null,
+        duplicateOfSubmissionId: null,
+        consent: {},
+        payloadRedacted: { amount: '100', email: 'donor@example.org' },
+        generatedArtifact: {},
+        pagePath: '/pledge',
+        visitorId: null,
+        sessionId: null,
+        referrer: null,
+        submittedAt: '2026-05-01T00:00:00.000Z',
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:00:00.000Z',
+      },
+    ]);
+    apiMocks.acceptPublicActionSubmission.mockResolvedValue({
+      submission: {
+        id: 'submission-pledge',
+        organizationId: 'org-1',
+        siteId: 'site-1',
+        actionId: 'action-pledge',
+        actionType: 'donation_pledge',
+        reviewStatus: 'accepted',
+        contactId: 'contact-pledge',
+        sourceEntityType: 'pledge',
+        sourceEntityId: 'pledge-1',
+        duplicateOfSubmissionId: null,
+        consent: {},
+        payloadRedacted: { amount: '100', email: 'donor@example.org' },
+        generatedArtifact: {},
+        pagePath: '/pledge',
+        visitorId: null,
+        sessionId: null,
+        referrer: null,
+        submittedAt: '2026-05-01T00:00:00.000Z',
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:05:00.000Z',
+      },
+      contactId: 'contact-pledge',
+      pledgeId: 'pledge-1',
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('Recent submissions for Spring Pledge')).toBeInTheDocument();
+    expect(await screen.findByText('new')).toBeInTheDocument();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Accept' }));
+
+    await waitFor(() => {
+      expect(apiMocks.acceptPublicActionSubmission).toHaveBeenCalledWith(
+        'site-1',
+        'action-pledge',
+        'submission-pledge'
+      );
+    });
+    expect(await screen.findByText('accepted')).toBeInTheDocument();
+    expect(screen.getByText('Submission accepted.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reject' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Fulfill' })).toBeInTheDocument();
+  });
+
+  it('rejects public-action submissions from the forms workspace review panel', async () => {
+    apiMocks.listPublicActions.mockResolvedValue([
+      {
+        id: 'action-reject',
+        organizationId: 'org-1',
+        siteId: 'site-1',
+        actionType: 'petition_signature',
+        status: 'published',
+        slug: 'library-petition',
+        title: 'Library Petition',
+        description: null,
+        settings: {},
+        confirmationMessage: null,
+        publishedAt: '2026-05-01T00:00:00.000Z',
+        closedAt: null,
+        submissionCount: 1,
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:00:00.000Z',
+      },
+    ]);
+    apiMocks.listPublicActionSubmissions.mockResolvedValue([
+      {
+        id: 'submission-reject',
+        organizationId: 'org-1',
+        siteId: 'site-1',
+        actionId: 'action-reject',
+        actionType: 'petition_signature',
+        reviewStatus: 'needs_review',
+        contactId: null,
+        sourceEntityType: 'submission',
+        sourceEntityId: null,
+        duplicateOfSubmissionId: null,
+        consent: {},
+        payloadRedacted: { email: 'petition@example.org' },
+        generatedArtifact: {},
+        pagePath: '/petition',
+        visitorId: null,
+        sessionId: null,
+        referrer: null,
+        submittedAt: '2026-05-01T00:00:00.000Z',
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:00:00.000Z',
+      },
+    ]);
+    apiMocks.rejectPublicActionSubmission.mockResolvedValue({
+      submission: {
+        id: 'submission-reject',
+        organizationId: 'org-1',
+        siteId: 'site-1',
+        actionId: 'action-reject',
+        actionType: 'petition_signature',
+        reviewStatus: 'rejected',
+        contactId: null,
+        sourceEntityType: 'submission',
+        sourceEntityId: null,
+        duplicateOfSubmissionId: null,
+        consent: {},
+        payloadRedacted: { email: 'petition@example.org' },
+        generatedArtifact: {},
+        pagePath: '/petition',
+        visitorId: null,
+        sessionId: null,
+        referrer: null,
+        submittedAt: '2026-05-01T00:00:00.000Z',
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:05:00.000Z',
+      },
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('Recent submissions for Library Petition')).toBeInTheDocument();
+    expect(await screen.findByText('needs_review')).toBeInTheDocument();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Reject' }));
+
+    await waitFor(() => {
+      expect(apiMocks.rejectPublicActionSubmission).toHaveBeenCalledWith(
+        'site-1',
+        'action-reject',
+        'submission-reject'
+      );
+    });
+    expect(await screen.findByText('rejected')).toBeInTheDocument();
+    expect(screen.getByText('Submission rejected.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Accept' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reject' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Fulfill' })).not.toBeInTheDocument();
+  });
+
+  it('fulfills support-letter submissions and keeps preview available', async () => {
+    apiMocks.listPublicActions.mockResolvedValue([
+      {
+        id: 'action-support-letter',
+        organizationId: 'org-1',
+        siteId: 'site-1',
+        actionType: 'support_letter_request',
+        status: 'published',
+        slug: 'housing-letter',
+        title: 'Housing Letters',
+        description: null,
+        settings: {},
+        confirmationMessage: null,
+        publishedAt: '2026-05-01T00:00:00.000Z',
+        closedAt: null,
+        submissionCount: 1,
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:00:00.000Z',
+      },
+    ]);
+    apiMocks.listPublicActionSubmissions.mockResolvedValue([
+      {
+        id: 'submission-support-letter',
+        organizationId: 'org-1',
+        siteId: 'site-1',
+        actionId: 'action-support-letter',
+        actionType: 'support_letter_request',
+        reviewStatus: 'new',
+        contactId: 'contact-1',
+        sourceEntityType: 'submission',
+        sourceEntityId: null,
+        duplicateOfSubmissionId: null,
+        consent: {},
+        payloadRedacted: {},
+        generatedArtifact: {},
+        pagePath: '/letters',
+        visitorId: null,
+        sessionId: null,
+        referrer: null,
+        submittedAt: '2026-05-01T00:00:00.000Z',
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:00:00.000Z',
+      },
+    ]);
+    apiMocks.fulfillPublicActionSubmission.mockResolvedValue({
+      submission: {
+        id: 'submission-support-letter',
+        organizationId: 'org-1',
+        siteId: 'site-1',
+        actionId: 'action-support-letter',
+        actionType: 'support_letter_request',
+        reviewStatus: 'fulfilled',
+        contactId: 'contact-1',
+        sourceEntityType: 'support_letter',
+        sourceEntityId: 'letter-1',
+        duplicateOfSubmissionId: null,
+        consent: {},
+        payloadRedacted: {},
+        generatedArtifact: {},
+        pagePath: '/letters',
+        visitorId: null,
+        sessionId: null,
+        referrer: null,
+        submittedAt: '2026-05-01T00:00:00.000Z',
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:05:00.000Z',
+      },
+      contactId: 'contact-1',
+      supportLetterId: 'letter-1',
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('Recent submissions for Housing Letters')).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'Fulfill' }));
+
+    await waitFor(() => {
+      expect(apiMocks.fulfillPublicActionSubmission).toHaveBeenCalledWith(
+        'site-1',
+        'action-support-letter',
+        'submission-support-letter'
+      );
+    });
+    expect(await screen.findByText('fulfilled')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Accept' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Fulfill' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Preview letter' }));
+
+    expect(apiMocks.getPublicActionSupportLetterArtifact).toHaveBeenCalledWith(
+      'site-1',
+      'action-support-letter',
+      'submission-support-letter'
+    );
+    expect(await screen.findByText('Housing support letter')).toBeInTheDocument();
+  });
+
+  it('hides staff transition controls for rejected and fulfilled submissions', async () => {
+    apiMocks.listPublicActionSubmissions.mockResolvedValue([
+      {
+        id: 'submission-rejected',
+        organizationId: 'org-1',
+        siteId: 'site-1',
+        actionId: 'action-1',
+        actionType: 'petition_signature',
+        reviewStatus: 'rejected',
+        contactId: 'contact-1',
+        sourceEntityType: 'contact',
+        sourceEntityId: 'contact-1',
+        duplicateOfSubmissionId: null,
+        consent: {},
+        payloadRedacted: {},
+        generatedArtifact: {},
+        pagePath: '/petition',
+        visitorId: null,
+        sessionId: null,
+        referrer: null,
+        submittedAt: '2026-05-01T00:00:00.000Z',
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:05:00.000Z',
+      },
+      {
+        id: 'submission-fulfilled',
+        organizationId: 'org-1',
+        siteId: 'site-1',
+        actionId: 'action-1',
+        actionType: 'petition_signature',
+        reviewStatus: 'fulfilled',
+        contactId: 'contact-2',
+        sourceEntityType: 'contact',
+        sourceEntityId: 'contact-2',
+        duplicateOfSubmissionId: null,
+        consent: {},
+        payloadRedacted: {},
+        generatedArtifact: {},
+        pagePath: '/petition',
+        visitorId: null,
+        sessionId: null,
+        referrer: null,
+        submittedAt: '2026-05-01T01:00:00.000Z',
+        createdAt: '2026-05-01T01:00:00.000Z',
+        updatedAt: '2026-05-01T01:05:00.000Z',
+      },
+    ]);
+
+    renderPage();
+
+    expect(await screen.findByText('rejected')).toBeInTheDocument();
+    expect(screen.getByText('fulfilled')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Accept' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reject' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Fulfill' })).not.toBeInTheDocument();
   });
 
   it('previews, copies, and downloads support-letter artifacts without sending email', async () => {
