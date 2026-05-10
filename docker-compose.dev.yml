@@ -75,6 +75,7 @@ services:
       - "${DEV_BACKEND_PORT:-8004}:3000"
     volumes:
       - ./backend:/app
+      - backend-uploads:/app/uploads
       - backend-dev-node-modules:/app/node_modules
     depends_on:
       postgres:
@@ -104,6 +105,7 @@ services:
       - "${DEV_PUBLIC_SITE_PORT:-8006}:8006"
     volumes:
       - ./backend:/app
+      - backend-uploads:/app/uploads
       - public-site-dev-node-modules:/app/node_modules
     depends_on:
       postgres:
@@ -141,8 +143,30 @@ services:
       retries: 20
       start_period: 20s
 
+  worker-dev:
+    image: ${DEV_BACKEND_DOCKER_IMAGE:-nonprofit-dev-backend-dev:latest}
+    build: *backend-dev-build
+    restart: unless-stopped
+    init: true
+    env_file:
+      - ${DEV_ENV_FILE:-.env.development}
+    environment:
+      <<: *backend-dev-env
+    command: npm run worker:dev
+    volumes:
+      - ./backend:/app
+      - backend-uploads:/app/uploads
+      - worker-dev-node-modules:/app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
 volumes:
   nonprofit-manager-postgres-data:
+  backend-uploads:
   backend-dev-node-modules:
   public-site-dev-node-modules:
   frontend-dev-node-modules:
+  worker-dev-node-modules:

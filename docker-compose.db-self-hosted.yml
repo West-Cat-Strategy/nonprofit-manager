@@ -44,3 +44,14 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+
+  worker:
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_AT_REST_ENCRYPTION_MODE: self_hosted
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy

@@ -15,6 +15,7 @@ const toNumberOrDefault = (rawValue: string | undefined, fallback: number): numb
 };
 
 class LocalCampaignDeliverySchedulerService {
+  readonly healthName = LOCAL_CAMPAIGN_DELIVERY_HEALTH_NAME;
   private runner: IntervalBatchRunner | null = null;
   private batchSize = DEFAULT_BATCH_SIZE;
 
@@ -46,7 +47,7 @@ class LocalCampaignDeliverySchedulerService {
 
     this.runner = new IntervalBatchRunner({
       name: 'Local campaign delivery scheduler',
-      healthName: LOCAL_CAMPAIGN_DELIVERY_HEALTH_NAME,
+      healthName: this.healthName,
       intervalMs,
       runBatch: async () => this.runBatch(),
       retryAttempts,

@@ -33,7 +33,7 @@ Pick one runtime path and stay with it while debugging. The Docker dev stack, di
 |---|---|---|
 | Validate Dockerfiles or production image packaging | Path 1: build-first Docker images | no long-running app; image build validation only |
 | Work on the API and staff app with the lowest Docker footprint | Path 2: lean compose dev stack | frontend `8005`, backend `8004`; public site omitted |
-| Work full stack with Docker-managed Postgres and Redis | Path 2: full compose dev stack | frontend `8005`, backend `8004`, public site `8006` |
+| Work full stack with Docker-managed Postgres, Redis, and worker runtime | Path 2: full compose dev stack | frontend `8005`, backend `8004`, public site `8006`, worker has no HTTP port |
 | Work on the API backend outside Docker | Path 3: direct backend runtime | backend `3000` |
 | Work on the public-site runtime outside Docker | Path 4: direct public-site runtime | public site `8006` |
 | Run schedulers or worker-side integrations outside Docker | Path 5: direct worker runtime | no HTTP port |
@@ -65,7 +65,7 @@ cp .env.development.example .env.development
 make dev-lite
 ```
 
-Use `make dev` when the public-site runtime is part of the change or proof. The full stack keeps the same ports as before.
+Use `make dev` when the public-site or Dockerized worker runtime is part of the change or proof. The full stack keeps the same HTTP ports as before and also starts `worker-dev` without exposing a port. Scheduler flags in `.env.development.example` stay `false`; enable a scheduler only for the single worker process that should own it.
 
 ```bash
 cp .env.development.example .env.development
@@ -77,6 +77,7 @@ Expected endpoints:
 - Frontend: `http://localhost:8005`
 - Backend API: `http://localhost:8004`
 - Public site: `http://localhost:8006`
+- Worker: no HTTP port; runs `npm run worker:dev` in the backend dev image
 - Caddy public-site host: `http://sites.localhost` and `http://<site-subdomain>.sites.localhost`
 - Postgres: `localhost:8002`
 - Redis: `localhost:8003`
@@ -168,6 +169,7 @@ Expected behavior:
 
 - No HTTP port is exposed
 - The worker uses the same database and Redis settings as the backend runtime
+- Set `WORKER_INSTANCE_ID` to a unique stable value when enabling any scheduler so scheduler-health rows identify the owning process
 - Production Docker Compose runs the same worker entrypoint as the `worker` service with `node dist/worker.js`; keep scheduler enable flags false unless this process is the single intended scheduler runner for that environment
 
 ## Path 6: Direct Frontend Runtime
@@ -216,7 +218,7 @@ Default Playwright runtime:
 - Backend API: `http://127.0.0.1:3001`
 
 The harness loads `.env.test` first and then `.env.test.local`, so local overrides win last.
-Wrapper-driven docker commands still default to the full `8005/8004/8006` contract. `make dev-lite` is for manual API/app work and intentionally omits the public-site runtime; use `make dev` or `make docker-up-caddy` before package-level Docker E2E commands that need public-site coverage. The repo-root `make test-e2e-docker-smoke` target provisions its own isolated full smoke stack on `18005/18004/18006` unless `KEEP_SMOKE_STACK=1`.
+Wrapper-driven docker commands still default to the full `8005/8004/8006` contract plus the non-HTTP worker container. `make dev-lite` is for manual API/app work and intentionally omits the public-site and worker runtimes; use `make dev` or `make docker-up-caddy` before package-level Docker E2E commands that need public-site or worker coverage. The repo-root `make test-e2e-docker-smoke` target provisions its own isolated full smoke stack on `18005/18004/18006` unless `KEEP_SMOKE_STACK=1`.
 
 ## Verification And Next Docs
 

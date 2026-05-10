@@ -5,6 +5,7 @@ import { socialMediaService } from './socialMediaService';
 
 const DEFAULT_SYNC_INTERVAL_MS = 5 * 60 * 1000;
 const DEFAULT_SYNC_BATCH_SIZE = 25;
+export const SOCIAL_MEDIA_SYNC_SCHEDULER_HEALTH_NAME = 'social_media_sync';
 
 const toNumberOrDefault = (value: string | undefined, fallback: number): number => {
   const parsed = Number(value);
@@ -12,6 +13,7 @@ const toNumberOrDefault = (value: string | undefined, fallback: number): number 
 };
 
 export class SocialMediaSyncSchedulerService {
+  readonly healthName = SOCIAL_MEDIA_SYNC_SCHEDULER_HEALTH_NAME;
   private readonly runner: IntervalBatchRunner;
   private readonly batchSize: number;
 
@@ -27,6 +29,7 @@ export class SocialMediaSyncSchedulerService {
 
     this.runner = new IntervalBatchRunner({
       name: 'Social media sync scheduler',
+      healthName: this.healthName,
       intervalMs,
       runBatch: async () => {
         const result = await service.syncDueFacebookPages(this.batchSize);

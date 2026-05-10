@@ -8,7 +8,7 @@ export interface IntervalBatchRunnerOptions {
   timeoutMs?: number;
   retryAttempts?: number;
   retryDelayMs?: number;
-  healthName?: string;
+  healthName: string;
 }
 
 export class IntervalBatchRunner {
@@ -18,7 +18,7 @@ export class IntervalBatchRunner {
   private readonly timeoutMs?: number;
   private readonly retryAttempts: number;
   private readonly retryDelayMs: number;
-  private readonly healthName?: string;
+  private readonly healthName: string;
   private intervalId: NodeJS.Timeout | null = null;
   private inFlight = false;
 
@@ -135,17 +135,14 @@ export class IntervalBatchRunner {
   }
 
   private async recordTickStarted(): Promise<void> {
-    if (!this.healthName) return;
     await schedulerHealthService.recordTickStarted(this.healthName);
   }
 
   private async recordTickSucceeded(processed: number): Promise<void> {
-    if (!this.healthName) return;
     await schedulerHealthService.recordTickSucceeded(this.healthName, processed);
   }
 
   private async recordTickFailed(error: unknown, processed: number): Promise<void> {
-    if (!this.healthName) return;
     await schedulerHealthService.recordTickFailed(this.healthName, error, processed);
   }
 }

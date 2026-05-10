@@ -20,6 +20,7 @@ const DEFAULT_BATCH_SIZE = 25;
 const DEFAULT_RETRY_ATTEMPTS = 1;
 const DEFAULT_RETRY_DELAY_MS = 1_000;
 const DEFAULT_TIMEOUT_MS = 60_000;
+export const EVENT_REMINDER_SCHEDULER_HEALTH_NAME = 'event_reminders';
 
 const toNumberOrDefault = (rawValue: string | undefined, fallback: number): number => {
   if (!rawValue) return fallback;
@@ -45,6 +46,7 @@ const computeAttemptStatus = (summary: EventReminderSummary): EventReminderAttem
 };
 
 class EventReminderSchedulerService {
+  readonly healthName = EVENT_REMINDER_SCHEDULER_HEALTH_NAME;
   private runner: IntervalBatchRunner | null = null;
   private batchSize = DEFAULT_BATCH_SIZE;
 
@@ -76,6 +78,7 @@ class EventReminderSchedulerService {
 
     this.runner = new IntervalBatchRunner({
       name: 'Event reminder scheduler',
+      healthName: this.healthName,
       intervalMs: pollIntervalMs,
       runBatch: async () => this.runBatch(),
       retryAttempts,

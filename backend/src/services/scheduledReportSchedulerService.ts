@@ -6,6 +6,7 @@ const DEFAULT_BATCH_SIZE = 10;
 const DEFAULT_RETRY_ATTEMPTS = 1;
 const DEFAULT_RETRY_DELAY_MS = 1_000;
 const DEFAULT_TIMEOUT_MS = 120_000;
+export const SCHEDULED_REPORT_SCHEDULER_HEALTH_NAME = 'scheduled_reports';
 
 const toNumberOrDefault = (rawValue: string | undefined, fallback: number): number => {
   if (!rawValue) return fallback;
@@ -14,6 +15,7 @@ const toNumberOrDefault = (rawValue: string | undefined, fallback: number): numb
 };
 
 class ScheduledReportSchedulerService {
+  readonly healthName = SCHEDULED_REPORT_SCHEDULER_HEALTH_NAME;
   private runner: IntervalBatchRunner | null = null;
   private batchSize = DEFAULT_BATCH_SIZE;
 
@@ -47,6 +49,7 @@ class ScheduledReportSchedulerService {
 
     this.runner = new IntervalBatchRunner({
       name: 'Scheduled report scheduler',
+      healthName: this.healthName,
       intervalMs,
       runBatch: async () => this.runBatch(),
       retryAttempts,

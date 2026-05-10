@@ -15,6 +15,7 @@ The repo supports Docker-based production packaging plus manual/runtime-specific
 | Staging/prod wrapper | `make release-staging` or `make release-production`; actual deploy still requires `DEPLOY_EXECUTE=1` |
 | Public app origin | Serve frontend and backend from one HTTPS origin; route `/api`, `/api/v2/*`, and `/health` to backend |
 | Public-site runtime | Use the public-site container/host contract in [publishing-deployment.md](publishing-deployment.md) |
+| Worker runtime | Run the `worker` container with no HTTP ingress; keep scheduler flags disabled unless it is the single intended scheduler runner |
 | Database | Choose exactly one DB-at-rest mode documented in [DB_SETUP.md](DB_SETUP.md) |
 
 ## Prerequisites
@@ -42,6 +43,8 @@ Minimum production decisions:
 - Public origin and CORS/WebAuthn origins
 - `JWT_SECRET` and other production secrets with non-placeholder values
 - Database host and DB-at-rest mode
+- Worker identity with `WORKER_INSTANCE_ID` when enabling schedulers
+- Scheduler enable flags left `false` unless exactly one worker owns that scheduler
 - Backup location and retention policy
 - Optional provider credentials, only for providers intentionally enabled
 
@@ -76,6 +79,8 @@ make release-production
 ```
 
 Both release targets run the local release gate before delegating to `scripts/deploy.sh`. They remain dry-run handoffs unless `DEPLOY_EXECUTE=1` is set in the calling environment.
+
+The production Compose stack mounts the same `/app/uploads` volume into `backend`, `public-site`, and `worker` so files and worker-created report artifacts stay visible across the runtime processes.
 
 ## Database Migration
 

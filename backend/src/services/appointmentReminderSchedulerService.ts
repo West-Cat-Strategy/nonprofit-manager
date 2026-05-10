@@ -13,6 +13,7 @@ const DEFAULT_BATCH_SIZE = 25;
 const DEFAULT_RETRY_ATTEMPTS = 1;
 const DEFAULT_RETRY_DELAY_MS = 1_000;
 const DEFAULT_TIMEOUT_MS = 60_000;
+export const APPOINTMENT_REMINDER_SCHEDULER_HEALTH_NAME = 'appointment_reminders';
 
 const toNumberOrDefault = (rawValue: string | undefined, fallback: number): number => {
   if (!rawValue) return fallback;
@@ -35,6 +36,7 @@ const computeJobStatus = (
 };
 
 class AppointmentReminderSchedulerService {
+  readonly healthName = APPOINTMENT_REMINDER_SCHEDULER_HEALTH_NAME;
   private runner: IntervalBatchRunner | null = null;
   private batchSize = DEFAULT_BATCH_SIZE;
 
@@ -66,6 +68,7 @@ class AppointmentReminderSchedulerService {
 
     this.runner = new IntervalBatchRunner({
       name: 'Appointment reminder scheduler',
+      healthName: this.healthName,
       intervalMs,
       runBatch: async () => this.runBatch(),
       retryAttempts,

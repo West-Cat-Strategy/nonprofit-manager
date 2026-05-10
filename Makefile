@@ -39,6 +39,8 @@ SMOKE_REDIS_PORT ?= 18003
 SMOKE_BACKEND_PORT ?= 18004
 SMOKE_FRONTEND_PORT ?= 18005
 SMOKE_PUBLIC_SITE_PORT ?= 18006
+SMOKE_DEV_ENV_FILE ?= $(if $(wildcard $(DEV_ENV_FILE)),$(DEV_ENV_FILE),.env.development.example)
+SMOKE_HTTP_READY_MAX_ATTEMPTS ?= 120
 KEEP_SMOKE_STACK ?= 0
 BACKEND_DOCKER_IMAGE ?= nonprofit-manager-backend:latest
 FRONTEND_DOCKER_IMAGE ?= nonprofit-manager-frontend:latest
@@ -56,7 +58,7 @@ E2E_NPM_RUN := cd e2e && npm run
 CI_INFRA_ENV := REDIS_URL=$(CI_REDIS_URL) DB_PASSWORD=postgres
 CI_BACKEND_COVERAGE_ENV := REDIS_URL=$(CI_REDIS_URL) NODE_OPTIONS=$(CI_BACKEND_COVERAGE_NODE_OPTIONS)
 CI_TEST_DB_ENV := DB_HOST=127.0.0.1 DB_PORT=8012 DB_NAME=nonprofit_manager_test DB_USER=postgres DB_PASSWORD=postgres COMPOSE_MODE=ci
-SMOKE_STACK_ENV := COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_SMOKE) DEV_BACKEND_DOCKER_IMAGE=$(COMPOSE_PROJECT_SMOKE)-backend-dev:latest DEV_FRONTEND_DOCKER_IMAGE=$(COMPOSE_PROJECT_SMOKE)-frontend-dev:latest DEV_NODE_ENV=test DEV_DB_PORT=$(SMOKE_DB_PORT) DEV_REDIS_PORT=$(SMOKE_REDIS_PORT) DEV_BACKEND_PORT=$(SMOKE_BACKEND_PORT) DEV_FRONTEND_PORT=$(SMOKE_FRONTEND_PORT) DEV_PUBLIC_SITE_PORT=$(SMOKE_PUBLIC_SITE_PORT) DEV_BYPASS_REGISTRATION_POLICY_IN_TEST=true DEV_BYPASS_MFA_FOR_TESTS=true
+SMOKE_STACK_ENV := COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_SMOKE) DEV_ENV_FILE=$(SMOKE_DEV_ENV_FILE) DEV_BACKEND_DOCKER_IMAGE=$(COMPOSE_PROJECT_SMOKE)-backend-dev:latest DEV_FRONTEND_DOCKER_IMAGE=$(COMPOSE_PROJECT_SMOKE)-frontend-dev:latest DEV_NODE_ENV=test DEV_DB_PORT=$(SMOKE_DB_PORT) DEV_REDIS_PORT=$(SMOKE_REDIS_PORT) DEV_BACKEND_PORT=$(SMOKE_BACKEND_PORT) DEV_FRONTEND_PORT=$(SMOKE_FRONTEND_PORT) DEV_PUBLIC_SITE_PORT=$(SMOKE_PUBLIC_SITE_PORT) DEV_BYPASS_REGISTRATION_POLICY_IN_TEST=true DEV_BYPASS_MFA_FOR_TESTS=true
 
 #------------------------------------------------------------------------------
 # Help
@@ -227,6 +229,8 @@ docker-up-dev-lite:
 	fi
 	$(DOCKER_COMPOSE) $(COMPOSE_DEV_ARGS) stop public-site-dev >/dev/null 2>&1 || true
 	$(DOCKER_COMPOSE) $(COMPOSE_DEV_ARGS) rm -f public-site-dev >/dev/null 2>&1 || true
+	$(DOCKER_COMPOSE) $(COMPOSE_DEV_ARGS) stop worker-dev >/dev/null 2>&1 || true
+	$(DOCKER_COMPOSE) $(COMPOSE_DEV_ARGS) rm -f worker-dev >/dev/null 2>&1 || true
 	@if [ -f docker-compose.caddy.yml ] && [ -f Caddyfile ]; then \
 	  $(DOCKER_COMPOSE) $(COMPOSE_DEV_CADDY_ARGS) stop caddy >/dev/null 2>&1 || true; \
 	  $(DOCKER_COMPOSE) $(COMPOSE_DEV_CADDY_ARGS) rm -f caddy >/dev/null 2>&1 || true; \
@@ -514,14 +518,17 @@ test-e2e-docker-smoke:
 	    "$(COMPOSE_PROJECT_SMOKE)-redis-1" \
 	    "$(COMPOSE_PROJECT_SMOKE)-backend-dev-1" \
 	    "$(COMPOSE_PROJECT_SMOKE)-frontend-dev-1" \
-	    "$(COMPOSE_PROJECT_SMOKE)-public-site-dev-1"; do \
+	    "$(COMPOSE_PROJECT_SMOKE)-public-site-dev-1" \
+	    "$(COMPOSE_PROJECT_SMOKE)-worker-dev-1"; do \
 	    docker rm -f "$$container" >/dev/null 2>&1 || true; \
 	  done; \
 	  for volume in \
 	    "$(COMPOSE_PROJECT_SMOKE)_nonprofit-manager-postgres-data" \
+	    "$(COMPOSE_PROJECT_SMOKE)_backend-uploads" \
 	    "$(COMPOSE_PROJECT_SMOKE)_backend-dev-node-modules" \
 	    "$(COMPOSE_PROJECT_SMOKE)_public-site-dev-node-modules" \
-	    "$(COMPOSE_PROJECT_SMOKE)_frontend-dev-node-modules"; do \
+	    "$(COMPOSE_PROJECT_SMOKE)_frontend-dev-node-modules" \
+	    "$(COMPOSE_PROJECT_SMOKE)_worker-dev-node-modules"; do \
 	    docker volume rm -f "$$volume" >/dev/null 2>&1 || true; \
 	  done; \
 	  docker network rm "$(COMPOSE_PROJECT_SMOKE)_default" >/dev/null 2>&1 || true; \
@@ -542,12 +549,14 @@ test-e2e-docker-smoke:
 	  purge_smoke_stack; \
 	  exit 1; \
 	fi; \
+	E2E_HTTP_READY_MAX_ATTEMPTS=$(SMOKE_HTTP_READY_MAX_ATTEMPTS) \
 	./scripts/wait-for-http-ready.sh \
 	  "http://127.0.0.1:$(SMOKE_BACKEND_PORT)/health/ready" \
 	  "http://127.0.0.1:$(SMOKE_FRONTEND_PORT)" \
 	  "http://127.0.0.1:$(SMOKE_PUBLIC_SITE_PORT)/health/ready"; \
 	echo "$(BLUE)Running Docker-backed Playwright smoke tests against the isolated stack...$(RESET)"; \
 	cd e2e && \
+	E2E_HTTP_READY_MAX_ATTEMPTS=$(SMOKE_HTTP_READY_MAX_ATTEMPTS) \
 	E2E_REQUIRED_PORTS="$(SMOKE_BACKEND_PORT) $(SMOKE_FRONTEND_PORT) $(SMOKE_PUBLIC_SITE_PORT)" \
 	E2E_READY_URLS="http://127.0.0.1:$(SMOKE_BACKEND_PORT)/health/ready http://127.0.0.1:$(SMOKE_FRONTEND_PORT) http://127.0.0.1:$(SMOKE_PUBLIC_SITE_PORT)/health/ready" \
 	E2E_BACKEND_PORT=$(SMOKE_BACKEND_PORT) \

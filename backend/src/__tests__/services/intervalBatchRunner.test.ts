@@ -1,4 +1,5 @@
 import { IntervalBatchRunner } from '@services/queue/intervalBatchRunner';
+import { schedulerHealthService } from '@services/queue/schedulerHealthService';
 
 jest.mock('@config/logger', () => ({
   logger: {
@@ -9,6 +10,14 @@ jest.mock('@config/logger', () => ({
   },
 }));
 
+jest.mock('@services/queue/schedulerHealthService', () => ({
+  schedulerHealthService: {
+    recordTickStarted: jest.fn().mockResolvedValue(undefined),
+    recordTickSucceeded: jest.fn().mockResolvedValue(undefined),
+    recordTickFailed: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
 const flushMicrotasks = async (): Promise<void> => {
   for (let i = 0; i < 6; i += 1) {
     await Promise.resolve();
@@ -16,6 +25,12 @@ const flushMicrotasks = async (): Promise<void> => {
 };
 
 describe('IntervalBatchRunner', () => {
+  const mockSchedulerHealthService = schedulerHealthService as jest.Mocked<typeof schedulerHealthService>;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   afterEach(() => {
     jest.useRealTimers();
   });
@@ -33,6 +48,7 @@ describe('IntervalBatchRunner', () => {
 
     const runner = new IntervalBatchRunner({
       name: 'Overlap Test Runner',
+      healthName: 'test_runner',
       intervalMs: 1000,
       runBatch,
     });
@@ -66,6 +82,7 @@ describe('IntervalBatchRunner', () => {
 
     const runner = new IntervalBatchRunner({
       name: 'Error Test Runner',
+      healthName: 'test_runner',
       intervalMs: 1000,
       runBatch,
     });
@@ -84,6 +101,7 @@ describe('IntervalBatchRunner', () => {
 
     const runner = new IntervalBatchRunner({
       name: 'Lifecycle Test Runner',
+      healthName: 'test_runner',
       intervalMs: 1000,
       runBatch,
     });
@@ -111,6 +129,7 @@ describe('IntervalBatchRunner', () => {
 
     const runner = new IntervalBatchRunner({
       name: 'Retry Test Runner',
+      healthName: 'test_runner',
       intervalMs: 1000,
       runBatch,
       retryAttempts: 1,
@@ -135,6 +154,7 @@ describe('IntervalBatchRunner', () => {
 
     const runner = new IntervalBatchRunner({
       name: 'Timeout Test Runner',
+      healthName: 'test_runner',
       intervalMs: 1000,
       runBatch,
       timeoutMs: 50,
@@ -145,5 +165,25 @@ describe('IntervalBatchRunner', () => {
     await flushMicrotasks();
 
     await expect(tickPromise).resolves.toBe(0);
+  });
+
+  it('records tick health transitions with the configured scheduler name', async () => {
+    const runBatch = jest.fn<Promise<number>, []>().mockResolvedValue(4);
+
+    const runner = new IntervalBatchRunner({
+      name: 'Health Test Runner',
+      healthName: 'health_test_runner',
+      intervalMs: 1000,
+      runBatch,
+    });
+
+    await expect(runner.tick()).resolves.toBe(4);
+
+    expect(mockSchedulerHealthService.recordTickStarted).toHaveBeenCalledWith('health_test_runner');
+    expect(mockSchedulerHealthService.recordTickSucceeded).toHaveBeenCalledWith(
+      'health_test_runner',
+      4
+    );
+    expect(mockSchedulerHealthService.recordTickFailed).not.toHaveBeenCalled();
   });
 });
