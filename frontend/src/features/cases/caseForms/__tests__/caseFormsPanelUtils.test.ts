@@ -91,4 +91,41 @@ describe('collectCaseFormAuthoringDiagnostics', () => {
       ])
     );
   });
+
+  it('allows single-checkbox questions without options while still warning for multi-checkbox questions', () => {
+    const schema: CaseFormSchema = {
+      version: 1,
+      title: 'Consent form',
+      sections: [
+        {
+          id: 'section-1',
+          title: 'Section 1',
+          questions: [
+            {
+              id: 'single-checkbox',
+              key: 'consent',
+              type: 'checkbox',
+              label: 'Consent',
+              placeholder: 'I agree',
+            },
+            {
+              id: 'multi-checkbox',
+              key: 'support_needs',
+              type: 'checkbox',
+              label: 'Support needs',
+              multiple: true,
+              options: [],
+            },
+          ],
+        },
+      ],
+    };
+
+    const messages = collectCaseFormAuthoringDiagnostics(schema).map(
+      (diagnostic) => diagnostic.message
+    );
+
+    expect(messages).not.toContain('Consent: add at least one option with a label and value.');
+    expect(messages).toContain('Support needs: add at least one option with a label and value.');
+  });
 });

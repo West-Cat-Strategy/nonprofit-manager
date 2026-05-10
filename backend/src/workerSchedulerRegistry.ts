@@ -15,6 +15,10 @@ import {
   scheduledReportSchedulerService,
 } from '@services/scheduledReportSchedulerService';
 import {
+  REPORT_EXPORT_JOB_SCHEDULER_HEALTH_NAME,
+  reportExportJobSchedulerService,
+} from '@services/reportExportJobSchedulerService';
+import {
   LOCAL_CAMPAIGN_DELIVERY_HEALTH_NAME,
   localCampaignDeliverySchedulerService,
 } from '@modules/communications/services/localCampaignDeliverySchedulerService';
@@ -36,6 +40,7 @@ export const WORKER_SCHEDULER_HEALTH_NAMES = [
   FOLLOW_UP_REMINDER_SCHEDULER_HEALTH_NAME,
   APPOINTMENT_REMINDER_SCHEDULER_HEALTH_NAME,
   SCHEDULED_REPORT_SCHEDULER_HEALTH_NAME,
+  REPORT_EXPORT_JOB_SCHEDULER_HEALTH_NAME,
   LOCAL_CAMPAIGN_DELIVERY_HEALTH_NAME,
   PUBLIC_REPORT_CLEANUP_SCHEDULER_HEALTH_NAME,
   SOCIAL_MEDIA_SYNC_SCHEDULER_HEALTH_NAME,
@@ -96,6 +101,12 @@ export const createWorkerSchedulerRegistry = (
     'Scheduled Reports',
     'SCHEDULED_REPORT_SCHEDULER_ENABLED',
     scheduledReportSchedulerService,
+    env
+  ),
+  createDeclaration(
+    'Report Export Jobs',
+    'REPORT_EXPORT_JOB_SCHEDULER_ENABLED',
+    reportExportJobSchedulerService,
     env
   ),
   createDeclaration(

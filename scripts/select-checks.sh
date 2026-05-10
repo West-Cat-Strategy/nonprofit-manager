@@ -110,6 +110,7 @@ has_doc_api_linter_tool=0
 has_policy_tooling=0
 has_security_tooling=0
 has_tooling_contracts=0
+has_frontend_bundle_tooling=0
 has_openapi_contract=0
 has_dependency_tooling=0
 has_knip_config=0
@@ -158,6 +159,11 @@ for file in "${changed_files[@]}"; do
       docs/api/openapi.yaml)
         has_openapi_contract=1
         ;;
+      docs/performance/p4-t9d-thresholds.json)
+        has_frontend=1
+        has_frontend_bundle_tooling=1
+        has_tooling_contracts=1
+        ;;
     esac
     if is_runtime_docs_path "$file"; then
       has_runtime_docs=1
@@ -195,6 +201,11 @@ for file in "${changed_files[@]}"; do
     backend/*)
       has_backend=1
       ;;
+    frontend/vite.config.ts)
+      has_frontend=1
+      has_frontend_bundle_tooling=1
+      has_tooling_contracts=1
+      ;;
     frontend/*)
       has_frontend=1
       ;;
@@ -218,6 +229,11 @@ for file in "${changed_files[@]}"; do
       ;;
     scripts/check-openapi-contract.ts|docs/api/openapi.yaml|openapi.*|.openapi*)
       has_openapi_contract=1
+      has_tooling_contracts=1
+      ;;
+    scripts/check-frontend-bundle-size.js|docs/performance/p4-t9d-thresholds.json|frontend/vite.config.ts)
+      has_frontend=1
+      has_frontend_bundle_tooling=1
       has_tooling_contracts=1
       ;;
     scripts/check-*.ts|scripts/ui-audit.ts)
@@ -304,6 +320,11 @@ add_frontend_commands() {
   add_command "cd frontend && npm test -- --run"
 }
 
+add_frontend_bundle_commands() {
+  add_command "cd frontend && npm run build"
+  add_command "node scripts/check-frontend-bundle-size.js"
+}
+
 add_e2e_commands() {
   add_command "cd e2e && npm run test:smoke"
 }
@@ -327,6 +348,10 @@ fi
 
 if [[ $has_tooling_contracts -eq 1 ]]; then
   add_command "make test-tooling"
+fi
+
+if [[ $has_frontend_bundle_tooling -eq 1 ]]; then
+  add_frontend_bundle_commands
 fi
 
 if [[ $has_openapi_contract -eq 1 || $has_api_docs -eq 1 ]]; then

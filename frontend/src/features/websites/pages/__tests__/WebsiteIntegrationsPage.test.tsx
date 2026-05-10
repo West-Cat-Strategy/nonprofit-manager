@@ -94,7 +94,6 @@ const buildState = (provider: 'mautic' | 'mailchimp', donationProvider: 'stripe'
           publishableKeyConfigured: true,
         },
       },
-      analytics: null,
     },
     isLoading: false,
     isSaving: false,

@@ -16,6 +16,8 @@ import type {
 
 const DEFAULT_RETENTION_DAYS = 30;
 const EXPORT_SUBDIR = 'report-exports';
+const WORKER_RETRY_METADATA_KEY = 'workerRetryAttempts';
+const WORKER_LAST_RETRY_AT_METADATA_KEY = 'lastWorkerRetryAt';
 
 export class ReportExportJobArtifactNotReadyError extends Error {}
 export class ReportExportJobArtifactGoneError extends Error {}
@@ -145,9 +147,7 @@ const parseDefinition = (value: ReportDefinition | string): ReportDefinition => 
   return value;
 };
 
-const parseMetadata = (
-  value: ReportExportJobRow['metadata']
-): Record<string, unknown> => {
+const parseMetadata = (value: ReportExportJobRow['metadata']): Record<string, unknown> => {
   if (!value) return {};
   if (typeof value === 'string') {
     try {
@@ -157,6 +157,16 @@ const parseMetadata = (
     }
   }
   return value;
+};
+
+const parseNonNegativeInt = (value: unknown): number => {
+  if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
+    return Math.floor(value);
+  }
+  if (typeof value === 'string' && /^\d+$/.test(value)) {
+    return Number.parseInt(value, 10);
+  }
+  return 0;
 };
 
 const normalizeIso = (value: string | Date | null | undefined): string | null => {
@@ -209,7 +219,10 @@ export class ReportExportJobService {
   }
 
   private getRetentionUntil(): string {
-    const retentionDays = parsePositiveInt(process.env.REPORT_EXPORT_RETENTION_DAYS, DEFAULT_RETENTION_DAYS);
+    const retentionDays = parsePositiveInt(
+      process.env.REPORT_EXPORT_RETENTION_DAYS,
+      DEFAULT_RETENTION_DAYS
+    );
     return new Date(Date.now() + retentionDays * 24 * 60 * 60 * 1000).toISOString();
   }
 
@@ -326,33 +339,43 @@ export class ReportExportJobService {
       [jobId]
     );
 
+    const claimedJob = claimedResult.rows[0];
     const currentJob =
-      claimedResult.rows[0] ||
-      (await this.db.query<ReportExportJobRow>(
-        `SELECT ${REPORT_EXPORT_JOB_COLUMNS}
-         FROM report_export_jobs
-         WHERE id = $1
-         LIMIT 1`,
-        [jobId]
-      )).rows[0];
+      claimedJob ||
+      (
+        await this.db.query<ReportExportJobRow>(
+          `SELECT ${REPORT_EXPORT_JOB_COLUMNS}
+           FROM report_export_jobs
+           WHERE id = $1
+           LIMIT 1`,
+          [jobId]
+        )
+      ).rows[0];
 
     if (!currentJob) {
       throw new Error('Report export job not found');
     }
 
-    if (currentJob.status === 'completed') {
-      return mapRowToJob(currentJob);
-    }
-    if (currentJob.status === 'processing') {
+    if (!claimedJob && (currentJob.status === 'completed' || currentJob.status === 'processing')) {
       return mapRowToJob(currentJob);
     }
 
+    return this.processClaimedJob(currentJob, jobId);
+  }
+
+  private async processClaimedJob(
+    currentJob: ReportExportJobRow,
+    logJobId: string = currentJob.id
+  ): Promise<ReportExportJob> {
     const startedAt = Date.now();
 
     try {
-      const generated = await this.reportService.generateReport(parseDefinition(currentJob.definition), {
-        organizationId: currentJob.organization_id,
-      });
+      const generated = await this.reportService.generateReport(
+        parseDefinition(currentJob.definition),
+        {
+          organizationId: currentJob.organization_id,
+        }
+      );
       const file = await this.reportService.exportReport(generated, currentJob.format);
       const artifactPath = await this.writeArtifact(currentJob.id, file);
       const runtimeMs = Date.now() - startedAt;
@@ -386,17 +409,30 @@ export class ReportExportJobService {
       return mapRowToJob(result.rows[0]);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown export job failure';
-      logger.error('Report export job failed', { error, jobId });
+      logger.error('Report export job failed', { error, jobId: logJobId });
+      const metadata = parseMetadata(currentJob.metadata);
+      const previousWorkerRetryAttempts = parseNonNegativeInt(metadata[WORKER_RETRY_METADATA_KEY]);
+      const nextWorkerRetryAttempts = currentJob.failure_message
+        ? previousWorkerRetryAttempts + 1
+        : previousWorkerRetryAttempts;
 
       const failed = await this.db.query<ReportExportJobRow>(
         `UPDATE report_export_jobs
          SET status = 'failed',
          failure_message = $2,
+         metadata = COALESCE(metadata, '{}'::jsonb) || $3::jsonb,
          completed_at = CURRENT_TIMESTAMP,
          updated_at = CURRENT_TIMESTAMP
        WHERE id = $1
          RETURNING ${REPORT_EXPORT_JOB_COLUMNS}`,
-        [currentJob.id, message]
+        [
+          currentJob.id,
+          message,
+          JSON.stringify({
+            [WORKER_RETRY_METADATA_KEY]: nextWorkerRetryAttempts,
+            [WORKER_LAST_RETRY_AT_METADATA_KEY]: new Date().toISOString(),
+          }),
+        ]
       );
 
       return mapRowToJob(failed.rows[0]);
@@ -412,6 +448,50 @@ export class ReportExportJobService {
       return job;
     }
     return this.processJob(job.id);
+  }
+
+  async processPendingJobs(
+    limit: number,
+    options: { failedRetryLimit?: number; failedRetryDelayMs?: number } = {}
+  ): Promise<number> {
+    const batchSize = Math.max(1, Math.floor(limit));
+    const failedRetryLimit = Math.max(0, Math.floor(options.failedRetryLimit ?? 0));
+    const failedRetryDelayMs = Math.max(0, Math.floor(options.failedRetryDelayMs ?? 0));
+    const claimed = await this.db.query<ReportExportJobRow>(
+      `WITH pending AS (
+         SELECT id
+         FROM report_export_jobs
+         WHERE status = 'pending'
+            OR (
+              status = 'failed'
+              AND $2 > 0
+              AND updated_at <= CURRENT_TIMESTAMP - ($3::double precision * interval '1 millisecond')
+              AND CASE
+                WHEN metadata ->> '${WORKER_RETRY_METADATA_KEY}' ~ '^\\d+$'
+                  THEN (metadata ->> '${WORKER_RETRY_METADATA_KEY}')::int
+                ELSE 0
+              END < $2
+            )
+         ORDER BY created_at ASC
+         LIMIT $1
+         FOR UPDATE SKIP LOCKED
+       )
+       UPDATE report_export_jobs
+       SET status = 'processing',
+           started_at = COALESCE(started_at, CURRENT_TIMESTAMP),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id IN (SELECT id FROM pending)
+       RETURNING ${REPORT_EXPORT_JOB_COLUMNS}`,
+      [batchSize, failedRetryLimit, failedRetryDelayMs]
+    );
+
+    let processed = 0;
+    for (const row of claimed.rows) {
+      await this.processClaimedJob(row);
+      processed += 1;
+    }
+
+    return processed;
   }
 
   async readArtifact(job: ReportExportJob): Promise<Buffer> {

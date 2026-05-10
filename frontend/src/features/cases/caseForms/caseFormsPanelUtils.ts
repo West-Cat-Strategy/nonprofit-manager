@@ -40,7 +40,7 @@ export const CONTACT_MAPPING_FIELDS = [
   'do_not_voicemail',
 ];
 
-const CHOICE_QUESTION_TYPES: CaseFormQuestionType[] = ['select', 'radio', 'checkbox'];
+const OPTION_BACKED_QUESTION_TYPES: CaseFormQuestionType[] = ['select', 'radio'];
 const UPLOAD_QUESTION_TYPES: CaseFormQuestionType[] = ['file', 'signature'];
 const MIME_TYPE_PATTERN = /^[a-z0-9!#$&^_.+-]+\/(?:[a-z0-9!#$&^_.+-]+|\*)$/i;
 
@@ -177,7 +177,10 @@ export const collectCaseFormAuthoringDiagnostics = (
       pushDiagnostic('duplicate-key', `question key "${key}" is used more than once.`);
     }
 
-    if (CHOICE_QUESTION_TYPES.includes(question.type)) {
+    const requiresOptions =
+      OPTION_BACKED_QUESTION_TYPES.includes(question.type) ||
+      (question.type === 'checkbox' && question.multiple === true);
+    if (requiresOptions) {
       const hasOption = question.options?.some(
         (option) => option.label.trim().length > 0 && option.value.trim().length > 0
       );

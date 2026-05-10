@@ -8,6 +8,7 @@ const EXPECTED_SCHEDULERS = [
   ['Follow-up Reminders', 'follow_up_reminders', 'FOLLOW_UP_REMINDER_SCHEDULER_ENABLED'],
   ['Appointment Reminders', 'appointment_reminders', 'APPOINTMENT_REMINDER_SCHEDULER_ENABLED'],
   ['Scheduled Reports', 'scheduled_reports', 'SCHEDULED_REPORT_SCHEDULER_ENABLED'],
+  ['Report Export Jobs', 'report_export_jobs', 'REPORT_EXPORT_JOB_SCHEDULER_ENABLED'],
   [
     'Local Campaign Delivery',
     'local_campaign_delivery',

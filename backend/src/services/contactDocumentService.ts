@@ -48,35 +48,6 @@ export async function getDocumentsByContact(contactId: string): Promise<ContactD
 }
 
 /**
- * Get documents by case ID
- */
-export async function getDocumentsByCase(caseId: string): Promise<ContactDocument[]> {
-  try {
-    const result = await pool.query(
-      `
-      SELECT
-        cd.*,
-        u.first_name as created_by_first_name,
-        u.last_name as created_by_last_name,
-        ct.first_name as contact_first_name,
-        ct.last_name as contact_last_name
-      FROM contact_documents cd
-      LEFT JOIN users u ON cd.created_by = u.id
-      LEFT JOIN contacts ct ON cd.contact_id = ct.id
-      WHERE cd.case_id = $1 AND cd.is_active = true
-      ORDER BY cd.created_at DESC
-      `,
-      [caseId]
-    );
-
-    return result.rows;
-  } catch (error) {
-    logger.error('Error getting documents by case ID:', error);
-    throw Object.assign(new Error('Failed to retrieve documents'), { cause: error });
-  }
-}
-
-/**
  * Get a single document by ID
  */
 export async function getDocumentById(documentId: string): Promise<ContactDocument | null> {

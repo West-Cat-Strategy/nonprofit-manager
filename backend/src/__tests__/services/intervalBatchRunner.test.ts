@@ -25,7 +25,9 @@ const flushMicrotasks = async (): Promise<void> => {
 };
 
 describe('IntervalBatchRunner', () => {
-  const mockSchedulerHealthService = schedulerHealthService as jest.Mocked<typeof schedulerHealthService>;
+  const mockSchedulerHealthService = schedulerHealthService as jest.Mocked<
+    typeof schedulerHealthService
+  >;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -121,6 +123,64 @@ describe('IntervalBatchRunner', () => {
     expect(runBatch).toHaveBeenCalledTimes(2);
   });
 
+  it('delays the first tick by startup jitter before starting the interval cadence', async () => {
+    jest.useFakeTimers();
+    const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.5);
+
+    const runBatch = jest.fn<Promise<number>, []>().mockResolvedValue(1);
+
+    const runner = new IntervalBatchRunner({
+      name: 'Jitter Test Runner',
+      healthName: 'test_runner',
+      intervalMs: 1000,
+      startupJitterMs: 500,
+      runBatch,
+    });
+
+    runner.start();
+    await flushMicrotasks();
+    expect(runBatch).not.toHaveBeenCalled();
+
+    await jest.advanceTimersByTimeAsync(249);
+    await flushMicrotasks();
+    expect(runBatch).not.toHaveBeenCalled();
+
+    await jest.advanceTimersByTimeAsync(1);
+    await flushMicrotasks();
+    expect(runBatch).toHaveBeenCalledTimes(1);
+
+    await jest.advanceTimersByTimeAsync(1000);
+    await flushMicrotasks();
+    expect(runBatch).toHaveBeenCalledTimes(2);
+
+    runner.stop();
+    randomSpy.mockRestore();
+  });
+
+  it('can stop a startup-jittered runner before the first tick starts', async () => {
+    jest.useFakeTimers();
+    const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.9);
+
+    const runBatch = jest.fn<Promise<number>, []>().mockResolvedValue(1);
+
+    const runner = new IntervalBatchRunner({
+      name: 'Jitter Stop Test Runner',
+      healthName: 'test_runner',
+      intervalMs: 1000,
+      startupJitterMs: 1000,
+      runBatch,
+    });
+
+    runner.start();
+    runner.stop();
+
+    await jest.advanceTimersByTimeAsync(2000);
+    await flushMicrotasks();
+
+    expect(runBatch).not.toHaveBeenCalled();
+    randomSpy.mockRestore();
+  });
+
   it('retries failed batches with bounded attempts', async () => {
     const runBatch = jest
       .fn<Promise<number>, []>()
@@ -165,6 +225,46 @@ describe('IntervalBatchRunner', () => {
     await flushMicrotasks();
 
     await expect(tickPromise).resolves.toBe(0);
+  });
+
+  it('keeps timed-out batches in flight until the original batch settles', async () => {
+    jest.useFakeTimers();
+
+    let resolveBatch: ((value: number) => void) | null = null;
+    const runBatch = jest.fn(
+      () =>
+        new Promise<number>((resolve) => {
+          resolveBatch = resolve;
+        })
+    );
+
+    const runner = new IntervalBatchRunner({
+      name: 'Timeout Overlap Test Runner',
+      healthName: 'test_runner',
+      intervalMs: 1000,
+      runBatch,
+      timeoutMs: 50,
+    });
+
+    const tickPromise = runner.tick();
+    await jest.advanceTimersByTimeAsync(60);
+    await flushMicrotasks();
+
+    await expect(tickPromise).resolves.toBe(0);
+    expect(runBatch).toHaveBeenCalledTimes(1);
+
+    await expect(runner.tick()).resolves.toBe(0);
+    expect(runBatch).toHaveBeenCalledTimes(1);
+
+    resolveBatch?.(1);
+    await flushMicrotasks();
+
+    const nextTickPromise = runner.tick();
+    await jest.advanceTimersByTimeAsync(60);
+    await flushMicrotasks();
+
+    await expect(nextTickPromise).resolves.toBe(0);
+    expect(runBatch).toHaveBeenCalledTimes(2);
   });
 
   it('records tick health transitions with the configured scheduler name', async () => {

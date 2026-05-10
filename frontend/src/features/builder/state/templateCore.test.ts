@@ -14,9 +14,7 @@ import api from '../../../services/api';
 import type { PageSection, Template, TemplatePage } from '../../../types/websiteBuilder';
 import reducer, {
   createTemplatePage,
-  deleteTemplatePage,
   fetchTemplate,
-  reorderTemplatePages,
   updateCurrentPageSections,
 } from './templateCore';
 
@@ -170,7 +168,7 @@ describe('templateCore', () => {
     ).toEqual(updatedSections);
   });
 
-  it('selects newly created pages and falls back to the first remaining page after delete', () => {
+  it('selects newly created pages', () => {
     const template = createTemplate();
     const stateWithTemplate = reducer(
       undefined,
@@ -199,48 +197,5 @@ describe('templateCore', () => {
 
     expect(stateWithCreatedPage.currentPage?.id).toBe('page-contact');
     expect(stateWithCreatedPage.currentTemplate?.pages.at(-1)?.id).toBe('page-contact');
-
-    const stateAfterDelete = reducer(
-      stateWithCreatedPage,
-      deleteTemplatePage.fulfilled(
-        { templateId: template.id, pageId: 'page-contact' },
-        'request-3',
-        { templateId: template.id, pageId: 'page-contact' }
-      )
-    );
-
-    expect(stateAfterDelete.currentTemplate?.pages.map((page) => page.id)).not.toContain(
-      'page-contact'
-    );
-    expect(stateAfterDelete.currentPage?.id).toBe('page-home');
-  });
-
-  it('sends page reorder requests and surfaces reorder failures as rejected payloads', async () => {
-    const store = createStore();
-    vi.mocked(api.put).mockResolvedValueOnce({ data: undefined });
-
-    const successAction = await store.dispatch(
-      reorderTemplatePages({
-        templateId: 'template-1',
-        pageIds: ['page-about', 'page-home'],
-      })
-    );
-
-    expect(successAction.meta.requestStatus).toBe('fulfilled');
-    expect(api.put).toHaveBeenCalledWith('/templates/template-1/pages/reorder', {
-      pageIds: ['page-about', 'page-home'],
-    });
-
-    vi.mocked(api.put).mockRejectedValueOnce(new Error('Unable to reorder pages'));
-
-    const failedAction = await store.dispatch(
-      reorderTemplatePages({
-        templateId: 'template-1',
-        pageIds: ['page-home', 'page-about'],
-      })
-    );
-
-    expect(failedAction.meta.requestStatus).toBe('rejected');
-    expect(failedAction.payload).toBe('Unable to reorder pages');
   });
 });

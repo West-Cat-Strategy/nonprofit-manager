@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import reducer, {
-  fetchWebsiteAnalytics,
   fetchWebsiteForms,
   fetchWebsiteIntegrations,
   fetchWebsiteOverview,
@@ -9,7 +8,6 @@ import reducer, {
   updateWebsiteNewsletterIntegration,
 } from '../websitesCore';
 import {
-  selectWebsiteAnalytics,
   selectWebsiteForms,
   selectWebsiteIntegrations,
 } from '../websitesSelectors';
@@ -172,11 +170,6 @@ const updatedIntegrations = {
   },
 };
 
-const updatedAnalytics = {
-  ...overviewPayload.conversionMetrics,
-  totalConversions: 12,
-};
-
 describe('website selectors', () => {
   it('hydrates selector data from the overview payload and keeps it in a single current-site cache', () => {
     const state = reducer(
@@ -186,7 +179,6 @@ describe('website selectors', () => {
 
     expect(selectWebsiteForms({ websites: state })).toEqual(overviewPayload.forms);
     expect(selectWebsiteIntegrations({ websites: state })).toEqual(overviewPayload.integrations);
-    expect(selectWebsiteAnalytics({ websites: state })).toEqual(overviewPayload.conversionMetrics);
     expect('forms' in state).toBe(false);
     expect('integrations' in state).toBe(false);
     expect('analytics' in state).toBe(false);
@@ -203,17 +195,9 @@ describe('website selectors', () => {
       state,
       fetchWebsiteIntegrations.fulfilled(updatedIntegrations, 'req-3', 'site-1')
     );
-    state = reducer(
-      state,
-      fetchWebsiteAnalytics.fulfilled(updatedAnalytics, 'req-4', {
-        siteId: 'site-1',
-        period: 30,
-      })
-    );
 
     expect(selectWebsiteForms({ websites: state })).toEqual(updatedForms);
     expect(selectWebsiteIntegrations({ websites: state })).toEqual(updatedIntegrations);
-    expect(selectWebsiteAnalytics({ websites: state })).toEqual(updatedAnalytics);
   });
 
   it('keeps overview and selectors current after website mutations patch cached resources', () => {

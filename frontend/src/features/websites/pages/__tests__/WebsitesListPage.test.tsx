@@ -66,7 +66,6 @@ const mockState = {
     overview: null,
     forms: [],
     integrations: null,
-    analytics: null,
     entries: [],
     deployment: null,
     currentSiteId: null,

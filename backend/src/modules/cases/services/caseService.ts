@@ -4,7 +4,6 @@
  */
 
 import { Pool } from 'pg';
-import pool from '@config/database';
 import type {
   Case,
   CaseDocument,
@@ -446,49 +445,3 @@ export class CaseService {
     return deleteCaseServiceQuery(this.pool, serviceId);
   }
 }
-
-// Backwards compatible exports for existing code
-const caseServiceInstance = new CaseService(pool);
-
-export const createCase = caseServiceInstance.createCase.bind(caseServiceInstance);
-export const getCases = caseServiceInstance.getCases.bind(caseServiceInstance);
-export const getCaseById = caseServiceInstance.getCaseById.bind(caseServiceInstance);
-export const updateCase = caseServiceInstance.updateCase.bind(caseServiceInstance);
-export const updateCaseStatus = caseServiceInstance.updateCaseStatus.bind(caseServiceInstance);
-export const getCaseNotes = caseServiceInstance.getCaseNotes.bind(caseServiceInstance);
-export const createCaseNote = caseServiceInstance.createCaseNote.bind(caseServiceInstance);
-export const updateCaseNote = caseServiceInstance.updateCaseNote.bind(caseServiceInstance);
-export const deleteCaseNote = caseServiceInstance.deleteCaseNote.bind(caseServiceInstance);
-export const getCaseOutcomes = caseServiceInstance.getCaseOutcomes.bind(caseServiceInstance);
-export const createCaseOutcome = caseServiceInstance.createCaseOutcome.bind(caseServiceInstance);
-export const updateCaseOutcome = caseServiceInstance.updateCaseOutcome.bind(caseServiceInstance);
-export const deleteCaseOutcome = caseServiceInstance.deleteCaseOutcome.bind(caseServiceInstance);
-export const getCaseTopicDefinitions = caseServiceInstance.getCaseTopicDefinitions.bind(caseServiceInstance);
-export const createCaseTopicDefinition = caseServiceInstance.createCaseTopicDefinition.bind(caseServiceInstance);
-export const getCaseTopicEvents = caseServiceInstance.getCaseTopicEvents.bind(caseServiceInstance);
-export const addCaseTopicEvent = caseServiceInstance.addCaseTopicEvent.bind(caseServiceInstance);
-export const deleteCaseTopicEvent = caseServiceInstance.deleteCaseTopicEvent.bind(caseServiceInstance);
-export const getCaseDocuments = caseServiceInstance.getCaseDocuments.bind(caseServiceInstance);
-export const getCaseDocumentById = caseServiceInstance.getCaseDocumentById.bind(caseServiceInstance);
-export const createCaseDocument = caseServiceInstance.createCaseDocument.bind(caseServiceInstance);
-export const updateCaseDocument = caseServiceInstance.updateCaseDocument.bind(caseServiceInstance);
-export const deleteCaseDocument = caseServiceInstance.deleteCaseDocument.bind(caseServiceInstance);
-export const getCaseTimeline = caseServiceInstance.getCaseTimeline.bind(caseServiceInstance);
-export const getCaseSummary = caseServiceInstance.getCaseSummary.bind(caseServiceInstance);
-export const getCaseTypes = caseServiceInstance.getCaseTypes.bind(caseServiceInstance);
-export const getCaseStatuses = caseServiceInstance.getCaseStatuses.bind(caseServiceInstance);
-export const deleteCase = caseServiceInstance.deleteCase.bind(caseServiceInstance);
-export const getCaseMilestones = caseServiceInstance.getCaseMilestones.bind(caseServiceInstance);
-export const createCaseMilestone = caseServiceInstance.createCaseMilestone.bind(caseServiceInstance);
-export const updateCaseMilestone = caseServiceInstance.updateCaseMilestone.bind(caseServiceInstance);
-export const deleteCaseMilestone = caseServiceInstance.deleteCaseMilestone.bind(caseServiceInstance);
-export const reassignCase = caseServiceInstance.reassignCase.bind(caseServiceInstance);
-export const bulkUpdateStatus = caseServiceInstance.bulkUpdateStatus.bind(caseServiceInstance);
-
-export const getCaseRelationships = caseServiceInstance.getCaseRelationships.bind(caseServiceInstance);
-export const createCaseRelationship = caseServiceInstance.createCaseRelationship.bind(caseServiceInstance);
-export const deleteCaseRelationship = caseServiceInstance.deleteCaseRelationship.bind(caseServiceInstance);
-export const getCaseServices = caseServiceInstance.getCaseServices.bind(caseServiceInstance);
-export const createCaseService = caseServiceInstance.createCaseService.bind(caseServiceInstance);
-export const updateCaseService = caseServiceInstance.updateCaseService.bind(caseServiceInstance);
-export const deleteCaseService = caseServiceInstance.deleteCaseService.bind(caseServiceInstance);

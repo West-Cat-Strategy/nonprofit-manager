@@ -195,7 +195,7 @@ export const createExportJob = async (
       idempotencyKey ||
       undefined;
 
-    const job = await reportExportJobService.createAndProcessJob({
+    const job = await reportExportJobService.createJob({
       organizationId,
       requestedBy: req.user?.id || null,
       savedReportId,
@@ -208,7 +208,7 @@ export const createExportJob = async (
       },
     });
 
-    sendSuccess(res, job, 201);
+    sendSuccess(res, job, 202);
   } catch (error) {
     next(error);
   }

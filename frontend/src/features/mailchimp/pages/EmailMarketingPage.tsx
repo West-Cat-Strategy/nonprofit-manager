@@ -1,9 +1,4 @@
-/**
- * Email Marketing Page
- * Mailchimp integration settings and contact sync
- */
-
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
@@ -47,11 +42,15 @@ import type { Contact } from '../../contacts/state';
 import AdminQuickActionsBar from '../../adminOps/components/AdminQuickActionsBar';
 import AdminWorkspaceShell from '../../adminOps/components/AdminWorkspaceShell';
 import { CampaignCard, CampaignRunCard, ListCard } from '../components/EmailMarketingCards';
-import { CampaignCreateModal, SyncResultModal } from '../components/EmailMarketingPageParts';
+import { SyncResultModal } from '../components/EmailMarketingPageParts';
 import EmailSettingsSection from '../../adminOps/pages/adminSettings/sections/EmailSettingsSection';
 
 const CONTACT_SELECTOR_LIMIT = 25;
 const LOCAL_AUDIENCE_ID = 'local_email:crm';
+const EMPTY_CONTACTS: Contact[] = [];
+const CampaignCreateModal = lazy(() =>
+  import('../components/CampaignCreateModal').then(({ CampaignCreateModal }) => ({ default: CampaignCreateModal }))
+);
 
 const getAudienceProvider = (
   audience: Pick<MailchimpList, 'provider' | 'id'>,
@@ -64,9 +63,6 @@ const getAudienceProvider = (
   return isMailchimpConfigured && !audience.id.startsWith('local') ? 'mailchimp' : 'local_email';
 };
 
-/**
- * Email Marketing Page Component
- */
 export default function EmailMarketing() {
   const location = useLocation();
   const dispatch = useAppDispatch();
@@ -104,7 +100,7 @@ export default function EmailMarketing() {
     error,
   } = useAppSelector((state) => state.mailchimp);
   const contactsListState = useAppSelector((state) => state.contacts.list);
-  const contacts = contactsListState?.contacts || [];
+  const contacts = contactsListState?.contacts ?? EMPTY_CONTACTS;
   const isLoadingContacts = contactsListState?.loading || false;
   const contactsError = contactsListState?.error || null;
   const contactsPagination = contactsListState?.pagination || {
@@ -142,6 +138,10 @@ export default function EmailMarketing() {
   const [contactSearchInput, setContactSearchInput] = useState('');
   const [contactPage, setContactPage] = useState(1);
   const debouncedContactSearch = useDebounce(contactSearchInput, 300);
+  const contactsWithEmail = useMemo(() => contacts.filter((contact: Contact) => Boolean(contact.email)), [contacts]);
+  const selectableContactsOnPage = useMemo(() => contactsWithEmail.filter((contact: Contact) => !contact.do_not_email), [contactsWithEmail]);
+  const selectedContactIdSet = useMemo(() => new Set(selectedContactIds), [selectedContactIds]);
+  const selectedContactsOnPage = useMemo(() => selectableContactsOnPage.filter((contact) => selectedContactIdSet.has(contact.contact_id)), [selectableContactsOnPage, selectedContactIdSet]);
 
   const localAudience = useMemo<MailchimpList>(
     () => ({
@@ -156,15 +156,12 @@ export default function EmailMarketing() {
     [contacts.length, contactsPagination.total]
   );
 
-  const localAudiences = useMemo(
-    () => {
-      const providerLocalAudiences = lists.filter(
-        (list) => getAudienceProvider(list, isMailchimpConfigured) === 'local_email'
-      );
-      return providerLocalAudiences.length > 0 ? providerLocalAudiences : [localAudience];
-    },
-    [isMailchimpConfigured, lists, localAudience]
-  );
+  const localAudiences = useMemo(() => {
+    const providerLocalAudiences = lists.filter(
+      (list) => getAudienceProvider(list, isMailchimpConfigured) === 'local_email'
+    );
+    return providerLocalAudiences.length > 0 ? providerLocalAudiences : [localAudience];
+  }, [isMailchimpConfigured, lists, localAudience]);
   const mailchimpAudiences = useMemo(
     () => lists.filter((list) => getAudienceProvider(list, isMailchimpConfigured) === 'mailchimp'),
     [isMailchimpConfigured, lists]
@@ -252,15 +249,9 @@ export default function EmailMarketing() {
     segmentsListId === campaignListId
       ? segments.filter(
           (segment) =>
-            segment.listId === campaignListId &&
-            !/^NPM \d{4}-\d{2}-\d{2}T/.test(segment.name)
+            segment.listId === campaignListId && !/^NPM \d{4}-\d{2}-\d{2}T/.test(segment.name)
         )
       : [];
-  const selectableContactsOnPage = contacts.filter((c: Contact) => c.email && !c.do_not_email);
-  const selectedContactsOnPage = selectableContactsOnPage.filter((contact) =>
-    selectedContactIds.includes(contact.contact_id)
-  );
-
   // Show sync result modal
   useEffect(() => {
     if (syncResult) {
@@ -278,14 +269,13 @@ export default function EmailMarketing() {
   // Handle select all contacts
   const handleSelectAll = () => {
     if (selectAll) {
-      const currentPageIds = contacts
-        .filter((c: Contact) => c.email && !c.do_not_email)
-        .map((c: Contact) => c.contact_id);
+      const currentPageIds = selectableContactsOnPage.map((contact) => contact.contact_id);
       setSelectedContactIds((prev) => prev.filter((id) => !currentPageIds.includes(id)));
     } else {
-      const contactsWithEmail = contacts.filter((c: Contact) => c.email && !c.do_not_email);
       setSelectedContactIds((prev) =>
-        Array.from(new Set([...prev, ...contactsWithEmail.map((c: Contact) => c.contact_id)]))
+        Array.from(
+          new Set([...prev, ...selectableContactsOnPage.map((contact) => contact.contact_id)])
+        )
       );
     }
     setSelectAll(!selectAll);
@@ -384,7 +374,9 @@ export default function EmailMarketing() {
     }
 
     try {
-      const result = await dispatch(createCampaign({ ...data, provider: selectedProvider })).unwrap();
+      const result = await dispatch(
+        createCampaign({ ...data, provider: selectedProvider })
+      ).unwrap();
 
       const runId = result.campaignRunId || result.id;
       if (sendNow && runId) {
@@ -504,7 +496,8 @@ export default function EmailMarketing() {
             <div className="rounded-lg border border-dashed border-app-input-border bg-app-surface p-4">
               <p className="text-sm font-medium text-app-text-heading">Mailchimp Optional</p>
               <p className="mt-1 text-sm text-app-text-muted">
-                Mailchimp is not configured, so the workspace stays on local email and CRM audiences.
+                Mailchimp is not configured, so the workspace stays on local email and CRM
+                audiences.
               </p>
             </div>
           )}
@@ -683,39 +676,41 @@ export default function EmailMarketing() {
                         </span>
                       </label>
                       <p className="text-xs text-app-text-muted">
-                        {selectedContactIds.length} selected across pages. Do-not-email contacts stay excluded.
+                        {selectedContactIds.length} selected across pages. Do-not-email contacts
+                        stay excluded.
                       </p>
                     </div>
 
                     {selectedProvider === 'mailchimp' ? (
-                    <div>
-                      <p className="text-sm font-medium text-app-text-label">Sync tags</p>
-                      {tags.length > 0 ? (
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {tags.map((tag) => (
-                            <label
-                              key={tag.id}
-                              className="inline-flex items-center gap-2 rounded-lg border border-app-input-border bg-app-surface px-3 py-1.5 text-xs text-app-text-muted"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={selectedTags.includes(tag.name)}
-                                onChange={() => handleToggleTag(tag.name)}
-                                className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
-                              />
-                              {tag.name}
-                              {typeof tag.memberCount === 'number'
-                                ? ` (${tag.memberCount.toLocaleString()})`
-                                : ''}
-                            </label>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="mt-1 text-xs text-app-text-muted">
-                          No provider tags returned for this audience yet; tag and segment endpoints remain API-only until tags exist.
-                        </p>
-                      )}
-                    </div>
+                      <div>
+                        <p className="text-sm font-medium text-app-text-label">Sync tags</p>
+                        {tags.length > 0 ? (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {tags.map((tag) => (
+                              <label
+                                key={tag.id}
+                                className="inline-flex items-center gap-2 rounded-lg border border-app-input-border bg-app-surface px-3 py-1.5 text-xs text-app-text-muted"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={selectedTags.includes(tag.name)}
+                                  onChange={() => handleToggleTag(tag.name)}
+                                  className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
+                                />
+                                {tag.name}
+                                {typeof tag.memberCount === 'number'
+                                  ? ` (${tag.memberCount.toLocaleString()})`
+                                  : ''}
+                              </label>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="mt-1 text-xs text-app-text-muted">
+                            No provider tags returned for this audience yet; tag and segment
+                            endpoints remain API-only until tags exist.
+                          </p>
+                        )}
+                      </div>
                     ) : null}
                   </div>
 
@@ -751,8 +746,8 @@ export default function EmailMarketing() {
                     </div>
                     <p className="mt-2 text-xs text-app-text-muted">
                       Saves {selectedContactIds.length} selected CRM contact
-                      {selectedContactIds.length === 1 ? '' : 's'} as an internal targeting
-                      snapshot tied to {selectedList.name}.
+                      {selectedContactIds.length === 1 ? '' : 's'} as an internal targeting snapshot
+                      tied to {selectedList.name}.
                     </p>
                     {(localSavedAudienceError || savedAudienceCreateError) && (
                       <p className="mt-2 text-xs text-app-accent">
@@ -770,10 +765,8 @@ export default function EmailMarketing() {
                       <div className="p-4 text-sm text-app-accent">{contactsError}</div>
                     ) : isLoadingContacts ? (
                       <div className="p-4 text-sm text-app-text-muted">Loading CRM contacts...</div>
-                    ) : contacts.filter((c: Contact) => c.email).length > 0 ? (
-                      contacts
-                        .filter((c: Contact) => c.email)
-                        .map((contact: Contact) => (
+                    ) : contactsWithEmail.length > 0 ? (
+                      contactsWithEmail.map((contact: Contact) => (
                         <label
                           key={contact.contact_id}
                           className={`flex items-center gap-3 p-4 border-b border-app-border-muted hover:bg-app-surface-muted cursor-pointer ${
@@ -782,7 +775,7 @@ export default function EmailMarketing() {
                         >
                           <input
                             type="checkbox"
-                            checked={selectedContactIds.includes(contact.contact_id)}
+                            checked={selectedContactIdSet.has(contact.contact_id)}
                             onChange={() => handleContactSelect(contact.contact_id)}
                             disabled={contact.do_not_email}
                             className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
@@ -797,7 +790,7 @@ export default function EmailMarketing() {
                             <span className="text-xs text-app-accent">Do not email</span>
                           )}
                         </label>
-                        ))
+                      ))
                     ) : (
                       <div className="p-4 text-sm text-app-text-muted">
                         No email-ready contacts match this page and search.
@@ -1028,23 +1021,25 @@ export default function EmailMarketing() {
 
         {/* Campaign Create Modal */}
         {showCampaignModal && (
-          <CampaignCreateModal
-            lists={displayedAudiences}
-            segments={campaignSegments}
-            savedAudiences={savedAudiences}
-            campaignRuns={campaignRuns}
-            provider={selectedProvider}
-            isDeliveryReady={isSelectedProviderDeliveryReady}
-            deliveryReadinessMessage={localDeliveryReadinessMessage}
-            isCreatingCampaign={isCreatingCampaign}
-            isSendingCampaign={isSendingCampaign}
-            isTestingCampaign={isTestingCampaign}
-            onClose={handleCloseCampaignModal}
-            onListChange={setCampaignListId}
-            onPreview={handlePreviewCampaign}
-            onTestSend={handleTestSendCampaign}
-            onSubmit={handleCreateCampaign}
-          />
+          <Suspense fallback={<div className="fixed inset-0 app-popup-backdrop z-50 flex items-center justify-center"><div className="rounded-lg bg-app-surface px-6 py-4 text-sm text-app-text-muted shadow-xl">Loading campaign builder...</div></div>}>
+            <CampaignCreateModal
+              lists={displayedAudiences}
+              segments={campaignSegments}
+              savedAudiences={savedAudiences}
+              campaignRuns={campaignRuns}
+              provider={selectedProvider}
+              isDeliveryReady={isSelectedProviderDeliveryReady}
+              deliveryReadinessMessage={localDeliveryReadinessMessage}
+              isCreatingCampaign={isCreatingCampaign}
+              isSendingCampaign={isSendingCampaign}
+              isTestingCampaign={isTestingCampaign}
+              onClose={handleCloseCampaignModal}
+              onListChange={setCampaignListId}
+              onPreview={handlePreviewCampaign}
+              onTestSend={handleTestSendCampaign}
+              onSubmit={handleCreateCampaign}
+            />
+          </Suspense>
         )}
       </div>
     </AdminWorkspaceShell>

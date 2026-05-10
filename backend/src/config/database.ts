@@ -42,6 +42,12 @@ if (process.env.NODE_ENV === 'test') {
 
 const isTestEnvironment = process.env.NODE_ENV === 'test';
 
+const parsePositiveIntEnv = (rawValue: string | undefined, fallback: number): number => {
+  if (!rawValue) return fallback;
+  const parsed = Number.parseInt(rawValue, 10);
+  return Number.isNaN(parsed) || parsed <= 0 ? fallback : parsed;
+};
+
 export function resolveDatabaseSslConfig(
   env: NodeJS.ProcessEnv = process.env
 ): PoolConfig['ssl'] {
@@ -89,9 +95,18 @@ const config: PoolConfig = {
           ? undefined
           : 'nonprofit_app_password'
     ),
-  max: isTestEnvironment ? 10 : DATABASE.POOL_MAX_CONNECTIONS,
-  idleTimeoutMillis: isTestEnvironment ? 1000 : DATABASE.IDLE_TIMEOUT_MS,
-  connectionTimeoutMillis: DATABASE.CONNECTION_TIMEOUT_MS,
+  max: parsePositiveIntEnv(
+    process.env.DB_POOL_MAX_CONNECTIONS,
+    isTestEnvironment ? 10 : DATABASE.POOL_MAX_CONNECTIONS
+  ),
+  idleTimeoutMillis: parsePositiveIntEnv(
+    process.env.DB_POOL_IDLE_TIMEOUT_MS,
+    isTestEnvironment ? 1000 : DATABASE.IDLE_TIMEOUT_MS
+  ),
+  connectionTimeoutMillis: parsePositiveIntEnv(
+    process.env.DB_POOL_CONNECTION_TIMEOUT_MS,
+    DATABASE.CONNECTION_TIMEOUT_MS
+  ),
   // Avoid Jest hanging on open TCP handles while still allowing real connections during tests.
   // https://node-postgres.com/api/pool
   allowExitOnIdle: isTestEnvironment,

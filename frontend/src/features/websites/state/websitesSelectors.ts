@@ -1,6 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
 import type {
-  WebsiteConversionMetrics,
   WebsiteFormDefinition,
   WebsiteIntegrationStatus,
   WebsiteOverviewSummary,
@@ -33,13 +32,4 @@ export const selectWebsiteIntegrations = createSelector(
       ? (state.currentSiteData.integrations ??
         (overview?.site.id === state.currentSiteData.siteId ? overview.integrations : null))
       : (overview?.integrations ?? null)
-);
-
-export const selectWebsiteAnalytics = createSelector(
-  [selectWebsitesState, selectWebsiteOverview],
-  (state, overview): WebsiteConversionMetrics | null =>
-    state.currentSiteData.siteId
-      ? (state.currentSiteData.analytics ??
-        (overview?.site.id === state.currentSiteData.siteId ? overview.conversionMetrics : null))
-      : (overview?.conversionMetrics ?? null)
 );

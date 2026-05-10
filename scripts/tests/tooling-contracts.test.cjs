@@ -58,6 +58,23 @@ function createTempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'nonprofit-manager-tooling-'));
 }
 
+test('check selector routes frontend bundle tooling to build and bundle-budget proof', () => {
+  const result = run('bash', [
+    'scripts/select-checks.sh',
+    '--files',
+    'scripts/check-frontend-bundle-size.js docs/performance/p4-t9d-thresholds.json frontend/vite.config.ts',
+    '--mode',
+    'fast',
+  ]);
+
+  assert.equal(result.status, 0, result.stderr);
+  const commands = result.stdout.trim().split('\n');
+
+  assert(commands.includes('make test-tooling'));
+  assert(commands.includes('cd frontend && npm run build'));
+  assert(commands.includes('node scripts/check-frontend-bundle-size.js'));
+});
+
 function writeMigrationPolicyFixture(root, { manifestRows, migrationFiles, includeFiles, tuples }) {
   const migrationsDir = path.join(root, 'database/migrations');
   const initdbDir = path.join(root, 'database/initdb');

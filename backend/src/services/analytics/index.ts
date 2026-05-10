@@ -4,7 +4,6 @@
  */
 
 import { Pool } from 'pg';
-import pool from '@config/database';
 import { logger } from '@config/logger';
 import { getCached, setCached } from '@config/redis';
 import type {
@@ -397,7 +396,3 @@ export class AnalyticsService {
     }
   }
 }
-
-// Default instance for backwards compatibility
-export const analyticsService = new AnalyticsService(pool);
-export default analyticsService;

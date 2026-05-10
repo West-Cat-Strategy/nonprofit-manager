@@ -1,11 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockGetCampaignStats, mockGetCampaignEvents, mockGetTasks, mockGetPeople, mockGetOrganizations } =
+const { mockGetCampaignStats, mockGetCampaignEvents, mockGetTasks, mockGetOrganizations } =
   vi.hoisted(() => ({
   mockGetCampaignStats: vi.fn(),
   mockGetCampaignEvents: vi.fn(),
   mockGetTasks: vi.fn(),
-  mockGetPeople: vi.fn(),
   mockGetOrganizations: vi.fn(),
 }));
 
@@ -16,12 +15,6 @@ vi.mock('../campaign', () => ({
 
 vi.mock('../tasks', () => ({
   getTasks: mockGetTasks,
-}));
-
-vi.mock('../people', () => ({
-  getPeople: mockGetPeople,
-  updatePerson: vi.fn(),
-  createPerson: vi.fn(),
 }));
 
 vi.mock('../organizations', () => ({
@@ -35,7 +28,6 @@ describe('LoopApiService demo fallback', () => {
     mockGetCampaignStats.mockReset();
     mockGetCampaignEvents.mockReset();
     mockGetTasks.mockReset();
-    mockGetPeople.mockReset();
     mockGetOrganizations.mockReset();
   });
 
@@ -65,18 +57,6 @@ describe('LoopApiService demo fallback', () => {
     );
 
     expect(mockGetTasks).not.toHaveBeenCalled();
-  });
-
-  it('returns demo directory data on a demo route without calling the people API', async () => {
-    window.history.pushState({}, '', '/demo/people');
-
-    await expect(LoopApiService.getPeople({ role: 'staff' })).resolves.toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ id: 'demo-person-1', role: 'staff' }),
-      ])
-    );
-
-    expect(mockGetPeople).not.toHaveBeenCalled();
   });
 
   it('returns demo organizations on a demo route without calling the linking API', async () => {

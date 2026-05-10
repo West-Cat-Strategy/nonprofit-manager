@@ -53,7 +53,7 @@ jest.mock('@services/reportExportJobService', () => ({
   ReportExportJobArtifactNotReadyError: class ReportExportJobArtifactNotReadyError extends Error {},
   ReportExportJobArtifactGoneError: class ReportExportJobArtifactGoneError extends Error {},
   reportExportJobService: {
-    createAndProcessJob: jest.fn(),
+    createJob: jest.fn(),
     listJobs: jest.fn(),
     getJob: jest.fn(),
     readArtifactFile: jest.fn(),
@@ -70,7 +70,7 @@ const {
 } = jest.requireMock('@services/reportExportJobService') as {
   ReportExportJobArtifactGoneError: new (message: string) => Error;
   reportExportJobService: {
-    createAndProcessJob: jest.Mock;
+    createJob: jest.Mock;
     listJobs: jest.Mock;
     getJob: jest.Mock;
     readArtifactFile: jest.Mock;
@@ -401,13 +401,13 @@ describe('Report Controller', () => {
         fields: ['first_name', 'email'],
       };
       mockRequest.body = { definition, format: 'csv', idempotencyKey: 'job-1' };
-      reportExportJobService.createAndProcessJob.mockResolvedValue({
+      reportExportJobService.createJob.mockResolvedValue({
         id: 'job-1',
         organizationId: 'org-1',
         name: 'Contacts export',
         entity: 'contacts',
         format: 'csv',
-        status: 'completed',
+        status: 'pending',
       });
 
       await reportController.createExportJob(
@@ -416,7 +416,7 @@ describe('Report Controller', () => {
         mockNext
       );
 
-      expect(reportExportJobService.createAndProcessJob).toHaveBeenCalledWith(
+      expect(reportExportJobService.createJob).toHaveBeenCalledWith(
         expect.objectContaining({
           organizationId: 'org-1',
           requestedBy: 'user-1',
@@ -426,13 +426,13 @@ describe('Report Controller', () => {
         })
       );
       expect(mockReportService.assertDirectExportSupported).not.toHaveBeenCalled();
-      expect(mockStatus).toHaveBeenCalledWith(201);
+      expect(mockStatus).toHaveBeenCalledWith(202);
       expect(mockJson).toHaveBeenCalledWith(
         expect.objectContaining({
           success: true,
           data: expect.objectContaining({
             id: 'job-1',
-            status: 'completed',
+            status: 'pending',
           }),
         })
       );

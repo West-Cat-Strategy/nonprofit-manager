@@ -62,6 +62,15 @@ jest.mock('@services/scheduledReportSchedulerService', () => ({
   },
 }));
 
+jest.mock('@services/reportExportJobSchedulerService', () => ({
+  REPORT_EXPORT_JOB_SCHEDULER_HEALTH_NAME: 'report_export_jobs',
+  reportExportJobSchedulerService: {
+    healthName: 'report_export_jobs',
+    start: jest.fn(),
+    stop: jest.fn(),
+  },
+}));
+
 jest.mock('@modules/communications/services/localCampaignDeliverySchedulerService', () => ({
   LOCAL_CAMPAIGN_DELIVERY_HEALTH_NAME: 'local_campaign_delivery',
   localCampaignDeliverySchedulerService: {
@@ -105,6 +114,7 @@ import { eventReminderSchedulerService } from '@services/eventReminderSchedulerS
 import { followUpReminderSchedulerService } from '@services/followUpReminderSchedulerService';
 import { appointmentReminderSchedulerService } from '@services/appointmentReminderSchedulerService';
 import { scheduledReportSchedulerService } from '@services/scheduledReportSchedulerService';
+import { reportExportJobSchedulerService } from '@services/reportExportJobSchedulerService';
 import { localCampaignDeliverySchedulerService } from '@modules/communications/services/localCampaignDeliverySchedulerService';
 import { publicReportSnapshotCleanupSchedulerService } from '@services/publicReportSnapshotCleanupSchedulerService';
 import { socialMediaSyncSchedulerService } from '@modules/socialMedia/services/socialMediaSyncSchedulerService';
@@ -116,6 +126,7 @@ const SCHEDULER_ENV_KEYS = [
   'FOLLOW_UP_REMINDER_SCHEDULER_ENABLED',
   'APPOINTMENT_REMINDER_SCHEDULER_ENABLED',
   'SCHEDULED_REPORT_SCHEDULER_ENABLED',
+  'REPORT_EXPORT_JOB_SCHEDULER_ENABLED',
   'LOCAL_CAMPAIGN_DELIVERY_SCHEDULER_ENABLED',
   'REPORT_PUBLIC_SNAPSHOT_CLEANUP_ENABLED',
   'SOCIAL_MEDIA_SYNC_SCHEDULER_ENABLED',
@@ -127,6 +138,7 @@ const EXPECTED_HEALTH_NAMES = [
   'follow_up_reminders',
   'appointment_reminders',
   'scheduled_reports',
+  'report_export_jobs',
   'local_campaign_delivery',
   'public_report_cleanup',
   'social_media_sync',
@@ -138,6 +150,7 @@ const schedulerServices = [
   followUpReminderSchedulerService,
   appointmentReminderSchedulerService,
   scheduledReportSchedulerService,
+  reportExportJobSchedulerService,
   localCampaignDeliverySchedulerService,
   publicReportSnapshotCleanupSchedulerService,
   socialMediaSyncSchedulerService,
@@ -163,6 +176,7 @@ describe('worker lifecycle', () => {
   it('starts only env-enabled schedulers while recording every startup health row', async () => {
     process.env.EVENT_REMINDER_SCHEDULER_ENABLED = 'true';
     process.env.APPOINTMENT_REMINDER_SCHEDULER_ENABLED = 'true';
+    process.env.REPORT_EXPORT_JOB_SCHEDULER_ENABLED = 'true';
     process.env.LOCAL_CAMPAIGN_DELIVERY_SCHEDULER_ENABLED = 'true';
     process.env.SOCIAL_MEDIA_SYNC_SCHEDULER_ENABLED = 'true';
 
@@ -172,9 +186,13 @@ describe('worker lifecycle', () => {
     for (const healthName of EXPECTED_HEALTH_NAMES) {
       expect(schedulerHealthService.recordSchedulerState).toHaveBeenCalledWith(
         healthName,
-        ['event_reminders', 'appointment_reminders', 'local_campaign_delivery', 'social_media_sync'].includes(
-          healthName
-        )
+        [
+          'event_reminders',
+          'appointment_reminders',
+          'report_export_jobs',
+          'local_campaign_delivery',
+          'social_media_sync',
+        ].includes(healthName)
       );
     }
 
@@ -182,6 +200,7 @@ describe('worker lifecycle', () => {
     expect(followUpReminderSchedulerService.start).not.toHaveBeenCalled();
     expect(appointmentReminderSchedulerService.start).toHaveBeenCalledTimes(1);
     expect(scheduledReportSchedulerService.start).not.toHaveBeenCalled();
+    expect(reportExportJobSchedulerService.start).toHaveBeenCalledTimes(1);
     expect(localCampaignDeliverySchedulerService.start).toHaveBeenCalledTimes(1);
     expect(publicReportSnapshotCleanupSchedulerService.start).not.toHaveBeenCalled();
     expect(socialMediaSyncSchedulerService.start).toHaveBeenCalledTimes(1);

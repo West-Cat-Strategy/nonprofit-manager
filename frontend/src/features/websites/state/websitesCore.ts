@@ -8,14 +8,12 @@ import type {
   PublishWebsiteSiteRequest,
   WebsiteConversionFunnel,
   UpdateWebsiteSiteRequest,
-  WebsiteConversionMetrics,
   WebsiteDeploymentInfo,
   WebsiteEntryCreateRequest,
   WebsiteEntryUpdateRequest,
   WebsiteFormDefinition,
   WebsiteFormOperationalConfig,
   WebsiteIntegrationStatus,
-  WebsiteFacebookSettings,
   WebsiteMailchimpSettings,
   WebsiteMauticSettings,
   WebsiteNewsletterListPreset,
@@ -39,7 +37,6 @@ import {
   syncCurrentSiteDataFromOverview,
   syncWebsiteForms,
   syncWebsiteIntegrations,
-  updateCurrentSiteData,
   type WebsiteCurrentSiteData,
 } from './websitesCoreHelpers';
 
@@ -216,17 +213,6 @@ export const deleteWebsiteNewsletterListPreset = createAsyncThunk<
   }
 });
 
-export const updateWebsiteMailchimpIntegration = createAsyncThunk<
-  WebsiteIntegrationStatus,
-  { siteId: string; data: Partial<WebsiteMailchimpSettings> }
->('websites/updateMailchimpIntegration', async ({ siteId, data }, { rejectWithValue }) => {
-  try {
-    return await websitesApiClient.updateMailchimp(siteId, data);
-  } catch (error) {
-    return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to update Mailchimp settings'));
-  }
-});
-
 export const updateWebsiteStripeIntegration = createAsyncThunk<
   WebsiteIntegrationStatus,
   { siteId: string; data: Partial<WebsiteStripeSettings> }
@@ -235,28 +221,6 @@ export const updateWebsiteStripeIntegration = createAsyncThunk<
     return await websitesApiClient.updateStripe(siteId, data);
   } catch (error) {
     return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to update Stripe settings'));
-  }
-});
-
-export const updateWebsiteFacebookIntegration = createAsyncThunk<
-  WebsiteIntegrationStatus,
-  { siteId: string; data: Partial<WebsiteFacebookSettings> }
->('websites/updateFacebookIntegration', async ({ siteId, data }, { rejectWithValue }) => {
-  try {
-    return await websitesApiClient.updateFacebook(siteId, data);
-  } catch (error) {
-    return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to update Facebook settings'));
-  }
-});
-
-export const fetchWebsiteAnalytics = createAsyncThunk<
-  WebsiteConversionMetrics,
-  { siteId: string; period?: number }
->('websites/fetchAnalytics', async ({ siteId, period }, { rejectWithValue }) => {
-  try {
-    return await websitesApiClient.getAnalytics(siteId, period);
-  } catch (error) {
-    return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to load analytics summary'));
   }
 });
 
@@ -492,13 +456,6 @@ const websitesSlice = createSlice({
         syncWebsiteIntegrations(state, action.meta.arg, action.payload);
       });
 
-    builder.addCase(fetchWebsiteAnalytics.fulfilled, (state, action) => {
-      updateCurrentSiteData(state, action.meta.arg.siteId, { analytics: action.payload });
-      if (state.overview?.site.id === action.meta.arg.siteId) {
-        state.overview.conversionMetrics = action.payload;
-      }
-    });
-
     builder
       .addCase(fetchWebsiteConversionFunnel.pending, (state) => {
         state.funnelLoading = true;
@@ -666,9 +623,7 @@ const websitesSlice = createSlice({
         createWebsiteNewsletterListPreset.pending,
         updateWebsiteNewsletterListPreset.pending,
         deleteWebsiteNewsletterListPreset.pending,
-        updateWebsiteMailchimpIntegration.pending,
-        updateWebsiteStripeIntegration.pending,
-        updateWebsiteFacebookIntegration.pending
+        updateWebsiteStripeIntegration.pending
       ),
       (state) => {
         setWebsiteSavingPending(state);
@@ -682,9 +637,7 @@ const websitesSlice = createSlice({
         createWebsiteNewsletterListPreset.fulfilled,
         updateWebsiteNewsletterListPreset.fulfilled,
         deleteWebsiteNewsletterListPreset.fulfilled,
-        updateWebsiteMailchimpIntegration.fulfilled,
-        updateWebsiteStripeIntegration.fulfilled,
-        updateWebsiteFacebookIntegration.fulfilled
+        updateWebsiteStripeIntegration.fulfilled
       ),
       (state, action) => {
         state.isSaving = false;
@@ -699,9 +652,7 @@ const websitesSlice = createSlice({
         createWebsiteNewsletterListPreset.rejected,
         updateWebsiteNewsletterListPreset.rejected,
         deleteWebsiteNewsletterListPreset.rejected,
-        updateWebsiteMailchimpIntegration.rejected,
-        updateWebsiteStripeIntegration.rejected,
-        updateWebsiteFacebookIntegration.rejected
+        updateWebsiteStripeIntegration.rejected
       ),
       (state, action) => {
         setWebsiteSavingRejected(state, action.payload as string | undefined);

@@ -130,7 +130,6 @@ const buildState = (donationProvider: 'stripe' | 'paypal' | 'square' = 'stripe')
           },
         },
       },
-      analytics: null,
     },
     isLoading: false,
     isSaving: false,

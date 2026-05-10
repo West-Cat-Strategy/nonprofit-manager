@@ -35,6 +35,9 @@ describe('database config', () => {
     DB_NAME: process.env.DB_NAME,
     DB_USER: process.env.DB_USER,
     DB_PASSWORD: process.env.DB_PASSWORD,
+    DB_POOL_MAX_CONNECTIONS: process.env.DB_POOL_MAX_CONNECTIONS,
+    DB_POOL_IDLE_TIMEOUT_MS: process.env.DB_POOL_IDLE_TIMEOUT_MS,
+    DB_POOL_CONNECTION_TIMEOUT_MS: process.env.DB_POOL_CONNECTION_TIMEOUT_MS,
   };
   const restoreEnv = (): void => {
     (Object.keys(originalEnv) as Array<keyof typeof originalEnv>).forEach((key) => {
@@ -132,5 +135,23 @@ describe('database config', () => {
       })
     );
     expect(process.env.NODE_ENV).toBe('test');
+  });
+
+  it('applies explicit database pool env overrides', async () => {
+    process.env.NODE_ENV = 'production';
+    process.env.DB_POOL_MAX_CONNECTIONS = '4';
+    process.env.DB_POOL_IDLE_TIMEOUT_MS = '5000';
+    process.env.DB_POOL_CONNECTION_TIMEOUT_MS = '750';
+
+    await loadDatabaseModule();
+
+    const mockedPoolCtor = getMockedPoolCtor();
+    expect(mockedPoolCtor).toHaveBeenCalledWith(
+      expect.objectContaining({
+        max: 4,
+        idleTimeoutMillis: 5000,
+        connectionTimeoutMillis: 750,
+      })
+    );
   });
 });

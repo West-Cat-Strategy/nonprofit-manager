@@ -1,6 +1,5 @@
 import { formatApiErrorMessageWith } from '../../../utils/apiError';
 import type {
-  WebsiteConversionMetrics,
   WebsiteFormDefinition,
   WebsiteIntegrationStatus,
   WebsiteOverviewSummary,
@@ -12,7 +11,6 @@ export type WebsiteCurrentSiteData = {
   siteId: string | null;
   forms: WebsiteFormDefinition[];
   integrations: WebsiteIntegrationStatus | null;
-  analytics: WebsiteConversionMetrics | null;
 };
 
 export const getWebsiteErrorMessage = (error: unknown, fallbackMessage: string) =>
@@ -22,7 +20,6 @@ export const buildEmptyCurrentSiteData = (): WebsiteCurrentSiteData => ({
   siteId: null,
   forms: [],
   integrations: null,
-  analytics: null,
 });
 
 export const syncCurrentSiteDataFromOverview = (
@@ -33,7 +30,6 @@ export const syncCurrentSiteDataFromOverview = (
     siteId: overview.site.id,
     forms: overview.forms,
     integrations: overview.integrations,
-    analytics: overview.conversionMetrics,
   };
 };
 
@@ -57,7 +53,6 @@ export const updateCurrentSiteData = (
     siteId: resolvedSiteId,
     forms: patch.forms ?? existingData.forms,
     integrations: patch.integrations ?? existingData.integrations,
-    analytics: patch.analytics ?? existingData.analytics,
   };
 };
 

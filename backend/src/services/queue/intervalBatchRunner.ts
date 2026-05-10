@@ -8,8 +8,11 @@ export interface IntervalBatchRunnerOptions {
   timeoutMs?: number;
   retryAttempts?: number;
   retryDelayMs?: number;
+  startupJitterMs?: number;
   healthName: string;
 }
+
+class BatchTimeoutError extends Error {}
 
 export class IntervalBatchRunner {
   private readonly name: string;
@@ -18,9 +21,12 @@ export class IntervalBatchRunner {
   private readonly timeoutMs?: number;
   private readonly retryAttempts: number;
   private readonly retryDelayMs: number;
+  private readonly startupJitterMs: number;
   private readonly healthName: string;
   private intervalId: NodeJS.Timeout | null = null;
+  private startupTimeoutId: NodeJS.Timeout | null = null;
   private inFlight = false;
+  private deferInFlightRelease = false;
 
   constructor(options: IntervalBatchRunnerOptions) {
     this.name = options.name;
@@ -29,28 +35,52 @@ export class IntervalBatchRunner {
     this.timeoutMs = options.timeoutMs;
     this.retryAttempts = Math.max(0, options.retryAttempts ?? 0);
     this.retryDelayMs = Math.max(0, options.retryDelayMs ?? 1000);
+    this.startupJitterMs = Math.max(0, options.startupJitterMs ?? 0);
     this.healthName = options.healthName;
   }
 
   start(): void {
-    if (this.intervalId) return;
+    if (this.intervalId || this.startupTimeoutId) return;
 
-    this.intervalId = setInterval(() => {
+    const startInterval = (): void => {
+      if (this.intervalId) return;
+      this.intervalId = setInterval(() => {
+        void this.tick();
+      }, this.intervalMs);
+    };
+
+    const runInitialTick = (): void => {
+      this.startupTimeoutId = null;
+      startInterval();
       void this.tick();
-    }, this.intervalMs);
+    };
+
+    if (this.startupJitterMs > 0) {
+      const startupDelayMs = Math.floor(Math.random() * this.startupJitterMs);
+      this.startupTimeoutId = setTimeout(runInitialTick, startupDelayMs);
+    } else {
+      startInterval();
+      void this.tick();
+    }
 
     logger.debug(`${this.name} started`, {
       intervalMs: this.intervalMs,
+      startupJitterMs: this.startupJitterMs,
     });
-
-    void this.tick();
   }
 
   stop(): void {
-    if (!this.intervalId) return;
+    if (!this.intervalId && !this.startupTimeoutId) return;
 
-    clearInterval(this.intervalId);
-    this.intervalId = null;
+    if (this.startupTimeoutId) {
+      clearTimeout(this.startupTimeoutId);
+      this.startupTimeoutId = null;
+    }
+
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
 
     logger.debug(`${this.name} stopped`);
   }
@@ -81,7 +111,9 @@ export class IntervalBatchRunner {
         processed,
         durationMs: Date.now() - startedAt,
       });
-      this.inFlight = false;
+      if (!this.deferInFlightRelease) {
+        this.inFlight = false;
+      }
     }
   }
 
@@ -95,6 +127,10 @@ export class IntervalBatchRunner {
         return await this.runBatchWithTimeout();
       } catch (error) {
         lastError = error;
+        if (error instanceof BatchTimeoutError) {
+          break;
+        }
+
         if (attempt >= maxAttempts) {
           break;
         }
@@ -118,15 +154,36 @@ export class IntervalBatchRunner {
       return this.runBatch();
     }
 
+    const batchPromise = this.runBatch();
     let timeoutId: NodeJS.Timeout | undefined;
     try {
       const timeoutPromise = new Promise<never>((_resolve, reject) => {
         timeoutId = setTimeout(() => {
-          reject(new Error(`${this.name} batch timed out after ${this.timeoutMs}ms`));
+          reject(new BatchTimeoutError(`${this.name} batch timed out after ${this.timeoutMs}ms`));
         }, this.timeoutMs);
       });
 
-      return await Promise.race([this.runBatch(), timeoutPromise]);
+      return await Promise.race([batchPromise, timeoutPromise]);
+    } catch (error) {
+      if (error instanceof BatchTimeoutError) {
+        this.deferInFlightRelease = true;
+        void batchPromise.then(
+          () => {
+            this.inFlight = false;
+            this.deferInFlightRelease = false;
+            logger.debug(`${this.name} timed-out batch settled`);
+          },
+          (lateError) => {
+            this.inFlight = false;
+            this.deferInFlightRelease = false;
+            logger.warn(`${this.name} timed-out batch failed after timeout`, {
+              error: lateError instanceof Error ? lateError.message : String(lateError),
+            });
+          }
+        );
+      }
+
+      throw error;
     } finally {
       if (timeoutId) {
         clearTimeout(timeoutId);

@@ -1,6 +1,6 @@
 # P5-T93 Case-Form Authoring Diagnostics Proof - 2026-05-10
 
-**Status:** Review - needs fix
+**Status:** Review - fixed and revalidated
 
 `P5-T93` implements the first signed-out reference-repo follow-through slice from the latest form-builder scouting pass. The change stays frontend-only and adds local authoring diagnostics to the existing case-form builder.
 
@@ -14,10 +14,10 @@
 
 | Command | Result |
 |---|---|
-| `cd frontend && npm test -- --run src/features/cases/caseForms/__tests__/CaseFormsBuilderCard.test.tsx src/features/cases/caseForms/__tests__/caseFormsPanelUtils.test.ts` | Passed: 2 files, 3 tests |
+| `cd frontend && npm test -- --run src/features/cases/caseForms/__tests__/CaseFormsBuilderCard.test.tsx src/features/cases/caseForms/__tests__/caseFormsPanelUtils.test.ts` | Passed: 2 files, 4 tests |
 | `cd frontend && npm run type-check` | Passed |
 | `cd frontend && npm run lint` | Passed |
-| `make check-links` | Passed: 214 files and 1416 local links |
+| `make check-links` | Passed: 220 files and 1415 local links |
 | `git diff --check -- docs/phases/planning-and-progress.md docs/validation/README.md docs/validation/P5-T93_CASE_FORM_AUTHORING_DIAGNOSTICS_PROOF_2026-05-10.md frontend/src/features/cases/caseForms/CaseFormsBuilderCard.tsx frontend/src/features/cases/caseForms/caseFormsPanelUtils.ts frontend/src/features/cases/caseForms/__tests__/CaseFormsBuilderCard.test.tsx frontend/src/features/cases/caseForms/__tests__/caseFormsPanelUtils.test.ts` | Passed |
 
 ## Review Update - 2026-05-10
@@ -25,6 +25,12 @@
 - Read-only review found a diagnostics false-positive: valid single-checkbox questions without options can be reported as option-less, even though the renderer uses options only for multiple-checkbox questions.
 - The exact two-file Vitest command above timed out under default file parallelism during review; the same files passed with `--fileParallelism=false`, so the focused proof needs either a reproducible default run or an explicit serial command in the proof.
 - `cd frontend && npm run type-check`, `cd frontend && npm run lint`, `make check-links`, and tracked path-scoped `git diff --check` passed during review.
+
+## Fix Update - 2026-05-10
+
+- Fixed the authoring diagnostic predicate so options are required for `select`, `radio`, and multi-checkbox questions only; valid single-checkbox questions without options no longer emit the option-less warning.
+- Added regression coverage proving a single-checkbox question without options stays clear while a multi-checkbox question without options still warns.
+- The documented focused Vitest command passed under default file parallelism after the fix, so no serial `--fileParallelism=false` flag is required for this proof.
 
 ## Boundaries
 

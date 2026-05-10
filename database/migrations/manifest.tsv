@@ -122,3 +122,4 @@
 122	122_pending_email_uniqueness.sql
 123	123_volunteer_background_check_approval.sql
 124	124_tenant_session_boundary_remediation.sql
+125	125_report_export_worker_queue_indexes.sql

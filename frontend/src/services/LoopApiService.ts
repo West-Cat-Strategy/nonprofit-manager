@@ -6,20 +6,13 @@
  */
 
 import type {
-  AdaptedPerson,
   Organization,
   Task,
   CampaignEvent,
   UserProfile,
   CampaignStats,
-  PeopleFilter,
 } from '../types/schema';
 
-import {
-  getPeople,
-  updatePerson,
-  createPerson,
-} from './loop/people';
 import {
   getUserProfile,
   updateUserProfile,
@@ -31,7 +24,6 @@ import {
   getDemoCampaignEvents,
   getDemoCampaignStats,
   getDemoOrganizations,
-  getDemoPeople,
   getDemoTasks,
   isDemoPath,
 } from './loop/demo';
@@ -44,28 +36,6 @@ const isDemoContext = (): boolean =>
  * Singleton pattern for consistent API access across the application
  */
 class LoopApiService {
-  // ==========================================================================
-  // PEOPLE MANAGEMENT
-  // ==========================================================================
-
-  async getPeople(filter?: PeopleFilter): Promise<AdaptedPerson[]> {
-    if (isDemoContext()) {
-      return getDemoPeople(filter);
-    }
-
-    return getPeople(filter);
-  }
-
-  async updatePerson(id: string, data: Partial<AdaptedPerson>): Promise<AdaptedPerson> {
-    return updatePerson(id, data);
-  }
-
-  async createPerson(
-    data: Omit<AdaptedPerson, 'id' | 'fullName'>
-  ): Promise<AdaptedPerson> {
-    return createPerson(data);
-  }
-
   // ==========================================================================
   // USER PROFILE (Settings Module)
   // ==========================================================================

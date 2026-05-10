@@ -1,6 +1,6 @@
 # Deployment Guide
 
-**Last Updated:** 2026-05-07
+**Last Updated:** 2026-05-10
 
 This guide summarizes the production deployment contract for Nonprofit Manager. Use [README.md](README.md) for the deployment section index, [DB_SETUP.md](DB_SETUP.md) for database details, [publishing-deployment.md](publishing-deployment.md) for public-site deployment notes, and [../testing/TESTING.md](../testing/TESTING.md) for validation gates.
 
@@ -15,8 +15,27 @@ The repo supports Docker-based production packaging plus manual/runtime-specific
 | Staging/prod wrapper | `make release-staging` or `make release-production`; actual deploy still requires `DEPLOY_EXECUTE=1` |
 | Public app origin | Serve frontend and backend from one HTTPS origin; route `/api`, `/api/v2/*`, and `/health` to backend |
 | Public-site runtime | Use the public-site container/host contract in [publishing-deployment.md](publishing-deployment.md) |
-| Worker runtime | Run the `worker` container with no HTTP ingress; keep scheduler flags disabled unless it is the single intended scheduler runner |
+| Worker runtime | Run the `worker` container with no HTTP ingress; enable scheduler flags only on the single intended scheduler runner |
 | Database | Choose exactly one DB-at-rest mode documented in [DB_SETUP.md](DB_SETUP.md) |
+
+## Small VPS Runtime Guidance
+
+The default production deployment remains the full stack: `backend`, `frontend`, `public-site`, `worker`, Redis, Postgres or managed Postgres, and the selected ingress layer. Do not remove services from Compose to fit a 1-2 GB VPS; instead, cap per-process work and leave optional overlays off until the host has capacity.
+
+Recommended small-host env posture:
+
+| Process or area | Recommendation |
+|---|---|
+| Backend API DB pool | Set `BACKEND_DB_POOL_MAX_CONNECTIONS=6`; Compose maps it to `DB_POOL_MAX_CONNECTIONS` inside the API process. |
+| Public-site DB pool | Set `PUBLIC_SITE_DB_POOL_MAX_CONNECTIONS=3`; Compose maps it to `DB_POOL_MAX_CONNECTIONS` inside the public-site process. |
+| Worker DB pool | Set `WORKER_DB_POOL_MAX_CONNECTIONS=2`; Compose maps it to `DB_POOL_MAX_CONNECTIONS` inside the worker process. |
+| DB pool timeouts | Keep `DB_POOL_IDLE_TIMEOUT_MS=30000` and `DB_POOL_CONNECTION_TIMEOUT_MS=2000` unless the database provider requires different timing. |
+| Report export startup | Keep `REPORT_EXPORT_JOB_SCHEDULER_STARTUP_JITTER_MS=15000` or another small jitter so queued export processing does not compete with API/public-site warmup at worker boot. |
+| Report export jobs | Keep `REPORT_EXPORT_JOB_SCHEDULER_ENABLED=true` on the single production worker that owns queued exports; Compose forces the API and public-site roles off even when the shared env file enables the worker. Start with `REPORT_EXPORT_JOB_SCHEDULER_BATCH_SIZE=2` and `REPORT_EXPORT_JOB_SCHEDULER_FAILED_RETRY_LIMIT=1`. |
+| Request logging | Keep `REQUEST_LOGGING_ENABLED=false` unless actively debugging noisy request paths. |
+| Worker batches | Prefer small batches on 1-2 GB hosts: reminders `10`, local campaign delivery `5`, public snapshot cleanup `10`, social sync `10`, webhook retries `25`. |
+
+Keep the aggregate database connection budget below the Postgres `max_connections` value after reserving room for migrations, backups, admin shells, and monitoring. When using Docker Compose, tune the `BACKEND_DB_POOL_MAX_CONNECTIONS`, `PUBLIC_SITE_DB_POOL_MAX_CONNECTIONS`, and `WORKER_DB_POOL_MAX_CONNECTIONS` values so each Node process sees its own `DB_POOL_MAX_CONNECTIONS` value.
 
 ## Prerequisites
 
@@ -43,8 +62,11 @@ Minimum production decisions:
 - Public origin and CORS/WebAuthn origins
 - `JWT_SECRET` and other production secrets with non-placeholder values
 - Database host and DB-at-rest mode
+- Per-process database pool caps for API, public-site, and worker runtimes
 - Worker identity with `WORKER_INSTANCE_ID` when enabling schedulers
-- Scheduler enable flags left `false` unless exactly one worker owns that scheduler
+- Report-export scheduler startup jitter and conservative worker batch sizes on small hosts
+- `REPORT_EXPORT_JOB_SCHEDULER_*` flags for the single worker that owns queued manual report exports
+- Other scheduler enable flags left `false` unless exactly one worker owns that scheduler
 - Backup location and retention policy
 - Optional provider credentials, only for providers intentionally enabled
 
@@ -119,6 +141,8 @@ See [../testing/TESTING.md](../testing/TESTING.md) for the full validation map a
 - Log aggregation: [LOG_AGGREGATION_SETUP.md](LOG_AGGREGATION_SETUP.md)
 - Plausible analytics: [PLAUSIBLE_SETUP.md](PLAUSIBLE_SETUP.md)
 - Deployment proof and Docker proof notes: [../validation/README.md](../validation/README.md)
+
+Plausible and ELK remain optional overlays, not base-stack requirements. On 1-2 GB VPS hosts, keep the Plausible and ELK Compose overlays disabled unless they run on separate infrastructure or the host has been resized and revalidated with the overlays included.
 
 ## Rollback
 

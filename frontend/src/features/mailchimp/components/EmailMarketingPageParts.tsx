@@ -1,6 +1,3 @@
-import type { ComponentProps } from 'react';
-import { CampaignCreateModal as CampaignCreateModalContent } from './CampaignCreateModal';
-
 export function SyncResultModal({
   result,
   onClose,
@@ -60,8 +57,4 @@ export function SyncResultModal({
       </div>
     </div>
   );
-}
-
-export function CampaignCreateModal(props: ComponentProps<typeof CampaignCreateModalContent>) {
-  return <CampaignCreateModalContent {...props} />;
 }

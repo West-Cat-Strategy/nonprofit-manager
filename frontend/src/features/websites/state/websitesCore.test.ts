@@ -118,7 +118,6 @@ describe('websites core helper state', () => {
       siteId: 'site-1',
       forms: overviewPayload.forms,
       integrations: overviewPayload.integrations,
-      analytics: overviewPayload.conversionMetrics,
     });
   });
 

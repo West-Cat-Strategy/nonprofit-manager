@@ -227,64 +227,6 @@ export const updateTemplatePage = createAsyncThunk<
 );
 
 /**
- * Delete a page
- */
-export const deleteTemplatePage = createAsyncThunk<
-  { templateId: string; pageId: string },
-  { templateId: string; pageId: string }
->(
-  'templates/deletePage',
-  async ({ templateId, pageId }, { rejectWithValue }) => {
-    try {
-      await api.delete(`/templates/${templateId}/pages/${pageId}`);
-      return { templateId, pageId };
-    } catch (error) {
-      const message = getErrorMessage(error, 'Failed to delete template page');
-      return rejectWithValue(message);
-    }
-  }
-);
-
-/**
- * Reorder pages
- */
-export const reorderTemplatePages = createAsyncThunk<
-  void,
-  { templateId: string; pageIds: string[] }
->(
-  'templates/reorderPages',
-  async ({ templateId, pageIds }, { rejectWithValue }) => {
-    try {
-      await api.put(`/templates/${templateId}/pages/reorder`, { pageIds });
-    } catch (error) {
-      const message = getErrorMessage(error, 'Failed to reorder template pages');
-      return rejectWithValue(message);
-    }
-  }
-);
-
-// ==================== Version Thunks ====================
-
-/**
- * Fetch version history
- */
-export const fetchTemplateVersions = createAsyncThunk<
-  TemplateVersion[],
-  string
->(
-  'templates/fetchVersions',
-  async (templateId, { rejectWithValue }) => {
-    try {
-      const response = await api.get(`/templates/${templateId}/versions`);
-      return response.data;
-    } catch (error) {
-      const message = getErrorMessage(error, 'Failed to fetch template versions');
-      return rejectWithValue(message);
-    }
-  }
-);
-
-/**
  * Create a new version
  */
 export const createTemplateVersion = createAsyncThunk<
@@ -298,25 +240,6 @@ export const createTemplateVersion = createAsyncThunk<
       return response.data;
     } catch (error) {
       const message = getErrorMessage(error, 'Failed to create template version');
-      return rejectWithValue(message);
-    }
-  }
-);
-
-/**
- * Restore a version
- */
-export const restoreTemplateVersion = createAsyncThunk<
-  Template,
-  { templateId: string; versionId: string }
->(
-  'templates/restoreVersion',
-  async ({ templateId, versionId }, { rejectWithValue }) => {
-    try {
-      const response = await api.post(`/templates/${templateId}/versions/${versionId}/restore`);
-      return response.data;
-    } catch (error) {
-      const message = getErrorMessage(error, 'Failed to restore template version');
       return rejectWithValue(message);
     }
   }
@@ -548,37 +471,10 @@ const templateSlice = createSlice({
         state.error = action.payload as string;
       });
 
-    // Delete page
-    builder
-      .addCase(deleteTemplatePage.fulfilled, (state, action) => {
-        if (state.currentTemplate) {
-          state.currentTemplate.pages = state.currentTemplate.pages.filter(
-            (p) => p.id !== action.payload.pageId
-          );
-        }
-        if (state.currentPage?.id === action.payload.pageId) {
-          state.currentPage = state.currentTemplate?.pages[0] || null;
-        }
-      });
-
-    // Fetch versions
-    builder
-      .addCase(fetchTemplateVersions.fulfilled, (state, action) => {
-        state.versions = action.payload;
-      });
-
     // Create version
     builder
       .addCase(createTemplateVersion.fulfilled, (state, action) => {
         state.versions.unshift(action.payload);
-      });
-
-    // Restore version
-    builder
-      .addCase(restoreTemplateVersion.fulfilled, (state, action) => {
-        state.currentTemplate = action.payload;
-        const homepage = action.payload.pages.find((p) => p.isHomepage);
-        state.currentPage = homepage || action.payload.pages[0] || null;
       });
   },
 });

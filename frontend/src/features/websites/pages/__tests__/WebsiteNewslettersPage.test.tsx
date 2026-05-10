@@ -105,7 +105,6 @@ const currentState = {
           publishableKeyConfigured: true,
         },
       },
-      analytics: null,
     },
     isLoading: false,
     isSaving: false,

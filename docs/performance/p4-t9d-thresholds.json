@@ -4,6 +4,7 @@
   "startupRequestCountCap": 6,
   "appOwnedStartupJsBytesBaseline": 256726,
   "appOwnedStartupJsBytesCap": 122880,
+  "totalInitialJsBytesCap": 750000,
   "p75LoadMsBaseline": 2600,
   "p75LoadMsCap": 1800,
   "firstNavigationP75MsCap": 1000

@@ -140,6 +140,7 @@ CREATE INDEX IF NOT EXISTS idx_schema_migrations_canonical_filename
 \i /migrations/122_pending_email_uniqueness.sql
 \i /migrations/123_volunteer_background_check_approval.sql
 \i /migrations/124_tenant_session_boundary_remediation.sql
+\i /migrations/125_report_export_worker_queue_indexes.sql
 
 UPDATE schema_migrations
 SET migration_id = '032',
@@ -285,7 +286,8 @@ VALUES
     ('121_portal_account_scope.sql', '121', '121_portal_account_scope.sql'),
     ('122_pending_email_uniqueness.sql', '122', '122_pending_email_uniqueness.sql'),
     ('123_volunteer_background_check_approval.sql', '123', '123_volunteer_background_check_approval.sql'),
-    ('124_tenant_session_boundary_remediation.sql', '124', '124_tenant_session_boundary_remediation.sql')
+    ('124_tenant_session_boundary_remediation.sql', '124', '124_tenant_session_boundary_remediation.sql'),
+    ('125_report_export_worker_queue_indexes.sql', '125', '125_report_export_worker_queue_indexes.sql')
 ON CONFLICT (filename) DO UPDATE
 SET migration_id = EXCLUDED.migration_id,
     canonical_filename = EXCLUDED.canonical_filename;

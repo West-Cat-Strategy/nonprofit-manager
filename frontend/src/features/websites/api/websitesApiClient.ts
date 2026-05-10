@@ -5,7 +5,6 @@ import type {
   PublishWebsiteSiteResponse,
   PublishWebsiteSiteRequest,
   WebsiteConversionFunnel,
-  WebsiteConversionMetrics,
   WebsiteDeploymentInfo,
   WebsiteEntryCreateRequest,
   WebsiteEntryUpdateRequest,
@@ -246,15 +245,6 @@ export class WebsitesApiClient {
       .then((response) => response.data);
   }
 
-  updateMailchimp(
-    siteId: string,
-    payload: Partial<WebsiteMailchimpSettings>
-  ): Promise<WebsiteIntegrationStatus> {
-    return api
-      .put<WebsiteIntegrationStatus>(`/sites/${siteId}/integrations/mailchimp`, payload)
-      .then((response) => response.data);
-  }
-
   updateStripe(
     siteId: string,
     payload: Partial<WebsiteStripeSettings>
@@ -270,12 +260,6 @@ export class WebsitesApiClient {
   ): Promise<WebsiteIntegrationStatus> {
     return api
       .put<WebsiteIntegrationStatus>(`/sites/${siteId}/integrations/facebook`, payload)
-      .then((response) => response.data);
-  }
-
-  getAnalytics(siteId: string, period?: number): Promise<WebsiteConversionMetrics> {
-    return api
-      .get<WebsiteConversionMetrics>(`/sites/${siteId}/analytics/summary${buildQuery({ period })}`)
       .then((response) => response.data);
   }
 
