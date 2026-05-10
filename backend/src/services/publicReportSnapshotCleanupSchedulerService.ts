@@ -6,6 +6,7 @@ const DEFAULT_BATCH_SIZE = 25;
 const DEFAULT_RETRY_ATTEMPTS = 1;
 const DEFAULT_RETRY_DELAY_MS = 1_000;
 const DEFAULT_TIMEOUT_MS = 120_000;
+export const PUBLIC_REPORT_CLEANUP_SCHEDULER_HEALTH_NAME = 'public_report_cleanup';
 
 const toNumberOrDefault = (rawValue: string | undefined, fallback: number): number => {
   if (!rawValue) return fallback;
@@ -14,6 +15,7 @@ const toNumberOrDefault = (rawValue: string | undefined, fallback: number): numb
 };
 
 class PublicReportSnapshotCleanupSchedulerService {
+  readonly healthName = PUBLIC_REPORT_CLEANUP_SCHEDULER_HEALTH_NAME;
   private runner: IntervalBatchRunner | null = null;
   private batchSize = DEFAULT_BATCH_SIZE;
 
@@ -47,6 +49,7 @@ class PublicReportSnapshotCleanupSchedulerService {
 
     this.runner = new IntervalBatchRunner({
       name: 'Public report snapshot cleanup scheduler',
+      healthName: this.healthName,
       intervalMs,
       runBatch: async () => this.runBatch(),
       retryAttempts,
@@ -76,4 +79,3 @@ class PublicReportSnapshotCleanupSchedulerService {
 }
 
 export const publicReportSnapshotCleanupSchedulerService = new PublicReportSnapshotCleanupSchedulerService();
-

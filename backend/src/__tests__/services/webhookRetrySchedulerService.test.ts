@@ -14,6 +14,14 @@ jest.mock('@config/logger', () => ({
   },
 }));
 
+jest.mock('@services/queue/schedulerHealthService', () => ({
+  schedulerHealthService: {
+    recordTickStarted: jest.fn().mockResolvedValue(undefined),
+    recordTickSucceeded: jest.fn().mockResolvedValue(undefined),
+    recordTickFailed: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
 const mockProcessRetries = processRetries as jest.MockedFunction<typeof processRetries>;
 
 const flushMicrotasks = async (): Promise<void> => {

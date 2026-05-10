@@ -11,6 +11,14 @@ jest.mock('@config/logger', () => ({
   },
 }));
 
+jest.mock('@services/queue/schedulerHealthService', () => ({
+  schedulerHealthService: {
+    recordTickStarted: jest.fn().mockResolvedValue(undefined),
+    recordTickSucceeded: jest.fn().mockResolvedValue(undefined),
+    recordTickFailed: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
 const createSocialMediaServiceMock = (): jest.Mocked<Pick<SocialMediaServicePort, 'syncDueFacebookPages'>> => ({
   syncDueFacebookPages: jest.fn(),
 });

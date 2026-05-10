@@ -63,6 +63,8 @@ services:
       API_ORIGIN: ${API_ORIGIN:-http://localhost:8000}
       SITE_BASE_URL: ${SITE_BASE_URL:-https://sites.example.org}
     command: ["node", "dist/index.js"]
+    volumes:
+      - backend-uploads:/app/uploads
     depends_on:
       redis:
         condition: service_healthy
@@ -106,6 +108,8 @@ services:
       API_ORIGIN: ${PUBLIC_SITE_API_ORIGIN:-https://sites.example.org}
       SITE_BASE_URL: ${SITE_BASE_URL:-https://sites.example.org}
     command: ["node", "dist/public-site.js"]
+    volumes:
+      - backend-uploads:/app/uploads
     depends_on:
       redis:
         condition: service_healthy
@@ -124,6 +128,11 @@ services:
     environment:
       <<: *runtime-env
     command: ["node", "dist/worker.js"]
+    volumes:
+      - backend-uploads:/app/uploads
     depends_on:
       redis:
         condition: service_healthy
+
+volumes:
+  backend-uploads:

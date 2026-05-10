@@ -6,6 +6,7 @@ const DEFAULT_BATCH_SIZE = 100;
 const DEFAULT_RETRY_ATTEMPTS = 1;
 const DEFAULT_RETRY_DELAY_MS = 1_000;
 const DEFAULT_TIMEOUT_MS = 30_000;
+export const WEBHOOK_RETRY_SCHEDULER_HEALTH_NAME = 'webhook_retries';
 
 const toNumberOrDefault = (rawValue: string | undefined, fallback: number): number => {
   if (!rawValue) return fallback;
@@ -14,6 +15,7 @@ const toNumberOrDefault = (rawValue: string | undefined, fallback: number): numb
 };
 
 class WebhookRetrySchedulerService {
+  readonly healthName = WEBHOOK_RETRY_SCHEDULER_HEALTH_NAME;
   private runner: IntervalBatchRunner | null = null;
   private batchSize = DEFAULT_BATCH_SIZE;
 
@@ -45,6 +47,7 @@ class WebhookRetrySchedulerService {
 
     this.runner = new IntervalBatchRunner({
       name: 'Webhook retry scheduler',
+      healthName: this.healthName,
       intervalMs,
       runBatch: async () => processRetries(this.batchSize),
       retryAttempts,

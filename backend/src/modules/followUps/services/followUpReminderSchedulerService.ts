@@ -5,6 +5,7 @@ import { IntervalBatchRunner } from '@services/queue/intervalBatchRunner';
 
 const DEFAULT_INTERVAL_MS = 60_000;
 const DEFAULT_BATCH_SIZE = 25;
+export const FOLLOW_UP_REMINDER_SCHEDULER_HEALTH_NAME = 'follow_up_reminders';
 
 const toNumberOrDefault = (rawValue: string | undefined, fallback: number): number => {
   if (!rawValue) return fallback;
@@ -13,6 +14,7 @@ const toNumberOrDefault = (rawValue: string | undefined, fallback: number): numb
 };
 
 class FollowUpReminderSchedulerService {
+  readonly healthName = FOLLOW_UP_REMINDER_SCHEDULER_HEALTH_NAME;
   private runner: IntervalBatchRunner | null = null;
   private batchSize = DEFAULT_BATCH_SIZE;
 
@@ -31,6 +33,7 @@ class FollowUpReminderSchedulerService {
 
     this.runner = new IntervalBatchRunner({
       name: 'Follow-up reminder scheduler',
+      healthName: this.healthName,
       intervalMs,
       runBatch: async () => this.runBatch(),
     });

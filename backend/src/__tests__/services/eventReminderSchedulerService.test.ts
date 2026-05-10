@@ -29,6 +29,14 @@ jest.mock('@config/logger', () => ({
   },
 }));
 
+jest.mock('@services/queue/schedulerHealthService', () => ({
+  schedulerHealthService: {
+    recordTickStarted: jest.fn().mockResolvedValue(undefined),
+    recordTickSucceeded: jest.fn().mockResolvedValue(undefined),
+    recordTickFailed: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
 describe('eventReminderSchedulerService', () => {
   const mockCancelPendingAutomationsForNonSendableEvents =
     cancelPendingAutomationsForNonSendableEvents as jest.MockedFunction<
