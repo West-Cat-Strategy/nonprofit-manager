@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { nameSchema, phoneSchema, dateRangeSchema, uuidSchema } from './shared';
+import { nameSchema, phoneSchema, dateRangeSchema, isoDateSchema, uuidSchema } from './shared';
 
 // Re-export shared schemas used in volunteer validations
 export { uuidSchema } from './shared';
@@ -75,8 +75,8 @@ export type UpdateVolunteerInput = z.infer<typeof updateVolunteerSchema>;
 
 export const approveVolunteerBackgroundCheckSchema = z
   .object({
-    background_check_date: z.coerce.date().optional(),
-    background_check_expiry: z.coerce.date().nullable().optional(),
+    background_check_date: isoDateSchema.optional(),
+    background_check_expiry: isoDateSchema.nullable().optional(),
     notes: z.string().trim().min(1, 'Approval notes are required').max(1000),
   })
   .strict();

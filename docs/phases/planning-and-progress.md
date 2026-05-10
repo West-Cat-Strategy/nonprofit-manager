@@ -56,6 +56,7 @@ Use this file only for live tracked work. Historical phase closeouts, earlier wo
 - `P5-T6` remains the backlog-scope gate. Treat all future product expansion as new signed-out rows unless this board explicitly says otherwise.
 - The 2026-05-09 subagent review wave removed proof-complete `P5-T63`, `P5-T64`, `P5-T65`, `P5-T67`, `P5-T70`, `P5-T72`, `P5-T73`, `P5-T74`, `P5-T76`, `P5-T79` through `P5-T84`, and `P5-T86` through `P5-T89`; see [archive/P5_REVIEW_SUBAGENT_WAVE_CLOSEOUT_2026-05-09.md](archive/P5_REVIEW_SUBAGENT_WAVE_CLOSEOUT_2026-05-09.md).
 - The 2026-05-10 remaining-blocker wave removed proof-complete `P5-T71`, `P5-T78`, `P5-T85`, `P5-T90`, `P5-T91`, and `P5-T92`; see [archive/P5_REVIEW_SUBAGENT_WAVE_CLOSEOUT_2026-05-09.md](archive/P5_REVIEW_SUBAGENT_WAVE_CLOSEOUT_2026-05-09.md) and [../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md](../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md).
+- The safe-current dependency refresh proof from the sibling branch is indexed in validation as merged consolidation evidence; final branch validation now owns its remaining gate proof instead of keeping a duplicate live `P5-T93` row.
 - `P5-T93` remains in review after a diagnostics false-positive finding on valid single-checkbox questions and a focused Vitest reproducibility note.
 - `P5-T94` tracks residual local gate cleanup for unrelated Knip findings and UI audit baseline drift found during final lead gates.
 - `P5-T95` is in review from the clean sibling branch; it does not move manual report exports out of API request time.

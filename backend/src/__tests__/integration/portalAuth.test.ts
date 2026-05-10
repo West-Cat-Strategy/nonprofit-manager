@@ -68,12 +68,13 @@ describe('Portal Auth API Integration', () => {
       const signupRequest = await pool.query<{
         id: string;
         contact_id: string | null;
+        account_id: string | null;
         resolution_status: string;
         first_name: string | null;
         last_name: string | null;
         phone: string | null;
       }>(
-        `SELECT id, contact_id, resolution_status, first_name, last_name, phone
+        `SELECT id, contact_id, account_id, resolution_status, first_name, last_name, phone
          FROM portal_signup_requests
          WHERE id = $1`,
         [signupRequestId]
@@ -81,14 +82,21 @@ describe('Portal Auth API Integration', () => {
 
       expect(signupRequest.rows[0]).toMatchObject({
         id: signupRequestId,
-        contact_id: null,
         resolution_status: 'needs_contact_resolution',
         first_name: 'Signup',
         last_name: 'Person',
         phone: '555-555-1212',
       });
+      expect(createdContactIds).not.toContain(signupRequest.rows[0].contact_id);
     } finally {
       if (signupRequestId) {
+        await pool.query(
+          `DELETE FROM contacts
+           WHERE id = (
+             SELECT contact_id FROM portal_signup_requests WHERE id = $1
+           )`,
+          [signupRequestId]
+        );
         await pool.query('DELETE FROM portal_signup_requests WHERE id = $1', [signupRequestId]);
       }
       for (const contactId of createdContactIds) {
