@@ -723,17 +723,23 @@ clean:
 
 clean-local:
 	@echo "$(BLUE)Cleaning local artifacts...$(RESET)"
-	rm -rf backend/logs
 	rm -rf backend/exports
 	rm -rf backend/coverage
 	rm -rf backend/dist
 	rm -rf backend/dist.bak
+	rm -f backend/test_output*.txt backend/test_output*.log
 	rm -rf frontend/dist
 	rm -rf frontend/coverage
 	rm -rf .playwright-cli
-	rm -rf tmp
+	rm -rf output
+	rm -rf test-results
+	rm -rf e2e/test-results
+	rm -f e2e/test-results.json
+	rm -rf e2e/.cache
 	rm -rf e2e/playwright-report
 	rm -rf logs
+	@if [ -d tmp ]; then find tmp -mindepth 1 ! -name 'nonprofit-manager-backup-20260406-2323Z-from-prod.sql.gz' -exec rm -rf {} +; fi
+	find . -path './node_modules' -prune -o -path './backend/node_modules' -prune -o -path './frontend/node_modules' -prune -o -path './e2e/node_modules' -prune -o -path './reference-repos' -prune -o -name '.DS_Store' -delete
 	@echo "$(GREEN)Local cleanup complete!$(RESET)"
 
 clean-all: clean
