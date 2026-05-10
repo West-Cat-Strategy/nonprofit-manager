@@ -1,6 +1,6 @@
 # Testing Guide
 
-**Last Updated:** 2026-05-05
+**Last Updated:** 2026-05-09
 
 This file is the active test command map for nonprofit-manager. Use [../../CONTRIBUTING.md](../../CONTRIBUTING.md) for contributor workflow and [../development/GETTING_STARTED.md](../development/GETTING_STARTED.md) for runtime setup and ports; use this file when you need to choose the right validation command.
 
@@ -18,6 +18,19 @@ CI/CD is local-only. GitHub remains the repository host, but tracked GitHub Acti
 | Legacy verifier reproduction notes | Historical only | [../verification/VERIFICATION_SYSTEM.md](../verification/VERIFICATION_SYSTEM.md) |
 | Historical testing references | Historical only | [archive/README.md](archive/README.md) |
 
+## Validation Lanes
+
+Choose the smallest lane that proves the changed behavior. Broaden only when the changed surface, workboard row, release posture, or reviewer request calls for it.
+
+| Lane | Use When | Primary Commands |
+|---|---|---|
+| Narrow selector/package proof | Small docs, backend, frontend, E2E, tooling, or database changes where one owned surface changed | `./scripts/select-checks.sh --base HEAD~1 --mode fast`, or a targeted package command from the selector output |
+| Repo behavior gate | Cross-layer behavior needs the normal repo acceptance path without coverage/release overhead | `make lint`, `make typecheck`, `make test` |
+| Coverage/full gate | Coverage, CI-parity, runtime-doc strict-mode, or high-confidence review proof is needed | `make test-coverage-full`, or `make ci-full` when lint/typecheck/build/security-audit should run with it |
+| Release/review follow-ons | Release candidates, broad browser/runtime review, Docker-only risk, dark-mode route audit, MFA/setup/session risk, or explicit reviewer/workboard follow-up | `make release-check`, `cd e2e && npm run test:docker:ci`, `cd e2e && npm run test:docker:audit`, or the fresh starter-only MFA command in [../../e2e/README.md](../../e2e/README.md) |
+
+Docs-only changes normally stay on `make check-links`. Add `make lint-doc-api-versioning` only when API route wording, API examples, or versioned API docs changed; add `make lint-openapi` only when `docs/api/openapi.yaml` changed. Runtime-facing docs such as this file, [../development/AGENT_INSTRUCTIONS.md](../development/AGENT_INSTRUCTIONS.md), [../../e2e/README.md](../../e2e/README.md), and [../../scripts/README.md](../../scripts/README.md) should use selector strict-mode when the wording changes command semantics, ports, wrappers, or orchestration expectations.
+
 ## Test Layers
 
 | Layer | Primary Command | Notes |
@@ -27,9 +40,9 @@ CI/CD is local-only. GitHub remains the repository host, but tracked GitHub Acti
 | Repo-wide validation | `make test` | Runs backend/frontend tests, the host Playwright CI matrix, and the isolated Docker-backed smoke gate |
 | Coverage variant (fast local lane) | `make test-coverage` | Runs backend/frontend coverage, host Playwright smoke, and the isolated Docker-backed smoke gate |
 | Coverage gate (full behavior lane) | `make test-coverage-full` | Runs backend/frontend coverage, the host Playwright CI matrix, and the isolated Docker-backed smoke gate |
-| Backend unit/integration | `cd backend && npm test` / `cd backend && npm test -- src/__tests__/integration` | `npm test` still prepares the CI-style test DB before running Jest. Plain backend `npx jest ...` runs in `NODE_ENV=test` now inherit the same isolated test DB contract (`127.0.0.1:8012/nonprofit_manager_test`, `postgres/postgres`) when `DB_*` is not explicitly set. |
+| Backend unit/integration | `cd backend && npm test` / `cd backend && npm test -- src/__tests__/integration` | `npm test` invokes `backend/scripts/run-full-tests.sh`, prepares the isolated test DB, verifies `127.0.0.1:8012/nonprofit_manager_test`, then runs Jest in band. Use direct `npx jest ...` only after that DB contract is already prepared or explicitly pinned. |
 | Frontend unit/component | `cd frontend && npm test -- --run` | Frontend uses Vitest |
-| E2E | `cd e2e && npm test` | Wrapper-driven host commands use the Playwright-managed `5173/3001` contract; `npm run test:docker*` default to the externally managed Docker contract on `8005/8004`, and `make test-e2e-docker-smoke` provisions an isolated Docker smoke stack on `18005/18004`. For the broader Docker review lane, the externally managed backend must also be launched with `NODE_ENV=test`, `DEV_BYPASS_REGISTRATION_POLICY_IN_TEST=true`, and `DEV_BYPASS_MFA_FOR_TESTS=true`; the wrapper cannot retrofit those backend env flags onto an already-running stack. Docker dev/review stacks now keep Mailchimp unconfigured by default unless you explicitly set `DEV_MAILCHIMP_API_KEY` and `DEV_MAILCHIMP_SERVER_PREFIX`, which prevents placeholder `.env.development` values from turning route-health checks into false `500`s. The Docker-only fresh-workspace MFA proof remains a separate direct-run lane with `BYPASS_MFA_FOR_TESTS=false`. `Mobile Safari` and `Tablet` are available as manual/ad hoc `--project` runs, not CI-gated projects. Use `E2E_RUNNER_ACTION=kill` only when you intentionally want a targeted rerun to take ownership of the shared Playwright lock. |
+| E2E | `cd e2e && npm test` | Host wrappers use Playwright-managed `5173/3001`; Docker wrappers default to externally managed `8005/8004/8006`; the root smoke gate provisions isolated `18005/18004/18006`. See [../../e2e/README.md](../../e2e/README.md) for wrapper flags, preserved reports, Docker review env, MFA proof, and manual mobile projects. |
 | Docs validation | `make check-links` | Use for any docs change; add `make lint-doc-api-versioning` when API wording/examples or versioned API docs changed; add `make lint-openapi` when `docs/api/openapi.yaml` changed |
 | Tooling regression coverage | `make test-tooling` | Targeted contract suite for route-audit, OpenAPI contract lint, selector, helper-script, and wrapper changes |
 
@@ -45,14 +58,17 @@ Use `make release-check` for release-facing proof and before cutting a deploy ca
 
 ## Runtime Matrix
 
-| Context | Frontend | Backend | Notes |
-|---------|----------|---------|-------|
-| Docker development, lean | `8005` | `8004` | Started with `make dev-lite`; omits public-site/Caddy for daily API/app work |
-| Docker development, full | `8005` | `8004` | Started with `make dev`; includes public-site on `8006` |
-| Direct backend runtime | n/a | `3000` | `cd backend && npm run dev` |
-| E2E harness | `5173` | `3001` | Started by Playwright |
-| Docker-backed E2E (manual dev stack) | `8005` | `8004` | Start with `make docker-up-dev`, then run `cd e2e && npm run test:docker*` |
-| Docker-backed E2E (isolated smoke gate) | `18005` | `18004` | Provisioned automatically by `make test-e2e-docker-smoke`; uses compose project `nonprofit-smoke` and tears down unless `KEEP_SMOKE_STACK=1` |
+| Context | Frontend | Backend | Public Site | Notes |
+|---------|----------|---------|-------------|-------|
+| Docker development, lean | `8005` | `8004` | n/a | Started with `make dev-lite`; omits public-site/Caddy for daily API/app work |
+| Docker development, full | `8005` | `8004` | `8006` | Started with `make dev`; includes public-site runtime |
+| Direct backend runtime | n/a | `3000` | n/a | `cd backend && npm run dev` |
+| Direct public-site runtime | n/a | n/a | `8006` | `cd backend && PORT=8006 npm run dev:public` |
+| Playwright host harness | `5173` | `3001` | `3001` | Started by Playwright; host wrappers may auto-select a frontend port starting at `5317` if `5173` is occupied |
+| Docker-backed E2E review stack | `8005` | `8004` | `8006` | Start a long-lived stack with review env flags, then run `cd e2e && npm run test:docker*` |
+| Docker-backed E2E isolated smoke gate | `18005` | `18004` | `18006` | Provisioned by `make test-e2e-docker-smoke`; uses compose project `nonprofit-smoke` and tears down unless `KEEP_SMOKE_STACK=1` |
+
+The host Playwright harness starts its own frontend/backend processes. The Docker dev/review mode targets an already-running compose stack and requires `SKIP_WEBSERVER=1`; for review commands, launch that stack with `DEV_NODE_ENV=test DEV_BYPASS_REGISTRATION_POLICY_IN_TEST=true DEV_BYPASS_MFA_FOR_TESTS=true`. The isolated smoke gate is separate from the long-lived dev stack and self-provisions the full app plus public-site runtime.
 
 ## Default Commands
 
@@ -90,6 +106,7 @@ make test-tooling
 
 `make ci-unit` remains a relaxed, non-gating developer signal for backend/frontend unit coverage only. It is useful for quick local feedback, but it is not the repo's full coverage acceptance path.
 `make test-tooling` is the targeted regression suite for selector, OpenAPI contract lint, route-catalog audit, wrapper, and shell-helper contract changes.
+Use `cd e2e && npm run test:ci:report` when the host Playwright CI lane needs preserved report artifacts. It archives desktop/mobile reports under `tmp/e2e-reports/host-ci-*` and updates the top-level report pointers for the lane outcome.
 The old `scripts/verify.sh` and `scripts/verify-pr.sh` entrypoints are retained only as historical reproduction helpers and are not current signoff gates.
 
 ## Security And Policy Checks
@@ -119,9 +136,16 @@ Keep `make test-e2e-docker-smoke` in the review sequence when you want a fresh s
 If `make ci-full` already finished cleanly and you do not need a separate smoke rerun artifact, proceed directly to `cd e2e && npm run test:docker:ci` and `cd e2e && npm run test:docker:audit`.
 Docker must still be running locally for `make ci-full`, because the host review lane still depends on the Docker-backed Redis sidecar and isolated test DB bootstrap before Playwright starts.
 If the host frontend port `5173` is already occupied, the Playwright host wrapper now auto-selects an alternate frontend port starting with `5317`. You can still pin one explicitly with `E2E_FRONTEND_PORT=<open-port>` such as `E2E_FRONTEND_PORT=5317 make ci-full` or `cd e2e && E2E_FRONTEND_PORT=5317 npm run test:ci:report`.
-The Docker cross-browser slice, Docker audit slice, `Mobile Safari`, and `Tablet` remain outside the default gate above; they are explicit review-lane follow-ons rather than CI-gated defaults.
+The Docker cross-browser slice, Docker audit slice, fresh starter-only MFA proof, `Mobile Safari`, and `Tablet` remain outside the default gate above; they are explicit review-lane follow-ons rather than CI-gated defaults.
 For `npm run test:docker:ci` and `npm run test:docker:audit`, point the wrapper at an externally managed Docker runtime that was started with `DEV_NODE_ENV=test DEV_BYPASS_REGISTRATION_POLICY_IN_TEST=true DEV_BYPASS_MFA_FOR_TESTS=true`. Docker dev/review stacks now leave Mailchimp disabled unless you explicitly provide `DEV_MAILCHIMP_API_KEY` and `DEV_MAILCHIMP_SERVER_PREFIX`, so admin route-health stays aligned with the unconfigured-development contract instead of probing placeholder credentials from `.env.development`. A plain long-lived `make docker-up-dev` session is fine for manual development, but it does not satisfy the full Docker review contract by default.
 `npm run test:docker:ci` now excludes the Docker-only fresh starter-only MFA proof (`Fresh workspace multi-user session`). Treat that proof as a separate lane. Run it directly against a fresh Docker volume with `SKIP_WEBSERVER=1 BYPASS_MFA_FOR_TESTS=false BYPASS_REGISTRATION_POLICY_IN_TEST=true E2E_DB_NAME=nonprofit_manager`; do not route that proof through `npm run test:docker`, because the docker wrapper pins the test-side MFA bypass back to `true`.
+
+Run Docker/review follow-ons only when they prove risk the default gate does not cover:
+
+- `npm run test:docker:ci`: release/review rows, Docker-only browser risk, Caddy/public-site runtime changes, or wrapper/env changes that must be proved against the long-lived Docker contract.
+- `npm run test:docker:audit`: dark-mode, accessibility, route-health, or visual-audit work.
+- Fresh starter-only MFA proof: setup, MFA, registration-policy, session, or first-user flow changes.
+- Manual `Mobile Safari` or `Tablet`: Safari/tablet-specific risk, responsive layout work not covered by `Mobile Chrome`, or explicit reviewer request.
 
 ## Persona UI/UX Validation
 
@@ -265,6 +289,7 @@ make lint-doc-api-versioning
 
 - Add `make lint-doc-api-versioning` when API wording, API examples, or versioned API docs changed.
 - Add `make db-verify` when migration docs or database contract expectations changed, including the Phase 5 hardening and reassessment migrations `103` through `108`.
+- Use `./scripts/select-checks.sh --base HEAD~1 --mode strict` for runtime-facing docs when command meanings, ports, wrappers, Docker modes, or orchestration expectations changed.
 
 ## Choosing A Smaller Check Set
 

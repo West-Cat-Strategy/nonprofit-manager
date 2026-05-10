@@ -113,6 +113,7 @@ has_tooling_contracts=0
 has_openapi_contract=0
 has_dependency_tooling=0
 has_knip_config=0
+has_contracts=0
 
 is_docs_path() {
   case "$1" in
@@ -165,13 +166,39 @@ for file in "${changed_files[@]}"; do
   fi
 
   case "$file" in
+    package.json|package-lock.json)
+      has_dependency_tooling=1
+      has_runtime_orchestration=1
+      has_tooling_contracts=1
+      ;;
+    backend/package.json)
+      has_dependency_tooling=1
+      has_backend=1
+      ;;
+    frontend/package.json)
+      has_dependency_tooling=1
+      has_frontend=1
+      ;;
+    e2e/package.json)
+      has_dependency_tooling=1
+      has_e2e=1
+      has_runtime_orchestration=1
+      has_tooling_contracts=1
+      ;;
+    contracts/package.json)
+      has_dependency_tooling=1
+      has_contracts=1
+      ;;
+    contracts/*)
+      has_contracts=1
+      ;;
     backend/*)
       has_backend=1
       ;;
     frontend/*)
       has_frontend=1
       ;;
-    e2e/playwright.config.ts|e2e/package.json)
+    e2e/playwright.config.ts)
       has_e2e=1
       has_runtime_orchestration=1
       has_tooling_contracts=1
@@ -210,16 +237,11 @@ for file in "${changed_files[@]}"; do
       has_runtime_orchestration=1
       has_tooling_contracts=1
       ;;
-    package.json|package-lock.json)
-      has_dependency_tooling=1
-      has_runtime_orchestration=1
-      has_tooling_contracts=1
-      ;;
     knip.json)
       has_knip_config=1
       has_tooling_contracts=1
       ;;
-    Makefile|tsconfig*.json|docker-compose*.yml|docker-compose*.yaml|contracts/*|scripts/ci.sh|scripts/deploy.sh|scripts/e2e-*.sh|scripts/select-checks.sh|scripts/verify.sh|scripts/verify-pr.sh|scripts/tests/*|backend/scripts/run-*.sh)
+    Makefile|tsconfig*.json|docker-compose*.yml|docker-compose*.yaml|scripts/ci.sh|scripts/deploy.sh|scripts/e2e-*.sh|scripts/select-checks.sh|scripts/verify.sh|scripts/verify-pr.sh|scripts/tests/*|backend/scripts/run-*.sh)
       has_runtime_orchestration=1
       has_tooling_contracts=1
       case "$file" in
@@ -234,7 +256,7 @@ for file in "${changed_files[@]}"; do
   esac
 done
 
-surface_count=$((has_backend + has_frontend + has_e2e + has_database + has_runtime_orchestration))
+surface_count=$((has_backend + has_frontend + has_e2e + has_database + has_contracts + has_runtime_orchestration))
 commands=()
 
 add_command() {
@@ -284,6 +306,10 @@ add_frontend_commands() {
 
 add_e2e_commands() {
   add_command "cd e2e && npm run test:smoke"
+}
+
+add_contract_commands() {
+  add_command "cd contracts && npm run type-check"
 }
 
 add_doc_commands
@@ -351,6 +377,8 @@ if [[ "$mode" == "strict" ]]; then
     add_frontend_commands
   elif [[ $has_e2e -eq 1 ]]; then
     add_command "cd e2e && npm run test:ci"
+  elif [[ $has_contracts -eq 1 ]]; then
+    add_contract_commands
   fi
 else
   if [[ $surface_count -eq 0 ]]; then
@@ -367,6 +395,10 @@ else
 
   if [[ $has_e2e -eq 1 ]]; then
     add_e2e_commands
+  fi
+
+  if [[ $has_contracts -eq 1 ]]; then
+    add_contract_commands
   fi
 
   if [[ $has_runtime_orchestration -eq 1 ]]; then

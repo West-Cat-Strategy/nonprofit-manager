@@ -1,6 +1,6 @@
 # Planning & Progress
 
-**Last Updated:** 2026-05-08
+**Last Updated:** 2026-05-09
 
 Use this file only for live tracked work. Historical phase closeouts, earlier workboard material, and completed-row proof live in [archive/README.md](archive/README.md), [archive/WORKBOARD_HISTORY_2026.md](archive/WORKBOARD_HISTORY_2026.md), and [../validation/README.md](../validation/README.md).
 
@@ -9,11 +9,11 @@ Use this file only for live tracked work. Historical phase closeouts, earlier wo
 | Snapshot | Value |
 |---|---:|
 | Current phase | Phase 5 - Email, Website, Portal, and Reliability |
-| Active rows | 26 |
+| Active rows | 27 |
 | In Progress | 0 |
 | Review | 25 |
 | Ready | 0 |
-| Blocked | 1 |
+| Blocked | 2 |
 | Phase 4 carry-over rows | 0 |
 | Recent thread follow-through rows | 0 |
 
@@ -32,6 +32,7 @@ Use this file only for live tracked work. Historical phase closeouts, earlier wo
 
 | Status | ID | Task | Immediate Next Move | Evidence |
 |---|---|---|---|---|
+| Blocked | P5-T93 | Testing strategy overhaul | Review docs/tooling implementation and passed selector/tooling/docs/typecheck proof; unblock final behavior/full validation by resolving the current `make test-backend` failures in the P5-T90 volunteer date assertion and portal-auth duplicate-email association path, then rerun host smoke and `make ci-full`. | [../validation/P5-T93_TESTING_STRATEGY_OVERHAUL_PROOF_2026-05-09.md](../validation/P5-T93_TESTING_STRATEGY_OVERHAUL_PROOF_2026-05-09.md) |
 | Review | P5-T91 | Full-stack queue-view modularity refactor | Review behavior-preserving queue-view modularity proof: backend implementation moved to shared module resources, frontend API/types moved to a canonical feature resource, and compatibility re-exports preserve existing imports. | [../validation/P5-T91_QUEUE_VIEW_MODULARITY_PROOF_2026-05-08.md](../validation/P5-T91_QUEUE_VIEW_MODULARITY_PROOF_2026-05-08.md) |
 | Review | P5-T86 | Security remediation: tenant/session boundaries | Review tenant-scope and portal session-revision proof for external service providers, portal conversations, portal appointments/reminders, and portal password resets. | [../validation/P5-T86_T89_SECURITY_REMEDIATION_PROOF_2026-05-06.md](../validation/P5-T86_T89_SECURITY_REMEDIATION_PROOF_2026-05-06.md) |
 | Review | P5-T87 | Security remediation: public ingress, rate limits, and validation | Review fail-closed public/provider ingress, non-caller-controlled rate-limit buckets, and public/staff boundary validation proof. | [../validation/P5-T86_T89_SECURITY_REMEDIATION_PROOF_2026-05-06.md](../validation/P5-T86_T89_SECURITY_REMEDIATION_PROOF_2026-05-06.md) |
@@ -72,6 +73,7 @@ No row is currently ready.
 - `P5-T86` through `P5-T89` are in review with focused security validation recorded, separate from `P5-T79` through `P5-T85` review proof; the deferred Docker CI/audit follow-up for `P5-T85` is now recorded in review.
 - `P5-T90` is in validation/signoff review and stays scoped to volunteer staff background-check approval follow-up.
 - `P5-T91` is in review with focused backend/frontend queue-view behavior proof plus root lint, typecheck, docs link, and diff checks recorded.
+- `P5-T93` is blocked after docs/tooling implementation and selector/tooling/docs/typecheck proof. The isolated testing-strategy branch is based from `origin/codex/p5-t91-queue-view-modularity`, and final host smoke plus `make ci-full` are waiting on current backend integration failures outside the P5-T93 files.
 
 ## Status Keys
 

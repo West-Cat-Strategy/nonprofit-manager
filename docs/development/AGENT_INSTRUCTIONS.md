@@ -1,6 +1,6 @@
 # Agent Instructions For Nonprofit Manager
 
-**Last Updated:** 2026-04-30
+**Last Updated:** 2026-05-09
 
 Use this file for repo-specific coding-agent guardrails. It is not the setup guide or the full docs catalog.
 
@@ -62,6 +62,7 @@ Use this file for repo-specific coding-agent guardrails. It is not the setup gui
 - When persona or benchmark details change, update the tracked persona-suite references first and keep `docs/product/*.md` concise.
 - Run `make check-links` for docs changes and add `make lint-doc-api-versioning` when API wording or examples changed.
 - Run `make lint-openapi` when `docs/api/openapi.yaml` changes.
+- For runtime-facing docs, run selector strict-mode when the wording changes command meanings, ports, wrappers, Docker modes, or orchestration expectations.
 
 ## Default Validation Commands
 
@@ -84,9 +85,12 @@ make lint-doc-api-versioning
 make lint-openapi
 make test-tooling
 ./scripts/select-checks.sh --base HEAD~1 --mode fast
+./scripts/select-checks.sh --base HEAD~1 --mode strict
 ```
 
-`make ci-fast` is a static lint + typecheck pass only. Use [../testing/TESTING.md](../testing/TESTING.md) for the current meaning of `make ci*`, `make test-coverage*`, and the broader review-lane commands.
+`cd backend && npm test` is the supported backend test runner. It delegates to `backend/scripts/run-full-tests.sh`, prepares/verifies the isolated test DB on `127.0.0.1:8012/nonprofit_manager_test`, then runs Jest in band.
+
+`make ci-fast` is a static lint + typecheck pass only. `make test` is the repo behavior gate. `make test-coverage-full` is the coverage/full behavior gate, and `make ci-full` adds lint/typecheck/build plus `make security-audit`. Use [../testing/TESTING.md](../testing/TESTING.md) for the broader review-lane commands and follow-on rules.
 
 ## Do Not Assume
 
@@ -95,3 +99,4 @@ make test-tooling
 - Do not assume GitHub Actions is the required default gate; local repo validation commands are the documented baseline.
 - Do not assume the host coverage/review lanes are Docker-free; the current `make test-coverage*` and `make ci-full` flows still need Docker for Redis and isolated test DB bootstrap.
 - Do not export the full development env into CI-style coverage lanes; use the documented commands as-is so the isolated test DB contract stays pinned to `127.0.0.1:8012`.
+- Do not use direct backend `npx jest ...` as the first proof when the isolated DB may need setup; prefer `cd backend && npm test -- <paths>` unless the DB contract is already prepared.

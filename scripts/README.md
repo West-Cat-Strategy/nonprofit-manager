@@ -1,6 +1,6 @@
 # Script Index
 
-**Last Updated:** 2026-05-05
+**Last Updated:** 2026-05-09
 
 This directory contains the repo-local helpers used by the Makefile, deployment scripts, and docs workflow.
 Prefer the `make` targets when they exist. Call the scripts directly when you need the narrower entrypoint.
@@ -27,7 +27,7 @@ Prefer the `make` targets when they exist. Call the scripts directly when you ne
 | [verify-migrations.sh](verify-migrations.sh) | Verify the isolated `_test` database contract and manifest parity. | `make db-verify` |
 | [deploy.sh](deploy.sh) | Run the local, staging, or production deployment wrapper. | `make deploy-local` / `make deploy-staging` / `make deploy` |
 | [install-git-hooks.sh](install-git-hooks.sh) | Install the repo-managed hooks into Git's resolved hooks path and preserve differing existing hooks unless you pass `--force`. | `make hooks` / `./scripts/install-git-hooks.sh --dry-run` |
-| [select-checks.sh](select-checks.sh) | Suggest a smaller validation set based on changed files, with distinct `fast` and `strict` modes. | `./scripts/select-checks.sh --mode fast` |
+| [select-checks.sh](select-checks.sh) | Suggest a smaller validation set based on changed files, with distinct `fast` and `strict` modes. Docs changes route to conditional docs checks; strict runtime-doc changes can broaden to `make test-coverage-full`. | `./scripts/select-checks.sh --mode fast` |
 | [verify.sh](verify.sh) | Historical reproduction helper for the former broad verifier; default invocation prints the supported Make/selector contract and `--run-legacy` replays the old sequence. | Historical reproduction only; use `make test-tooling`, `./scripts/select-checks.sh --mode fast`, and `make ci-full` for current verification |
 | [verify-pr.sh](verify-pr.sh) | Historical reproduction helper for the former PR-number verifier; default invocation prints the supported Make/selector contract and `--run-legacy` replays the old GitHub CLI checks. | Historical reproduction only; use `make test-tooling`, `./scripts/select-checks.sh --mode fast`, and `make ci-full` for current verification |
 | [e2e-playwright.sh](e2e-playwright.sh) | Apply the repo's standard host or Docker Playwright defaults before delegating to the shared runner, while still honoring explicit runtime overrides such as `BASE_URL`, `API_URL`, and `E2E_*_PORT`. | `e2e` package scripts |
@@ -50,7 +50,7 @@ The three legacy deleted-path guards fail if `frontend/src/pages`, `frontend/src
 
 - [lib/common.sh](lib/common.sh) contains shell helpers shared by the root scripts.
 - [lib/config.sh](lib/config.sh) and [lib/import-audit.ts](lib/import-audit.ts) provide shared config/audit helpers for the policy checks.
-- `backend/scripts/run-integration-tests.sh` is backend-owned and is invoked from the backend test workflow.
+- `backend/scripts/run-full-tests.sh` is the current backend-owned runner behind `cd backend && npm test`; it prepares/verifies the isolated test DB before invoking Jest. `backend/scripts/run-integration-tests.sh` remains backend-owned for the integration workflow it supports.
 - `perf/p4-t9h-capture.sh` and `perf/p4-t9h-seed.sql` support the documented performance artifact workflow.
 - [support/cbis-case-visibility-repair.sql](support/cbis-case-visibility-repair.sql) is the scoped manual-support SQL helper for auditing and repairing the user-reported CBIS hidden-case records after the case visibility hotfix.
 
@@ -83,18 +83,18 @@ For a durable archived host Playwright CI report, use `cd e2e && npm run test:ci
 The full Playwright CI matrix stays gated to the default browser projects; `Mobile Safari` and `Tablet` remain manual/ad hoc projects that you can run explicitly when needed.
 Release-facing changes should use `make release-check`, which runs the full local release gate and writes the CycloneDX SBOM under ignored `tmp/local-release/<timestamp>/`. Use `make release-staging` or `make release-production` when you want the same gate followed by the deploy wrapper; those targets still inherit the deploy script's dry-run default unless `DEPLOY_EXECUTE=1` is set.
 
-If your change is docs-only, use:
+If your change is docs-only, start with:
 
 ```bash
 make check-links
-make lint-doc-api-versioning
-make lint-openapi
 ```
+
+Add `make lint-doc-api-versioning` only when API route wording, examples, or versioned API docs changed. Add `make lint-openapi` only when `docs/api/openapi.yaml` changed. For runtime-facing docs such as [../docs/testing/TESTING.md](../docs/testing/TESTING.md), [../docs/development/AGENT_INSTRUCTIONS.md](../docs/development/AGENT_INSTRUCTIONS.md), [../e2e/README.md](../e2e/README.md), or this file, use selector strict-mode when command meanings, wrappers, ports, Docker modes, or orchestration expectations changed.
 
 If you need a narrower sequence, ask the selector helper for a recommendation:
 
 ```bash
-make check-changed --run
+./scripts/select-checks.sh --base HEAD~1 --mode fast
 ```
 
 Use `--mode strict` when the change touches shared runtime orchestration, hooks, or runtime-facing docs and you want the selector to broaden into higher-confidence root checks.

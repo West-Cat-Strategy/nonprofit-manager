@@ -512,6 +512,30 @@ test('e2e playwright docker wrapper carries ports and readiness URLs through the
   assert.equal(env.SKIP_WEBSERVER, '1');
 });
 
+test('e2e playwright usage documents the Docker public-site port', () => {
+  const result = run('bash', ['scripts/e2e-playwright.sh']);
+
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /frontend\/backend\/public-site runtime/);
+  assert.match(result.stderr, /8005\/8004\/8006/);
+});
+
+test('make test reuses the root-prepared backend test database', () => {
+  const makefile = fs.readFileSync(path.join(repoRoot, 'Makefile'), 'utf8');
+  const start = makefile.indexOf('\ntest:\n');
+  const end = makefile.indexOf('\ntest-coverage:\n');
+
+  assert.notEqual(start, -1);
+  assert.notEqual(end, -1);
+  const testTarget = makefile.slice(start, end);
+
+  assert.match(testTarget, /\$\(CI_TEST_DB_ENV\) \.\/scripts\/db-migrate\.sh/);
+  assert.match(
+    testTarget,
+    /cd backend && SKIP_INTEGRATION_DB_PREP=1 npm test -- --runInBand/
+  );
+});
+
 test('e2e host ci report wrapper resolves default archived report paths in dry-run mode', () => {
   const result = run('bash', ['scripts/e2e-host-ci-report.sh', '--dry-run']);
 
@@ -655,6 +679,62 @@ test('select-checks treats Playwright config as tooling plus behavior in fast mo
     'make test-tooling',
     'cd e2e && npm run test:smoke',
     'make test-e2e-docker-smoke',
+  ]);
+});
+
+test('select-checks routes workspace package manifests through dependency checks and package surfaces', () => {
+  const result = run('bash', [
+    'scripts/select-checks.sh',
+    '--files',
+    'backend/package.json frontend/package.json e2e/package.json contracts/package.json',
+    '--mode',
+    'fast',
+  ]);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(result.stdout.trim().split('\n'), [
+    'make test-tooling',
+    'npm run knip',
+    'make security-audit',
+    'cd backend && npm run lint',
+    'cd backend && npm run type-check',
+    'cd backend && npm test -- src/__tests__/integration',
+    'cd frontend && npm run lint',
+    'cd frontend && npm run type-check',
+    'cd frontend && npm test -- --run',
+    'cd e2e && npm run test:smoke',
+    'cd contracts && npm run type-check',
+    'make test-e2e-docker-smoke',
+  ]);
+});
+
+test('select-checks keeps contracts-only fast mode on type validation', () => {
+  const result = run('bash', [
+    'scripts/select-checks.sh',
+    '--files',
+    'contracts/src/index.ts',
+    '--mode',
+    'fast',
+  ]);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(result.stdout.trim().split('\n'), ['cd contracts && npm run type-check']);
+});
+
+test('select-checks routes contracts package changes through dependency and type checks', () => {
+  const result = run('bash', [
+    'scripts/select-checks.sh',
+    '--files',
+    'contracts/package.json',
+    '--mode',
+    'fast',
+  ]);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(result.stdout.trim().split('\n'), [
+    'npm run knip',
+    'make security-audit',
+    'cd contracts && npm run type-check',
   ]);
 });
 
