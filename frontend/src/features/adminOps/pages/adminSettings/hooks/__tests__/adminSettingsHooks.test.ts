@@ -517,7 +517,7 @@ describe('admin settings hooks', () => {
     expect(result.current.showInviteModal).toBe(true);
     expect(result.current.inviteUrl).toBe('https://invite.local/refreshed');
     expect(result.current.inviteEmail).toBe('invitee@example.com');
-    expect(showSuccess).toHaveBeenCalledWith('Invitation resent');
+    expect(showSuccess).toHaveBeenCalledWith('Invitation email resent');
   });
 
   it('handles portal approve/invite/status/reminder actions', async () => {
