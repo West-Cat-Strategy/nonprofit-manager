@@ -1,82 +1,83 @@
 # Nonprofit Manager
 
-**Last Updated:** 2026-04-30
+**Last Updated:** 2026-05-11
 
-Nonprofit Manager is a self-hostable operations platform for nonprofit organizations that want their people records, service delivery, fundraising, reporting, website publishing, and client-facing workflows to work from one shared system.
+Nonprofit Manager is a self-hostable operations platform for nonprofit organizations that want one shared system for programs, people, fundraising, reporting, publishing, and client-facing workflows.
 
-It is designed for teams that have outgrown scattered spreadsheets, disconnected donor tools, separate volunteer trackers, and one-off portal or website workflows. The goal is simple: give staff and leadership a clearer operating picture while preserving the flexibility and control many nonprofits need.
+It is built for organizations that have outgrown disconnected spreadsheets, donor tools, volunteer trackers, event systems, website forms, and portal workflows. The adoption goal is practical: give staff, leadership, and community-facing teams a clearer operating picture without forcing the organization into a single hosted vendor model.
 
-## Why Organizations Use It
+## Is This A Fit?
 
-Nonprofit teams often manage mission-critical work across too many tools. Nonprofit Manager brings those workflows together so organizations can:
+Nonprofit Manager is worth evaluating if your organization needs to:
 
-- Keep constituent, volunteer, donor, staff, and service records connected.
-- Coordinate cases, tasks, events, follow-ups, forms, appointments, documents, and reminders.
-- Manage donations, recurring giving, reconciliation, campaigns, receipts, grants, and reports.
-- Publish public-facing experiences such as event pages, newsletters, website content, and intake forms.
-- Offer portal workflows for clients, participants, or community members who need secure access to forms, messages, appointments, cases, and shared documents.
-- Run reporting, dashboards, exports, scheduled reports, alerts, and audit-oriented operational reviews from the same product surface.
+- Connect constituent, client, volunteer, donor, staff, service, and organization records.
+- Coordinate intake, cases, tasks, events, appointments, documents, reminders, and follow-ups from one staff workspace.
+- Bring fundraising, recurring giving, reconciliation, receipts, campaigns, grants, and reporting closer to program operations.
+- Publish public-facing experiences such as events, newsletters, website content, public forms, and intake flows.
+- Offer secure portal access for selected client, participant, or community workflows.
+- Use reporting, exports, scheduled reports, alerts, and audit-oriented reviews as everyday operating tools.
 
-## Who It Helps
+## Who Benefits
 
-| Audience | What It Supports |
+| Audience | Adoption value |
 |---|---|
-| Executive directors and leadership teams | Organization-wide visibility, reporting, governance, risk review, and operating discipline |
-| Program and service teams | Cases, intake, follow-ups, appointments, documents, forms, reminders, and service-delivery workflows |
+| Executive directors and leadership teams | Organization-wide visibility, operating discipline, governance support, risk review, and board-ready reporting |
+| Operations leads and administrators | Shared records, role-aware staff workflows, repeatable processes, integrations, and deployment control |
+| Program and service teams | Intake, cases, forms, appointments, documents, follow-ups, reminders, and service-delivery coordination |
 | Volunteer coordinators | Volunteer profiles, assignments, opportunities, hour tracking, events, attendance, and follow-up |
-| Fundraising and development teams | Donors, gifts, recurring giving, reconciliation, campaigns, receipts, stewardship, and reporting |
-| Communications and operations staff | Website publishing, newsletters, public forms, event pages, integrations, and operational dashboards |
-| Clients, participants, and community members | Portal access for selected forms, messages, cases, appointments, documents, and reminders |
+| Fundraising and development teams | Donors, gifts, recurring giving, reconciliation, campaigns, receipts, stewardship, grants, and reports |
+| Communications staff | Website publishing, newsletters, public forms, events, public engagement workflows, and operational dashboards |
+| Clients, participants, and community members | Portal access for selected forms, messages, appointments, cases, documents, and reminders |
 
-## Product Areas
+## What It Helps Organizations Do
 
-### Operations And Relationships
+### Run Shared Operations
 
-Nonprofit Manager provides centralized records and staff workflows for people, accounts, volunteers, service interactions, tasks, cases, follow-ups, meetings, opportunities, and external service providers.
+Centralize people, accounts, volunteers, service interactions, tasks, cases, follow-ups, meetings, opportunities, and external service providers so teams are not rebuilding the same context in separate tools.
 
-### Fundraising, Grants, And Finance
+### Support Service Delivery
 
-The platform includes donation and recurring-giving workflows, reconciliation, receipts, campaign operations, grant surfaces, reports, and analytics for development and leadership teams.
+Coordinate intake, case work, appointments, documents, forms, notes, reminders, and client-facing portal workflows around the records staff already use.
 
-### Events, Volunteers, And Public Engagement
+### Manage Fundraising And Grants
 
-Teams can coordinate events, registrations, reminders, attendance, volunteer assignments, hour tracking, public event pages, newsletters, and public forms from connected staff and public-facing surfaces.
+Track donations, recurring giving, reconciliation, receipts, campaigns, stewardship, grant workflows, reports, and analytics in the same operating environment as programs and relationships.
 
-### Reporting And Leadership Visibility
+### Engage The Public
 
-Dashboards, report builders, saved reports, scheduled delivery, alerts, outcome reporting, workflow coverage, exports, and audit artifacts are treated as core operating tools rather than afterthoughts.
+Publish events, newsletters, public forms, intake surfaces, website content, and event check-in workflows from connected staff and public-facing product surfaces.
 
-### Website, Portal, And Integrations
+### See And Govern The Work
 
-Nonprofit Manager includes website-builder and website-console workflows, a public-site runtime, authenticated portal experiences, `/api/v2` contracts, webhooks, payment-provider support, Mailchimp-backed communications, and external service provider configuration.
+Use dashboards, report builders, saved reports, scheduled delivery, alerts, exports, outcome reporting, workflow coverage, and audit artifacts to support leadership decisions and operational review.
 
-## Trust And Control
+### Integrate With Control
 
-Nonprofit Manager is built for organizations that care about operational control as much as feature breadth.
+Use documented API, webhook, payment-provider, Mailchimp-backed communications, external-service-provider, and deployment surfaces without assuming every organization must adopt the same hosted operating model.
 
-- Self-hostable deployment paths are documented for teams that need direct control of their environment.
+## Trust, Control, And Adoption Posture
+
+Nonprofit Manager is designed for organizations that care about operating control as much as feature breadth.
+
+- Self-hostable deployment paths are documented for teams that need direct control of infrastructure, data handling, and environment choices.
 - Role-based access, permissions, session handling, audit-oriented monitoring, and security operations guidance are part of the documented platform contract.
-- API, webhook, and integration surfaces are designed to support system-to-system workflows without forcing every organization into one hosted operating model.
-- Documentation separates product overview, contributor workflow, runtime setup, testing, validation, security, and deployment guidance so organizations and contributors can find the right level of detail quickly.
+- Public-site, portal, integration, and reporting surfaces are treated as product areas, not sidecar tools.
+- Documentation separates organization-facing product evaluation from contributor workflow, runtime setup, testing, validation, security, and deployment detail.
 
 Technology snapshot: TypeScript, React 19, Express, PostgreSQL, Redis, Tailwind CSS, and Docker.
 
-## Explore The Product
+## Evaluate Product Fit
 
-- Product docs: [docs/product/README.md](docs/product/README.md)
-- Product specification: [docs/product/product-spec.md](docs/product/product-spec.md)
-- Feature inventory: [docs/features/FEATURE_MATRIX.md](docs/features/FEATURE_MATRIX.md)
-- Feature docs: [docs/features/README.md](docs/features/README.md)
-- Workflow personas: [docs/product/persona-workflows.md](docs/product/persona-workflows.md)
-- Open-source nonprofit CRM benchmark: [docs/product/OPEN_SOURCE_NONPROFIT_CRM_BENCHMARK_2026-04.md](docs/product/OPEN_SOURCE_NONPROFIT_CRM_BENCHMARK_2026-04.md)
-- UI docs: [docs/ui/README.md](docs/ui/README.md)
-- API reference: [docs/api/README.md](docs/api/README.md)
-- Deployment guide: [docs/deployment/DEPLOYMENT.md](docs/deployment/DEPLOYMENT.md)
-- Full documentation catalog: [docs/README.md](docs/README.md)
+Start with the product material, then move into implementation detail only when your evaluation needs it.
 
-## For Contributors
+1. Review the current product reference: [docs/product/README.md](docs/product/README.md).
+2. Scan the product specification: [docs/product/product-spec.md](docs/product/product-spec.md).
+3. Compare supported areas in the feature inventory: [docs/features/FEATURE_MATRIX.md](docs/features/FEATURE_MATRIX.md).
+4. Check persona and workflow fit: [docs/product/persona-workflows.md](docs/product/persona-workflows.md).
+5. Review the open-source nonprofit CRM benchmark: [docs/product/OPEN_SOURCE_NONPROFIT_CRM_BENCHMARK_2026-04.md](docs/product/OPEN_SOURCE_NONPROFIT_CRM_BENCHMARK_2026-04.md).
+6. Explore deployment and operating control when technical review begins: [docs/deployment/DEPLOYMENT.md](docs/deployment/DEPLOYMENT.md).
 
-If you want to contribute code, documentation, validation, or release support, start with [CONTRIBUTING.md](CONTRIBUTING.md). That guide explains the contributor workflow, setup handoff, tracked-work expectations, validation defaults, and documentation hygiene.
+For the full documentation catalog, use [docs/README.md](docs/README.md). For API integration details, use [docs/api/README.md](docs/api/README.md). For contributor workflow, start with [CONTRIBUTING.md](CONTRIBUTING.md).
 
 For terminology around developer agents, multi-agent coordination, and HTTP `User-Agent` tracking, see [agents.md](agents.md).
 
