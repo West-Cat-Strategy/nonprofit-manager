@@ -595,6 +595,88 @@ describe('Case API Integration Tests', () => {
     }
   });
 
+  it('opens legacy CBIS note-backed null-account cases without target provenance rows', async () => {
+    const suffix = unique();
+    const contactId = (
+      await pool.query<{ id: string }>(
+        `INSERT INTO contacts (
+           first_name,
+           last_name,
+           email,
+           account_id,
+           created_by,
+           modified_by
+         ) VALUES ($1, $2, $3, NULL, $4, $4)
+         RETURNING id`,
+        ['Legacy', 'CbisCaseLink', `legacy-cbis-case-link-${suffix}@example.com`, userId]
+      )
+    ).rows[0].id;
+    createdContactIds.push(contactId);
+
+    const caseId = (
+      await pool.query<{ id: string }>(
+        `INSERT INTO cases (
+           case_number,
+           contact_id,
+           account_id,
+           case_type_id,
+           title,
+           status_id,
+           source,
+           referral_source,
+           created_by,
+           modified_by,
+           created_at,
+           updated_at
+         ) VALUES ($1, $2, NULL, $3, $4, $5, 'participant', $6, $7, $7, NOW(), NOW())
+         RETURNING id`,
+        [
+          `CBIS-TICIPANT${suffix}`,
+          contactId,
+          caseTypeId,
+          'Legacy CBIS note-backed case',
+          activeStatusId,
+          `parent_id:${suffix}`,
+          userId,
+        ]
+      )
+    ).rows[0].id;
+    createdCaseIds.push(caseId);
+
+    await pool.query(
+      `INSERT INTO contact_notes (
+         contact_id,
+         case_id,
+         note_type,
+         subject,
+         content,
+         is_internal,
+         created_by,
+         created_at,
+         updated_at
+       ) VALUES ($1, $2, 'note', 'CBIS Upload File', $3, false, $4, NOW(), NOW())`,
+      [
+        contactId,
+        caseId,
+        `Imported from CBIS.\nCluster ID: participant:${suffix}\nSource table: Upload File`,
+        userId,
+      ]
+    );
+
+    const detailResponse = await withAuth(request(app)
+      .get(`/api/v2/cases/${caseId}`))
+      .expect(200);
+    const detailPayload = payloadFromResponse<{ id: string; account_id: string | null }>(detailResponse.body);
+    expect(detailPayload).toEqual(expect.objectContaining({ id: caseId, account_id: null }));
+
+    const listResponse = await withAuth(request(app)
+      .get('/api/v2/cases')
+      .query({ contact_id: contactId }))
+      .expect(200);
+    const listPayload = payloadFromResponse<{ cases: Array<{ id: string }> }>(listResponse.body);
+    expect(listPayload.cases.map((item) => item.id)).toContain(caseId);
+  });
+
   it('keeps null-account cases hidden when no CBIS provenance scopes them', async () => {
     const suffix = unique();
     const contactId = (

@@ -35,6 +35,18 @@ export const buildCaseOrganizationScopeSql = (
           )
       )
     )
+    OR (
+      ${caseAlias}.account_id IS NULL
+      AND ${contactAlias}.account_id IS NULL
+      AND ${caseAlias}.case_number LIKE 'CBIS-%'
+      AND EXISTS (
+        SELECT 1
+        FROM contact_notes cbis_note_scope
+        WHERE cbis_note_scope.case_id = ${caseAlias}.id
+          AND cbis_note_scope.contact_id = ${contactAlias}.id
+          AND cbis_note_scope.content LIKE 'Imported from CBIS.%'
+      )
+    )
   )
 `;
 
