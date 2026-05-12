@@ -214,6 +214,7 @@ export default defineConfig({
         reuseExistingServer: REUSE_EXISTING_SERVER,
         env: {
           VITE_API_URL: `${HTTP_SCHEME}${E2E_BACKEND_HOST}:${E2E_BACKEND_PORT}/api`,
+          VITE_DEMO_ROUTES_ENABLED: 'true',
         },
       },
     ],

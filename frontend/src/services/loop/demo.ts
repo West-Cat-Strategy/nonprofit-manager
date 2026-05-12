@@ -6,6 +6,7 @@ import type {
   PeopleFilter,
   Task,
 } from '../../types/schema';
+import { DEMO_ROUTES_ENABLED_ENV } from './demoFlags';
 
 const cloneTasks = (tasks: Task[]): Task[] =>
   tasks.map((task) => ({
@@ -21,8 +22,6 @@ const cloneOrganizations = (organizations: Organization[]): Organization[] =>
 
 const clonePeople = (people: AdaptedPerson[]): AdaptedPerson[] =>
   people.map((person) => ({ ...person }));
-
-export const DEMO_ROUTES_ENABLED_ENV = 'VITE_DEMO_ROUTES_ENABLED';
 
 type DemoRouteEnvironment = Partial<
   Record<typeof DEMO_ROUTES_ENABLED_ENV | 'MODE', string | boolean | undefined>

@@ -1,8 +1,8 @@
 import type { RouteCatalogEntry } from './types';
 import { demoRoute } from './shared';
-import { DEMO_ROUTES_ENABLED_ENV } from '../../services/loop/demo';
+import { DEMO_ROUTES_ENABLED_ENV } from '../../services/loop/demoFlags';
 
-export { DEMO_ROUTES_ENABLED_ENV } from '../../services/loop/demo';
+export { DEMO_ROUTES_ENABLED_ENV } from '../../services/loop/demoFlags';
 
 const demoFixtureRoute = (
   entry: Omit<
