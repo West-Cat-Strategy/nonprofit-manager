@@ -1,6 +1,6 @@
 # Planning & Progress
 
-**Last Updated:** 2026-05-10
+**Last Updated:** 2026-05-12
 
 Use this file only for live tracked work. Historical phase closeouts, earlier workboard material, and completed-row proof live in [archive/README.md](archive/README.md), [archive/WORKBOARD_HISTORY_2026.md](archive/WORKBOARD_HISTORY_2026.md), and [../validation/README.md](../validation/README.md).
 
@@ -9,9 +9,9 @@ Use this file only for live tracked work. Historical phase closeouts, earlier wo
 | Snapshot | Value |
 |---|---:|
 | Current phase | Phase 5 - Email, Website, Portal, and Reliability |
-| Active rows | 7 |
+| Active rows | 8 |
 | In Progress | 0 |
-| Review | 6 |
+| Review | 7 |
 | Ready | 0 |
 | Blocked | 1 |
 | Phase 4 carry-over rows | 0 |
@@ -35,11 +35,13 @@ Use this file only for live tracked work. Historical phase closeouts, earlier wo
 - Coordinated exception, 2026-05-10: `P5-T95` worker-container parity and hardening is split into deployment-runtime and backend-worker subagent lanes in a clean sibling worktree. The lead lane owns this board, proof note, validation index, and final reconciliation; async report exports remain out of scope.
 - Coordinated exception, 2026-05-10: `P5-T96` small-VPS refactor is split into backend/export-worker, frontend initial-load, and deployment-runtime subagent lanes. The lead lane owns this board, proof note, validation index, and final reconciliation.
 - Coordinated exception, 2026-05-10: `P5-T97` controller helper modularity is split into reports-controller and saved/scheduled-report controller adoption lanes in the clean sibling worktree `codex/p5-t97-controller-helper-modularity`. The lead lane owns this board, the shared helper API, proof note, validation index, and final reconciliation; route registrars, frontend code, Docker/runtime files, and database migrations remain out of scope.
+- Coordinated exception, 2026-05-12: `P5-T99` mixed clean modularity is split into backend communications-service and frontend grants-workspace lanes in the clean sibling worktree `p5-t99-mixed-modularity`. The lead lane owns this board, proof note, validation index, and final reconciliation; portal files, shared route registrars, root store, database migrations, public API behavior, and browser route contracts remain out of scope.
 
 ## Priority Board
 
 | Status | ID | Task | Immediate Next Move | Evidence |
 |---|---|---|---|---|
+| Review | P5-T99 | Mixed clean modularity wave | Review the completed clean-branch communications service and grants workspace modularity split, with focused tests, policy gates, `make lint`, and `make typecheck` green. | [../validation/P5-T99_MIXED_CLEAN_MODULARITY_PROOF_2026-05-12.md](../validation/P5-T99_MIXED_CLEAN_MODULARITY_PROOF_2026-05-12.md) |
 | Review | P5-T95 | Worker container parity and hardening | Review the clean sibling branch `codex/p5-t95-worker-container-parity` and its proof note, then merge after signoff. Async report exports remain out of scope. | [../validation/P5-T95_WORKER_CONTAINER_PARITY_PROOF_2026-05-10.md](../validation/P5-T95_WORKER_CONTAINER_PARITY_PROOF_2026-05-10.md) |
 | Review | P5-T93 | Case-form authoring diagnostics | Review the fixed single-checkbox diagnostics false-positive and refreshed focused proof; the documented Vitest command now passes without the serial flag. | [../validation/P5-T93_CASE_FORM_AUTHORING_DIAGNOSTICS_PROOF_2026-05-10.md](../validation/P5-T93_CASE_FORM_AUTHORING_DIAGNOSTICS_PROOF_2026-05-10.md), [../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md](../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md) |
 | Review | P5-T94 | Residual local validation gate cleanup | Review the completed Mailchimp campaign-dialog modularity extraction, scoped semantic cleanup, and passing local gates; `npm run knip`, `make lint`, and `make typecheck` are green in this checkout. | [../validation/P5-T94_MAILCHIMP_MODULARITY_GATE_CLEANUP_PROOF_2026-05-10.md](../validation/P5-T94_MAILCHIMP_MODULARITY_GATE_CLEANUP_PROOF_2026-05-10.md), [../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md](../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md) |
