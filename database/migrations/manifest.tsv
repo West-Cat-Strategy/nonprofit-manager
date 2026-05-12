@@ -123,3 +123,5 @@
 123	123_volunteer_background_check_approval.sql
 124	124_tenant_session_boundary_remediation.sql
 125	125_report_export_worker_queue_indexes.sql
+126	126_cbis_staged_import_runs.sql
+129	129_cbis_import_duplicate_guards.sql
