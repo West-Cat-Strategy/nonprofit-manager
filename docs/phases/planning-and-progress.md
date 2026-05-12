@@ -9,10 +9,10 @@ Use this file only for live tracked work. Historical phase closeouts, earlier wo
 | Snapshot | Value |
 |---|---:|
 | Current phase | Phase 5 - Email, Website, Portal, and Reliability |
-| Active rows | 25 |
-| In Progress | 0 |
-| Review | 15 |
-| Ready | 9 |
+| Active rows | 27 |
+| In Progress | 1 |
+| Review | 17 |
+| Ready | 8 |
 | Blocked | 1 |
 | Phase 4 carry-over rows | 0 |
 | Recent thread follow-through rows | 0 |
@@ -45,11 +45,15 @@ Use this file only for live tracked work. Historical phase closeouts, earlier wo
 - Metadata-first reference-corpus expansion, 2026-05-12: central profiles and nonprofit manifest entries were added for Houdini, OpenBoxes, KoboToolbox KPI, DHIS2 Core, OpenMRS Core, openIMIS Backend, and openIMIS Docker Distribution. These additions sharpen `P5-T112` through `P5-T119` plus future program-operations rows without cloning source, creating compatibility aliases, or authorizing runtime implementation.
 - Coordinated exception, 2026-05-12: `P5-T120` CBIS import/dedupe and app-wiring follow-through is split into app importer integration, CBIS data-prep cleanup, contact notes/search UX, and validation/ops proof lanes. The lead lane owns this board, validation note, final reconciliation, and the production boundary; production remains out of scope until separately approved.
 - Production follow-up, 2026-05-12: after the approved P5-T120 code deploy, Dora Ogden's imported contact Notes rendered, but the linked imported case `49f7f188-be03-4cd7-b4ce-be48aea9703c` / `CBIS-TICIPANT2709` returned "Case not found." Continue under `P5-T120` by fixing imported null-account case visibility without production import, production dry-run, support SQL, or a new tracked row.
+- Completed coordinated exception, 2026-05-12: `P5-T121` CBIS duplicate-contact decision overlay was split into read-only duplicate-name classification subagent lanes plus a lead-owned implementation lane. The lead owned this board, the decision CSV, bundle-builder changes, generated proof, validation note, and closeout; subagents inspected only assigned single-anchor duplicate-name groups and did not edit files. Production import, production dry-run, production read, support SQL, schema migration, app merge action, and deployment remained out of scope.
+- Production data application, 2026-05-12: `P5-T122` applies the completed `P5-T121` decision overlay to `cbis.westcat.ca` with explicit backup, exact bundle fingerprint/schema proof, a required production dry-run before apply, and a scoped operator merge pass for the 194 accepted duplicate-contact decisions. The row owns production import, production apply, and production verification; public endpoints, migrations, and support-data edits remain out of scope.
 
 ## Priority Board
 
 | Status | ID | Task | Immediate Next Move | Evidence |
 |---|---|---|---|---|
+| In Progress | P5-T122 | Apply P5-T121 contact deduplication to CBIS production | Add the operator-only merge CLI, validate it locally, deploy the committed app tree to `wcs.pw`, back up production, dry-run/apply the exact `normalized_candidate_bundle_20260512T205918Z` bundle, merge the 194 accepted held contacts into anchors, preserve the two keep-held contacts, and record production proof. | [../validation/P5-T122_CBIS_PRODUCTION_CONTACT_DEDUPE_PROOF_2026-05-12.md](../validation/P5-T122_CBIS_PRODUCTION_CONTACT_DEDUPE_PROOF_2026-05-12.md) |
+| Review | P5-T121 | CBIS duplicate-contact decision overlay | Review the completed decision-file overlay: 196 local decisions were reconciled for single-anchor duplicate-name contact holdouts, 194 held contacts now merge to anchors, 2 remain held, dependent held-cluster activities/event registrations redirect to anchors, and the generated bundle validates without changing production, app runtime, schema, or support data. | [../validation/P5-T121_CBIS_DUPLICATE_CONTACT_DECISION_OVERLAY_PROOF_2026-05-12.md](../validation/P5-T121_CBIS_DUPLICATE_CONTACT_DECISION_OVERLAY_PROOF_2026-05-12.md) |
 | Review | P5-T120 | CBIS import, dedupe, and app wiring follow-through | Review the completed imported-case visibility fix and production proof: Dora Ogden's `NOTES(147)` still renders, note-linked case `49f7f188-be03-4cd7-b4ce-be48aea9703c` / `CBIS-TICIPANT2709` opens normally, case search returns one result, and the target contact is not duplicated. No production import, dry-run, migration, corrective SQL, or new row was added. | [../validation/P5-T120_CBIS_IMPORT_DEDUPE_APP_WIRING_PROOF_2026-05-12.md](../validation/P5-T120_CBIS_IMPORT_DEDUPE_APP_WIRING_PROOF_2026-05-12.md) |
 | Review | P5-T110 | Open-source-first service provider posture | Review the completed open-source-first provider posture: local email remains default, Mautic is wired as preferred open-source external sync, Mailchimp stays optional, error tracking uses Sentry-compatible/GlitchTip wording and redaction, Plausible CE is preferred, OpenSearch is the primary self-hosted log overlay, and ELK remains legacy transition support. | [../validation/P5-T110_OPEN_SOURCE_SERVICE_POSTURE_PROOF_2026-05-12.md](../validation/P5-T110_OPEN_SOURCE_SERVICE_POSTURE_PROOF_2026-05-12.md) |
 | Review | P5-T98 | Client portal action-clarity audit and enhancement | Review the completed action-only dashboard empty-state fix, action-kind-aware Needs Attention CTA, focused portal tests, backend action proof, and host Playwright link proof. | [../validation/P5-T98_CLIENT_PORTAL_ACTION_CLARITY_AUDIT_2026-05-11.md](../validation/P5-T98_CLIENT_PORTAL_ACTION_CLARITY_AUDIT_2026-05-11.md) |
