@@ -25,11 +25,11 @@ export const buildCaseOrganizationScopeSql = (
         WHERE cbis_scope.organization_id = ${organizationParam}::uuid
           AND (
             (
-              cbis_scope.target_entity_type = 'cases'
+              cbis_scope.target_entity_type IN ('cases', 'case')
               AND cbis_scope.target_entity_id = ${caseAlias}.id
             )
             OR (
-              cbis_scope.target_entity_type = 'contacts'
+              cbis_scope.target_entity_type IN ('contacts', 'contact')
               AND cbis_scope.target_entity_id = ${contactAlias}.id
             )
           )

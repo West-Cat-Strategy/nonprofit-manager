@@ -501,6 +501,100 @@ describe('Case API Integration Tests', () => {
     }
   });
 
+  it('accepts legacy singular CBIS target provenance labels for imported case scope', async () => {
+    const suffix = unique();
+    const contactId = (
+      await pool.query<{ id: string }>(
+        `INSERT INTO contacts (
+           first_name,
+           last_name,
+           email,
+           account_id,
+           created_by,
+           modified_by
+         ) VALUES ($1, $2, $3, NULL, $4, $4)
+         RETURNING id`,
+        ['Imported', 'SingularCaseLink', `imported-singular-case-link-${suffix}@example.com`, userId]
+      )
+    ).rows[0].id;
+    createdContactIds.push(contactId);
+
+    const caseId = (
+      await pool.query<{ id: string }>(
+        `INSERT INTO cases (
+           case_number,
+           contact_id,
+           account_id,
+           case_type_id,
+           title,
+           status_id,
+           created_by,
+           modified_by,
+           created_at,
+           updated_at
+         ) VALUES ($1, $2, NULL, $3, $4, $5, $6, $6, NOW(), NOW())
+         RETURNING id`,
+        [
+          `CBIS-SINGULAR-${suffix}`,
+          contactId,
+          caseTypeId,
+          'Imported singular provenance case',
+          activeStatusId,
+          userId,
+        ]
+      )
+    ).rows[0].id;
+    createdCaseIds.push(caseId);
+
+    await pool.query(
+      `INSERT INTO cbis_import_target_provenance (
+         organization_id,
+         target_entity_type,
+         target_entity_id,
+         source_file,
+         source_table,
+         source_row_id,
+         source_row_hash,
+         bundle_fingerprint,
+         schema_bundle_version
+       ) VALUES
+         ($1, 'case', $2, $3, 'Upload File', $4, $5, $6, $7),
+         ($1, 'contact', $8, $3, 'Upload File', $9, $10, $6, $7)`,
+      [
+        organizationId,
+        caseId,
+        `cbis-singular-${suffix}.csv`,
+        `upload_file:${suffix}`,
+        `singular-case-hash-${suffix}`,
+        `sha256:singular-${suffix}`,
+        'test-schema',
+        contactId,
+        `contact:${suffix}`,
+        `singular-contact-hash-${suffix}`,
+      ]
+    );
+
+    try {
+      await withAuth(request(app)
+        .get(`/api/v2/cases/${caseId}`))
+        .expect(200);
+
+      const listResponse = await withAuth(request(app)
+        .get('/api/v2/cases')
+        .query({ contact_id: contactId }))
+        .expect(200);
+      const listPayload = payloadFromResponse<{ cases: Array<{ id: string }> }>(listResponse.body);
+      expect(listPayload.cases.map((item) => item.id)).toContain(caseId);
+    } finally {
+      await pool.query(
+        `DELETE FROM cbis_import_target_provenance
+         WHERE organization_id = $1
+           AND source_file = $2`,
+        [organizationId, `cbis-singular-${suffix}.csv`]
+      );
+    }
+  });
+
   it('keeps null-account cases hidden when no CBIS provenance scopes them', async () => {
     const suffix = unique();
     const contactId = (
