@@ -613,7 +613,11 @@ const loadLegacyProductionMergeCandidates = async (
   validation: ValidationSummary
 ): Promise<LegacyProductionMergeCandidate[]> => {
   const anchorsByName = resolveAnchorsByDuplicateName(mergeDecisions, validation);
+  const keepHeldNames = new Set(keepHeldDecisions.map((decision) => decision.duplicate_name_key));
   const mergeNames = [...anchorsByName.entries()].flatMap(([duplicateNameKey, anchorContactId]) => {
+    if (keepHeldNames.has(duplicateNameKey)) {
+      return [];
+    }
     const parts = duplicateNameParts(duplicateNameKey);
     return parts
       ? [
@@ -658,8 +662,12 @@ const loadLegacyProductionMergeCandidates = async (
         mn.anchor_contact_id::text
       FROM merge_names mn
       JOIN contacts c
-        ON lower(c.first_name) = mn.first_name
-       AND lower(c.last_name) = mn.last_name
+        ON btrim(lower(regexp_replace(coalesce(c.first_name, ''), '[^[:alnum:] ]+', ' ', 'g'))) = mn.first_name
+       AND (
+         btrim(lower(regexp_replace(regexp_replace(coalesce(c.last_name, ''), '[^[:alnum:] ]+', ' ', 'g'), '\\s+', ' ', 'g'))) = mn.last_name
+         OR btrim(lower(regexp_replace(regexp_replace(coalesce(c.last_name, ''), '[^[:alnum:] ]+', ' ', 'g'), '\\s+', ' ', 'g'))) LIKE mn.last_name || ' %'
+         OR btrim(lower(regexp_replace(regexp_replace(coalesce(c.last_name, ''), '[^[:alnum:] ]+', ' ', 'g'), '\\s+', ' ', 'g'))) LIKE '% ' || mn.last_name
+       )
       LEFT JOIN cbis_import_target_provenance p
         ON p.organization_id = $1::uuid
        AND p.target_entity_type = 'contacts'

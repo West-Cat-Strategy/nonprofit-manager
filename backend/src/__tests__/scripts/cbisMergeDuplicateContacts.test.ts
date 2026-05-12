@@ -16,6 +16,7 @@ const INACTIVE_HELD_MERGE_ID = 'cbf226b4-0d15-5aa8-b685-2b8c19377d9a';
 const ANCHOR_ID = 'c0fab8ea-8b15-5835-83b8-40ec21d5b70d';
 const KEEP_HELD_ID = 'a3aeb9e8-a48f-5c5e-bb44-cb2222de6300';
 const KEEP_ANCHOR_ID = '12bfe68a-b98e-537d-bdda-65b8fa113534';
+const LEGACY_DUPLICATE_ID = 'ba282bc4-ea47-4498-ab65-63c6f92a56de';
 
 type ContactState = {
   id: string;
@@ -62,11 +63,22 @@ const optionsFor = (decisionAudit: string, mode: 'dry-run' | 'apply' = 'dry-run'
 
 const createDb = (
   states: Map<string, ContactState>,
-  overrides: { hasApplyRun?: boolean; contactProvenanceRows?: number } = {}
+  overrides: {
+    hasApplyRun?: boolean;
+    contactProvenanceRows?: number;
+    legacyCandidates?: Array<{
+      contact_id: string;
+      duplicate_name_key: string;
+      anchor_contact_id: string;
+    }>;
+  } = {}
 ) => ({
   query: jest.fn(async (sql: string, params?: unknown[]) => {
     if (sql.includes('FROM cbis_import_runs')) {
       return { rows: overrides.hasApplyRun === false ? [] : [{ id: 'run-1' }] };
+    }
+    if (sql.includes('jsonb_to_recordset')) {
+      return { rows: overrides.legacyCandidates ?? [] };
     }
     if (sql.includes('FROM cbis_import_target_provenance')) {
       return { rows: [{ count: overrides.contactProvenanceRows ?? 10 }] };
@@ -220,6 +232,55 @@ describe('cbisMergeDuplicateContacts operator script', () => {
         'admin'
       );
       expect(states.get(KEEP_HELD_ID)?.is_active).toBe(true);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('can merge reviewed legacy production contacts with the same name', async () => {
+    const { dir, file } = await writeDecisionAudit([
+      decisionRow(HELD_MERGE_ID, ANCHOR_ID, 'merge_to_anchor', 'cherie knight'),
+    ]);
+    const states = baseStates();
+    states.set(LEGACY_DUPLICATE_ID, {
+      id: LEGACY_DUPLICATE_ID,
+      is_active: true,
+      account_id: null,
+    });
+    const mergeService = {
+      mergeContacts: jest.fn(async (contactId: string) => {
+        const state = states.get(contactId);
+        if (state) {
+          state.is_active = false;
+        }
+        return { survivor_contact: {}, merge_summary: {} };
+      }),
+    };
+    try {
+      const result = await runMergeDuplicateContacts(
+        createDb(states, {
+          legacyCandidates: [
+            {
+              contact_id: LEGACY_DUPLICATE_ID,
+              duplicate_name_key: 'cherie knight',
+              anchor_contact_id: ANCHOR_ID,
+            },
+          ],
+        }),
+        mergeService,
+        {
+          ...optionsFor(file, 'apply'),
+          mergeLegacyProductionMatches: true,
+        }
+      );
+      expect(result.validation.legacy_active_merge_candidates).toBe(1);
+      expect(result.legacy_applied_merges).toBe(1);
+      expect(mergeService.mergeContacts).toHaveBeenCalledWith(
+        LEGACY_DUPLICATE_ID,
+        expect.objectContaining({ target_contact_id: ANCHOR_ID }),
+        ACTOR_ID,
+        'admin'
+      );
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
