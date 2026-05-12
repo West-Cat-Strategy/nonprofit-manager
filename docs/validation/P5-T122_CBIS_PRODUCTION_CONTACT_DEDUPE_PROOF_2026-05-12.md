@@ -23,6 +23,7 @@
   - active keep-held contacts,
   - active held contacts to merge or already-inactive held contacts to skip idempotently.
 - Apply mode calls the existing `ContactMergeService` with anchor-preferred scalar conflict resolutions and then verifies merged held contacts are inactive.
+- The CBIS import CLI accepts `--duplicate-contact-decision-audit` so the dry-run/apply safety plan can allow only reviewed held-contact to anchor provenance retargets from the P5-T121 decision audit; all other source-to-different-target provenance conflicts remain held.
 
 ## Local Validation
 
@@ -30,9 +31,11 @@ Passed:
 
 ```bash
 cd backend && npm test -- --runTestsByPath src/__tests__/scripts/cbisMergeDuplicateContacts.test.ts --runInBand
+cd backend && npm test -- --runTestsByPath src/modules/cbisImport/__tests__/cbisImportService.test.ts src/__tests__/scripts/cbisMergeDuplicateContacts.test.ts --runInBand
 cd backend && npm run type-check
 cd backend && npm run lint
 cd backend && npm test -- --runTestsByPath src/__tests__/integration/contacts.test.ts --runInBand --testNamePattern="POST /api/v2/contacts/:id/merge"
+cd backend && npm run build
 /opt/homebrew/bin/python3.14 /Users/bryan/.codex/skills/maintain-cbis-data-tools/scripts/validate_prepared_bundle.py --source-dir "/Users/bryan/Desktop/CBIS Data/normalized_candidate_bundle_20260512T205918Z"
 cd /Users/bryan/projects/nonprofit-manager && git diff --check
 cd "/Users/bryan/Desktop/CBIS Data" && git diff --check

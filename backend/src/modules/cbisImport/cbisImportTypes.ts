@@ -8,6 +8,7 @@ export interface RunCbisImportOptions {
   actorId: string;
   mode: CbisImportMode;
   rollbackArtifactPath?: string;
+  duplicateContactDecisionAuditPath?: string;
 }
 
 export interface CbisImportEntityResult {

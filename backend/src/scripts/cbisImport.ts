@@ -7,6 +7,7 @@ interface CliOptions {
   actorId?: string;
   mode?: CbisImportMode;
   rollbackArtifactPath?: string;
+  duplicateContactDecisionAuditPath?: string;
 }
 
 const parseArgs = (argv: string[]): CliOptions => {
@@ -40,6 +41,8 @@ const parseArgs = (argv: string[]): CliOptions => {
       options.mode = mode;
     } else if (arg === '--backup-path' || arg === '--rollback-artifact-path') {
       options.rollbackArtifactPath = readValue();
+    } else if (arg === '--duplicate-contact-decision-audit') {
+      options.duplicateContactDecisionAuditPath = readValue();
     } else {
       throw new Error(`Unknown option ${arg}`);
     }
@@ -63,6 +66,7 @@ const main = async (): Promise<void> => {
     actorId: requireOption(options.actorId, '--actor-id'),
     mode: options.mode ?? 'dry-run',
     rollbackArtifactPath: options.rollbackArtifactPath,
+    duplicateContactDecisionAuditPath: options.duplicateContactDecisionAuditPath,
   });
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 };

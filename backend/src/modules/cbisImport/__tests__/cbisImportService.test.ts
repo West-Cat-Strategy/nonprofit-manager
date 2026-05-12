@@ -333,6 +333,54 @@ describe('CBIS import service', () => {
     expect(queryCalls.some(([sql]) => sql.includes('INSERT INTO accounts'))).toBe(false);
   });
 
+  it('allows reviewed duplicate-contact source retargets from held contacts to anchors', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'cbis-service-reviewed-contact-retarget-'));
+    await writeBundle(dir);
+    await writeCsv(
+      dir,
+      CBIS_IMPORT_FILES.contacts,
+      'contact_id,account_id,first_name,last_name,email,phone,mobile_phone,is_active,row_status,validation_errors,validation_warnings',
+      ['22222222-2222-4222-8222-222222222222,,Adele,Arseneau,,,,true,ready,,']
+    );
+    const decisionAuditPath = path.join(dir, 'cbis_duplicate_contact_decision_audit.csv');
+    await writeCsv(
+      dir,
+      'cbis_duplicate_contact_decision_audit.csv',
+      'duplicate_name_key,held_cluster_id,held_contact_id,anchor_cluster_id,anchor_contact_id,decision,reviewer,evidence_summary',
+      [
+        'adele arseneau,cluster:held,99999999-9999-4999-8999-999999999999,cluster:anchor,22222222-2222-4222-8222-222222222222,merge_to_anchor,test,reviewed same-person evidence',
+      ]
+    );
+    const { pool, queryCalls } = createPoolMock(undefined, (sql, values) => {
+      if (sql.includes('FROM cbis_import_target_provenance') && values?.[1] === 'contacts') {
+        return queryResult([
+          {
+            target_entity_type: 'contacts',
+            target_entity_id: '99999999-9999-4999-8999-999999999999',
+            source_file: 'Participant.csv',
+            source_table: 'Participant',
+            source_row_id: 'p1',
+            source_row_hash: 'sha256:abc',
+          },
+        ]);
+      }
+      return undefined;
+    });
+
+    const result = await new CbisImportService(pool).run({
+      bundleDir: dir,
+      organizationId: '44444444-4444-4444-8444-444444444444',
+      actorId: '55555555-5555-4555-8555-555555555555',
+      mode: 'dry-run',
+      duplicateContactDecisionAuditPath: decisionAuditPath,
+    });
+
+    expect(result.per_entity.contacts.imported).toBe(1);
+    expect(result.duplicate_safety.provenance_conflicts).toBe(0);
+    expect(result.duplicate_safety.held_for_review).toBe(0);
+    expect(queryCalls.some(([sql]) => sql.includes('INSERT INTO contacts'))).toBe(true);
+  });
+
   it('allows same-source same-target apply reruns as idempotent updates', async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), 'cbis-service-idempotent-'));
     await writeBundle(dir);

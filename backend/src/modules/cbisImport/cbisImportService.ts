@@ -6,6 +6,10 @@ import {
   type CbisImportEntityType,
   type LoadedCbisImportBundle,
 } from './cbisImportBundle';
+import {
+  buildAllowedContactRetargets,
+  loadDuplicateContactDecisions,
+} from './cbisImportDuplicateContactDecisions';
 import { applyDuplicatePlanToResults, buildDuplicateSafetyPlan } from './cbisImportDuplicateSafety';
 import { importReadyRows, persistTargetProvenance } from './cbisImportEntityWriters';
 import { buildInitialEntityResults, findSuccessfulDryRun, finishRun, insertRun, persistAudit } from './cbisImportRunStore';
@@ -56,6 +60,9 @@ export class CbisImportService {
 
   async run(options: RunCbisImportOptions): Promise<CbisImportRunResult> {
     const bundle = await loadCbisImportBundle(options.bundleDir);
+    const allowedContactRetargets = options.duplicateContactDecisionAuditPath
+      ? buildAllowedContactRetargets(await loadDuplicateContactDecisions(options.duplicateContactDecisionAuditPath))
+      : undefined;
     const results = buildInitialEntityResults(bundle);
     const client = await this.pool.connect();
     let runId = '';
@@ -76,7 +83,9 @@ export class CbisImportService {
 
       await client.query('BEGIN');
       await setCurrentUserId(client, options.actorId, { local: true });
-      const safetyPlan = await buildDuplicateSafetyPlan(client, bundle, options.organizationId);
+      const safetyPlan = await buildDuplicateSafetyPlan(client, bundle, options.organizationId, {
+        allowedContactRetargets,
+      });
       applyDuplicatePlanToResults(results, safetyPlan);
       await importReadyRows(client, options, results, safetyPlan);
 

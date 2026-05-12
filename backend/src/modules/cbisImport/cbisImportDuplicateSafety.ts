@@ -2,6 +2,7 @@ import type { PoolClient } from 'pg';
 import { CBIS_IMPORT_ENTITY_ORDER, type CbisImportEntityType, type CbisImportRow, type LoadedCbisImportBundle } from './cbisImportBundle';
 import type { CbisImportEntityResult, DuplicateIssue, DuplicateSafetyPlan, ExistingProvenanceRow, ImportProvenanceSource } from './cbisImportTypes';
 import { collectBundleTargetKeys, collectTargetKeys, findBlockedDependency } from './cbisImportDependencies';
+import { contactRetargetKey } from './cbisImportDuplicateContactDecisions';
 import {
   entitySourceKey,
   normalizePhone,
@@ -402,10 +403,15 @@ const hasNaturalDuplicate = async (
   return null;
 };
 
+interface DuplicateSafetyOptions {
+  allowedContactRetargets?: Set<string>;
+}
+
 export const buildDuplicateSafetyPlan = async (
   client: PoolClient,
   bundle: LoadedCbisImportBundle,
-  organizationId: string
+  organizationId: string,
+  options: DuplicateSafetyOptions = {}
 ): Promise<DuplicateSafetyPlan> => {
   const duplicateIssues: DuplicateIssue[] = [];
   const heldKeys = new Set<string>();
@@ -524,6 +530,15 @@ export const buildDuplicateSafetyPlan = async (
       const conflictingRequest = requestedDifferentTarget ?? requestedDifferentHashTarget;
 
       if (conflictingRequest) {
+        if (
+          entityType === 'contacts' &&
+          options.allowedContactRetargets?.has(
+            contactRetargetKey(existing.target_entity_id, conflictingRequest.targetEntityId)
+          )
+        ) {
+          idempotentUpdates += 1;
+          continue;
+        }
         addDuplicateIssue(duplicateIssues, heldKeys, {
           entityType,
           targetEntityId: conflictingRequest.targetEntityId,
