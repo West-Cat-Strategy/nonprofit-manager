@@ -13,6 +13,7 @@
     "worker:dev": "npm run dev:watch -- src/worker.ts",
     "worker:start": "node dist/worker.js",
     "auth:reset-state": "ts-node -r tsconfig-paths/register --transpileOnly scripts/reset-auth-state.ts",
+    "cbis:import": "ts-node -r tsconfig-paths/register --transpileOnly src/scripts/cbisImport.ts",
     "test": "bash scripts/run-full-tests.sh",
     "test:watch": "jest --watch",
     "test:coverage": "NODE_OPTIONS=\"${NODE_OPTIONS:---max-old-space-size=8192}\" bash scripts/run-full-tests.sh --coverage",

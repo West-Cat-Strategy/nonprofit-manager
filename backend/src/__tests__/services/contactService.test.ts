@@ -93,6 +93,23 @@ describe('ContactService', () => {
       expect(queryCall[1]).toContain('%John%');
     });
 
+    it('returns each contact id once when a search result source repeats a row', async () => {
+      mockQuery.mockResolvedValueOnce({
+        rows: [
+          { contact_id: 'same-contact', first_name: 'Jordan', last_name: 'Lee', total_count: 2 },
+          { contact_id: 'same-contact', first_name: 'Jordan', last_name: 'Lee', total_count: 2 },
+          { contact_id: 'same-name-other-record', first_name: 'Jordan', last_name: 'Lee', total_count: 2 },
+        ],
+      });
+
+      const result = await contactService.getContacts({ search: 'Jordan Lee' });
+
+      expect(result.data.map((contact) => contact.contact_id)).toEqual([
+        'same-contact',
+        'same-name-other-record',
+      ]);
+    });
+
     it('should apply account_id filter correctly', async () => {
       mockQuery.mockResolvedValueOnce({ rows: [{ contact_id: '1', account_id: 'acc-123', total_count: 1 }] });
 
@@ -214,6 +231,53 @@ describe('ContactService', () => {
       expect(mockQuery).toHaveBeenCalledTimes(1);
       expect(mockQuery.mock.calls[0][1]).toContain(20);
     });
+
+    it('deduplicates lookup rows by contact id while keeping true same-name contacts', async () => {
+      mockQuery.mockResolvedValueOnce({
+        rows: [
+          {
+            contact_id: 'same-contact',
+            first_name: 'Alex',
+            preferred_name: null,
+            last_name: 'Rivera',
+            email: 'alex@example.com',
+            phone: null,
+            mobile_phone: null,
+            is_active: true,
+            account_name: 'Account A',
+          },
+          {
+            contact_id: 'same-contact',
+            first_name: 'Alex',
+            preferred_name: null,
+            last_name: 'Rivera',
+            email: 'alex@example.com',
+            phone: null,
+            mobile_phone: null,
+            is_active: true,
+            account_name: 'Account A',
+          },
+          {
+            contact_id: 'same-name-other-record',
+            first_name: 'Alex',
+            preferred_name: null,
+            last_name: 'Rivera',
+            email: 'alex.other@example.com',
+            phone: null,
+            mobile_phone: null,
+            is_active: true,
+            account_name: 'Account B',
+          },
+        ],
+      });
+
+      const result = await contactService.lookupContacts({ q: 'alex' });
+
+      expect(result.map((contact) => contact.contact_id)).toEqual([
+        'same-contact',
+        'same-name-other-record',
+      ]);
+    });
   });
 
   describe('getContactById', () => {
@@ -231,7 +295,7 @@ describe('ContactService', () => {
       const result = await contactService.getContactById('123');
 
       expect(result).toEqual(expect.objectContaining({ ...mockContact, phn: null }));
-      expect(mockQuery).toHaveBeenCalledWith(expect.any(String), ['123']);
+      expect(mockQuery).toHaveBeenCalledWith(expect.any(String), ['123', null]);
     });
 
     it('should return full PHN for staff role', async () => {

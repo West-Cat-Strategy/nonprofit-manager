@@ -9,9 +9,9 @@ Use this file only for live tracked work. Historical phase closeouts, earlier wo
 | Snapshot | Value |
 |---|---:|
 | Current phase | Phase 5 - Email, Website, Portal, and Reliability |
-| Active rows | 24 |
+| Active rows | 25 |
 | In Progress | 0 |
-| Review | 14 |
+| Review | 15 |
 | Ready | 9 |
 | Blocked | 1 |
 | Phase 4 carry-over rows | 0 |
@@ -43,11 +43,13 @@ Use this file only for live tracked work. Historical phase closeouts, earlier wo
 - Branch consolidation, 2026-05-12: the `p5-t99-mixed-modularity` sibling worktree was merged to `main`; its behavior-preserving proof is indexed separately from the live `P5-T99` Mautic runtime row to avoid duplicating a workboard ID.
 - Read-only reference-repo improvement synthesis, 2026-05-12: central reference profiles, `reference-repos/manifest.lock.json`, and the live repo were compared without rehydrating clone caches or copying source. `P5-T111` through `P5-T119` are signed-out Ready rows for the next improvement wave; `P5-T6` remains the scope-control gate, and runtime implementation still requires picking one row at a time.
 - Metadata-first reference-corpus expansion, 2026-05-12: central profiles and nonprofit manifest entries were added for Houdini, OpenBoxes, KoboToolbox KPI, DHIS2 Core, OpenMRS Core, openIMIS Backend, and openIMIS Docker Distribution. These additions sharpen `P5-T112` through `P5-T119` plus future program-operations rows without cloning source, creating compatibility aliases, or authorizing runtime implementation.
+- Coordinated exception, 2026-05-12: `P5-T120` CBIS import/dedupe and app-wiring follow-through is split into app importer integration, CBIS data-prep cleanup, contact notes/search UX, and validation/ops proof lanes. The lead lane owns this board, validation note, final reconciliation, and the production boundary; production remains out of scope until separately approved.
 
 ## Priority Board
 
 | Status | ID | Task | Immediate Next Move | Evidence |
 |---|---|---|---|---|
+| Review | P5-T120 | CBIS import, dedupe, and app wiring follow-through | Review the completed operator-only CBIS importer mainline/refactor, migration order preservation around `126`/`127`/`128`/`129`, duplicate-name review artifact, imported-contact Notes consistency fix, local-clone dry-run proof, and production-out-of-scope boundary. | [../validation/P5-T120_CBIS_IMPORT_DEDUPE_APP_WIRING_PROOF_2026-05-12.md](../validation/P5-T120_CBIS_IMPORT_DEDUPE_APP_WIRING_PROOF_2026-05-12.md) |
 | Review | P5-T110 | Open-source-first service provider posture | Review the completed open-source-first provider posture: local email remains default, Mautic is wired as preferred open-source external sync, Mailchimp stays optional, error tracking uses Sentry-compatible/GlitchTip wording and redaction, Plausible CE is preferred, OpenSearch is the primary self-hosted log overlay, and ELK remains legacy transition support. | [../validation/P5-T110_OPEN_SOURCE_SERVICE_POSTURE_PROOF_2026-05-12.md](../validation/P5-T110_OPEN_SOURCE_SERVICE_POSTURE_PROOF_2026-05-12.md) |
 | Review | P5-T98 | Client portal action-clarity audit and enhancement | Review the completed action-only dashboard empty-state fix, action-kind-aware Needs Attention CTA, focused portal tests, backend action proof, and host Playwright link proof. | [../validation/P5-T98_CLIENT_PORTAL_ACTION_CLARITY_AUDIT_2026-05-11.md](../validation/P5-T98_CLIENT_PORTAL_ACTION_CLARITY_AUDIT_2026-05-11.md) |
 | Review | P5-T99 | Site-scoped Mautic provider runtime wiring | Review the complete site-scoped Mautic provider runtime wiring, env fallback behavior, fail-closed URL handling, focused backend tests, type-check, lint, and policy proof. | [../validation/P5-T99_SITE_SCOPED_MAUTIC_PROVIDER_PROOF_2026-05-12.md](../validation/P5-T99_SITE_SCOPED_MAUTIC_PROVIDER_PROOF_2026-05-12.md) |

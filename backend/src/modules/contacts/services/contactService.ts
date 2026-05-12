@@ -11,6 +11,7 @@ import {
   PaginatedContacts,
 } from '@app-types/contact';
 import { logger } from '@config/logger';
+import { getRequestContext } from '@config/requestContext';
 import { resolveContactRoleNames } from '@modules/contacts/shared/contactRoleFilters';
 import { resolveSort } from '@utils/queryHelpers';
 import { encrypt } from '@utils/encryption';
@@ -28,6 +29,28 @@ import {
 } from '@services/contactServiceHelpers';
 import { buildContactBulkUpdateQuery, type ContactBulkUpdateOptions } from '../shared/contactBulkUpdate';
 import { ContactMergeService } from './contactMergeService';
+
+const getActiveOrganizationId = (): string | null =>
+  getRequestContext()?.organizationId
+  || getRequestContext()?.accountId
+  || getRequestContext()?.tenantId
+  || null;
+
+const dedupeContactRows = <T extends { contact_id?: string | null }>(rows: T[]): T[] => {
+  const seen = new Set<string>();
+  return rows.filter((row) => {
+    if (!row.contact_id) {
+      return true;
+    }
+
+    if (seen.has(row.contact_id)) {
+      return false;
+    }
+
+    seen.add(row.contact_id);
+    return true;
+  });
+};
 
 export class ContactService {
   private pool: Pool;
@@ -62,6 +85,7 @@ export class ContactService {
         sortColumnMap,
         'created_at'
       );
+      const organizationId = getActiveOrganizationId();
 
       // Build WHERE clause
       const conditions: string[] = [];
@@ -176,7 +200,7 @@ export class ContactService {
             COUNT(*) OVER()::int AS total_count
           FROM filtered_contacts fc
           ORDER BY ${sortColumn} ${sortOrder}
-          LIMIT $${paramCounter} OFFSET $${paramCounter + 1}
+          LIMIT $${paramCounter + 1} OFFSET $${paramCounter + 2}
         ),
         phone_counts AS (
           SELECT contact_id, COUNT(*)::int AS cnt
@@ -198,10 +222,17 @@ export class ContactService {
           GROUP BY contact_id
         ),
         note_counts AS (
-          SELECT contact_id, COUNT(*)::int AS cnt
-          FROM contact_notes
-          WHERE contact_id IN (SELECT contact_id FROM paged_contacts)
-          GROUP BY contact_id
+          SELECT cn.contact_id, COUNT(*)::int AS cnt
+          FROM contact_notes cn
+          LEFT JOIN cases note_case ON note_case.id = cn.case_id
+          LEFT JOIN contacts note_contact ON note_contact.id = cn.contact_id
+          WHERE cn.contact_id IN (SELECT contact_id FROM paged_contacts)
+            AND (
+              $${paramCounter}::uuid IS NULL
+              OR COALESCE(note_case.account_id, note_contact.account_id) = $${paramCounter}::uuid
+              OR (note_case.account_id IS NULL AND note_contact.account_id IS NULL)
+            )
+          GROUP BY cn.contact_id
         ),
         role_names AS (
           SELECT
@@ -227,8 +258,8 @@ export class ContactService {
         LEFT JOIN role_names ON role_names.contact_id = pc.contact_id
         ORDER BY ${sortColumn} ${sortOrder}
       `;
-      const dataResult = await this.pool.query(dataQuery, [...values, limit, offset]);
-      const rows = dataResult.rows as ContactRecord[];
+      const dataResult = await this.pool.query(dataQuery, [...values, organizationId, limit, offset]);
+      const rows = dedupeContactRows(dataResult.rows as ContactRecord[]);
       const total = rows.length > 0 ? Number(rows[0].total_count ?? 0) : 0;
 
       return {
@@ -313,7 +344,7 @@ export class ContactService {
         [...values, limit]
       );
 
-      return result.rows.map((row) => ({
+      return dedupeContactRows(result.rows).map((row) => ({
         contact_id: row.contact_id,
         first_name: row.first_name,
         preferred_name: row.preferred_name,
@@ -380,6 +411,7 @@ export class ContactService {
   ): Promise<Contact | null> {
     try {
       const executor = client || this.pool;
+      const organizationId = getActiveOrganizationId();
       const result = await executor.query(
         `SELECT
           c.id as contact_id,
@@ -421,7 +453,16 @@ export class ContactService {
           (SELECT COUNT(*)::int FROM contact_phone_numbers WHERE contact_id = c.id) as phone_count,
           (SELECT COUNT(*)::int FROM contact_email_addresses WHERE contact_id = c.id) as email_count,
           (SELECT COUNT(*)::int FROM contact_relationships WHERE contact_id = c.id AND is_active = true) as relationship_count,
-          (SELECT COUNT(*)::int FROM contact_notes WHERE contact_id = c.id) as note_count,
+          (SELECT COUNT(*)::int
+             FROM contact_notes cn
+             LEFT JOIN cases note_case ON note_case.id = cn.case_id
+             WHERE cn.contact_id = c.id
+               AND (
+                 $2::uuid IS NULL
+                 OR COALESCE(note_case.account_id, c.account_id) = $2::uuid
+                 OR (note_case.account_id IS NULL AND c.account_id IS NULL)
+               )
+          ) as note_count,
           COALESCE(
             (SELECT ARRAY_AGG(cr.name) FROM contact_role_assignments cra
              JOIN contact_roles cr ON cr.id = cra.role_id
@@ -431,7 +472,7 @@ export class ContactService {
          FROM contacts c
          LEFT JOIN accounts a ON c.account_id = a.id
          WHERE c.id = $1`,
-        [contactId]
+        [contactId, organizationId]
       );
 
       const row = result.rows[0] as ContactRecord | undefined;
@@ -450,6 +491,7 @@ export class ContactService {
   ): Promise<Contact | null> {
     try {
       const executor = client || this.pool;
+      const organizationId = getActiveOrganizationId();
       const conditions = ['c.id = $1'];
       const values: QueryValue[] = [contactId];
       let paramCounter = 2;
@@ -513,7 +555,16 @@ export class ContactService {
           (SELECT COUNT(*)::int FROM contact_phone_numbers WHERE contact_id = c.id) as phone_count,
           (SELECT COUNT(*)::int FROM contact_email_addresses WHERE contact_id = c.id) as email_count,
           (SELECT COUNT(*)::int FROM contact_relationships WHERE contact_id = c.id AND is_active = true) as relationship_count,
-          (SELECT COUNT(*)::int FROM contact_notes WHERE contact_id = c.id) as note_count,
+          (SELECT COUNT(*)::int
+             FROM contact_notes cn
+             LEFT JOIN cases note_case ON note_case.id = cn.case_id
+             WHERE cn.contact_id = c.id
+               AND (
+                 $${paramCounter}::uuid IS NULL
+                 OR COALESCE(note_case.account_id, c.account_id) = $${paramCounter}::uuid
+                 OR (note_case.account_id IS NULL AND c.account_id IS NULL)
+               )
+          ) as note_count,
           COALESCE(
             (SELECT ARRAY_AGG(cr.name) FROM contact_role_assignments cra
              JOIN contact_roles cr ON cr.id = cra.role_id
@@ -523,7 +574,7 @@ export class ContactService {
          FROM contacts c
          LEFT JOIN accounts a ON c.account_id = a.id
          WHERE ${conditions.join(' AND ')}`,
-        values
+        [...values, organizationId]
       );
 
       const row = result.rows[0] as ContactRecord | undefined;

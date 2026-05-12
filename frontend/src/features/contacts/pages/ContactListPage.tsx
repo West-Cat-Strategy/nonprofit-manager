@@ -39,7 +39,7 @@ const ContactList = () => {
     <>
       <PeopleListContainer
         title="People"
-        description="Manage all organizational contacts and relationships"
+        description="Manage all organizational contacts and relationships. Matching names can be separate records; each row opens one unique contact."
         getRowId={(row) => row.contact_id}
         headerActions={
           <SecondaryButton onClick={openImportExport}>

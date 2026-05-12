@@ -123,6 +123,36 @@ const CONTACT_TIMELINE_CASE_ACCOUNT_SCOPE_SQL = 'COALESCE(c.account_id, con.acco
 const CONTACT_TIMELINE_LINKED_CASE_ACCOUNT_SCOPE_SQL =
   'COALESCE(linked_case.account_id, con.account_id)';
 
+const CONTACT_NOTE_ORGANIZATION_SCOPE_SQL = `
+  (
+    $2::uuid IS NULL
+    OR ${CONTACT_TIMELINE_CASE_ACCOUNT_SCOPE_SQL} = $2::uuid
+    OR (c.account_id IS NULL AND con.account_id IS NULL)
+  )
+`;
+
+const TIMELINE_CONTACT_ORGANIZATION_SCOPE_SQL = `
+  (
+    $3::uuid IS NULL
+    OR ${CONTACT_TIMELINE_CASE_ACCOUNT_SCOPE_SQL} = $3::uuid
+    OR (c.account_id IS NULL AND con.account_id IS NULL)
+  )
+`;
+
+const TIMELINE_LINKED_CASE_ORGANIZATION_SCOPE_SQL = `
+  (
+    $3::uuid IS NULL
+    OR ${CONTACT_TIMELINE_LINKED_CASE_ACCOUNT_SCOPE_SQL} = $3::uuid
+    OR (linked_case.account_id IS NULL AND con.account_id IS NULL)
+  )
+`;
+
+const getActiveOrganizationId = (): string | null =>
+  getRequestContext()?.organizationId
+  || getRequestContext()?.accountId
+  || getRequestContext()?.tenantId
+  || null;
+
 const getContactNoteByIdQuery = async (
   db: PgExecutor,
   noteId: string
@@ -285,18 +315,28 @@ export async function getContactNotes(
   offset: number = 0
 ): Promise<{ notes: ContactNote[]; total: number }> {
   try {
+    const organizationId = getActiveOrganizationId();
     const countResult = await pool.query(
-      'SELECT COUNT(*) as total FROM contact_notes WHERE contact_id = $1',
-      [contactId]
+      `
+      SELECT COUNT(*) as total
+      FROM contact_notes cn
+      LEFT JOIN cases c ON c.id = cn.case_id
+      LEFT JOIN contacts con ON con.id = cn.contact_id
+      WHERE cn.contact_id = $1
+        AND ${CONTACT_NOTE_ORGANIZATION_SCOPE_SQL}
+      `,
+      [contactId, organizationId]
     );
     const total = parseInt(countResult.rows[0]?.total || '0', 10);
 
     const result = await pool.query(
       `${CONTACT_NOTE_SELECT_WITH_OUTCOMES}
+       LEFT JOIN contacts con ON con.id = cn.contact_id
        WHERE cn.contact_id = $1
+         AND ${CONTACT_NOTE_ORGANIZATION_SCOPE_SQL}
        ORDER BY cn.is_pinned DESC, cn.created_at DESC
-       LIMIT $2 OFFSET $3`,
-      [contactId, limit, offset]
+       LIMIT $3 OFFSET $4`,
+      [contactId, organizationId, limit, offset]
     );
 
     return { notes: result.rows, total };
@@ -310,11 +350,7 @@ export async function getContactNotesTimeline(
   contactId: string
 ): Promise<ContactNotesTimelineResponse> {
   try {
-    const organizationId =
-      getRequestContext()?.organizationId
-      || getRequestContext()?.accountId
-      || getRequestContext()?.tenantId
-      || null;
+    const organizationId = getActiveOrganizationId();
     const countsResult = await pool.query<{
       contact_notes: string;
       case_notes: string;
@@ -328,10 +364,7 @@ export async function getContactNotesTimeline(
           LEFT JOIN cases c ON c.id = cn.case_id
           LEFT JOIN contacts con ON con.id = cn.contact_id
           WHERE cn.contact_id = $1
-            AND (
-              $3::uuid IS NULL
-              OR ${CONTACT_TIMELINE_CASE_ACCOUNT_SCOPE_SQL} = $3::uuid
-            )
+            AND ${TIMELINE_CONTACT_ORGANIZATION_SCOPE_SQL}
         ) AS contact_notes,
         (
           SELECT COUNT(*)::text
@@ -339,10 +372,7 @@ export async function getContactNotesTimeline(
           INNER JOIN cases c ON c.id = csn.case_id
           LEFT JOIN contacts con ON con.id = c.contact_id
           WHERE c.contact_id = $1
-            AND (
-              $3::uuid IS NULL
-              OR ${CONTACT_TIMELINE_CASE_ACCOUNT_SCOPE_SQL} = $3::uuid
-            )
+            AND ${TIMELINE_CONTACT_ORGANIZATION_SCOPE_SQL}
         ) AS case_notes,
         (
           SELECT COUNT(*)::text
@@ -353,10 +383,7 @@ export async function getContactNotesTimeline(
           WHERE ae.related_entity_type = 'contact'
             AND ae.related_entity_id = $1::uuid
             AND ae.activity_type = ANY($2::text[])
-            AND (
-              $3::uuid IS NULL
-              OR ${CONTACT_TIMELINE_CASE_ACCOUNT_SCOPE_SQL} = $3::uuid
-            )
+            AND ${TIMELINE_CONTACT_ORGANIZATION_SCOPE_SQL}
         ) AS event_activity
       `,
       [contactId, [...CONTACT_TIMELINE_EVENT_ACTIVITY_TYPES], organizationId]
@@ -401,10 +428,7 @@ export async function getContactNotesTimeline(
         LEFT JOIN cases c ON c.id = cn.case_id
         LEFT JOIN contacts con ON con.id = cn.contact_id
         WHERE cn.contact_id = $1
-          AND (
-            $3::uuid IS NULL
-            OR ${CONTACT_TIMELINE_CASE_ACCOUNT_SCOPE_SQL} = $3::uuid
-          )
+          AND ${TIMELINE_CONTACT_ORGANIZATION_SCOPE_SQL}
 
         UNION ALL
 
@@ -443,10 +467,7 @@ export async function getContactNotesTimeline(
         LEFT JOIN contacts con ON con.id = c.contact_id
         LEFT JOIN users cu ON cu.id = csn.created_by
         WHERE c.contact_id = $1
-          AND (
-            $3::uuid IS NULL
-            OR ${CONTACT_TIMELINE_CASE_ACCOUNT_SCOPE_SQL} = $3::uuid
-          )
+          AND ${TIMELINE_CONTACT_ORGANIZATION_SCOPE_SQL}
 
         UNION ALL
 
@@ -519,10 +540,7 @@ export async function getContactNotesTimeline(
         WHERE ae.related_entity_type = 'contact'
           AND ae.related_entity_id = $1::uuid
           AND ae.activity_type = ANY($2::text[])
-          AND (
-            $3::uuid IS NULL
-            OR ${CONTACT_TIMELINE_LINKED_CASE_ACCOUNT_SCOPE_SQL} = $3::uuid
-          )
+          AND ${TIMELINE_LINKED_CASE_ORGANIZATION_SCOPE_SQL}
       ) timeline
       ORDER BY timeline.created_at DESC, timeline.id DESC
       LIMIT 200

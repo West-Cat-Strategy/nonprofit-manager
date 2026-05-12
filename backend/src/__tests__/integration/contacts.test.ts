@@ -551,6 +551,39 @@ describe('Contact API Integration Tests', () => {
       );
     });
 
+    it('returns one row per contact id while preserving true same-name records', async () => {
+      const uniqueSuffix = unique();
+      const firstName = `Duplicate-${uniqueSuffix}`;
+      const lastName = `Name-${uniqueSuffix}`;
+      const createdContactIds: string[] = [];
+
+      for (const emailPrefix of ['primary', 'secondary']) {
+        const createResponse = await withStaffAuth(request(app)
+          .post('/api/v2/contacts')
+          .send({
+            account_id: testAccountId,
+            first_name: firstName,
+            last_name: lastName,
+            email: `${emailPrefix}-same-name-${uniqueSuffix}@example.com`,
+          }))
+          .expect(201);
+        createdContactIds.push(payloadFromResponse<{ contact_id: string }>(createResponse.body).contact_id);
+      }
+
+      const response = await withStaffAuth(request(app)
+        .get(`/api/v2/contacts?search=${encodeURIComponent(`${firstName} ${lastName}`)}&limit=20`)
+      )
+        .expect(200);
+
+      const payload = payloadFromResponse<{
+        data: Array<{ contact_id: string; first_name: string; last_name: string }>;
+      }>(response.body);
+      const returnedIds = payload.data.map((contact) => contact.contact_id);
+
+      expect(new Set(returnedIds).size).toBe(returnedIds.length);
+      expect(returnedIds).toEqual(expect.arrayContaining(createdContactIds));
+    });
+
     it('should filter by account_id', async () => {
       const response = await withStaffAuth(request(app)
         .get(`/api/v2/contacts?account_id=${testAccountId}`)
@@ -674,6 +707,37 @@ describe('Contact API Integration Tests', () => {
           }),
         ])
       );
+    });
+
+    it('deduplicates lookup response ids without collapsing true same-name records', async () => {
+      const uniqueSuffix = unique();
+      const firstName = `LookupSame-${uniqueSuffix}`;
+      const lastName = `Person-${uniqueSuffix}`;
+      const createdContactIds: string[] = [];
+
+      for (const emailPrefix of ['first', 'second']) {
+        const createResponse = await withStaffAuth(request(app)
+          .post('/api/v2/contacts')
+          .send({
+            account_id: testAccountId,
+            first_name: firstName,
+            last_name: lastName,
+            email: `${emailPrefix}-lookup-same-${uniqueSuffix}@example.com`,
+          }))
+          .expect(201);
+        createdContactIds.push(payloadFromResponse<{ contact_id: string }>(createResponse.body).contact_id);
+      }
+
+      const response = await withStaffAuth(request(app)
+        .get(`/api/v2/contacts/lookup?q=${encodeURIComponent(`${firstName} ${lastName}`)}&limit=10`)
+      )
+        .expect(200);
+
+      const payload = payloadFromResponse<{ items: Array<{ contact_id: string }> }>(response.body);
+      const returnedIds = payload.items.map((contact) => contact.contact_id);
+
+      expect(new Set(returnedIds).size).toBe(returnedIds.length);
+      expect(returnedIds).toEqual(expect.arrayContaining(createdContactIds));
     });
 
     it('should enforce query validation', async () => {
@@ -1298,6 +1362,111 @@ describe('Contact API Integration Tests', () => {
       );
       expect(payload.items[1].id).toBe(caseNoteId);
       expect(payload.items[2].id).toBe(contactNoteId);
+    });
+
+    it('shows imported null-account contact notes and keeps detail note_count aligned', async () => {
+      const suffix = unique();
+      const contactId = (
+        await pool.query<{ id: string }>(
+          `INSERT INTO contacts (
+             first_name,
+             last_name,
+             email,
+             account_id,
+             created_by,
+             modified_by
+           ) VALUES ($1, $2, $3, NULL, $4, $4)
+           RETURNING id`,
+          ['Imported', 'Notes', `imported-notes-${suffix}@example.com`, staffUserId]
+        )
+      ).rows[0].id;
+
+      const noteIds: string[] = [];
+
+      try {
+        const firstNoteId = (
+          await pool.query<{ id: string }>(
+            `INSERT INTO contact_notes (
+               contact_id,
+               note_type,
+               subject,
+               content,
+               created_by,
+               created_at,
+               updated_at
+             ) VALUES (
+               $1,
+               'note',
+               'Imported history',
+               'Imported general contact note',
+               $2,
+               $3,
+               $3
+             )
+             RETURNING id`,
+            [contactId, staffUserId, '2026-04-18T10:00:00.000Z']
+          )
+        ).rows[0].id;
+        noteIds.push(firstNoteId);
+
+        const secondNoteId = (
+          await pool.query<{ id: string }>(
+            `INSERT INTO contact_notes (
+               contact_id,
+               note_type,
+               subject,
+               content,
+               created_by,
+               created_at,
+               updated_at
+             ) VALUES (
+               $1,
+               'update',
+               'Imported follow-up',
+               'Second imported general contact note',
+               $2,
+               $3,
+               $3
+             )
+             RETURNING id`,
+            [contactId, staffUserId, '2026-04-19T10:00:00.000Z']
+          )
+        ).rows[0].id;
+        noteIds.push(secondNoteId);
+
+        const detailResponse = await withStaffAuth(request(app)
+          .get(`/api/v2/contacts/${contactId}`))
+          .expect(200);
+        const detailPayload = payloadFromResponse<{ note_count: number }>(detailResponse.body);
+        expect(detailPayload.note_count).toBe(2);
+
+        const response = await withStaffAuth(request(app)
+          .get(`/api/v2/contacts/${contactId}/notes/timeline`))
+          .expect(200);
+        const payload = payloadFromResponse<{
+          items: Array<{ id: string; source_type: string }>;
+          counts: {
+            all: number;
+            contact_notes: number;
+            case_notes: number;
+            event_activity: number;
+          };
+        }>(response.body);
+
+        expect(payload.counts).toEqual({
+          all: 2,
+          contact_notes: 2,
+          case_notes: 0,
+          event_activity: 0,
+        });
+        expect(payload.items.map((item) => item.id)).toEqual([secondNoteId, firstNoteId]);
+        expect(payload.items.every((item) => item.source_type === 'contact_note')).toBe(true);
+      } finally {
+        if (noteIds.length > 0) {
+          await pool.query('DELETE FROM contact_notes WHERE id = ANY($1::uuid[])', [noteIds]);
+        }
+        await pool.query('DELETE FROM contacts WHERE id = $1', [contactId]);
+      }
     });
 
     it('falls back to the contact organization when linked case account ownership is null', async () => {
