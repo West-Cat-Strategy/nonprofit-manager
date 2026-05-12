@@ -8,6 +8,10 @@ import { normalizePhone, normalizeText } from '@modules/cbisImport/cbisImportRow
 import { getMergeableResolutionFieldNames } from '@modules/contacts/shared/contactMerge';
 import { ContactMergeService } from '@modules/contacts/services/contactMergeService';
 import type { ContactMergeRequest, ContactMergeResult } from '@app-types/contact';
+import { withApplyContext } from './cbisMergeDuplicateContactApplyContext';
+import { loadEmptySamePersonMergeCandidates, writeEmptyContactAudit } from './cbisMergeDuplicateContactEmptyCandidates';
+import { hardDeleteMergedSourceContact } from './cbisMergeDuplicateContactHardDelete';
+import { loadLegacyProductionMergeCandidates } from './cbisMergeDuplicateContactLegacyCandidates';
 
 type MergeMode = 'dry-run' | 'apply';
 
@@ -20,6 +24,10 @@ interface CliOptions {
   mode?: MergeMode;
   bundleDir?: string;
   mergeLegacyProductionMatches?: boolean;
+  mergeEmptySamePerson?: boolean;
+  emptyContactAudit?: string;
+  hardDeleteMergedSources?: boolean;
+  mergeInactiveSources?: boolean;
 }
 
 interface RunOptions {
@@ -31,6 +39,10 @@ interface RunOptions {
   mode: MergeMode;
   bundleDir?: string;
   mergeLegacyProductionMatches?: boolean;
+  mergeEmptySamePerson?: boolean;
+  emptyContactAudit?: string;
+  hardDeleteMergedSources?: boolean;
+  mergeInactiveSources?: boolean;
 }
 
 interface QueryablePool {
@@ -42,7 +54,8 @@ interface MergeService {
     contactId: string,
     payload: ContactMergeRequest,
     userId: string,
-    viewerRole?: string
+    viewerRole?: string,
+    options?: { retainSourceAuditReference?: boolean }
   ): Promise<ContactMergeResult | null>;
 }
 
@@ -70,15 +83,10 @@ interface ImportApplyProof {
 interface ValidationSummary {
   merge_active_contact_ids: string[];
   merge_inactive_contact_ids: string[];
+  merge_deleted_contact_ids: string[];
   keep_held_contact_ids: string[];
   anchor_contact_id_by_held_contact_id: Map<string, string>;
   resolved_missing_anchors: number;
-}
-
-interface LegacyProductionMergeCandidate {
-  contact_id: string;
-  duplicate_name_key: string;
-  anchor_contact_id: string;
 }
 
 export interface MergeDuplicateContactsResult {
@@ -96,12 +104,16 @@ export interface MergeDuplicateContactsResult {
   validation: {
     active_merge_candidates: number;
     inactive_held_skips: number;
+    deleted_merge_sources: number;
     keep_held_contacts: number;
     resolved_missing_anchors: number;
     legacy_active_merge_candidates: number;
+    empty_same_person_candidates: number;
   };
   applied_merges: number;
   legacy_applied_merges: number;
+  empty_same_person_applied_merges: number;
+  hard_deleted_sources: number;
   provenance_retargets: number;
 }
 
@@ -144,6 +156,14 @@ export const parseArgs = (argv: string[]): CliOptions => {
       options.bundleDir = readValue();
     } else if (arg === '--merge-legacy-production-matches') {
       options.mergeLegacyProductionMatches = true;
+    } else if (arg === '--merge-empty-same-person') {
+      options.mergeEmptySamePerson = true;
+    } else if (arg === '--empty-contact-audit') {
+      options.emptyContactAudit = readValue();
+    } else if (arg === '--hard-delete-merged-sources') {
+      options.hardDeleteMergedSources = true;
+    } else if (arg === '--merge-inactive-sources') {
+      options.mergeInactiveSources = true;
     } else {
       throw new Error(`Unknown option ${arg}`);
     }
@@ -478,7 +498,8 @@ const resolveMissingAnchor = async (
 const assertValidContactStates = async (
   db: QueryablePool,
   decisions: DuplicateContactDecision[],
-  anchorRows: Map<string, CbisImportRow>
+  anchorRows: Map<string, CbisImportRow>,
+  options: { allowMissingMergedSources?: boolean } = {}
 ): Promise<ValidationSummary> => {
   const contactStates = await loadContactStates(
     db,
@@ -487,6 +508,7 @@ const assertValidContactStates = async (
   const issues: string[] = [];
   const mergeActiveContactIds: string[] = [];
   const mergeInactiveContactIds: string[] = [];
+  const mergeDeletedContactIds: string[] = [];
   const keepHeldContactIds: string[] = [];
   const anchorContactIdByHeldContactId = new Map<string, string>();
   let resolvedMissingAnchors = 0;
@@ -494,10 +516,6 @@ const assertValidContactStates = async (
   for (const decision of decisions) {
     const held = contactStates.get(decision.held_contact_id);
     let anchor = contactStates.get(decision.anchor_contact_id) ?? null;
-    if (!held) {
-      issues.push(`missing held contact ${decision.held_contact_id} (${decision.duplicate_name_key})`);
-      continue;
-    }
     if (!anchor) {
       try {
         anchor = await resolveMissingAnchor(db, anchorRows.get(decision.anchor_contact_id));
@@ -516,6 +534,15 @@ const assertValidContactStates = async (
     anchorContactIdByHeldContactId.set(decision.held_contact_id, anchor.id);
     if (!anchor.is_active) {
       issues.push(`inactive anchor contact ${anchor.id} (${decision.duplicate_name_key})`);
+    }
+
+    if (!held) {
+      if (decision.decision === 'merge_to_anchor' && options.allowMissingMergedSources) {
+        mergeDeletedContactIds.push(decision.held_contact_id);
+      } else {
+        issues.push(`missing held contact ${decision.held_contact_id} (${decision.duplicate_name_key})`);
+      }
+      continue;
     }
 
     if (decision.decision === 'keep_held') {
@@ -545,6 +572,7 @@ const assertValidContactStates = async (
   return {
     merge_active_contact_ids: mergeActiveContactIds,
     merge_inactive_contact_ids: mergeInactiveContactIds,
+    merge_deleted_contact_ids: mergeDeletedContactIds,
     keep_held_contact_ids: keepHeldContactIds,
     anchor_contact_id_by_held_contact_id: anchorContactIdByHeldContactId,
     resolved_missing_anchors: resolvedMissingAnchors,
@@ -553,14 +581,17 @@ const assertValidContactStates = async (
 
 const assertAppliedMergeState = async (
   db: QueryablePool,
-  contactIds: string[]
+  contactIds: string[],
+  allowDeleted = false
 ): Promise<void> => {
   const contactStates = await loadContactStates(db, contactIds);
   const issues: string[] = [];
   for (const contactId of contactIds) {
     const held = contactStates.get(contactId);
     if (!held) {
-      issues.push(`missing merged contact ${contactId}`);
+      if (!allowDeleted) {
+        issues.push(`missing merged contact ${contactId}`);
+      }
     } else if (held.is_active) {
       issues.push(`merged contact is still active ${contactId}`);
     }
@@ -574,117 +605,6 @@ const assertAppliedMergeState = async (
 
 const anchorPreferredResolutions = (): ContactMergeRequest['resolutions'] =>
   Object.fromEntries(getMergeableResolutionFieldNames().map((field) => [field, 'target']));
-
-const duplicateNameParts = (duplicateNameKey: string): { firstName: string; lastName: string } | null => {
-  const normalized = normalizeText(duplicateNameKey);
-  if (!normalized) {
-    return null;
-  }
-  const [firstName, ...lastNameParts] = normalized.split(' ');
-  const lastName = lastNameParts.join(' ').trim();
-  if (!firstName || !lastName) {
-    return null;
-  }
-  return { firstName, lastName };
-};
-
-const resolveAnchorsByDuplicateName = (
-  mergeDecisions: DuplicateContactDecision[],
-  validation: ValidationSummary
-): Map<string, string> => {
-  const anchorsByName = new Map<string, string>();
-  for (const decision of mergeDecisions) {
-    const anchorContactId =
-      validation.anchor_contact_id_by_held_contact_id.get(decision.held_contact_id) ?? decision.anchor_contact_id;
-    const existing = anchorsByName.get(decision.duplicate_name_key);
-    if (existing && existing !== anchorContactId) {
-      throw new Error(`Duplicate name ${decision.duplicate_name_key} resolves to multiple anchors`);
-    }
-    anchorsByName.set(decision.duplicate_name_key, anchorContactId);
-  }
-  return anchorsByName;
-};
-
-const loadLegacyProductionMergeCandidates = async (
-  db: QueryablePool,
-  organizationId: string,
-  mergeDecisions: DuplicateContactDecision[],
-  keepHeldDecisions: DuplicateContactDecision[],
-  validation: ValidationSummary
-): Promise<LegacyProductionMergeCandidate[]> => {
-  const anchorsByName = resolveAnchorsByDuplicateName(mergeDecisions, validation);
-  const keepHeldNames = new Set(keepHeldDecisions.map((decision) => decision.duplicate_name_key));
-  const mergeNames = [...anchorsByName.entries()].flatMap(([duplicateNameKey, anchorContactId]) => {
-    if (keepHeldNames.has(duplicateNameKey)) {
-      return [];
-    }
-    const parts = duplicateNameParts(duplicateNameKey);
-    return parts
-      ? [
-          {
-            duplicate_name_key: duplicateNameKey,
-            first_name: parts.firstName,
-            last_name: parts.lastName,
-            anchor_contact_id: anchorContactId,
-          },
-        ]
-      : [];
-  });
-
-  if (mergeNames.length === 0) {
-    return [];
-  }
-
-  const excludedContactIds = [
-    ...new Set([
-      ...mergeDecisions.map((decision) => decision.held_contact_id),
-      ...mergeDecisions.map((decision) => decision.anchor_contact_id),
-      ...keepHeldDecisions.map((decision) => decision.held_contact_id),
-      ...keepHeldDecisions.map((decision) => decision.anchor_contact_id),
-      ...validation.anchor_contact_id_by_held_contact_id.values(),
-    ]),
-  ];
-
-  const result = await db.query<LegacyProductionMergeCandidate>(
-    `
-      WITH merge_names AS (
-        SELECT *
-        FROM jsonb_to_recordset($2::jsonb) AS x(
-          duplicate_name_key text,
-          first_name text,
-          last_name text,
-          anchor_contact_id uuid
-        )
-      )
-      SELECT
-        c.id::text AS contact_id,
-        mn.duplicate_name_key,
-        mn.anchor_contact_id::text
-      FROM merge_names mn
-      JOIN contacts c
-        ON btrim(lower(regexp_replace(coalesce(c.first_name, ''), '[^[:alnum:] ]+', ' ', 'g'))) = mn.first_name
-       AND (
-         btrim(lower(regexp_replace(regexp_replace(coalesce(c.last_name, ''), '[^[:alnum:] ]+', ' ', 'g'), '\\s+', ' ', 'g'))) = mn.last_name
-         OR btrim(lower(regexp_replace(regexp_replace(coalesce(c.last_name, ''), '[^[:alnum:] ]+', ' ', 'g'), '\\s+', ' ', 'g'))) LIKE mn.last_name || ' %'
-         OR btrim(lower(regexp_replace(regexp_replace(coalesce(c.last_name, ''), '[^[:alnum:] ]+', ' ', 'g'), '\\s+', ' ', 'g'))) LIKE '% ' || mn.last_name
-       )
-      LEFT JOIN cbis_import_target_provenance p
-        ON p.organization_id = $1::uuid
-       AND p.target_entity_type = 'contacts'
-       AND p.target_entity_id = c.id
-      WHERE c.is_active = true
-        AND c.account_id IS NULL
-        AND c.id <> mn.anchor_contact_id
-        AND c.id <> ALL($3::uuid[])
-        AND p.id IS NULL
-      GROUP BY c.id, mn.duplicate_name_key, mn.anchor_contact_id
-      ORDER BY mn.duplicate_name_key, c.updated_at DESC, c.id ASC
-    `,
-    [organizationId, JSON.stringify(mergeNames), excludedContactIds]
-  );
-
-  return result.rows;
-};
 
 const retargetContactProvenance = async (
   db: QueryablePool,
@@ -742,7 +662,9 @@ export const runMergeDuplicateContacts = async (
     options.expectedBundleFingerprint,
     options.expectedSchemaVersion
   );
-  const validation = await assertValidContactStates(db, decisions, anchorRows);
+  const validation = await assertValidContactStates(db, decisions, anchorRows, {
+    allowMissingMergedSources: Boolean(options.hardDeleteMergedSources),
+  });
   const legacyCandidates = options.mergeLegacyProductionMatches
     ? await loadLegacyProductionMergeCandidates(
         db,
@@ -752,72 +674,159 @@ export const runMergeDuplicateContacts = async (
         validation
       )
     : [];
+  const rawEmptyCandidates = options.mergeEmptySamePerson
+    ? await loadEmptySamePersonMergeCandidates(
+        db,
+        options.organizationId,
+        mergeDecisions,
+        keepHeldDecisions,
+        validation,
+        options.mergeInactiveSources ?? false
+      )
+    : [];
+  const legacyCandidateIds = new Set(legacyCandidates.map((candidate) => candidate.contact_id));
+  const emptyCandidates = rawEmptyCandidates.filter((candidate) => !legacyCandidateIds.has(candidate.contact_id));
+  await writeEmptyContactAudit(
+    options.emptyContactAudit,
+    emptyCandidates,
+    options.expectedBundleFingerprint
+  );
 
   let appliedMerges = 0;
   let legacyAppliedMerges = 0;
+  let emptyAppliedMerges = 0;
+  let hardDeletedSources = 0;
   let provenanceRetargets = 0;
   if (options.mode === 'apply') {
     const resolutions = anchorPreferredResolutions();
+    const mergeForOperator = (
+      sourceContactId: string,
+      targetContactId: string
+    ): Promise<ContactMergeResult | null> => {
+      const payload = {
+        target_contact_id: targetContactId,
+        resolutions,
+      };
+      return options.hardDeleteMergedSources
+        ? mergeService.mergeContacts(sourceContactId, payload, options.actorId, 'admin', {
+            retainSourceAuditReference: false,
+          })
+        : mergeService.mergeContacts(sourceContactId, payload, options.actorId, 'admin');
+    };
+
     for (const decision of mergeDecisions) {
       const anchorContactId =
         validation.anchor_contact_id_by_held_contact_id.get(decision.held_contact_id) ?? decision.anchor_contact_id;
-      if (!validation.merge_active_contact_ids.includes(decision.held_contact_id)) {
-        provenanceRetargets += await retargetContactProvenance(
-          db,
-          options.organizationId,
+      if (validation.merge_deleted_contact_ids.includes(decision.held_contact_id)) {
+        continue;
+      }
+      const shouldMergeSource =
+        validation.merge_active_contact_ids.includes(decision.held_contact_id) ||
+        (validation.merge_inactive_contact_ids.includes(decision.held_contact_id) &&
+          Boolean(options.mergeInactiveSources));
+      if (!shouldMergeSource) {
+        provenanceRetargets += await withApplyContext(
+          'provenance retarget',
           decision.held_contact_id,
           anchorContactId,
-          proof,
-          options.expectedBundleFingerprint,
-          options.expectedSchemaVersion
+          () =>
+            retargetContactProvenance(
+              db,
+              options.organizationId,
+              decision.held_contact_id,
+              anchorContactId,
+              proof,
+              options.expectedBundleFingerprint,
+              options.expectedSchemaVersion
+            )
         );
         continue;
       }
-      const result = await mergeService.mergeContacts(
-        decision.held_contact_id,
-        {
-          target_contact_id: anchorContactId,
-          resolutions,
-        },
-        options.actorId,
-        'admin'
+      const result = await withApplyContext('reviewed merge', decision.held_contact_id, anchorContactId, () =>
+        mergeForOperator(decision.held_contact_id, anchorContactId)
       );
       if (!result) {
         throw new Error(`Merge returned no result for held contact ${decision.held_contact_id}`);
       }
       appliedMerges += 1;
-      provenanceRetargets += await retargetContactProvenance(
-        db,
-        options.organizationId,
+      provenanceRetargets += await withApplyContext(
+        'provenance retarget',
         decision.held_contact_id,
         anchorContactId,
-        proof,
-        options.expectedBundleFingerprint,
-        options.expectedSchemaVersion
+        () =>
+          retargetContactProvenance(
+            db,
+            options.organizationId,
+            decision.held_contact_id,
+            anchorContactId,
+            proof,
+            options.expectedBundleFingerprint,
+            options.expectedSchemaVersion
+          )
       );
+      if (options.hardDeleteMergedSources) {
+        await withApplyContext('hard delete', decision.held_contact_id, anchorContactId, () =>
+          hardDeleteMergedSourceContact(db, decision.held_contact_id, options.actorId)
+        );
+        hardDeletedSources += 1;
+      }
     }
 
     for (const candidate of legacyCandidates) {
-      const result = await mergeService.mergeContacts(
-        candidate.contact_id,
-        {
-          target_contact_id: candidate.anchor_contact_id,
-          resolutions,
-        },
-        options.actorId,
-        'admin'
+      const result = await withApplyContext('legacy merge', candidate.contact_id, candidate.anchor_contact_id, () =>
+        mergeForOperator(candidate.contact_id, candidate.anchor_contact_id)
       );
       if (!result) {
         throw new Error(`Merge returned no result for legacy production contact ${candidate.contact_id}`);
       }
       legacyAppliedMerges += 1;
+      if (options.hardDeleteMergedSources) {
+        await withApplyContext('hard delete', candidate.contact_id, candidate.anchor_contact_id, () =>
+          hardDeleteMergedSourceContact(db, candidate.contact_id, options.actorId)
+        );
+        hardDeletedSources += 1;
+      }
     }
 
-    await assertValidContactStates(db, decisions, anchorRows);
+    for (const candidate of emptyCandidates) {
+      const result = await withApplyContext('empty same-person merge', candidate.contact_id, candidate.anchor_contact_id, () =>
+        mergeForOperator(candidate.contact_id, candidate.anchor_contact_id)
+      );
+      if (!result) {
+        throw new Error(`Merge returned no result for empty same-person contact ${candidate.contact_id}`);
+      }
+      emptyAppliedMerges += 1;
+      provenanceRetargets += await withApplyContext(
+        'provenance retarget',
+        candidate.contact_id,
+        candidate.anchor_contact_id,
+        () =>
+          retargetContactProvenance(
+            db,
+            options.organizationId,
+            candidate.contact_id,
+            candidate.anchor_contact_id,
+            proof,
+            options.expectedBundleFingerprint,
+            options.expectedSchemaVersion
+          )
+      );
+      if (options.hardDeleteMergedSources) {
+        await withApplyContext('hard delete', candidate.contact_id, candidate.anchor_contact_id, () =>
+          hardDeleteMergedSourceContact(db, candidate.contact_id, options.actorId)
+        );
+        hardDeletedSources += 1;
+      }
+    }
+
+    if (!options.hardDeleteMergedSources) {
+      await assertValidContactStates(db, decisions, anchorRows);
+    }
     await assertAppliedMergeState(db, [
       ...mergeDecisions.map((decision) => decision.held_contact_id),
       ...legacyCandidates.map((candidate) => candidate.contact_id),
-    ]);
+      ...emptyCandidates.map((candidate) => candidate.contact_id),
+    ], Boolean(options.hardDeleteMergedSources));
   }
 
   return {
@@ -835,12 +844,16 @@ export const runMergeDuplicateContacts = async (
     validation: {
       active_merge_candidates: validation.merge_active_contact_ids.length,
       inactive_held_skips: validation.merge_inactive_contact_ids.length,
+      deleted_merge_sources: validation.merge_deleted_contact_ids.length,
       keep_held_contacts: validation.keep_held_contact_ids.length,
       resolved_missing_anchors: validation.resolved_missing_anchors,
       legacy_active_merge_candidates: legacyCandidates.length,
+      empty_same_person_candidates: emptyCandidates.length,
     },
     applied_merges: appliedMerges,
     legacy_applied_merges: legacyAppliedMerges,
+    empty_same_person_applied_merges: emptyAppliedMerges,
+    hard_deleted_sources: hardDeletedSources,
     provenance_retargets: provenanceRetargets,
   };
 };
@@ -857,6 +870,10 @@ const buildRequiredOptions = (options: CliOptions): RunOptions => ({
   mode: options.mode ?? 'dry-run',
   bundleDir: options.bundleDir,
   mergeLegacyProductionMatches: options.mergeLegacyProductionMatches ?? false,
+  mergeEmptySamePerson: options.mergeEmptySamePerson ?? false,
+  emptyContactAudit: options.emptyContactAudit,
+  hardDeleteMergedSources: options.hardDeleteMergedSources ?? false,
+  mergeInactiveSources: options.mergeInactiveSources ?? false,
 });
 
 async function main(): Promise<void> {

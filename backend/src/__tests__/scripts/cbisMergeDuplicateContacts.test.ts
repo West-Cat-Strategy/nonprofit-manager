@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'fs/promises';
 import os from 'os';
 import path from 'path';
 import {
@@ -17,6 +17,8 @@ const ANCHOR_ID = 'c0fab8ea-8b15-5835-83b8-40ec21d5b70d';
 const KEEP_HELD_ID = 'a3aeb9e8-a48f-5c5e-bb44-cb2222de6300';
 const KEEP_ANCHOR_ID = '12bfe68a-b98e-537d-bdda-65b8fa113534';
 const LEGACY_DUPLICATE_ID = 'ba282bc4-ea47-4498-ab65-63c6f92a56de';
+const EMPTY_SOURCE_ID = 'd8c9553d-4cf0-42a5-9341-1a1c3b112df0';
+const EMPTY_ANCHOR_ID = '8ce813bb-1392-4f0c-b82e-c6c751ab68cf';
 
 type ContactState = {
   id: string;
@@ -71,14 +73,46 @@ const createDb = (
       duplicate_name_key: string;
       anchor_contact_id: string;
     }>;
+    emptyCandidates?: Array<{
+      contact_id: string;
+      duplicate_name_key: string;
+      anchor_contact_id: string;
+      is_active: boolean;
+      source_link_count: number;
+      anchor_evidence_score: number;
+      evidence_summary: string;
+    }>;
+    fkRows?: Array<{
+      schema_name: string;
+      table_name: string;
+      column_name: string;
+    }>;
+    remainingReferenceCount?: number;
   } = {}
 ) => ({
   query: jest.fn(async (sql: string, params?: unknown[]) => {
     if (sql.includes('FROM cbis_import_runs')) {
       return { rows: overrides.hasApplyRun === false ? [] : [{ id: 'run-1' }] };
     }
+    if (sql.includes('WITH contact_metrics')) {
+      return { rows: overrides.emptyCandidates ?? [] };
+    }
     if (sql.includes('jsonb_to_recordset')) {
       return { rows: overrides.legacyCandidates ?? [] };
+    }
+    if (sql.includes('UPDATE cbis_import_target_provenance')) {
+      return { rows: [{ id: 'provenance-row' }] };
+    }
+    if (sql.includes('FROM pg_constraint')) {
+      return { rows: overrides.fkRows ?? [] };
+    }
+    if (sql.includes('DELETE FROM contacts')) {
+      const state = states.get(params?.[0] as string);
+      if (!state || state.is_active) {
+        return { rows: [] };
+      }
+      states.delete(state.id);
+      return { rows: [{ id: state.id }] };
     }
     if (sql.includes('FROM cbis_import_target_provenance')) {
       return { rows: [{ count: overrides.contactProvenanceRows ?? 10 }] };
@@ -91,8 +125,8 @@ const createDb = (
           .filter((state): state is ContactState => Boolean(state)),
       };
     }
-    if (sql.includes('UPDATE cbis_import_target_provenance')) {
-      return { rows: [{ id: 'provenance-row' }] };
+    if (sql.includes('SELECT COUNT(*) AS count')) {
+      return { rows: [{ count: overrides.remainingReferenceCount ?? 0 }] };
     }
     throw new Error(`Unexpected SQL: ${sql}`);
   }),
@@ -178,6 +212,58 @@ describe('cbisMergeDuplicateContacts operator script', () => {
     }
   });
 
+  it('allows already hard-deleted merge sources in guarded follow-up dry-runs', async () => {
+    const { dir, file } = await writeDecisionAudit([
+      decisionRow(HELD_MERGE_ID, ANCHOR_ID, 'merge_to_anchor'),
+    ]);
+    const states = baseStates();
+    states.delete(HELD_MERGE_ID);
+    const mergeService = { mergeContacts: jest.fn() };
+    try {
+      const result = await runMergeDuplicateContacts(
+        createDb(states),
+        mergeService,
+        {
+          ...optionsFor(file),
+          hardDeleteMergedSources: true,
+        }
+      );
+      expect(result.validation).toMatchObject({
+        active_merge_candidates: 0,
+        deleted_merge_sources: 1,
+      });
+      expect(mergeService.mergeContacts).not.toHaveBeenCalled();
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('skips already hard-deleted merge sources in guarded follow-up apply runs', async () => {
+    const { dir, file } = await writeDecisionAudit([
+      decisionRow(HELD_MERGE_ID, ANCHOR_ID, 'merge_to_anchor'),
+    ]);
+    const states = baseStates();
+    states.delete(HELD_MERGE_ID);
+    const mergeService = { mergeContacts: jest.fn() };
+    try {
+      const result = await runMergeDuplicateContacts(
+        createDb(states),
+        mergeService,
+        {
+          ...optionsFor(file, 'apply'),
+          mergeInactiveSources: true,
+          hardDeleteMergedSources: true,
+        }
+      );
+      expect(result.validation.deleted_merge_sources).toBe(1);
+      expect(result.applied_merges).toBe(0);
+      expect(result.hard_deleted_sources).toBe(0);
+      expect(mergeService.mergeContacts).not.toHaveBeenCalled();
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it('requires an exact successful import apply run before merging', async () => {
     const { dir, file } = await writeDecisionAudit([
       decisionRow(HELD_MERGE_ID, ANCHOR_ID, 'merge_to_anchor'),
@@ -237,6 +323,41 @@ describe('cbisMergeDuplicateContacts operator script', () => {
     }
   });
 
+  it('can directly merge inactive reviewed held contacts when requested', async () => {
+    const { dir, file } = await writeDecisionAudit([
+      decisionRow(INACTIVE_HELD_MERGE_ID, ANCHOR_ID, 'merge_to_anchor'),
+    ]);
+    const states = baseStates();
+    const mergeService = {
+      mergeContacts: jest.fn(async (contactId: string) => {
+        const state = states.get(contactId);
+        if (state) {
+          state.is_active = false;
+        }
+        return { survivor_contact: {}, merge_summary: {} };
+      }),
+    };
+    try {
+      const result = await runMergeDuplicateContacts(
+        createDb(states),
+        mergeService,
+        {
+          ...optionsFor(file, 'apply'),
+          mergeInactiveSources: true,
+        }
+      );
+      expect(result.applied_merges).toBe(1);
+      expect(mergeService.mergeContacts).toHaveBeenCalledWith(
+        INACTIVE_HELD_MERGE_ID,
+        expect.objectContaining({ target_contact_id: ANCHOR_ID }),
+        ACTOR_ID,
+        'admin'
+      );
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it('can merge reviewed legacy production contacts with the same name', async () => {
     const { dir, file } = await writeDecisionAudit([
       decisionRow(HELD_MERGE_ID, ANCHOR_ID, 'merge_to_anchor', 'cherie knight'),
@@ -281,6 +402,146 @@ describe('cbisMergeDuplicateContacts operator script', () => {
         ACTOR_ID,
         'admin'
       );
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('dry-runs empty same-person candidates and writes a redacted audit', async () => {
+    const { dir, file } = await writeDecisionAudit([
+      decisionRow(KEEP_HELD_ID, KEEP_ANCHOR_ID, 'keep_held', 'david louie'),
+    ]);
+    const auditPath = path.join(dir, 'empty-contact-audit.csv');
+    const mergeService = { mergeContacts: jest.fn() };
+    try {
+      const result = await runMergeDuplicateContacts(
+        createDb(baseStates(), {
+          emptyCandidates: [
+            {
+              contact_id: EMPTY_SOURCE_ID,
+              duplicate_name_key: 'ada lovelace',
+              anchor_contact_id: EMPTY_ANCHOR_ID,
+              is_active: true,
+              source_link_count: 0,
+              anchor_evidence_score: 3,
+              evidence_summary: 'anchor_cbis_provenance|anchor_linked_records',
+            },
+          ],
+        }),
+        mergeService,
+        {
+          ...optionsFor(file),
+          mergeEmptySamePerson: true,
+          emptyContactAudit: auditPath,
+        }
+      );
+      expect(result.validation.empty_same_person_candidates).toBe(1);
+      expect(mergeService.mergeContacts).not.toHaveBeenCalled();
+      const audit = await readFile(auditPath, 'utf8');
+      expect(audit).toContain('empty_same_person');
+      expect(audit).not.toContain('ada lovelace');
+      expect(audit).not.toContain(EMPTY_SOURCE_ID);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('hard-deletes empty same-person sources only after merge and reference guard pass', async () => {
+    const { dir, file } = await writeDecisionAudit([
+      decisionRow(KEEP_HELD_ID, KEEP_ANCHOR_ID, 'keep_held', 'david louie'),
+    ]);
+    const states = baseStates();
+    states.set(EMPTY_SOURCE_ID, { id: EMPTY_SOURCE_ID, is_active: true, account_id: null });
+    states.set(EMPTY_ANCHOR_ID, { id: EMPTY_ANCHOR_ID, is_active: true, account_id: null });
+    const mergeService = {
+      mergeContacts: jest.fn(async (contactId: string) => {
+        const state = states.get(contactId);
+        if (state) {
+          state.is_active = false;
+        }
+        return { survivor_contact: {}, merge_summary: {} };
+      }),
+    };
+    try {
+      const result = await runMergeDuplicateContacts(
+        createDb(states, {
+          emptyCandidates: [
+            {
+              contact_id: EMPTY_SOURCE_ID,
+              duplicate_name_key: 'ada lovelace',
+              anchor_contact_id: EMPTY_ANCHOR_ID,
+              is_active: true,
+              source_link_count: 0,
+              anchor_evidence_score: 3,
+              evidence_summary: 'anchor_cbis_provenance|anchor_linked_records',
+            },
+          ],
+        }),
+        mergeService,
+        {
+          ...optionsFor(file, 'apply'),
+          mergeEmptySamePerson: true,
+          hardDeleteMergedSources: true,
+        }
+      );
+      expect(result.empty_same_person_applied_merges).toBe(1);
+      expect(result.hard_deleted_sources).toBe(1);
+      expect(states.has(EMPTY_SOURCE_ID)).toBe(false);
+      expect(mergeService.mergeContacts).toHaveBeenCalledWith(
+        EMPTY_SOURCE_ID,
+        expect.objectContaining({ target_contact_id: EMPTY_ANCHOR_ID }),
+        ACTOR_ID,
+        'admin',
+        { retainSourceAuditReference: false }
+      );
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('fails hard-delete when the post-merge reference guard finds remaining rows', async () => {
+    const { dir, file } = await writeDecisionAudit([
+      decisionRow(KEEP_HELD_ID, KEEP_ANCHOR_ID, 'keep_held', 'david louie'),
+    ]);
+    const states = baseStates();
+    states.set(EMPTY_SOURCE_ID, { id: EMPTY_SOURCE_ID, is_active: true, account_id: null });
+    states.set(EMPTY_ANCHOR_ID, { id: EMPTY_ANCHOR_ID, is_active: true, account_id: null });
+    const mergeService = {
+      mergeContacts: jest.fn(async (contactId: string) => {
+        const state = states.get(contactId);
+        if (state) {
+          state.is_active = false;
+        }
+        return { survivor_contact: {}, merge_summary: {} };
+      }),
+    };
+    try {
+      await expect(
+        runMergeDuplicateContacts(
+          createDb(states, {
+            emptyCandidates: [
+              {
+                contact_id: EMPTY_SOURCE_ID,
+                duplicate_name_key: 'ada lovelace',
+                anchor_contact_id: EMPTY_ANCHOR_ID,
+                is_active: true,
+                source_link_count: 0,
+                anchor_evidence_score: 3,
+                evidence_summary: 'anchor_cbis_provenance|anchor_linked_records',
+              },
+            ],
+            fkRows: [{ schema_name: 'public', table_name: 'contact_notes', column_name: 'contact_id' }],
+            remainingReferenceCount: 1,
+          }),
+          mergeService,
+          {
+            ...optionsFor(file, 'apply'),
+            mergeEmptySamePerson: true,
+            hardDeleteMergedSources: true,
+          }
+        )
+      ).rejects.toThrow('Refusing to hard-delete merged contact');
+      expect(states.has(EMPTY_SOURCE_ID)).toBe(true);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

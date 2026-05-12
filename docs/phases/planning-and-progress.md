@@ -9,9 +9,9 @@ Use this file only for live tracked work. Historical phase closeouts, earlier wo
 | Snapshot | Value |
 |---|---:|
 | Current phase | Phase 5 - Email, Website, Portal, and Reliability |
-| Active rows | 27 |
+| Active rows | 28 |
 | In Progress | 0 |
-| Review | 18 |
+| Review | 19 |
 | Ready | 8 |
 | Blocked | 1 |
 | Phase 4 carry-over rows | 0 |
@@ -47,11 +47,13 @@ Use this file only for live tracked work. Historical phase closeouts, earlier wo
 - Production follow-up, 2026-05-12: after the approved P5-T120 code deploy, Dora Ogden's imported contact Notes rendered, but the linked imported case `49f7f188-be03-4cd7-b4ce-be48aea9703c` / `CBIS-TICIPANT2709` returned "Case not found." Continue under `P5-T120` by fixing imported null-account case visibility without production import, production dry-run, support SQL, or a new tracked row.
 - Completed coordinated exception, 2026-05-12: `P5-T121` CBIS duplicate-contact decision overlay was split into read-only duplicate-name classification subagent lanes plus a lead-owned implementation lane. The lead owned this board, the decision CSV, bundle-builder changes, generated proof, validation note, and closeout; subagents inspected only assigned single-anchor duplicate-name groups and did not edit files. Production import, production dry-run, production read, support SQL, schema migration, app merge action, and deployment remained out of scope.
 - Completed production data application, 2026-05-12: `P5-T122` applied the completed `P5-T121` decision overlay to `cbis.westcat.ca` with explicit backups, exact bundle fingerprint/schema proof, required production dry-runs before apply, the 194 accepted held-contact merges, and a follow-up same-name legacy production merge for 212 pre-provenance active duplicates such as Cherie Knight. Public endpoints, migrations, and support-data edits remained out of scope.
+- Completed coordinated exception, 2026-05-12: `P5-T123` CBIS empty-contact direct merge pass was split into backend operator-merge implementation, redacted candidate audit/proof, and WCS production ops lanes. The lead lane owned this board, hard-delete safety policy, production dry-run/apply decision, validation note, and final reconciliation; public API/frontend merge features, broad MPI/full dedupe, schema changes, and support SQL remained out of scope.
 
 ## Priority Board
 
 | Status | ID | Task | Immediate Next Move | Evidence |
 |---|---|---|---|---|
+| Review | P5-T123 | CBIS empty-contact direct merge pass | Review the completed operator-only second dedupe pass for `cbis.westcat.ca`: the sparse same-person lane found zero remaining active empty candidates, the 194 previously inactive reviewed source contacts were merged through the existing service and hard-deleted after reference guards passed, keep-held contacts remained active, and Dora/case continuity plus health/container proof stayed green. | [../validation/P5-T123_CBIS_EMPTY_CONTACT_DIRECT_MERGE_PROOF_2026-05-12.md](../validation/P5-T123_CBIS_EMPTY_CONTACT_DIRECT_MERGE_PROOF_2026-05-12.md) |
 | Review | P5-T122 | Apply P5-T121 contact deduplication to CBIS production | Review the completed production dedupe: exact P5-T121 import apply succeeded for fingerprint `sha256:ed4eaa4444711fc6db9244909e6a2c767b1521f1061037a83a94ee14d0272961`, 194 accepted held contacts merged, 212 active legacy same-name duplicates merged, the two keep-held contacts remain active, Cherie Knight now has one active survivor, and post-run dry-run reports zero remaining active merge candidates. | [../validation/P5-T122_CBIS_PRODUCTION_CONTACT_DEDUPE_PROOF_2026-05-12.md](../validation/P5-T122_CBIS_PRODUCTION_CONTACT_DEDUPE_PROOF_2026-05-12.md) |
 | Review | P5-T121 | CBIS duplicate-contact decision overlay | Review the completed decision-file overlay: 196 local decisions were reconciled for single-anchor duplicate-name contact holdouts, 194 held contacts now merge to anchors, 2 remain held, dependent held-cluster activities/event registrations redirect to anchors, and the generated bundle validates without changing production, app runtime, schema, or support data. | [../validation/P5-T121_CBIS_DUPLICATE_CONTACT_DECISION_OVERLAY_PROOF_2026-05-12.md](../validation/P5-T121_CBIS_DUPLICATE_CONTACT_DECISION_OVERLAY_PROOF_2026-05-12.md) |
 | Review | P5-T120 | CBIS import, dedupe, and app wiring follow-through | Review the completed imported-case visibility fix and production proof: Dora Ogden's imported notes render, note-linked case `49f7f188-be03-4cd7-b4ce-be48aea9703c` / `CBIS-TICIPANT2709` opens normally, case search returns one result, and the target contact is not duplicated. No production import, dry-run, migration, corrective SQL, or new row was added under this row. | [../validation/P5-T120_CBIS_IMPORT_DEDUPE_APP_WIRING_PROOF_2026-05-12.md](../validation/P5-T120_CBIS_IMPORT_DEDUPE_APP_WIRING_PROOF_2026-05-12.md) |

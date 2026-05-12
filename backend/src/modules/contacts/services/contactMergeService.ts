@@ -34,7 +34,8 @@ export class ContactMergeService {
     contactId: string,
     payload: ContactMergeRequest,
     userId: string,
-    viewerRole?: ViewerRole
+    viewerRole?: ViewerRole,
+    options: { retainSourceAuditReference?: boolean } = {}
   ): Promise<ContactMergeResult | null> {
     const targetContactId = payload.target_contact_id;
     if (contactId === targetContactId) {
@@ -787,8 +788,8 @@ export class ContactMergeService {
           description: `Merged contact ${contactId} into ${targetContactId}`,
           entityType: 'contact',
           entityId: targetContactId,
-          relatedEntityType: 'contact',
-          relatedEntityId: contactId,
+          relatedEntityType: options.retainSourceAuditReference === false ? undefined : 'contact',
+          relatedEntityId: options.retainSourceAuditReference === false ? undefined : contactId,
           userId,
           metadata: {
             action: 'merge',
