@@ -8,6 +8,36 @@ type PgExecutor = Pool | PoolClient;
 const resolveOrganizationId = (organizationId?: string): string | undefined =>
   organizationId || getRequestContext()?.organizationId || getRequestContext()?.accountId || getRequestContext()?.tenantId;
 
+export const buildCaseOrganizationScopeSql = (
+  organizationParam: string,
+  caseAlias = 'c',
+  contactAlias = 'con'
+): string => `
+  (
+    ${organizationParam}::uuid IS NULL
+    OR COALESCE(${caseAlias}.account_id, ${contactAlias}.account_id) = ${organizationParam}::uuid
+    OR (
+      ${caseAlias}.account_id IS NULL
+      AND ${contactAlias}.account_id IS NULL
+      AND EXISTS (
+        SELECT 1
+        FROM cbis_import_target_provenance cbis_scope
+        WHERE cbis_scope.organization_id = ${organizationParam}::uuid
+          AND (
+            (
+              cbis_scope.target_entity_type = 'cases'
+              AND cbis_scope.target_entity_id = ${caseAlias}.id
+            )
+            OR (
+              cbis_scope.target_entity_type = 'contacts'
+              AND cbis_scope.target_entity_id = ${contactAlias}.id
+            )
+          )
+      )
+    )
+  )
+`;
+
 export const CASE_COLUMNS = `
   c.id,
   c.case_number,
@@ -171,10 +201,7 @@ export const getCaseOwnership = async (
     FROM cases c
     LEFT JOIN contacts con ON con.id = c.contact_id
     WHERE c.id = $1
-      AND (
-        $2::uuid IS NULL
-        OR COALESCE(c.account_id, con.account_id) = $2::uuid
-      )
+      AND ${buildCaseOrganizationScopeSql('$2')}
     LIMIT 1
   `,
     [caseId, resolvedOrganizationId || null]
@@ -212,10 +239,7 @@ export const requireCaseIdForNote = async (
     INNER JOIN cases c ON c.id = cn.case_id
     LEFT JOIN contacts con ON con.id = c.contact_id
     WHERE cn.id = $1
-      AND (
-        $2::uuid IS NULL
-        OR COALESCE(c.account_id, con.account_id) = $2::uuid
-      )
+      AND ${buildCaseOrganizationScopeSql('$2')}
     LIMIT 1
   `,
     [noteId, resolvedOrganizationId || null]
@@ -241,10 +265,7 @@ export const requireCaseIdForOutcome = async (
     INNER JOIN cases c ON c.id = co.case_id
     LEFT JOIN contacts con ON con.id = c.contact_id
     WHERE co.id = $1
-      AND (
-        $2::uuid IS NULL
-        OR COALESCE(c.account_id, con.account_id) = $2::uuid
-      )
+      AND ${buildCaseOrganizationScopeSql('$2')}
     LIMIT 1
   `,
     [outcomeId, resolvedOrganizationId || null]
@@ -270,10 +291,7 @@ export const requireCaseIdForTopicEvent = async (
     INNER JOIN cases c ON c.id = cte.case_id
     LEFT JOIN contacts con ON con.id = c.contact_id
     WHERE cte.id = $1
-      AND (
-        $2::uuid IS NULL
-        OR COALESCE(c.account_id, con.account_id) = $2::uuid
-      )
+      AND ${buildCaseOrganizationScopeSql('$2')}
     LIMIT 1
   `,
     [topicEventId, resolvedOrganizationId || null]
@@ -299,10 +317,7 @@ export const requireCaseIdForDocument = async (
     INNER JOIN cases c ON c.id = cd.case_id
     LEFT JOIN contacts con ON con.id = c.contact_id
     WHERE cd.id = $1
-      AND (
-        $2::uuid IS NULL
-        OR COALESCE(c.account_id, con.account_id) = $2::uuid
-      )
+      AND ${buildCaseOrganizationScopeSql('$2')}
     LIMIT 1
   `,
     [documentId, resolvedOrganizationId || null]
@@ -328,10 +343,7 @@ export const requireCaseIdForRelationship = async (
     INNER JOIN cases c ON c.id = cr.case_id
     LEFT JOIN contacts con ON con.id = c.contact_id
     WHERE cr.id = $1
-      AND (
-        $2::uuid IS NULL
-        OR COALESCE(c.account_id, con.account_id) = $2::uuid
-      )
+      AND ${buildCaseOrganizationScopeSql('$2')}
     LIMIT 1
   `,
     [relationshipId, resolvedOrganizationId || null]
@@ -357,10 +369,7 @@ export const requireCaseIdForServiceAssignment = async (
     INNER JOIN cases c ON c.id = csa.case_id
     LEFT JOIN contacts con ON con.id = c.contact_id
     WHERE csa.id = $1
-      AND (
-        $2::uuid IS NULL
-        OR COALESCE(c.account_id, con.account_id) = $2::uuid
-      )
+      AND ${buildCaseOrganizationScopeSql('$2')}
     LIMIT 1
   `,
     [assignmentId, resolvedOrganizationId || null]
@@ -386,10 +395,7 @@ export const requireCaseIdForMilestone = async (
     INNER JOIN cases c ON c.id = cm.case_id
     LEFT JOIN contacts con ON con.id = c.contact_id
     WHERE cm.id = $1
-      AND (
-        $2::uuid IS NULL
-        OR COALESCE(c.account_id, con.account_id) = $2::uuid
-      )
+      AND ${buildCaseOrganizationScopeSql('$2')}
     LIMIT 1
   `,
     [milestoneId, resolvedOrganizationId || null]

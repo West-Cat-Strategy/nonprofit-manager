@@ -7,10 +7,11 @@ import { renderWithProviders } from '../../../../test/testUtils';
 import api from '../../../../services/api';
 
 const listOutcomeDefinitionsMock = vi.fn();
+const linkedImportedCaseId = '49f7f188-be03-4cd7-b4ce-be48aea9703c';
 
 const caseItem = {
-  id: 'case-1',
-  case_number: 'CASE-001',
+  id: linkedImportedCaseId,
+  case_number: 'CBIS-TICIPANT2709',
   contact_id: 'contact-1',
   case_type_id: 'type-1',
   status_id: 'status-1',
@@ -122,7 +123,7 @@ describe('ContactNotesPanel', () => {
       createEnvelope({
         id: 'note-1',
         contact_id: 'contact-1',
-        case_id: 'case-1',
+        case_id: linkedImportedCaseId,
         note_type: 'note',
         subject: null,
         content: 'Discussed employment',
@@ -172,7 +173,7 @@ describe('ContactNotesPanel', () => {
     expect(screen.queryByText(/discussed outcomes/i)).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/associate with case/i), {
-      target: { value: 'case-1' },
+      target: { value: linkedImportedCaseId },
     });
 
     expect(await screen.findByText(/discussed outcomes/i)).toBeInTheDocument();
@@ -190,7 +191,7 @@ describe('ContactNotesPanel', () => {
     });
 
     fireEvent.change(screen.getByLabelText(/associate with case/i), {
-      target: { value: 'case-1' },
+      target: { value: linkedImportedCaseId },
     });
 
     const resetCheckbox = await screen.findByRole('checkbox', { name: /maintained employment/i });
@@ -206,8 +207,8 @@ describe('ContactNotesPanel', () => {
           note_type: 'note',
           title: null,
           content: 'Linked note',
-          case_id: 'case-1',
-          case_number: 'CASE-001',
+          case_id: linkedImportedCaseId,
+          case_number: 'CBIS-TICIPANT2709',
           case_title: 'Housing support',
           event_id: null,
           event_name: null,
@@ -276,7 +277,9 @@ describe('ContactNotesPanel', () => {
     const [linkedCard] = linkedCards;
     const linkedCaseLink = within(linkedCard).getByTestId('contact-note-case-link');
     expect(linkedCaseLink).toHaveAttribute('data-note-id', 'note-linked');
-    expect(linkedCaseLink).toHaveAttribute('data-case-id', 'case-1');
+    expect(linkedCaseLink).toHaveAttribute('data-case-id', linkedImportedCaseId);
+    expect(linkedCaseLink).toHaveAttribute('href', `/cases/${linkedImportedCaseId}`);
+    expect(linkedCaseLink).toHaveTextContent('Open Case (CBIS-TICIPANT2709)');
   });
 
   it('posts outcome impacts for case-linked notes and renders saved outcome chips', async () => {
@@ -288,8 +291,8 @@ describe('ContactNotesPanel', () => {
           note_type: 'note',
           title: null,
           content: 'Existing note',
-          case_id: 'case-1',
-          case_number: 'CASE-001',
+          case_id: linkedImportedCaseId,
+          case_number: 'CBIS-TICIPANT2709',
           case_title: 'Housing support',
           event_id: null,
           event_name: null,
@@ -338,7 +341,7 @@ describe('ContactNotesPanel', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /\+ add note/i }));
     fireEvent.change(screen.getByLabelText(/associate with case/i), {
-      target: { value: 'case-1' },
+      target: { value: linkedImportedCaseId },
     });
     fireEvent.click(await screen.findByRole('checkbox', { name: /maintained employment/i }));
     fireEvent.change(screen.getByLabelText(/content/i), {
@@ -350,7 +353,7 @@ describe('ContactNotesPanel', () => {
       expect(mockApi.post).toHaveBeenCalledWith(
         '/v2/contacts/contact-1/notes',
         expect.objectContaining({
-          case_id: 'case-1',
+          case_id: linkedImportedCaseId,
           outcome_impacts: [
             {
               outcomeDefinitionId: 'outcome-1',

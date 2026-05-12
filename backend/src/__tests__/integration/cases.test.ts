@@ -8,6 +8,7 @@ describe('Case API Integration Tests', () => {
   let userId = '';
   let organizationId = '';
   let caseTypeId = '';
+  let activeStatusId = '';
   let outcomeDefinitionId = '';
   const createdCaseIds: string[] = [];
   const createdContactIds: string[] = [];
@@ -240,6 +241,16 @@ describe('Case API Integration Tests', () => {
     caseTypeId = caseTypeResult.rows[0]?.id || '';
     expect(caseTypeId).toBeTruthy();
 
+    const activeStatusResult = await pool.query<{ id: string }>(
+      `SELECT id
+       FROM case_statuses
+       WHERE is_active = true
+       ORDER BY sort_order ASC NULLS LAST, created_at ASC
+       LIMIT 1`
+    );
+    activeStatusId = activeStatusResult.rows[0]?.id || '';
+    expect(activeStatusId).toBeTruthy();
+
     const outcomeDefinitionResult = await pool.query<{ id: string }>(
       `SELECT id
        FROM outcome_definitions
@@ -326,6 +337,225 @@ describe('Case API Integration Tests', () => {
 
   it('defaults omitted account_id to the active organization for contacts without org ownership', async () => {
     await expectCaseVisibleWithDefaultedOrgAccount();
+  });
+
+  it('opens CBIS-imported null-account cases when provenance scopes them to the active organization', async () => {
+    const suffix = unique();
+    const contactId = (
+      await pool.query<{ id: string }>(
+        `INSERT INTO contacts (
+           first_name,
+           last_name,
+           email,
+           account_id,
+           created_by,
+           modified_by
+         ) VALUES ($1, $2, $3, NULL, $4, $4)
+         RETURNING id`,
+        ['Imported', 'CaseLink', `imported-case-link-${suffix}@example.com`, userId]
+      )
+    ).rows[0].id;
+    createdContactIds.push(contactId);
+
+    const caseId = (
+      await pool.query<{ id: string }>(
+        `INSERT INTO cases (
+           case_number,
+           contact_id,
+           account_id,
+           case_type_id,
+           title,
+           status_id,
+           custom_data,
+           created_by,
+           modified_by,
+           created_at,
+           updated_at
+         ) VALUES ($1, $2, NULL, $3, $4, $5, $6::jsonb, $7, $7, NOW(), NOW())
+         RETURNING id`,
+        [
+          `CBIS-TICIPANT-${suffix}`,
+          contactId,
+          caseTypeId,
+          'Imported case link visibility',
+          activeStatusId,
+          JSON.stringify({
+            import_provenance: {
+              cluster_id: `cluster-${suffix}`,
+              primary_label: 'Imported case link visibility',
+              record_type: 'case_note',
+              source_tables: ['case_note'],
+              source_files: [`cbis-${suffix}.csv`],
+              source_row_ids: [`case_note:${suffix}`],
+              participant_ids: [contactId],
+            },
+          }),
+          userId,
+        ]
+      )
+    ).rows[0].id;
+    createdCaseIds.push(caseId);
+
+    const noteId = (
+      await pool.query<{ id: string }>(
+        `INSERT INTO case_notes (
+           case_id,
+           note_type,
+           subject,
+           content,
+           is_internal,
+           visible_to_client,
+           created_by,
+           updated_by,
+           created_at,
+           updated_at
+         ) VALUES ($1, 'note', $2, $3, false, true, $4, $4, NOW(), NOW())
+         RETURNING id`,
+        [caseId, 'Imported linked case note', 'This note should be reachable from the case link.', userId]
+      )
+    ).rows[0].id;
+
+    await pool.query(
+      `INSERT INTO cbis_import_target_provenance (
+         organization_id,
+         target_entity_type,
+         target_entity_id,
+         source_file,
+         source_table,
+         source_row_id,
+         source_row_hash,
+         bundle_fingerprint,
+         schema_bundle_version
+       ) VALUES
+         ($1, 'cases', $2, $3, 'case_note', $4, $5, $6, $7),
+         ($1, 'contacts', $8, $3, 'client', $9, $10, $6, $7)`,
+      [
+        organizationId,
+        caseId,
+        `cbis-${suffix}.csv`,
+        `case_note:${suffix}`,
+        `case-hash-${suffix}`,
+        `sha256:${suffix}`,
+        'test-schema',
+        contactId,
+        `client:${suffix}`,
+        `contact-hash-${suffix}`,
+      ]
+    );
+
+    try {
+      const detailResponse = await withAuth(request(app)
+        .get(`/api/v2/cases/${caseId}`))
+        .expect(200);
+
+      const detailPayload = payloadFromResponse<{
+        id: string;
+        account_id: string | null;
+        contact_id: string;
+        case_number: string;
+      }>(detailResponse.body);
+      expect(detailPayload).toEqual(
+        expect.objectContaining({
+          id: caseId,
+          account_id: null,
+          contact_id: contactId,
+          case_number: `CBIS-TICIPANT-${suffix}`,
+        })
+      );
+
+      const listResponse = await withAuth(request(app)
+        .get('/api/v2/cases')
+        .query({ contact_id: contactId }))
+        .expect(200);
+      const listPayload = payloadFromResponse<{
+        cases: Array<{ id: string }>;
+      }>(listResponse.body);
+      expect(listPayload.cases.filter((item) => item.id === caseId)).toHaveLength(1);
+
+      const timelineResponse = await withAuth(request(app)
+        .get(`/api/v2/cases/${caseId}/timeline`))
+        .expect(200);
+      const timelinePayload = payloadFromResponse<{
+        items: Array<{ id: string; type?: string }>;
+      }>(timelineResponse.body);
+      expect(timelinePayload.items.map((item) => item.id)).toContain(noteId);
+
+      const notesResponse = await withAuth(request(app)
+        .get(`/api/v2/cases/${caseId}/notes`))
+        .expect(200);
+      const notesPayload = payloadFromResponse<Array<{ id: string }>>(notesResponse.body);
+      expect(notesPayload.map((item) => item.id)).toContain(noteId);
+
+      await request(app)
+        .get(`/api/v2/cases/${caseId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .set('X-Organization-Id', '11111111-1111-4111-8111-111111111111')
+        .expect(404);
+    } finally {
+      await pool.query(
+        `DELETE FROM cbis_import_target_provenance
+         WHERE organization_id = $1
+           AND source_file = $2`,
+        [organizationId, `cbis-${suffix}.csv`]
+      );
+    }
+  });
+
+  it('keeps null-account cases hidden when no CBIS provenance scopes them', async () => {
+    const suffix = unique();
+    const contactId = (
+      await pool.query<{ id: string }>(
+        `INSERT INTO contacts (
+           first_name,
+           last_name,
+           email,
+           account_id,
+           created_by,
+           modified_by
+         ) VALUES ($1, $2, $3, NULL, $4, $4)
+         RETURNING id`,
+        ['Unproven', 'CaseLink', `unproven-case-link-${suffix}@example.com`, userId]
+      )
+    ).rows[0].id;
+    createdContactIds.push(contactId);
+
+    const caseId = (
+      await pool.query<{ id: string }>(
+        `INSERT INTO cases (
+           case_number,
+           contact_id,
+           account_id,
+           case_type_id,
+           title,
+           status_id,
+           created_by,
+           modified_by,
+           created_at,
+           updated_at
+         ) VALUES ($1, $2, NULL, $3, $4, $5, $6, $6, NOW(), NOW())
+         RETURNING id`,
+        [
+          `CBIS-UNPROVEN-${suffix}`,
+          contactId,
+          caseTypeId,
+          'Unproven null-account case',
+          activeStatusId,
+          userId,
+        ]
+      )
+    ).rows[0].id;
+    createdCaseIds.push(caseId);
+
+    await withAuth(request(app)
+      .get(`/api/v2/cases/${caseId}`))
+      .expect(404);
+
+    const listResponse = await withAuth(request(app)
+      .get('/api/v2/cases')
+      .query({ contact_id: contactId }))
+      .expect(200);
+    const listPayload = payloadFromResponse<{ cases: Array<{ id: string }> }>(listResponse.body);
+    expect(listPayload.cases.map((item) => item.id)).not.toContain(caseId);
   });
 
   it('creates, lists, and updates case reassessment cycles with linked follow-ups', async () => {

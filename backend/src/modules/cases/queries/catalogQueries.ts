@@ -6,6 +6,7 @@ import {
   DEFAULT_TIMELINE_LIMIT,
   encodeTimelineCursor,
   MAX_TIMELINE_LIMIT,
+  buildCaseOrganizationScopeSql,
   requireCaseOwnership,
   CASE_COLUMNS,
 } from './shared';
@@ -122,7 +123,7 @@ export const getCasesQuery = async (
 
   if (resolvedOrganizationId) {
     params.push(resolvedOrganizationId);
-    filters.push(`COALESCE(c.account_id, con.account_id) = $${params.length}`);
+    filters.push(buildCaseOrganizationScopeSql(`$${params.length}`));
   }
 
   const whereClause = filters.length > 0 ? `WHERE ${filters.join(' AND ')}` : '';
@@ -228,10 +229,7 @@ export const getCaseByIdQuery = async (
     LEFT JOIN contacts con ON c.contact_id = con.id
     LEFT JOIN users u ON c.assigned_to = u.id
     WHERE c.id = $1
-      AND (
-        $2::uuid IS NULL
-        OR COALESCE(c.account_id, con.account_id) = $2::uuid
-      )
+      AND ${buildCaseOrganizationScopeSql('$2')}
   `,
     [caseId, resolvedOrganizationId || null]
   );

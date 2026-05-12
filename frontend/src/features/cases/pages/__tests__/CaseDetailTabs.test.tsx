@@ -14,6 +14,7 @@ const mockState = {
   cases: {
     currentCase: {
       id: validCaseId,
+      account_id: '44444444-4444-4444-8444-444444444444' as string | null,
       case_number: 'CASE-001',
       title: 'Housing Support',
       is_urgent: false,
@@ -159,6 +160,9 @@ function renderCaseDetail(route: string) {
 
 describe('Case detail tabs URL sync', () => {
   beforeEach(() => {
+    mockState.cases.currentCase.account_id = '44444444-4444-4444-8444-444444444444';
+    mockState.cases.currentCase.case_number = 'CASE-001';
+    mockState.cases.currentCase.title = 'Housing Support';
     mockState.cases.currentCase.provenance = undefined;
     vi.clearAllMocks();
   });
@@ -249,5 +253,37 @@ describe('Case detail tabs URL sync', () => {
     expect(screen.getAllByText('0 tables').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Low confidence').length).toBeGreaterThan(0);
     expect(screen.getAllByText('—').length).toBeGreaterThan(0);
+  });
+
+  it('renders imported null-account case details as a normal valid case route', () => {
+    mockState.cases.currentCase.account_id = null;
+    mockState.cases.currentCase.case_number = 'CBIS-TICIPANT2709';
+    mockState.cases.currentCase.title = 'Imported CBIS Case';
+    mockState.cases.currentCase.provenance = {
+      system: 'imported',
+      cluster_id: 'cluster-cbis',
+      primary_label: 'Westcat Imported Case',
+      record_type: 'case_note',
+      source_tables: ['case_note'],
+      source_files: ['westcat.csv'],
+      source_role_breakdown: [],
+      participant_ids: [validContactId],
+      source_row_ids: ['case_note:2709'],
+      source_row_count: 1,
+      source_table_count: 1,
+      source_file_count: 1,
+      source_type_breakdown: ['case_note'],
+      link_confidence: 0.9,
+      confidence_label: 'high',
+      is_low_confidence: false,
+    };
+
+    renderCaseDetail(`/cases/${validCaseId}`);
+
+    expect(screen.getByText('Imported CBIS Case')).toBeInTheDocument();
+    expect(screen.getByText('CBIS-TICIPANT2709')).toBeInTheDocument();
+    expect(screen.getByText(/imported provenance/i)).toBeInTheDocument();
+    expect(screen.queryByText(/case not found/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /invalid case link/i })).not.toBeInTheDocument();
   });
 });

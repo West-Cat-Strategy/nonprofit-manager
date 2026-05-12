@@ -1,7 +1,7 @@
 # P5-T120 CBIS Import, Dedupe, And App Wiring Proof
 
-**Date:** 2026-05-12  
-**Status:** Review  
+**Date:** 2026-05-12
+**Status:** In Progress
 **Scope:** Mainline the operator-only CBIS staged importer, add deterministic duplicate-name holdouts in CBIS import prep, fix contact Notes count/timeline consistency for imported null-account contacts, and prove the path against the local CBIS clone only.
 
 ## Summary
@@ -14,6 +14,21 @@
 - Moved remaining actionable invalid/gap queues into dedicated review artifacts so the generic gap report only carries intentional system-reference exclusions.
 - Fixed the contact Notes count/timeline mismatch for imported contacts with null `account_id`.
 - Proved a local-clone dry-run against `normalized_candidate_bundle_20260512T184418Z`; live app row counts did not change and production was untouched.
+
+## Production Follow-Up
+
+- The approved P5-T120 app code was deployed to `cbis.westcat.ca` on 2026-05-12.
+- Post-deploy proof confirmed Dora Ogden's imported contact Notes rendered with `NOTES(147)`.
+- The same production proof exposed a remaining app-wiring gap: note-linked case `49f7f188-be03-4cd7-b4ce-be48aea9703c` / `CBIS-TICIPANT2709` returned "Case not found".
+- Continue the same P5-T120 row by fixing backend imported null-account case visibility. Do not run a production import, production dry-run, support SQL, or schema migration for this follow-up.
+
+## Imported Case Visibility Fix
+
+- Added one shared backend case organization-scope predicate that preserves normal `COALESCE(c.account_id, con.account_id)` ownership and admits CBIS-imported null-account case/contact pairs only when `cbis_import_target_provenance` scopes either the case or linked contact to the active organization.
+- Reused that predicate for case list/detail lookup, shared case ownership checks, and case-note lookup scoping.
+- Added backend integration coverage for CBIS-proven null-account case detail, contact-filtered list de-duplication, timeline and notes access, cross-org 404 behavior, and null-account cases without CBIS provenance staying hidden.
+- Added frontend regressions proving real UUID case links stay inside the correct contact note card and imported `account_id: null` cases render the normal case detail view.
+- This follow-up adds no migration, production import, production dry-run, or support SQL.
 
 ## Data Prep Evidence
 

@@ -1,6 +1,7 @@
 import { Pool, PoolClient } from 'pg';
 import type { CaseNote, CreateCaseNoteDTO, UpdateCaseNoteDTO } from '@app-types/case';
 import {
+  buildCaseOrganizationScopeSql,
   normalizeCaseNoteType,
   requireCaseIdForNote,
   requireCaseOwnership,
@@ -67,7 +68,7 @@ export const getCaseNoteByIdQuery = async (
           FROM cases c
           LEFT JOIN contacts con ON con.id = c.contact_id
           WHERE c.id = cn.case_id
-            AND COALESCE(c.account_id, con.account_id) = $2::uuid
+            AND ${buildCaseOrganizationScopeSql('$2')}
         )
       )
     LIMIT 1`,
