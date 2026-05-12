@@ -33,7 +33,7 @@
   "license": "MIT",
   "dependencies": {
     "@mailchimp/mailchimp_marketing": "^3.0.80",
-    "@sentry/node": "^10.51.0",
+    "@sentry/node": "^10.52.0",
     "@simplewebauthn/server": "^13.3.0",
     "bcryptjs": "^3.0.3",
     "compression": "^1.8.1",
@@ -43,7 +43,7 @@
     "dotenv": "^17.4.2",
     "exceljs": "^4.4.0",
     "express": "^5.2.1",
-    "express-rate-limit": "^8.5.0",
+    "express-rate-limit": "^8.5.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "logform": "^2.7.0",
@@ -56,9 +56,9 @@
     "qrcode": "^1.5.4",
     "redis": "^5.12.1",
     "speakeasy": "^2.0.0",
-    "stripe": "^22.1.0",
-    "twilio": "^6.0.0",
-    "undici": "^7.25.0",
+    "stripe": "^22.1.1",
+    "twilio": "^6.0.2",
+    "undici": "^8.2.0",
     "winston": "^3.19.0",
     "zod": "^4.4.3"
   },
@@ -69,7 +69,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@jest/globals": "^30.3.0",
+    "@jest/globals": "^30.4.1",
     "@nonprofit-manager/contracts": "file:../contracts",
     "@types/compression": "^1.8.1",
     "@types/cookie-parser": "^1.4.10",
@@ -80,7 +80,7 @@
     "@types/mailchimp__mailchimp_marketing": "^3.0.22",
     "@types/morgan": "^1.9.10",
     "@types/multer": "^2.1.0",
-    "@types/node": "^25.6.0",
+    "@types/node": "^25.7.0",
     "@types/nodemailer": "^8.0.0",
     "@types/pg": "^8.20.0",
     "@types/qrcode": "^1.5.6",
@@ -88,7 +88,7 @@
     "@types/supertest": "^7.2.0",
     "eslint": "^10.3.0",
     "globals": "^17.6.0",
-    "jest": "^30.3.0",
+    "jest": "^30.4.2",
     "prettier": "^3.8.3",
     "supertest": "^7.2.2",
     "ts-jest": "^29.4.9",
@@ -96,6 +96,6 @@
     "tsc-alias": "^1.8.17",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.59.2"
+    "typescript-eslint": "^8.59.3"
   }
 }
