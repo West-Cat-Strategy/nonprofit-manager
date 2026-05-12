@@ -43,6 +43,88 @@ const emptyDraft: {
   status: 'draft' as const,
 };
 
+type CampaignEvidence = {
+  provider?: string | null;
+  providerStatus?: string | null;
+  sentCount?: number | null;
+  openCount?: number | null;
+  openRate?: number | null;
+  clickCount?: number | null;
+  clickRate?: number | null;
+  unsubscribeCount?: number | null;
+  bounceCount?: number | null;
+  emailType?: string | null;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const getCampaignEvidence = (entry: WebsiteEntry): CampaignEvidence | null => {
+  const evidence = isRecord(entry.metadata) ? entry.metadata.campaignEvidence : null;
+  return isRecord(evidence) ? (evidence as CampaignEvidence) : null;
+};
+
+const metricNumber = (value: unknown): number | undefined =>
+  typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+
+const formatCount = (value: number): string => value.toLocaleString();
+
+const formatRate = (value: number): string => {
+  const normalized = value <= 1 ? value * 100 : value;
+  return `${normalized.toFixed(1)}%`;
+};
+
+const buildRateCountLabel = (
+  count: number | undefined,
+  rate: number | undefined,
+  label: string
+): string | null => {
+  if (count === undefined && rate === undefined) return null;
+  if (count !== undefined && rate !== undefined) {
+    return `${formatCount(count)} ${label} (${formatRate(rate)})`;
+  }
+  if (count !== undefined) return `${formatCount(count)} ${label}`;
+  return rate !== undefined ? `${formatRate(rate)} ${label}` : null;
+};
+
+const buildProviderEvidenceSummary = (entry: WebsiteEntry): string | null => {
+  const evidence = getCampaignEvidence(entry);
+  if (!evidence) return null;
+
+  const sentCount = metricNumber(evidence.sentCount);
+  const openLabel = buildRateCountLabel(
+    metricNumber(evidence.openCount),
+    metricNumber(evidence.openRate),
+    'opens'
+  );
+  const clickLabel = buildRateCountLabel(
+    metricNumber(evidence.clickCount),
+    metricNumber(evidence.clickRate),
+    'clicks'
+  );
+  const unsubscribeCount = metricNumber(evidence.unsubscribeCount);
+  const bounceCount = metricNumber(evidence.bounceCount);
+  const parts = [
+    sentCount !== undefined ? `${formatCount(sentCount)} sent` : null,
+    openLabel,
+    clickLabel,
+    unsubscribeCount !== undefined ? `${formatCount(unsubscribeCount)} unsubscribed` : null,
+    bounceCount !== undefined ? `${formatCount(bounceCount)} bounced` : null,
+    evidence.emailType ? `${evidence.emailType} email` : null,
+  ].filter(Boolean);
+  const providerLabel =
+    evidence.provider === 'mautic'
+      ? 'Mautic'
+      : evidence.provider === 'mailchimp'
+        ? 'Mailchimp'
+        : 'Provider';
+  const status = evidence.providerStatus ? ` (${evidence.providerStatus})` : '';
+
+  return parts.length > 0
+    ? `${providerLabel} evidence${status}: ${parts.join(', ')}`
+    : `${providerLabel} evidence${status}`;
+};
+
 const WebsiteContentPage: React.FC = () => {
   const { siteId } = useParams<{ siteId: string }>();
   const dispatch = useAppDispatch();
@@ -646,18 +728,26 @@ const WebsiteContentPage: React.FC = () => {
                   message="No synced archive entries match the current filters."
                 />
               ) : (
-                syncedEntries.map((entry) => (
-                  <div
-                    key={entry.id}
-                    className="rounded-2xl border border-app-border bg-app-surface-muted px-4 py-3"
-                  >
-                    <div className="font-medium text-app-text">{entry.title}</div>
-                    <div className="text-sm text-app-text-muted">
-                      {entry.slug} • {entry.kind.replace('_', ' ')} • {entry.source} •{' '}
-                      {entry.status} • read only
+                syncedEntries.map((entry) => {
+                  const evidenceSummary = buildProviderEvidenceSummary(entry);
+                  return (
+                    <div
+                      key={entry.id}
+                      className="rounded-2xl border border-app-border bg-app-surface-muted px-4 py-3"
+                    >
+                      <div className="font-medium text-app-text">{entry.title}</div>
+                      <div className="text-sm text-app-text-muted">
+                        {entry.slug} • {entry.kind.replace('_', ' ')} • {entry.source} •{' '}
+                        {entry.status} • read only
+                      </div>
+                      {evidenceSummary ? (
+                        <div className="mt-2 text-xs text-app-text-subtle">
+                          {evidenceSummary}
+                        </div>
+                      ) : null}
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </section>

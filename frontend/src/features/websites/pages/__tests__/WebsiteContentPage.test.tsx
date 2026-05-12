@@ -143,11 +143,51 @@ const mockState = {
         body: null,
         bodyHtml: null,
         seo: {},
-        metadata: {},
+        metadata: {
+          campaignEvidence: {
+            provider: 'mailchimp',
+            providerStatus: 'sent',
+            sentCount: 120,
+            openCount: 40,
+            openRate: 0.5,
+            clickCount: 10,
+            clickRate: 0.125,
+            unsubscribeCount: 2,
+            bounceCount: 1,
+          },
+        },
         externalSourceId: 'mc-1',
         publishedAt: '2026-03-04T00:00:00.000Z',
         createdAt: '2026-03-04T00:00:00.000Z',
         updatedAt: '2026-03-04T00:00:00.000Z',
+      },
+      {
+        id: 'entry-sync-2',
+        organizationId: 'org-1',
+        siteId: 'site-1',
+        kind: 'newsletter',
+        source: 'mautic',
+        status: 'published',
+        slug: 'april-newsletter',
+        title: 'April Newsletter',
+        excerpt: 'Mautic mirror',
+        body: null,
+        bodyHtml: null,
+        seo: {},
+        metadata: {
+          campaignEvidence: {
+            provider: 'mautic',
+            providerStatus: 'published',
+            sentCount: 42,
+            openCount: 11,
+            openRate: 11 / 42,
+            emailType: 'list',
+          },
+        },
+        externalSourceId: 'mautic-email-1',
+        publishedAt: '2026-04-02T00:00:00.000Z',
+        createdAt: '2026-04-02T00:00:00.000Z',
+        updatedAt: '2026-04-02T00:00:00.000Z',
       },
     ],
     isLoading: false,
@@ -204,7 +244,16 @@ describe('WebsiteContentPage', () => {
 
     expect(screen.getByText('Spring Update')).toBeInTheDocument();
     expect(screen.getByText('March Campaign')).toBeInTheDocument();
+    expect(screen.getByText('April Newsletter')).toBeInTheDocument();
     expect(screen.getByText('Content filters')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Mailchimp evidence \(sent\): 120 sent, 40 opens \(50.0%\), 10 clicks \(12.5%\), 2 unsubscribed, 1 bounced/i
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Mautic evidence \(published\): 42 sent, 11 opens \(26.2%\), list email/i)
+    ).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Filter content source'), {
       target: { value: 'native' },

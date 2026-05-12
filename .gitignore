@@ -1,18 +1,20 @@
-# ==============================
-# Dependencies
-# ==============================
+# Dependencies and package manager output
 node_modules/
+
+# The root lockfile is tracked. Workspace lockfiles are intentionally local so
+# dependency resolution stays centralized at the workspace root.
 /backend/package-lock.json
 /frontend/package-lock.json
 /e2e/package-lock.json
 /contracts/package-lock.json
 
-# ==============================
-# Workspace-local and generated artifacts
-# ==============================
+# Local agent, editor-assistant, and shell workspace state
 .codex/*
 !.codex/skills/
 .codex/skills/*
+
+# Only these three repo-local reference trees are versioned canon. Skill bodies,
+# generated helper prompts, and local agent state stay untracked.
 !.codex/skills/nonprofit-manager-benchmark-analysis/
 /.codex/skills/nonprofit-manager-benchmark-analysis/*
 !.codex/skills/nonprofit-manager-benchmark-analysis/references/
@@ -34,41 +36,13 @@ node_modules/
 .envrc
 *.local
 
-# ==============================
-# Generated workspace output
-# ==============================
-.cache/
-.docker/backups/
-.docker/postgres/
-.docker/redis/
-.docker/elasticsearch/
-.docker/plausible/
-output/
-
-# ==============================
-# Environment and deploy config
-# ==============================
+# Environment, deploy config, and secrets
 .env
 .env.*
 !.env.example
 !.env.*.example
 .deploy.conf
 .deploy.conf.*
-
-# ==============================
-# Build artifacts
-# ==============================
-dist/
-dist.bak/
-build/
-.next/
-.nuxt/
-.vite/
-.turbo/
-.parcel-cache/
-storybook-static/
-*.tsbuildinfo
-*.js.map
 
 # Private keys and certificates
 *.pem
@@ -83,9 +57,31 @@ id_rsa
 id_ed25519
 *.pub
 
-# ==============================
-# Testing and reports
-# ==============================
+# Generated runtime, Docker, and workspace output
+.cache/
+.docker/backups/
+.docker/postgres/
+.docker/redis/
+.docker/elasticsearch/
+.docker/plausible/
+backend/exports/
+output/
+tmp/
+
+# Build artifacts
+dist/
+dist.bak/
+build/
+.next/
+.nuxt/
+.vite/
+.turbo/
+.parcel-cache/
+storybook-static/
+*.tsbuildinfo
+*.js.map
+
+# Testing, reports, and cache files
 coverage/
 .nyc_output/
 htmlcov/
@@ -98,10 +94,15 @@ playwright-report/
 blob-report/
 .playwright-cli/
 playwright/.cache/
+security-reports/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.eslintcache
+.stylelintcache
 
-# ==============================
 # Logs and runtime traces
-# ==============================
 logs/
 *.log
 npm-debug.log*
@@ -109,9 +110,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# ==============================
 # Editors and OS files
-# ==============================
 .vscode/*
 !.vscode/extensions.json
 !.vscode/launch.json
@@ -124,9 +123,7 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 
-# ==============================
 # Databases and dumps
-# ==============================
 *.db
 *.sqlite
 *.sqlite3
@@ -134,24 +131,11 @@ Thumbs.db
 *.sql.gz
 *.sql.bak
 
-# ==============================
-# Generated and temporary files
-# ==============================
-backend/exports/
-security-reports/
-__pycache__/
-.pytest_cache/
-.ruff_cache/
-.mypy_cache/
-.eslintcache
-.stylelintcache
+# Temporary files
 *.tmp
 *.temp
-tmp/
 
-# ==============================
 # Reference repo workspace (local-only)
-# ==============================
 reference-repos/local/**
 reference-repos/external/**
 !reference-repos/manifest.lock.json

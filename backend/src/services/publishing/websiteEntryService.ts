@@ -11,8 +11,9 @@ import type {
   WebsiteEntrySource,
   WebsiteEntryStatus,
 } from '@app-types/websiteBuilder';
+import type { MailchimpCampaign } from '@app-types/mailchimp';
 import { getCampaigns } from '@services/mailchimpService';
-import mauticService from '@services/mauticService';
+import mauticService, { type MauticEmail } from '@services/mauticService';
 import { sanitizeNewsletterHtml } from './newsletterHtmlSanitizer';
 import { SiteManagementService } from './siteManagementService';
 import { WebsiteSiteSettingsService } from './siteSettingsService';
@@ -51,6 +52,90 @@ const sanitizeBodyHtml = (value?: string | null): string | null => {
   if (!value) return null;
   const sanitized = sanitizeNewsletterHtml(value).trim();
   return sanitized.length > 0 ? sanitized : null;
+};
+
+const asFiniteNumber = (value: unknown): number | undefined => {
+  const numeric = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(numeric) ? numeric : undefined;
+};
+
+const firstFiniteNumber = (...values: unknown[]): number | undefined =>
+  values.map(asFiniteNumber).find((value) => value !== undefined);
+
+const toIsoString = (value?: Date | string | null): string | null => {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return typeof value === 'string' && value.trim() ? value : null;
+  }
+  return date.toISOString();
+};
+
+const compactRecord = (
+  record: Record<string, string | number | null | undefined>
+): Record<string, string | number | null> =>
+  Object.fromEntries(
+    Object.entries(record).filter((entry): entry is [string, string | number | null] => {
+      const value = entry[1];
+      return value !== undefined;
+    })
+  );
+
+const buildMailchimpCampaignEvidence = (
+  campaign: MailchimpCampaign
+): Record<string, string | number | null> => {
+  const reportSummary = campaign.reportSummary as Record<string, unknown> | undefined;
+  const sentCount = asFiniteNumber(campaign.emailsSent);
+  const openCount = firstFiniteNumber(reportSummary?.uniqueOpens, reportSummary?.opens);
+  const clickCount = firstFiniteNumber(reportSummary?.uniqueClicks, reportSummary?.clicks);
+  const reportedAt =
+    toIsoString(campaign.sendTime) ?? toIsoString(campaign.createdAt) ?? new Date().toISOString();
+
+  return compactRecord({
+    provider: 'mailchimp',
+    providerItemId: campaign.id,
+    providerAudienceId: campaign.listId,
+    providerStatus: campaign.status,
+    reportedAt,
+    lastProviderActivityAt: toIsoString(campaign.sendTime) ?? toIsoString(campaign.createdAt),
+    sentCount,
+    openCount,
+    openRate: asFiniteNumber(reportSummary?.openRate),
+    clickCount,
+    clickRate: asFiniteNumber(reportSummary?.clickRate),
+    unsubscribeCount: asFiniteNumber(reportSummary?.unsubscribes),
+    bounceCount: firstFiniteNumber(reportSummary?.bounces, reportSummary?.bounceCount),
+  });
+};
+
+const buildMauticCampaignEvidence = (
+  email: MauticEmail,
+  segmentId: string | undefined,
+  publishedAt: string
+): Record<string, string | number | null> => {
+  const sentCount = asFiniteNumber(email.sentCount);
+  const openCount = asFiniteNumber(email.readCount);
+  const openRate =
+    sentCount !== undefined && sentCount > 0 && openCount !== undefined
+      ? openCount / sentCount
+      : undefined;
+  const providerAudienceId = segmentId || email.lists?.[0] || null;
+
+  return compactRecord({
+    provider: 'mautic',
+    providerItemId: email.id,
+    providerAudienceId,
+    providerStatus: 'published',
+    reportedAt: toIsoString(publishedAt) ?? new Date().toISOString(),
+    lastProviderActivityAt:
+      toIsoString(email.dateModified) ??
+      toIsoString(email.publishUp) ??
+      toIsoString(email.dateAdded),
+    sentCount,
+    openCount,
+    openRate,
+    emailType: email.emailType ?? null,
+  });
 };
 
 interface EntryListOptions {
@@ -335,6 +420,7 @@ export class WebsiteEntryService {
             listId: campaign.listId,
             reportSummary: campaign.reportSummary || null,
             emailsSent: campaign.emailsSent || null,
+            campaignEvidence: buildMailchimpCampaignEvidence(campaign),
           }),
           campaign.id,
           campaign.sendTime ? campaign.sendTime.toISOString() : campaign.createdAt.toISOString(),
@@ -406,6 +492,7 @@ export class WebsiteEntryService {
             lists: email.lists || [],
             sentCount: email.sentCount ?? null,
             readCount: email.readCount ?? null,
+            campaignEvidence: buildMauticCampaignEvidence(email, segmentId, publishedAt),
           }),
           email.id,
           publishedAt,
