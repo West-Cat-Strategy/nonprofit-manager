@@ -24,6 +24,7 @@
   - active held contacts to merge or already-inactive held contacts to skip idempotently.
 - Apply mode calls the existing `ContactMergeService` with anchor-preferred scalar conflict resolutions and then verifies merged held contacts are inactive.
 - The CBIS import CLI accepts `--duplicate-contact-decision-audit` so the dry-run/apply safety plan can allow only reviewed held-contact to anchor provenance retargets from the P5-T121 decision audit; all other source-to-different-target provenance conflicts remain held.
+- The merge CLI can resolve a missing generated bundle anchor to exactly one active production contact by the same conservative natural keys, then retarget held-contact provenance to the resolved live anchor after a successful merge.
 
 ## Local Validation
 

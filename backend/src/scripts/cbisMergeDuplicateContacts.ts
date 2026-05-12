@@ -1,5 +1,10 @@
 import { rawPool } from '@config/database';
-import { loadDuplicateContactDecisions, type DuplicateContactDecision } from '@modules/cbisImport/cbisImportDuplicateContactDecisions';
+import { loadCbisImportBundle, type CbisImportRow } from '@modules/cbisImport';
+import {
+  loadDuplicateContactDecisions,
+  type DuplicateContactDecision,
+} from '@modules/cbisImport/cbisImportDuplicateContactDecisions';
+import { normalizePhone, normalizeText } from '@modules/cbisImport/cbisImportRowUtils';
 import { getMergeableResolutionFieldNames } from '@modules/contacts/shared/contactMerge';
 import { ContactMergeService } from '@modules/contacts/services/contactMergeService';
 import type { ContactMergeRequest, ContactMergeResult } from '@app-types/contact';
@@ -13,6 +18,17 @@ interface CliOptions {
   expectedBundleFingerprint?: string;
   expectedSchemaVersion?: string;
   mode?: MergeMode;
+  bundleDir?: string;
+}
+
+interface RunOptions {
+  decisionAudit: string;
+  organizationId: string;
+  actorId: string;
+  expectedBundleFingerprint: string;
+  expectedSchemaVersion: string;
+  mode: MergeMode;
+  bundleDir?: string;
 }
 
 interface QueryablePool {
@@ -43,6 +59,8 @@ interface ValidationSummary {
   merge_active_contact_ids: string[];
   merge_inactive_contact_ids: string[];
   keep_held_contact_ids: string[];
+  anchor_contact_id_by_held_contact_id: Map<string, string>;
+  resolved_missing_anchors: number;
 }
 
 export interface MergeDuplicateContactsResult {
@@ -61,8 +79,10 @@ export interface MergeDuplicateContactsResult {
     active_merge_candidates: number;
     inactive_held_skips: number;
     keep_held_contacts: number;
+    resolved_missing_anchors: number;
   };
   applied_merges: number;
+  provenance_retargets: number;
 }
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -100,6 +120,8 @@ export const parseArgs = (argv: string[]): CliOptions => {
         throw new Error('--mode must be dry-run or apply');
       }
       options.mode = mode;
+    } else if (arg === '--bundle') {
+      options.bundleDir = readValue();
     } else {
       throw new Error(`Unknown option ${arg}`);
     }
@@ -185,9 +207,118 @@ const loadContactStates = async (
   return new Map(result.rows.map((row) => [row.id, row]));
 };
 
+const compact = (value: string | undefined): string | null => {
+  const trimmed = value?.trim() ?? '';
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+const loadBundleContactRows = async (
+  bundleDir: string | undefined,
+  expectedBundleFingerprint: string,
+  expectedSchemaVersion: string
+): Promise<Map<string, CbisImportRow>> => {
+  if (!bundleDir) {
+    return new Map();
+  }
+  const bundle = await loadCbisImportBundle(bundleDir);
+  if (bundle.fingerprint !== expectedBundleFingerprint) {
+    throw new Error(`Bundle fingerprint mismatch: expected ${expectedBundleFingerprint}, got ${bundle.fingerprint}`);
+  }
+  const schemaVersion = bundle.schemaBundle.version ?? bundle.summary.schema_bundle_version ?? 'unknown';
+  if (schemaVersion !== expectedSchemaVersion) {
+    throw new Error(`Bundle schema mismatch: expected ${expectedSchemaVersion}, got ${schemaVersion}`);
+  }
+  return new Map(bundle.entities.contacts.map((row) => [row.contact_id, row]));
+};
+
+const querySingleAnchorCandidate = async (
+  db: QueryablePool,
+  sql: string,
+  params: unknown[],
+  label: string
+): Promise<ContactState | null> => {
+  const result = await db.query<ContactState>(sql, params);
+  if (result.rows.length > 1) {
+    throw new Error(`Multiple active contacts match missing anchor by ${label}`);
+  }
+  return result.rows[0] ?? null;
+};
+
+const resolveMissingAnchor = async (
+  db: QueryablePool,
+  anchorRow: CbisImportRow | undefined
+): Promise<ContactState | null> => {
+  if (!anchorRow) {
+    return null;
+  }
+
+  const email = normalizeText(compact(anchorRow.email));
+  if (email) {
+    const byEmail = await querySingleAnchorCandidate(
+      db,
+      `
+        SELECT id::text, is_active, account_id::text
+        FROM contacts
+        WHERE is_active = true
+          AND lower(email) = $1
+        ORDER BY created_at ASC, id ASC
+      `,
+      [email],
+      `email ${email}`
+    );
+    if (byEmail) {
+      return byEmail;
+    }
+  }
+
+  const firstName = normalizeText(compact(anchorRow.first_name));
+  const lastName = normalizeText(compact(anchorRow.last_name));
+  const birthDate = compact(anchorRow.birth_date);
+  if (firstName && lastName && birthDate) {
+    const byBirthDate = await querySingleAnchorCandidate(
+      db,
+      `
+        SELECT id::text, is_active, account_id::text
+        FROM contacts
+        WHERE is_active = true
+          AND lower(first_name) = $1
+          AND lower(last_name) = $2
+          AND birth_date = $3::date
+        ORDER BY created_at ASC, id ASC
+      `,
+      [firstName, lastName, birthDate],
+      `name and birth date ${firstName} ${lastName}`
+    );
+    if (byBirthDate) {
+      return byBirthDate;
+    }
+  }
+
+  const phone = normalizePhone(compact(anchorRow.phone) ?? compact(anchorRow.mobile_phone));
+  if (firstName && lastName && phone) {
+    return querySingleAnchorCandidate(
+      db,
+      `
+        SELECT id::text, is_active, account_id::text
+        FROM contacts
+        WHERE is_active = true
+          AND lower(first_name) = $1
+          AND lower(last_name) = $2
+          AND regexp_replace(coalesce(nullif(phone, ''), nullif(mobile_phone, ''), ''), '\\D', '', 'g') = $3
+        ORDER BY created_at ASC, id ASC
+      `,
+      [firstName, lastName, phone],
+      `name and phone ${firstName} ${lastName}`
+    );
+  }
+
+  return null;
+};
+
 const assertValidContactStates = async (
   db: QueryablePool,
-  decisions: DuplicateContactDecision[]
+  decisions: DuplicateContactDecision[],
+  anchorRows: Map<string, CbisImportRow>
 ): Promise<ValidationSummary> => {
   const contactStates = await loadContactStates(
     db,
@@ -197,20 +328,34 @@ const assertValidContactStates = async (
   const mergeActiveContactIds: string[] = [];
   const mergeInactiveContactIds: string[] = [];
   const keepHeldContactIds: string[] = [];
+  const anchorContactIdByHeldContactId = new Map<string, string>();
+  let resolvedMissingAnchors = 0;
 
   for (const decision of decisions) {
     const held = contactStates.get(decision.held_contact_id);
-    const anchor = contactStates.get(decision.anchor_contact_id);
+    let anchor = contactStates.get(decision.anchor_contact_id) ?? null;
     if (!held) {
       issues.push(`missing held contact ${decision.held_contact_id} (${decision.duplicate_name_key})`);
       continue;
     }
     if (!anchor) {
-      issues.push(`missing anchor contact ${decision.anchor_contact_id} (${decision.duplicate_name_key})`);
-      continue;
+      try {
+        anchor = await resolveMissingAnchor(db, anchorRows.get(decision.anchor_contact_id));
+      } catch (error) {
+        issues.push(
+          `${error instanceof Error ? error.message : String(error)} (${decision.duplicate_name_key})`
+        );
+        continue;
+      }
+      if (!anchor) {
+        issues.push(`missing anchor contact ${decision.anchor_contact_id} (${decision.duplicate_name_key})`);
+        continue;
+      }
+      resolvedMissingAnchors += 1;
     }
+    anchorContactIdByHeldContactId.set(decision.held_contact_id, anchor.id);
     if (!anchor.is_active) {
-      issues.push(`inactive anchor contact ${decision.anchor_contact_id} (${decision.duplicate_name_key})`);
+      issues.push(`inactive anchor contact ${anchor.id} (${decision.duplicate_name_key})`);
     }
 
     if (decision.decision === 'keep_held') {
@@ -241,6 +386,8 @@ const assertValidContactStates = async (
     merge_active_contact_ids: mergeActiveContactIds,
     merge_inactive_contact_ids: mergeInactiveContactIds,
     keep_held_contact_ids: keepHeldContactIds,
+    anchor_contact_id_by_held_contact_id: anchorContactIdByHeldContactId,
+    resolved_missing_anchors: resolvedMissingAnchors,
   };
 };
 
@@ -271,10 +418,44 @@ const assertAppliedMergeState = async (
 const anchorPreferredResolutions = (): ContactMergeRequest['resolutions'] =>
   Object.fromEntries(getMergeableResolutionFieldNames().map((field) => [field, 'target']));
 
+const retargetContactProvenance = async (
+  db: QueryablePool,
+  organizationId: string,
+  heldContactId: string,
+  anchorContactId: string,
+  proof: ImportApplyProof,
+  expectedBundleFingerprint: string,
+  expectedSchemaVersion: string
+): Promise<number> => {
+  const result = await db.query<{ id: string }>(
+    `
+      UPDATE cbis_import_target_provenance
+      SET target_entity_id = $3::uuid,
+          bundle_fingerprint = $4,
+          schema_bundle_version = $5,
+          last_import_run_id = $6::uuid,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE organization_id = $1::uuid
+        AND target_entity_type = 'contacts'
+        AND target_entity_id = $2::uuid
+      RETURNING id::text
+    `,
+    [
+      organizationId,
+      heldContactId,
+      anchorContactId,
+      expectedBundleFingerprint,
+      expectedSchemaVersion,
+      proof.run_id,
+    ]
+  );
+  return result.rows.length;
+};
+
 export const runMergeDuplicateContacts = async (
   db: QueryablePool,
   mergeService: MergeService,
-  options: Required<CliOptions>
+  options: RunOptions
 ): Promise<MergeDuplicateContactsResult> => {
   requireUuid(options.organizationId, '--organization-id');
   requireUuid(options.actorId, '--actor-id');
@@ -288,19 +469,36 @@ export const runMergeDuplicateContacts = async (
     options.expectedBundleFingerprint,
     options.expectedSchemaVersion
   );
-  const validation = await assertValidContactStates(db, decisions);
+  const anchorRows = await loadBundleContactRows(
+    options.bundleDir,
+    options.expectedBundleFingerprint,
+    options.expectedSchemaVersion
+  );
+  const validation = await assertValidContactStates(db, decisions, anchorRows);
 
   let appliedMerges = 0;
+  let provenanceRetargets = 0;
   if (options.mode === 'apply') {
     const resolutions = anchorPreferredResolutions();
     for (const decision of mergeDecisions) {
+      const anchorContactId =
+        validation.anchor_contact_id_by_held_contact_id.get(decision.held_contact_id) ?? decision.anchor_contact_id;
       if (!validation.merge_active_contact_ids.includes(decision.held_contact_id)) {
+        provenanceRetargets += await retargetContactProvenance(
+          db,
+          options.organizationId,
+          decision.held_contact_id,
+          anchorContactId,
+          proof,
+          options.expectedBundleFingerprint,
+          options.expectedSchemaVersion
+        );
         continue;
       }
       const result = await mergeService.mergeContacts(
         decision.held_contact_id,
         {
-          target_contact_id: decision.anchor_contact_id,
+          target_contact_id: anchorContactId,
           resolutions,
         },
         options.actorId,
@@ -310,9 +508,18 @@ export const runMergeDuplicateContacts = async (
         throw new Error(`Merge returned no result for held contact ${decision.held_contact_id}`);
       }
       appliedMerges += 1;
+      provenanceRetargets += await retargetContactProvenance(
+        db,
+        options.organizationId,
+        decision.held_contact_id,
+        anchorContactId,
+        proof,
+        options.expectedBundleFingerprint,
+        options.expectedSchemaVersion
+      );
     }
 
-    await assertValidContactStates(db, decisions);
+    await assertValidContactStates(db, decisions, anchorRows);
     await assertAppliedMergeState(db, mergeDecisions);
   }
 
@@ -332,12 +539,14 @@ export const runMergeDuplicateContacts = async (
       active_merge_candidates: validation.merge_active_contact_ids.length,
       inactive_held_skips: validation.merge_inactive_contact_ids.length,
       keep_held_contacts: validation.keep_held_contact_ids.length,
+      resolved_missing_anchors: validation.resolved_missing_anchors,
     },
     applied_merges: appliedMerges,
+    provenance_retargets: provenanceRetargets,
   };
 };
 
-const buildRequiredOptions = (options: CliOptions): Required<CliOptions> => ({
+const buildRequiredOptions = (options: CliOptions): RunOptions => ({
   decisionAudit: requireOption(options.decisionAudit, '--decision-audit'),
   organizationId: requireOption(options.organizationId, '--organization-id'),
   actorId: requireOption(options.actorId, '--actor-id'),
@@ -347,6 +556,7 @@ const buildRequiredOptions = (options: CliOptions): Required<CliOptions> => ({
   ),
   expectedSchemaVersion: requireOption(options.expectedSchemaVersion, '--expected-schema-version'),
   mode: options.mode ?? 'dry-run',
+  bundleDir: options.bundleDir,
 });
 
 async function main(): Promise<void> {

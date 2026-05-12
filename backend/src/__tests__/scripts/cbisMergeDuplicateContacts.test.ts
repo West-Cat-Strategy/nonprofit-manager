@@ -79,6 +79,9 @@ const createDb = (
           .filter((state): state is ContactState => Boolean(state)),
       };
     }
+    if (sql.includes('UPDATE cbis_import_target_provenance')) {
+      return { rows: [{ id: 'provenance-row' }] };
+    }
     throw new Error(`Unexpected SQL: ${sql}`);
   }),
 });
