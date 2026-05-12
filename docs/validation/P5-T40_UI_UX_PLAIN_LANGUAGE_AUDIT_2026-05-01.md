@@ -1,8 +1,10 @@
 # P5-T40 UI/UX Plain-Language Audit
 
 **Date:** 2026-05-01  
-**Status:** Implementation landed; review pending  
+**Status:** Archived proof-complete; original review note retained
 **Workboard row:** [P5-T40](../phases/planning-and-progress.md)
+
+> Supersession note, 2026-05-12: `P5-T40` was removed from the live workboard as proof-complete in [archive/P5_REVIEW_CLOSEOUT_BATCH_2026-05-04.md](../phases/archive/P5_REVIEW_CLOSEOUT_BATCH_2026-05-04.md). This audit remains useful evidence, but it is no longer a live review row.
 
 ## Scope
 

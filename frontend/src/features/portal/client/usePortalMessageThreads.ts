@@ -10,6 +10,7 @@ import type {
 
 export interface PortalThreadSummary {
   id: string;
+  case_id?: string | null;
   subject: string | null;
   status: 'open' | 'closed' | 'archived';
   case_number: string | null;
@@ -182,6 +183,7 @@ export function usePortalMessageThreads({
 
       const thread: PortalThreadSummary = {
         id: payload.thread.id,
+        case_id: payload.case_id ?? null,
         subject: payload.thread.subject,
         status: payload.thread.status as PortalThreadSummary['status'],
         case_number: payload.thread.case_number,

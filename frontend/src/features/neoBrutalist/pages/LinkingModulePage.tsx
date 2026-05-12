@@ -44,6 +44,14 @@ export default function LinkingModule() {
 
     const handleNewItem = () => navigate('/accounts/new');
     const handleEdit = (id: string) => navigate(`/accounts/${id}/edit`);
+    const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+    const visibleOrganizations = normalizedSearchTerm
+        ? organizations.filter((org) =>
+            [org.name, org.type, org.status, org.contact].some((value) =>
+                value.toLowerCase().includes(normalizedSearchTerm)
+            )
+        )
+        : organizations;
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -120,7 +128,7 @@ export default function LinkingModule() {
                             </tr>
                         </thead>
                         <tbody>
-                            {organizations.map((org) => (
+                            {visibleOrganizations.map((org) => (
                                 <tr key={org.id} className="border-b-2 border-black hover:bg-app-surface-muted dark:hover:bg-app-text transition-colors">
                                     <td className="px-6 py-4 font-bold bg-[var(--loop-green)] border-r-2 border-black text-black">{org.name}</td>
                                     <td className="px-6 py-4 capitalize font-medium text-black dark:text-white">{org.type}</td>
@@ -142,6 +150,16 @@ export default function LinkingModule() {
                             ))}
                         </tbody>
                     </table>
+                    {visibleOrganizations.length === 0 && (
+                        <div className="border-t-2 border-black bg-app-surface p-10 text-center dark:bg-[#121212]">
+                            <h3 className="text-2xl font-black uppercase text-black dark:text-white">
+                                No Partnerships Found
+                            </h3>
+                            <p className="mt-2 font-bold text-app-text-muted dark:text-app-text-subtle">
+                                Try a different name, type, status, or contact.
+                            </p>
+                        </div>
+                    )}
                 </div>
             </div>
         </NeoBrutalistLayout>

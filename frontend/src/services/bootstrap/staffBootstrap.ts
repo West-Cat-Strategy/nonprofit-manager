@@ -14,6 +14,7 @@ import {
   setWorkspaceModuleAccessCached,
 } from '../workspaceModuleAccessService';
 import { recordBrowserSessionDiagnostic } from '../browserSessionDiagnostics';
+import { areDemoRoutesEnabled } from '../loop/demo';
 
 export type BootstrapStatus = 'authenticated' | 'anonymous';
 
@@ -52,7 +53,7 @@ const isStaffBootstrapBypassRoute = (): boolean => {
   }
 
   return (
-    window.location.pathname.startsWith('/demo/') ||
+    (areDemoRoutesEnabled() && window.location.pathname.startsWith('/demo/')) ||
     window.location.pathname.startsWith('/portal/')
   );
 };

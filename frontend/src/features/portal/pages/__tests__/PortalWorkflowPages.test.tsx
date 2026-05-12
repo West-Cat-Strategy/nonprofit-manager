@@ -1,10 +1,11 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import { renderWithProviders } from '../../../../test/testUtils';
 import PortalMessagesPage from '../PortalMessagesPage';
 import PortalAppointmentsPage from '../PortalAppointmentsPage';
 
 const portalGetMock = vi.fn();
+const portalPostMock = vi.fn();
 const refreshAppointmentsMock = vi.fn().mockResolvedValue(undefined);
 const refreshThreadsMock = vi.fn().mockResolvedValue(undefined);
 const loadMoreAppointmentsMock = vi.fn().mockResolvedValue(undefined);
@@ -14,7 +15,7 @@ const setSelectedCaseIdMock = vi.fn();
 vi.mock('../../../../services/portalApi', () => ({
   default: {
     get: (...args: unknown[]) => portalGetMock(...args),
-    post: vi.fn(),
+    post: (...args: unknown[]) => portalPostMock(...args),
     patch: vi.fn(),
   },
 }));
@@ -40,6 +41,7 @@ vi.mock('../../client/usePortalMessageThreads', () => ({
     threads: [
       {
         id: 'thread-1',
+        case_id: 'case-1',
         subject: 'Need help with documents',
         status: 'open',
         case_number: 'CASE-001',
@@ -155,8 +157,41 @@ describe('Portal workflow pages', () => {
         });
       }
 
+      if (url === '/v2/portal/messages/threads/thread-1') {
+        return Promise.resolve({
+          data: {
+            success: true,
+            data: {
+              thread: {
+                id: 'thread-1',
+                case_id: 'case-1',
+                subject: 'Need help with documents',
+                status: 'open',
+                case_number: 'CASE-001',
+                case_title: 'Housing Support',
+                pointperson_first_name: 'Alex',
+                pointperson_last_name: 'Rivera',
+                unread_count: 1,
+                last_message_at: '2026-03-15T18:00:00.000Z',
+                last_message_preview: 'Please upload your documents here.',
+              },
+              messages: [
+                {
+                  id: 'message-1',
+                  sender_type: 'staff',
+                  message_text: 'Please upload your documents here.',
+                  sender_display_name: 'Alex Rivera',
+                  created_at: '2026-03-15T18:00:00.000Z',
+                },
+              ],
+            },
+          },
+        });
+      }
+
       return Promise.resolve({ data: { success: true, data: {} } });
     });
+    portalPostMock.mockResolvedValue({ data: { success: true, data: {} } });
   });
 
   it('renders the portal messages workflow shell', async () => {
@@ -165,6 +200,19 @@ describe('Portal workflow pages', () => {
     expect(await screen.findByText('Conversations')).toBeInTheDocument();
     expect(screen.getByText('Need help with documents')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /send message/i })).toBeInTheDocument();
+  });
+
+  it('opens a linked portal message thread from the dashboard URL', async () => {
+    renderWithProviders(<PortalMessagesPage />, {
+      route: '/portal/messages?thread=thread-1&case=case-1',
+    });
+
+    expect(await screen.findByText('Please upload your documents here.')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(portalGetMock).toHaveBeenCalledWith('/v2/portal/messages/threads/thread-1');
+      expect(portalPostMock).toHaveBeenCalledWith('/v2/portal/messages/threads/thread-1/read');
+    });
   });
 
   it('renders the portal appointments workflow shell', async () => {
@@ -183,5 +231,15 @@ describe('Portal workflow pages', () => {
       '/portal/messages'
     );
     expect(screen.getByRole('button', { name: /request appointment/i })).toBeInTheDocument();
+  });
+
+  it('highlights an appointment linked from the dashboard URL', async () => {
+    renderWithProviders(<PortalAppointmentsPage />, {
+      route: '/portal/appointments?appointment=appointment-1&case=case-1',
+    });
+
+    expect(await screen.findByText('Linked from dashboard')).toBeInTheDocument();
+    expect(screen.getByText('Case check-in')).toBeInTheDocument();
+    expect(screen.getAllByText('CASE-001 - Housing Support').length).toBeGreaterThan(0);
   });
 });

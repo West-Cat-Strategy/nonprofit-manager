@@ -1,11 +1,11 @@
 # Phase 5 Review Subagent Wave Revalidation
 
 **Date:** 2026-05-09
-**Updated:** 2026-05-10
+**Updated:** 2026-05-11
 
-This note captures the validation-only subagent wave for the original 26 `Review` rows on the Phase 5 workboard. The lead lane preserved the dirty `codex/p5-t91-queue-view-modularity` checkout, kept docs and workboard edits lead-owned, and did not make runtime/API changes.
+This note captures the validation-only subagent wave for the original 26 `Review` rows on the Phase 5 workboard. The lead lane preserved the occupied queue-view checkout, kept docs and workboard edits lead-owned, and did not make runtime/API changes.
 
-`P5-T93` appeared on the board after the initial baseline and was not part of this 26-row wave. The 2026-05-10 update records the narrower remaining-blocker wave for `P5-T71`, `P5-T78`, `P5-T85`, `P5-T90`, `P5-T91`, `P5-T92`, and `P5-T93`, plus the residual local-gate follow-up row `P5-T94`.
+`P5-T93` appeared on the board after the initial baseline and was not part of this 26-row wave. The 2026-05-10 update records the narrower remaining-blocker wave for `P5-T71`, `P5-T78`, `P5-T85`, `P5-T90`, `P5-T91`, `P5-T92`, and `P5-T93`, plus the residual local-gate follow-up row `P5-T94`. The 2026-05-11 update reconciles the post-merge state: `P5-T93`, `P5-T94`, `P5-T95`, `P5-T96`, and `P5-T97` are merged on `main` and are no longer review targets.
 
 ## Disposition Summary
 
@@ -30,8 +30,11 @@ This note captures the validation-only subagent wave for the original 26 `Review
 | `P5-T90` | Proof-complete | Removed from live board on 2026-05-10 after `volunteerService.ts` was reduced to 894 lines, implementation-size policy passed, and focused volunteer approval DB proof passed. |
 | `P5-T91` | Proof-complete | Removed from live board on 2026-05-10 after the direct `express-serve-static-core` import was removed and focused queue-view backend/frontend proof passed. Residual unrelated Knip findings moved to `P5-T94`. |
 | `P5-T92` | Proof-complete | Removed from live board on 2026-05-10 after an explicit reject-click frontend proof was added and focused website forms/type/lint/contracts proof passed. |
-| `P5-T93` | Needs fix | Keep live; review found a valid single-checkbox false-positive in the option-less diagnostic and focused Vitest default-file-parallelism reproducibility needs cleanup. |
-| `P5-T94` | Local gates clean | Mailchimp campaign-dialog modularity and scoped semantic dead-code cleanup proof is indexed; targeted frontend/backend tests, `npm run knip`, `make lint`, and `make typecheck` pass in the active checkout. |
+| `P5-T93` | Proof-complete | Removed from live board on 2026-05-11 after the safe dependency refresh, testing-strategy overhaul, and case-form authoring diagnostics follow-through were merged on `main`. |
+| `P5-T94` | Proof-complete | Removed from live board on 2026-05-11 after Mailchimp campaign-dialog modularity, scoped semantic cleanup, Knip, lint, and typecheck gate proof were merged on `main`. |
+| `P5-T95` | Proof-complete | Removed from live board on 2026-05-11 after worker container parity and hardening landed on `main`. |
+| `P5-T96` | Proof-complete | Removed from live board on 2026-05-11 after small-VPS runtime and queued report export refactor proof landed on `main`. |
+| `P5-T97` | Proof-complete | Removed from live board on 2026-05-11 after controller helper modularity landed on `main`. |
 
 ## 2026-05-10 Remaining-Blocker Wave
 
@@ -42,6 +45,7 @@ This note captures the validation-only subagent wave for the original 26 `Review
 - `P5-T93`: read-only review found a diagnostics bug where valid single-checkbox questions without options can be reported as option-less. Frontend type-check, frontend lint, `make check-links`, and tracked path-scoped diff checks passed; the focused two-file Vitest command timed out under default file parallelism but passed with `--fileParallelism=false`.
 - `P5-T71`/`P5-T78`: host E2E stale state was confirmed as an `e2e/.cache`/isolated DB mismatch. After clearing `e2e/.cache`, rebuilding the isolated DB, and seeding through the starter public-site proof, host Chromium `tests/public-workflows.spec.ts` passed and the starter public-site proof passed.
 - `P5-T85`: no Docker rerun was needed. The current P5-T85 proof already records the May 8 fresh Docker review stack, full desktop matrix, exact Firefox rerun, mobile tail, and Docker audit pass; the live board text was stale.
+- `P5-T95`/`P5-T96`/`P5-T97`: the row-local proof notes are merged on `main`; they are not live review targets.
 
 ## Validation Highlights
 
@@ -57,9 +61,9 @@ This note captures the validation-only subagent wave for the original 26 `Review
 - Current dirty checkout: `P5-T90` dedicated volunteer approval DB proof passed; `P5-T91` backend/frontend queue-view behavior proof passed; `P5-T92` frontend/public-action/backend behavior tests passed for covered paths.
 - Docker/E2E: `make docker-validate-overlays`, `node scripts/check-docker-image-policy.mjs`, pinned nginx smoke, `make docker-build`, `make docker-validate`, Docker Scout quickviews, and `make test-e2e-docker-smoke` passed. The later P5-T85 row-local proof also records the fresh Docker review stack, full Docker desktop matrix, exact Firefox rerun, mobile tail, and Docker audit pass.
 
-## Remaining Blockers
+## Live Blockers
 
-- `P5-T93`: fix the single-checkbox false-positive, add regression coverage, and make or document the focused Vitest proof's serial execution requirement.
+- No blocker remains in this revalidation note. `P5-T75` remains a separate live, time-gated blocker on the workboard.
 
 ## Broad Gate Status
 
@@ -69,3 +73,4 @@ This note captures the validation-only subagent wave for the original 26 `Review
 - `npm run knip` passed with only the local Node `[DEP0205]` warning after the residual Mailchimp/root dependency findings were cleared.
 - `make lint` passed end to end, including backend lint, shared policy checks, UI audit baseline enforcement, and frontend lint. UI audit reported `1524/9936/60`.
 - `make ci-full` remains deferred. The P5-T85 Docker evidence is reconciled and the local lint/Knip gate is no longer blocked by `P5-T94`.
+- 2026-05-11 docs-only reconciliation: `make check-links` passed with 221 files and 1425 local links, and `git diff --check` passed after the live board, archive note, and validation index were updated to remove stale `P5-T93`-`P5-T97` review rows.

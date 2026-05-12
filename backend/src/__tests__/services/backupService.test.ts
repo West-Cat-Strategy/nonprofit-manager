@@ -183,6 +183,28 @@ describe('BackupService redaction', () => {
       url: 'https://example.org/hook',
       secret: null,
     });
+
+    expect(
+      redact(service, 'website_site_settings', {
+        id: 'settings-id',
+        site_id: 'site-1',
+        mautic_config: {
+          baseUrl: 'https://mautic.example.org',
+          username: 'api-user',
+          password: 'mautic-secret',
+          segmentId: 'seg-1',
+        },
+      })
+    ).toEqual({
+      id: 'settings-id',
+      site_id: 'site-1',
+      mautic_config: {
+        baseUrl: 'https://mautic.example.org',
+        username: 'api-user',
+        password: null,
+        segmentId: 'seg-1',
+      },
+    });
   });
 
   it('redacts secret fields from backup output by default', async () => {

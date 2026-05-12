@@ -35,8 +35,8 @@ These route families are mounted by the active v2 registrar:
 - Alerts: `/api/v2/alerts/configs*`, `/api/v2/alerts/instances*`, `/api/v2/alerts/stats`, `/api/v2/alerts/test`
 - Events and public events: `/api/v2/events/*`, `/api/v2/public/events/*`
 - Cases, people, and engagement: `/api/v2/cases/*`, `/api/v2/contacts/*`, `/api/v2/accounts/*`, `/api/v2/volunteers/*`, `/api/v2/tasks/*`, `/api/v2/follow-ups/*`, `/api/v2/opportunities/*`, `/api/v2/team-chat/*`, `/api/v2/meetings/*`, `/api/v2/external-service-providers/*`
-- Reports: `/api/v2/reports/generate`, `/api/v2/reports/outcomes`, `/api/v2/reports/workflow-coverage`, `/api/v2/reports/fields/:entity`, `/api/v2/reports/export`, `/api/v2/reports/exports*`, `/api/v2/reports/templates*`, `/api/v2/saved-reports/*`, `/api/v2/scheduled-reports/*`, `/api/v2/public/reports/*`
-  `/api/v2/reports/export` stays synchronous for small exports only and returns `409` when the result is too large; use `/api/v2/reports/exports` for queued export jobs.
+- Reports: `/api/v2/reports/generate`, `/api/v2/reports/outcomes`, `/api/v2/reports/workflow-coverage`, `/api/v2/reports/fields/:entity`, `/api/v2/reports/exports*`, `/api/v2/reports/templates*`, `/api/v2/saved-reports/*`, `/api/v2/scheduled-reports/*`, `/api/v2/public/reports/*`
+  Manual report exports use the queued `/api/v2/reports/exports` job flow: create an export job, poll its status, then download the completed artifact.
 - Analytics: `/api/v2/analytics/summary`, `/api/v2/analytics/accounts/:id/*`, `/api/v2/analytics/contacts/:id/*`, `/api/v2/analytics/trends/*`, `/api/v2/analytics/comparative`, `/api/v2/analytics/anomalies/:metricType`
 - Export helpers: `/api/v2/export/analytics-summary`, `/api/v2/export/donations`, `/api/v2/export/volunteer-hours`, `/api/v2/export/events`, `/api/v2/export/comprehensive`
 - Finance: `/api/v2/donations/*`, `/api/v2/recurring-donations/*`, `/api/v2/reconciliation/*`

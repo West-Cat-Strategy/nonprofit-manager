@@ -8,7 +8,11 @@ import { Responsive, WidthProvider, type Layout } from 'react-grid-layout/legacy
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import type { DashboardWidget, WidgetType, WidgetTemplate } from '../../../types/dashboard';
-import { CUSTOM_DASHBOARD_LANES, DashboardDataProvider } from '../context/DashboardDataContext';
+import {
+  CUSTOM_DASHBOARD_LANES,
+  DashboardDataProvider,
+  useDashboardData,
+} from '../context/DashboardDataContext';
 import {
   CATEGORY_LABELS,
   serializeLayout,
@@ -56,7 +60,8 @@ function UnsupportedWidgetNotice({
             : 'This saved widget type is not available in the current dashboard editor.'}
         </p>
         <p className="text-sm leading-6 text-app-text-muted">
-          Remove it individually or reset the dashboard if you want to return to the current default layout.
+          Remove it individually or reset the dashboard if you want to return to the current default
+          layout.
         </p>
       </div>
     </WidgetContainer>
@@ -64,6 +69,7 @@ function UnsupportedWidgetNotice({
 }
 
 function CustomDashboardContent() {
+  const dashboardData = useDashboardData();
   const {
     currentDashboard,
     loading,
@@ -93,6 +99,18 @@ function CustomDashboardContent() {
     fetchDefaultDashboard,
     setEditMode,
   } = useCustomDashboardController();
+  const lastLoadedLabel = dashboardData?.lastLoadedAt
+    ? new Date(dashboardData.lastLoadedAt).toLocaleTimeString([], {
+        hour: 'numeric',
+        minute: '2-digit',
+      })
+    : 'Not loaded yet';
+  const lastManualRefreshLabel = dashboardData?.lastManualRefreshAt
+    ? new Date(dashboardData.lastManualRefreshAt).toLocaleTimeString([], {
+        hour: 'numeric',
+        minute: '2-digit',
+      })
+    : 'Not refreshed manually';
 
   const renderWidget = (widget: DashboardWidget) => {
     if (!widget.enabled) return null;
@@ -139,7 +157,9 @@ function CustomDashboardContent() {
       <NeoBrutalistLayout pageTitle="CUSTOM DASHBOARD">
         <div className="mx-auto flex h-64 max-w-4xl items-center justify-center px-4">
           <div className="text-center">
-            <div className="mb-2 text-app-text-muted">Please sign in to customize your dashboard.</div>
+            <div className="mb-2 text-app-text-muted">
+              Please sign in to customize your dashboard.
+            </div>
             <Link
               to="/login"
               className="text-sm font-medium text-app-accent hover:text-app-accent-text"
@@ -208,6 +228,19 @@ function CustomDashboardContent() {
             </div>
 
             <div className="flex flex-wrap gap-3">
+              <button
+                onClick={dashboardData?.refreshDashboardData}
+                disabled={dashboardData?.isRefreshing}
+                className="inline-flex items-center justify-center rounded-xl border border-app-border bg-app-surface px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 disabled:opacity-50"
+              >
+                {dashboardData?.isRefreshing ? 'Refreshing...' : 'Refresh Data'}
+              </button>
+              <button
+                onClick={dashboardData?.clearDashboardCache}
+                className="inline-flex items-center justify-center rounded-xl border border-app-border bg-app-surface px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
+              >
+                Clear Cache
+              </button>
               <Link
                 to="/dashboard"
                 className="inline-flex items-center justify-center rounded-xl border border-app-border bg-app-surface px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
@@ -261,12 +294,43 @@ function CustomDashboardContent() {
           </div>
         </header>
 
-        <section className="mt-6 rounded-3xl border border-app-border/70 bg-app-surface/90 p-5 shadow-sm">
+        <section
+          className="mt-6 rounded-3xl border border-app-border/70 bg-app-surface/90 p-5 shadow-sm"
+          aria-label="Dashboard data refresh"
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-app-text-heading">Data refresh</h2>
+              <p className="mt-1 text-sm text-app-text-muted">
+                Last loaded:{' '}
+                <span data-testid="custom-dashboard-last-loaded">{lastLoadedLabel}</span>
+              </p>
+              <p className="mt-1 text-sm text-app-text-muted">
+                Manual refresh:{' '}
+                <span data-testid="custom-dashboard-last-manual-refresh">
+                  {lastManualRefreshLabel}
+                </span>
+              </p>
+            </div>
+            <div
+              data-testid="custom-dashboard-refresh-state"
+              className="rounded-full border border-app-border bg-app-surface px-3 py-1.5 text-sm font-medium text-app-text"
+            >
+              {dashboardData?.isRefreshing ? 'Refreshing data' : 'Data ready'}
+            </div>
+          </div>
+        </section>
+
+        <section
+          className="mt-6 rounded-3xl border border-app-border/70 bg-app-surface/90 p-5 shadow-sm"
+          data-testid="custom-dashboard-layout-editor"
+        >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h2 className="text-lg font-semibold text-app-text-heading">Layout editing</h2>
               <p className="mt-1 text-sm text-app-text-muted">
-                This editor controls card placement and saved widgets. Display preferences still live under workbench view settings.
+                This editor controls card placement and saved widgets. Display preferences still
+                live under workbench view settings.
               </p>
             </div>
             <div className="rounded-full border border-app-border bg-app-surface px-3 py-1.5 text-sm font-medium text-app-text">
@@ -276,7 +340,7 @@ function CustomDashboardContent() {
 
           <div className="mt-5">
             {isNarrowViewport ? (
-              <div className="space-y-4">
+              <div className="space-y-4" data-testid="custom-dashboard-mobile-stack">
                 {currentDashboard.widgets.map((widget) => (
                   <div
                     key={widget.id}
@@ -287,30 +351,32 @@ function CustomDashboardContent() {
                 ))}
               </div>
             ) : (
-              <ResponsiveGridLayout
-                className="layout"
-                layouts={responsiveLayouts}
-                breakpoints={breakpoints}
-                cols={cols}
-                rowHeight={86}
-                margin={[16, 16]}
-                containerPadding={[0, 0]}
-                isDraggable={editMode}
-                isResizable={editMode}
-                draggableHandle=".drag-handle"
-                onLayoutChange={handleLayoutChange}
-                onDragStop={(layout: Layout) => commitLayoutDraft(serializeLayout(layout))}
-                onResizeStop={(layout: Layout) => commitLayoutDraft(serializeLayout(layout))}
-              >
-                {currentDashboard.widgets.map((widget) => (
-                  <div
-                    key={widget.id}
-                    className="overflow-hidden rounded-2xl border border-app-border/70 bg-app-surface shadow-sm"
-                  >
-                    {renderWidget(widget)}
-                  </div>
-                ))}
-              </ResponsiveGridLayout>
+              <div data-testid="custom-dashboard-grid">
+                <ResponsiveGridLayout
+                  className="layout"
+                  layouts={responsiveLayouts}
+                  breakpoints={breakpoints}
+                  cols={cols}
+                  rowHeight={86}
+                  margin={[16, 16]}
+                  containerPadding={[0, 0]}
+                  isDraggable={editMode}
+                  isResizable={editMode}
+                  draggableHandle=".drag-handle"
+                  onLayoutChange={handleLayoutChange}
+                  onDragStop={(layout: Layout) => commitLayoutDraft(serializeLayout(layout))}
+                  onResizeStop={(layout: Layout) => commitLayoutDraft(serializeLayout(layout))}
+                >
+                  {currentDashboard.widgets.map((widget) => (
+                    <div
+                      key={widget.id}
+                      className="overflow-hidden rounded-2xl border border-app-border/70 bg-app-surface shadow-sm"
+                    >
+                      {renderWidget(widget)}
+                    </div>
+                  ))}
+                </ResponsiveGridLayout>
+              </div>
             )}
           </div>
         </section>
@@ -324,11 +390,15 @@ function CustomDashboardContent() {
               aria-labelledby="dashboard-widget-picker-title"
             >
               <div className="border-b border-app-border p-6">
-                <h2 id="dashboard-widget-picker-title" className="text-xl font-semibold text-app-text-heading">
+                <h2
+                  id="dashboard-widget-picker-title"
+                  className="text-xl font-semibold text-app-text-heading"
+                >
                   Add a widget
                 </h2>
                 <p className="mt-1 text-sm text-app-text-muted">
-                  Choose from the currently supported dashboard widgets. Legacy saved widgets stay readable, but they are not listed here.
+                  Choose from the currently supported dashboard widgets. Legacy saved widgets stay
+                  readable, but they are not listed here.
                 </p>
               </div>
 
@@ -346,7 +416,9 @@ function CustomDashboardContent() {
                       </h3>
                       <div className="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                         {templates.map((template) => {
-                          const alreadyAdded = currentDashboard.widgets.some((widget) => widget.type === template.type);
+                          const alreadyAdded = currentDashboard.widgets.some(
+                            (widget) => widget.type === template.type
+                          );
                           return (
                             <button
                               key={template.type}
@@ -359,8 +431,12 @@ function CustomDashboardContent() {
                               }`}
                             >
                               <div className="mb-2 text-3xl">{template.icon}</div>
-                              <h4 className="font-semibold text-app-text-heading">{template.title}</h4>
-                              <p className="mt-1 text-sm text-app-text-muted">{template.description}</p>
+                              <h4 className="font-semibold text-app-text-heading">
+                                {template.title}
+                              </h4>
+                              <p className="mt-1 text-sm text-app-text-muted">
+                                {template.description}
+                              </p>
                               {alreadyAdded ? (
                                 <p className="mt-3 text-xs font-semibold uppercase tracking-[0.14em] text-app-text-subtle">
                                   Already in layout

@@ -42,6 +42,23 @@ export const DEFAULT_SECRET_FIELDS: Record<string, string[]> = {
   saved_report_public_snapshots: ['token'],
 };
 
+const redactNestedWebsiteSiteSettingsSecrets = (
+  row: Record<string, unknown>
+): Record<string, unknown> => {
+  const mauticConfig = row.mautic_config;
+  if (!mauticConfig || typeof mauticConfig !== 'object' || Array.isArray(mauticConfig)) {
+    return row;
+  }
+
+  return {
+    ...row,
+    mautic_config: {
+      ...(mauticConfig as Record<string, unknown>),
+      password: null,
+    },
+  };
+};
+
 const EXPORT_CHUNK_SIZE = 1000;
 const DEFAULT_EXPORT_DIR = path.join(os.tmpdir(), 'nonprofit-manager', 'exports');
 
@@ -185,9 +202,12 @@ export class BackupService {
 
   private redactRow(tableName: string, row: Record<string, unknown>): Record<string, unknown> {
     const fields = DEFAULT_SECRET_FIELDS[tableName];
-    if (!fields || fields.length === 0) return row;
+    const rowWithNestedSecretsRedacted =
+      tableName === 'website_site_settings' ? redactNestedWebsiteSiteSettingsSecrets(row) : row;
 
-    const cloned: Record<string, unknown> = { ...row };
+    if (!fields || fields.length === 0) return rowWithNestedSecretsRedacted;
+
+    const cloned: Record<string, unknown> = { ...rowWithNestedSecretsRedacted };
     for (const field of fields) {
       if (field in cloned) cloned[field] = null;
     }

@@ -7,8 +7,16 @@ import type * as DashboardStateModule from '../../state';
 import { vi } from 'vitest';
 import CustomDashboard from '../CustomDashboardPage';
 
-const { dispatchMock, dashboardState, gridLayoutPropsSpy } = vi.hoisted(() => ({
+const {
+  dispatchMock,
+  dashboardState,
+  gridLayoutPropsSpy,
+  refreshDashboardDataMock,
+  clearDashboardCacheMock,
+} = vi.hoisted(() => ({
   dispatchMock: vi.fn(),
+  refreshDashboardDataMock: vi.fn(),
+  clearDashboardCacheMock: vi.fn(),
   dashboardState: {
     dashboard: {
       currentDashboard: null,
@@ -24,6 +32,76 @@ const { dispatchMock, dashboardState, gridLayoutPropsSpy } = vi.hoisted(() => ({
   },
   gridLayoutPropsSpy: vi.fn(),
 }));
+
+type MatchMediaListener = (event: MediaQueryListEvent) => void;
+
+const matchMediaEntries = new Set<{
+  query: string;
+  listeners: Set<MatchMediaListener>;
+}>();
+
+const evaluateMediaQuery = (query: string) => {
+  const maxWidthMatch = /\(max-width:\s*(\d+)px\)/.exec(query);
+  if (maxWidthMatch) {
+    return window.innerWidth <= Number(maxWidthMatch[1]);
+  }
+
+  const minWidthMatch = /\(min-width:\s*(\d+)px\)/.exec(query);
+  if (minWidthMatch) {
+    return window.innerWidth >= Number(minWidthMatch[1]);
+  }
+
+  return false;
+};
+
+const setViewportWidth = (width: number) => {
+  Object.defineProperty(window, 'innerWidth', {
+    configurable: true,
+    writable: true,
+    value: width,
+  });
+
+  matchMediaEntries.forEach(({ query, listeners }) => {
+    const event = { matches: evaluateMediaQuery(query), media: query } as MediaQueryListEvent;
+    listeners.forEach((listener) => listener(event));
+  });
+};
+
+const installMatchMediaMock = () => {
+  matchMediaEntries.clear();
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    writable: true,
+    value: (query: string) => {
+      const entry = {
+        query,
+        listeners: new Set<MatchMediaListener>(),
+      };
+      matchMediaEntries.add(entry);
+
+      return {
+        media: query,
+        get matches() {
+          return evaluateMediaQuery(query);
+        },
+        onchange: null,
+        addEventListener: (_event: 'change', listener: MatchMediaListener) => {
+          entry.listeners.add(listener);
+        },
+        removeEventListener: (_event: 'change', listener: MatchMediaListener) => {
+          entry.listeners.delete(listener);
+        },
+        addListener: (listener: MatchMediaListener) => {
+          entry.listeners.add(listener);
+        },
+        removeListener: (listener: MatchMediaListener) => {
+          entry.listeners.delete(listener);
+        },
+        dispatchEvent: () => true,
+      };
+    },
+  });
+};
 
 const createDashboard = (overrides: Record<string, unknown> = {}) => ({
   id: 'dash-1',
@@ -55,6 +133,32 @@ vi.mock('../../../../features/dashboard/context/DashboardDataContext', async () 
   return {
     ...actual,
     DashboardDataProvider: ({ children }: { children: ReactNode }) => children,
+    useDashboardData: () => ({
+      analyticsSummary: null,
+      donationTrends: [],
+      caseSummary: null,
+      taskSummary: null,
+      followUpSummary: null,
+      upcomingFollowUps: [],
+      assignedCases: [],
+      assignedCasesTotal: 0,
+      loading: {
+        analytics: false,
+        donationTrends: false,
+        caseSummary: false,
+        taskSummary: false,
+        followUpSummary: false,
+        upcomingFollowUps: false,
+        assignedCases: false,
+      },
+      errors: {},
+      hasStartedLoading: true,
+      lastLoadedAt: Date.UTC(2026, 2, 1, 16, 15),
+      lastManualRefreshAt: null,
+      isRefreshing: false,
+      refreshDashboardData: refreshDashboardDataMock,
+      clearDashboardCache: clearDashboardCacheMock,
+    }),
   };
 });
 
@@ -72,9 +176,9 @@ vi.mock('react-router-dom', async () => {
 });
 
 vi.mock('react-grid-layout/legacy', () => ({
-  Responsive: (props: { children: ReactNode }) => {
+  Responsive: (props: { children: ReactNode; ['data-testid']?: string }) => {
     gridLayoutPropsSpy(props);
-    return <div>{props.children}</div>;
+    return <div data-testid={props['data-testid']}>{props.children}</div>;
   },
   WidthProvider: (Component: React.ComponentType<{ children?: ReactNode }>) => Component,
 }));
@@ -124,6 +228,8 @@ vi.mock('../../state', async () => {
 const getLatestGridProps = () =>
   (gridLayoutPropsSpy.mock.calls.at(-1)?.[0] as
     | {
+        isDraggable?: boolean;
+        isResizable?: boolean;
         onLayoutChange?: (layout: unknown, layouts: unknown) => void;
         onDragStop?: (layout: unknown) => void;
         onResizeStop?: (layout: unknown) => void;
@@ -133,10 +239,16 @@ const getLatestGridProps = () =>
 describe('CustomDashboardPage', () => {
   beforeEach(() => {
     dispatchMock.mockReset();
+    refreshDashboardDataMock.mockReset();
+    clearDashboardCacheMock.mockReset();
     gridLayoutPropsSpy.mockReset();
+    setViewportWidth(1024);
+    installMatchMediaMock();
     dispatchMock.mockImplementation((action: { type: string }) => ({
       unwrap: () =>
-        Promise.resolve(action.type === 'dashboard/fetchDashboards' ? [createDashboard()] : undefined),
+        Promise.resolve(
+          action.type === 'dashboard/fetchDashboards' ? [createDashboard()] : undefined
+        ),
     }));
     dashboardState.dashboard.currentDashboard = createDashboard();
     dashboardState.dashboard.dashboards = [createDashboard()];
@@ -214,6 +326,73 @@ describe('CustomDashboardPage', () => {
         payload: nextLayout,
       })
     );
+  });
+
+  it('exposes manual dashboard data refresh and cache controls', async () => {
+    const user = userEvent.setup();
+
+    render(<CustomDashboard />);
+
+    expect(screen.getByRole('region', { name: /dashboard data refresh/i })).toBeInTheDocument();
+    expect(screen.getByTestId('custom-dashboard-refresh-state')).toHaveTextContent('Data ready');
+    expect(screen.getByTestId('custom-dashboard-last-loaded')).not.toHaveTextContent(
+      'Not loaded yet'
+    );
+    expect(screen.getByTestId('custom-dashboard-last-manual-refresh')).toHaveTextContent(
+      'Not refreshed manually'
+    );
+
+    await user.click(screen.getByRole('button', { name: /refresh data/i }));
+    await user.click(screen.getByRole('button', { name: /clear cache/i }));
+
+    expect(refreshDashboardDataMock).toHaveBeenCalledTimes(1);
+    expect(clearDashboardCacheMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders the desktop grid with a stable browser regression hook', () => {
+    render(<CustomDashboard />);
+
+    expect(screen.getByTestId('custom-dashboard-grid')).toBeInTheDocument();
+    expect(screen.queryByTestId('custom-dashboard-mobile-stack')).not.toBeInTheDocument();
+  });
+
+  it('commits resize-stop rearrangements from the editable desktop grid', () => {
+    dashboardState.dashboard.editMode = true;
+
+    render(<CustomDashboard />);
+    dispatchMock.mockClear();
+
+    expect(getLatestGridProps()).toEqual(
+      expect.objectContaining({
+        isDraggable: true,
+        isResizable: true,
+      })
+    );
+
+    const resizedLayout = [{ i: 'widget-quick-actions', x: 1, y: 0, w: 6, h: 4 }];
+    act(() => {
+      getLatestGridProps().onResizeStop?.(resizedLayout);
+    });
+
+    expect(dispatchMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'dashboard/updateLayout',
+        payload: resizedLayout,
+      })
+    );
+  });
+
+  it('switches to the mobile stack when the browser viewport narrows', () => {
+    render(<CustomDashboard />);
+
+    expect(screen.queryByTestId('custom-dashboard-mobile-stack')).not.toBeInTheDocument();
+
+    act(() => {
+      setViewportWidth(480);
+    });
+
+    expect(screen.getByTestId('custom-dashboard-mobile-stack')).toBeInTheDocument();
+    expect(screen.getByText('Quick Actions')).toBeInTheDocument();
   });
 
   it('uses the local layout draft when saving before a drag-stop commit', async () => {

@@ -96,7 +96,6 @@ function ReportBuilder() {
     setYAxisField,
     handleDownloadExportJob,
     handleEntityChange,
-    handleExportPDF,
     handleGenerateReport,
     handleRetryExportJob,
     handleSaveReport,
@@ -309,12 +308,6 @@ function ReportBuilder() {
                   onClick={() => void handleStartExport('xlsx')}
                 >
                   Export Excel
-                </SecondaryButton>
-                <SecondaryButton
-                  leadingIcon={<DocumentChartBarIcon className="h-4 w-4" aria-hidden="true" />}
-                  onClick={() => void handleExportPDF()}
-                >
-                  Export PDF
                 </SecondaryButton>
                 <SecondaryButton
                   leadingIcon={<ChartBarIcon className="h-4 w-4" aria-hidden="true" />}

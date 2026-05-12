@@ -37,9 +37,26 @@ x-backend-production-build: &backend-production-build
 x-runtime-env-file: &runtime-env-file
   - ${RUNTIME_ENV_FILE:-.env.production}
 
+x-ready-healthcheck: &ready-healthcheck
+  interval: 10s
+  timeout: 5s
+  retries: 20
+  start_period: 20s
+
+x-backend-runtime-service: &backend-runtime-service
+  image: ${BACKEND_DOCKER_IMAGE:-nonprofit-manager-backend:latest}
+  restart: unless-stopped
+  init: true
+  env_file: *runtime-env-file
+  volumes:
+    - backend-uploads:/app/uploads
+  depends_on:
+    redis:
+      condition: service_healthy
+
 services:
   redis:
-    image: redis:8-alpine@sha256:c5e375abb885e6b2021c0377879e4890bf76f9065b8922ffc113f2b226b9fc17
+    image: redis:8-alpine@sha256:d146f83b1e0f02fc27c26a50cee39338c736674c5959db84363e6ae3cd9e02d2
     restart: unless-stopped
     expose:
       - "6379"
@@ -51,11 +68,8 @@ services:
       start_period: 5s
 
   backend:
-    image: ${BACKEND_DOCKER_IMAGE:-nonprofit-manager-backend:latest}
+    <<: *backend-runtime-service
     build: *backend-production-build
-    restart: unless-stopped
-    init: true
-    env_file: *runtime-env-file
     expose:
       - "8000"
     environment:
@@ -67,17 +81,9 @@ services:
       DB_POOL_MAX_CONNECTIONS: ${BACKEND_DB_POOL_MAX_CONNECTIONS:-6}
       REPORT_EXPORT_JOB_SCHEDULER_ENABLED: "false"
     command: ["node", "dist/index.js"]
-    volumes:
-      - backend-uploads:/app/uploads
-    depends_on:
-      redis:
-        condition: service_healthy
     healthcheck:
+      <<: *ready-healthcheck
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/health/ready > /dev/null"]
-      interval: 10s
-      timeout: 5s
-      retries: 20
-      start_period: 20s
 
   frontend:
     image: ${FRONTEND_DOCKER_IMAGE:-nonprofit-manager-frontend:latest}
@@ -92,17 +98,11 @@ services:
     expose:
       - "8001"
     healthcheck:
+      <<: *ready-healthcheck
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8001/health > /dev/null"]
-      interval: 10s
-      timeout: 5s
-      retries: 20
-      start_period: 20s
 
   public-site:
-    image: ${BACKEND_DOCKER_IMAGE:-nonprofit-manager-backend:latest}
-    restart: unless-stopped
-    init: true
-    env_file: *runtime-env-file
+    <<: *backend-runtime-service
     expose:
       - "8006"
     environment:
@@ -114,33 +114,17 @@ services:
       DB_POOL_MAX_CONNECTIONS: ${PUBLIC_SITE_DB_POOL_MAX_CONNECTIONS:-3}
       REPORT_EXPORT_JOB_SCHEDULER_ENABLED: "false"
     command: ["node", "dist/public-site.js"]
-    volumes:
-      - backend-uploads:/app/uploads
-    depends_on:
-      redis:
-        condition: service_healthy
     healthcheck:
+      <<: *ready-healthcheck
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8006/health/ready > /dev/null"]
-      interval: 10s
-      timeout: 5s
-      retries: 20
-      start_period: 20s
 
   worker:
-    image: ${BACKEND_DOCKER_IMAGE:-nonprofit-manager-backend:latest}
-    restart: unless-stopped
-    init: true
-    env_file: *runtime-env-file
+    <<: *backend-runtime-service
     environment:
       <<: *runtime-env
       DB_POOL_MAX_CONNECTIONS: ${WORKER_DB_POOL_MAX_CONNECTIONS:-2}
       REPORT_EXPORT_JOB_SCHEDULER_ENABLED: ${REPORT_EXPORT_JOB_SCHEDULER_ENABLED:-true}
     command: ["node", "dist/worker.js"]
-    volumes:
-      - backend-uploads:/app/uploads
-    depends_on:
-      redis:
-        condition: service_healthy
 
 volumes:
   backend-uploads:

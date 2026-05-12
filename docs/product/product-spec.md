@@ -1,6 +1,6 @@
 # Product Specification
 
-**Last Updated:** 2026-04-22
+**Last Updated:** 2026-05-12
 
 Use this file as the current-state product reference for Nonprofit Manager. For mounted route inventory, use [../features/FEATURE_MATRIX.md](../features/FEATURE_MATRIX.md). For active sequencing and tracked scope, use [../phases/PHASE_5_DEVELOPMENT_PLAN.md](../phases/PHASE_5_DEVELOPMENT_PLAN.md) and [../phases/planning-and-progress.md](../phases/planning-and-progress.md).
 
@@ -23,14 +23,17 @@ The current product is route-first rather than roadmap-first. This spec describe
 | Surface | Current scope | Companion docs |
 |---|---|---|
 | Staff app | Workbench, people/accounts/volunteers, intake and interaction workflows, events, tasks, cases, follow-ups, opportunities, meetings, external service providers, donations, recurring giving, reconciliation, and admin/settings surfaces | [../features/FEATURE_MATRIX.md](../features/FEATURE_MATRIX.md), [user-personas.md](user-personas.md) |
+| Secondary workbench shortcuts | Compatibility routes at `/people`, `/linking`, `/operations`, and `/outreach`; canonical product routes remain `/contacts` and `/accounts` for people and organizations, `/tasks` for operations triage, `/events` for event rows, and `/settings/communications` for communications authoring | [../features/FEATURE_MATRIX.md](../features/FEATURE_MATRIX.md) |
 | Reporting and analytics | Dashboard views, custom dashboards, alerts, report builder, saved reports, scheduled reports, outcomes reporting, workflow coverage, analytics exports, and executive/board-ready reporting surfaces | [../features/REPORTING_GUIDE.md](../features/REPORTING_GUIDE.md), [user-personas.md](user-personas.md) |
 | Grants | Routed grants workspace for funders, programs, recipients, funded programs, applications, awards, disbursements, reports, documents, calendar, and activities | [../features/FEATURE_MATRIX.md](../features/FEATURE_MATRIX.md), [persona-workflows.md](persona-workflows.md) |
 | Website builder | Template gallery, editor, and preview flows used to author publishing surfaces inside the staff workspace | [../features/TEMPLATE_SYSTEM.md](../features/TEMPLATE_SYSTEM.md), [OPEN_SOURCE_NONPROFIT_CRM_BENCHMARK_2026-04.md](OPEN_SOURCE_NONPROFIT_CRM_BENCHMARK_2026-04.md) |
-| Website console | Site-level overview, content, newsletters, forms, integrations, publishing, and builder entrypoints for managed sites | [../features/FEATURE_MATRIX.md](../features/FEATURE_MATRIX.md), [../api/README.md](../api/README.md) |
-| Public-site runtime | Dedicated public runtime for events, newsletters, forms, and event check-in, backed by public `/api/v2` contracts and distinct deployment/runtime expectations | [../features/FEATURE_MATRIX.md](../features/FEATURE_MATRIX.md), [../deployment/DEPLOYMENT.md](../deployment/DEPLOYMENT.md) |
+| Website console | Site-level overview, content, newsletters, public forms/actions, integrations, publishing, and builder entrypoints for managed sites, including staff review flows for public-action submissions | [../features/FEATURE_MATRIX.md](../features/FEATURE_MATRIX.md), [../api/README.md](../api/README.md) |
+| Public-site runtime | Dedicated public runtime for events, newsletters, content entries, public forms, public actions, and event check-in, backed by public `/api/v2` contracts and distinct deployment/runtime expectations | [../features/FEATURE_MATRIX.md](../features/FEATURE_MATRIX.md), [../deployment/DEPLOYMENT.md](../deployment/DEPLOYMENT.md) |
 | Portal | Public onboarding/auth flows plus the authenticated client portal for profile, people, calendar, events, messages, cases, appointments, documents, notes, forms, and reminders | [../features/CASE_CLIENT_VISIBILITY_AND_FILES.md](../features/CASE_CLIENT_VISIBILITY_AND_FILES.md), [persona-workflows.md](persona-workflows.md) |
-| Messaging | Staff team chat, portal messaging, scheduled report delivery, and the admin communications workspace at `/settings/communications` for Mailchimp-backed blast-email authoring, preview, scheduling, and delivery | [user-personas.md](user-personas.md), [../features/FEATURE_MATRIX.md](../features/FEATURE_MATRIX.md) |
-| Integrations | Payments, reconciliation, Mailchimp, webhooks, external service providers, public API contracts, and schema/tooling docs for system-to-system workflows | [../api/README.md](../api/README.md), [../api/API_INTEGRATION_GUIDE.md](../api/API_INTEGRATION_GUIDE.md) |
+| Messaging | Staff team chat, portal messaging, scheduled report delivery, and the `/settings/communications` workspace for local-first campaign authoring, audiences, preview, scheduling, delivery, browser-view/unsubscribe flows, and optional Mailchimp sync | [user-personas.md](user-personas.md), [../features/FEATURE_MATRIX.md](../features/FEATURE_MATRIX.md) |
+| Integrations | Payments, reconciliation, local communications, Mailchimp, webhooks, social media, external service providers, public API contracts, and schema/tooling docs for system-to-system workflows | [../api/README.md](../api/README.md), [../api/API_INTEGRATION_GUIDE.md](../api/API_INTEGRATION_GUIDE.md) |
+
+`/demo/*` routes are non-product demo and QA fixtures for deterministic frontend states. They remain mounted for visual and component validation, but they are not customer-facing product workflows and should not be treated as canonical routes.
 
 ## Product Expectations
 
@@ -49,8 +52,8 @@ Phase 5 product execution centers on three explicit waves from the active plan:
 
 In current product terms, that means:
 
-- Expanding outbound messaging beyond the existing Mailchimp and notification baseline into a stronger authoring, preview, formatting, and delivery surface, while keeping `/api/v2/mailchimp/*` as the campaign contract and `/settings/communications` as the canonical staff workspace.
-- Improving builder authoring UX, site-console publishing flows, and public-site reliability for public pages, newsletters, and forms.
+- Expanding outbound messaging beyond the original Mailchimp and notification baseline into a local-first authoring, preview, formatting, delivery, browser-view, unsubscribe, and optional provider-sync surface, with `/settings/communications` as the canonical staff workspace.
+- Improving builder authoring UX, site-console publishing flows, and public-site reliability for public pages, newsletters, content entries, forms, and public actions.
 - Treating the portal as a first-class product area across messaging, documents, forms, appointments, and client-facing navigation.
 
 ## Follow-On Backlog

@@ -29,6 +29,7 @@ import { logout } from '../features/auth/state';
 import { portalLogout } from '../features/portalAuth/state';
 import { PublicEventCheckInPage, PublicEventsPage } from '../features/events/routeComponents';
 import { RecurringDonationCheckoutResult } from '../features/finance/routeComponents';
+import { areDemoRoutesEnabled } from '../services/loop/demo';
 
 // Import route creators
 import { createPeopleRoutes, createStandalonePeopleRoutes } from './peopleRoutes';
@@ -48,6 +49,7 @@ const AppRoutes = () => {
   const { isAuthenticated, authLoading } = useAppSelector((state) => state.auth);
   const location = useLocation();
   const navigate = useNavigate();
+  const demoRoutesEnabled = areDemoRoutesEnabled();
 
   useEffect(() => {
     const handleUnauthorized = () => {
@@ -177,13 +179,17 @@ const AppRoutes = () => {
         {createBuilderRoutes(ProtectedRoute)}
       </Route>
 
-      {/* Neo-Brutalist Demo Routes (No Auth Required) */}
-      <Route path="/demo/dashboard" element={<WorkbenchDashboard />} />
-      <Route path="/demo/linking" element={<LinkingModule />} />
-      <Route path="/demo/operations" element={<OperationsBoard />} />
-      <Route path="/demo/outreach" element={<OutreachCenter />} />
-      <Route path="/demo/people" element={<PeopleDirectory />} />
-      <Route path="/demo/audit" element={<ThemeAudit />} />
+      {demoRoutesEnabled && (
+        <>
+          {/* Neo-Brutalist demo fixtures: enabled only by VITE_DEMO_ROUTES_ENABLED or tests. */}
+          <Route path="/demo/dashboard" element={<WorkbenchDashboard />} />
+          <Route path="/demo/linking" element={<LinkingModule />} />
+          <Route path="/demo/operations" element={<OperationsBoard />} />
+          <Route path="/demo/outreach" element={<OutreachCenter />} />
+          <Route path="/demo/people" element={<PeopleDirectory />} />
+          <Route path="/demo/audit" element={<ThemeAudit />} />
+        </>
+      )}
 
       {/* Root - Redirects to Neo-Brutalist Dashboard */}
       <Route

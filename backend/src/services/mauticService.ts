@@ -3,8 +3,11 @@
  * Handles self-hosted newsletter audience syncing against a Mautic instance.
  */
 
+import dns from 'dns/promises';
+import net from 'net';
 import pool from '@config/database';
 import { logger } from '@config/logger';
+import type { WebsiteMauticSettings } from '@app-types/publishing';
 import type {
   BulkSyncRequest,
   BulkSyncResponse,
@@ -32,42 +35,251 @@ interface MauticContact {
   tags?: string[];
 }
 
-const mauticBaseUrl = process.env.MAUTIC_BASE_URL?.trim().replace(/\/+$/, '');
-const mauticUsername = process.env.MAUTIC_USERNAME?.trim();
-const mauticPassword = process.env.MAUTIC_PASSWORD;
+export type MauticClientConfig = Pick<WebsiteMauticSettings, 'baseUrl' | 'username' | 'password'>;
 
-let isConfigured = false;
+interface MauticRuntimeConfig {
+  baseUrl: string;
+  username: string;
+  password: string;
+  source: 'env' | 'site';
+}
+
+type MauticConfigResolution =
+  | { config: MauticRuntimeConfig; error?: undefined }
+  | { config: null; error?: string };
+
+type NormalizedMauticConfig =
+  | { state: 'configured'; config: MauticRuntimeConfig }
+  | { state: 'invalid'; error: string }
+  | { state: 'incomplete' };
+
+const PRIVATE_HOSTNAME_SUFFIXES = ['.localhost', '.local'];
+const BLOCKED_HOSTNAMES = new Set(['localhost']);
+
+const cleanRequiredString = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+
+const isPrivateIpv4 = (ip: string): boolean => {
+  const parts = ip.split('.').map((part) => Number.parseInt(part, 10));
+  if (parts.length !== 4 || parts.some((part) => Number.isNaN(part))) {
+    return false;
+  }
+
+  const [a, b] = parts;
+  if (a === 10) return true;
+  if (a === 127) return true;
+  if (a === 169 && b === 254) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 0) return true;
+  if (a === 100 && b >= 64 && b <= 127) return true;
+  if (a === 198 && (b === 18 || b === 19)) return true;
+  if (a >= 224) return true;
+  return false;
+};
+
+const isPrivateIpv6 = (ip: string): boolean => {
+  const normalized = ip.toLowerCase();
+
+  if (normalized === '::' || normalized === '::1') return true;
+  if (normalized.startsWith('fc') || normalized.startsWith('fd')) return true;
+  if (normalized.startsWith('fe80')) return true;
+  if (normalized.startsWith('2001:db8')) return true;
+
+  if (normalized.startsWith('::ffff:')) {
+    return isPrivateIpv4(normalized.replace('::ffff:', ''));
+  }
+
+  return false;
+};
+
+const isPrivateIp = (ip: string): boolean => {
+  const version = net.isIP(ip);
+  if (version === 4) return isPrivateIpv4(ip);
+  if (version === 6) return isPrivateIpv6(ip);
+  return false;
+};
+
+const isPrivateHostname = (hostname: string): boolean => {
+  const lower = hostname.toLowerCase();
+  if (BLOCKED_HOSTNAMES.has(lower)) return true;
+  return PRIVATE_HOSTNAME_SUFFIXES.some((suffix) => lower.endsWith(suffix));
+};
+
+const normalizeHostname = (hostname: string): string =>
+  hostname.startsWith('[') && hostname.endsWith(']') ? hostname.slice(1, -1) : hostname;
+
+const normalizeMauticBaseUrl = (value: unknown): { baseUrl?: string; error?: string } => {
+  const rawBaseUrl = cleanRequiredString(value);
+  if (!rawBaseUrl) {
+    return {};
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(rawBaseUrl);
+  } catch {
+    return { error: 'Mautic base URL is invalid' };
+  }
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    return { error: 'Mautic base URL must use http or https' };
+  }
+
+  if (parsed.username || parsed.password) {
+    return { error: 'Mautic base URL must not include credentials' };
+  }
+
+  if (!parsed.hostname) {
+    return { error: 'Mautic base URL must include a hostname' };
+  }
+
+  const hostname = normalizeHostname(parsed.hostname);
+
+  if (isPrivateHostname(hostname)) {
+    return { error: 'Mautic base URL host is not allowed' };
+  }
+
+  if (net.isIP(hostname) && isPrivateIp(hostname)) {
+    return { error: 'Mautic base URL IP address is not allowed' };
+  }
+
+  if (parsed.search || parsed.hash) {
+    return { error: 'Mautic base URL must not include query or fragment values' };
+  }
+
+  const pathname = parsed.pathname === '/' ? '' : parsed.pathname.replace(/\/+$/, '');
+  return { baseUrl: `${parsed.origin}${pathname}` };
+};
+
+const normalizeClientConfig = (
+  config: MauticClientConfig | undefined,
+  source: MauticRuntimeConfig['source']
+): NormalizedMauticConfig => {
+  const baseUrlValue = cleanRequiredString(config?.baseUrl);
+  const username = cleanRequiredString(config?.username);
+  const password = cleanRequiredString(config?.password);
+
+  if (!baseUrlValue || !username || !password) {
+    return { state: 'incomplete' };
+  }
+
+  const normalizedBaseUrl = normalizeMauticBaseUrl(baseUrlValue);
+  if (!normalizedBaseUrl.baseUrl) {
+    return {
+      state: 'invalid',
+      error: normalizedBaseUrl.error || 'Mautic base URL is not allowed',
+    };
+  }
+
+  return {
+    state: 'configured',
+    config: {
+      baseUrl: normalizedBaseUrl.baseUrl,
+      username,
+      password,
+      source,
+    },
+  };
+};
+
+const getEnvMauticConfig = (): MauticClientConfig => ({
+  baseUrl: process.env.MAUTIC_BASE_URL,
+  username: process.env.MAUTIC_USERNAME,
+  password: process.env.MAUTIC_PASSWORD,
+});
+
+const resolveMauticRuntimeConfig = (config?: MauticClientConfig): MauticConfigResolution => {
+  const scoped = normalizeClientConfig(config, 'site');
+  if (scoped.state === 'configured') {
+    return { config: scoped.config };
+  }
+  if (scoped.state === 'invalid') {
+    return { config: null, error: scoped.error };
+  }
+
+  const env = normalizeClientConfig(getEnvMauticConfig(), 'env');
+  if (env.state === 'configured') {
+    return { config: env.config };
+  }
+  if (env.state === 'invalid') {
+    return { config: null, error: env.error };
+  }
+
+  return { config: null };
+};
+
+async function resolveSafeMauticHostname(
+  hostname: string
+): Promise<{ ok: boolean; reason?: string }> {
+  if (!hostname) {
+    return { ok: false, reason: 'URL must include a hostname' };
+  }
+
+  if (isPrivateHostname(hostname)) {
+    return { ok: false, reason: 'Host is not allowed' };
+  }
+
+  if (net.isIP(hostname)) {
+    return isPrivateIp(hostname)
+      ? { ok: false, reason: 'IP address is not allowed' }
+      : { ok: true };
+  }
+
+  try {
+    const addresses = await dns.lookup(hostname, { all: true, verbatim: true });
+    if (addresses.length === 0) {
+      return { ok: false, reason: 'Hostname did not resolve' };
+    }
+
+    if (addresses.some((address) => isPrivateIp(address.address))) {
+      return { ok: false, reason: 'Hostname resolves to a private IP' };
+    }
+
+    return { ok: true };
+  } catch {
+    return { ok: false, reason: 'Hostname resolution failed' };
+  }
+}
+
+async function assertMauticFetchAllowed(config: MauticRuntimeConfig): Promise<void> {
+  const parsed = new URL(config.baseUrl);
+  const resolved = await resolveSafeMauticHostname(normalizeHostname(parsed.hostname));
+  if (!resolved.ok) {
+    throw new Error(`Mautic base URL is not allowed: ${resolved.reason || 'Unsafe host'}`);
+  }
+}
 
 function initializeMautic(): void {
-  if (!mauticBaseUrl || !mauticUsername || !mauticPassword) {
+  if (!isMauticConfigured()) {
     if (process.env.NODE_ENV !== 'test') {
-      logger.warn('Mautic is not configured. Set MAUTIC_BASE_URL, MAUTIC_USERNAME, and MAUTIC_PASSWORD.');
+      logger.warn(
+        'Mautic is not configured. Set MAUTIC_BASE_URL, MAUTIC_USERNAME, and MAUTIC_PASSWORD.'
+      );
     }
     return;
   }
 
-  isConfigured = true;
   logger.info('Mautic client initialized');
 }
 
 initializeMautic();
 
-export function isMauticConfigured(): boolean {
-  return isConfigured;
+export function isMauticConfigured(config?: MauticClientConfig): boolean {
+  return Boolean(resolveMauticRuntimeConfig(config).config);
 }
 
-const buildAuthHeader = (): string => {
-  const credentials = `${mauticUsername}:${mauticPassword}`;
+const buildAuthHeader = (config: MauticRuntimeConfig): string => {
+  const credentials = `${config.username}:${config.password}`;
   return `Basic ${Buffer.from(credentials).toString('base64')}`;
 };
 
-const buildUrl = (path: string): string => {
-  if (!mauticBaseUrl) {
-    throw new Error('Mautic is not configured');
-  }
-
+const buildUrl = (config: MauticRuntimeConfig, path: string): string => {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  return `${mauticBaseUrl}${normalizedPath}`;
+  return `${config.baseUrl}${normalizedPath}`;
 };
 
 const extractCollection = <T>(payload: unknown): T[] => {
@@ -95,17 +307,21 @@ const extractCollection = <T>(payload: unknown): T[] => {
 
 async function mauticRequest<T>(
   path: string,
-  init: RequestInit = {}
+  init: RequestInit = {},
+  inputConfig?: MauticClientConfig
 ): Promise<T> {
-  if (!isConfigured) {
-    throw new Error('Mautic is not configured');
+  const resolved = resolveMauticRuntimeConfig(inputConfig);
+  if (!resolved.config) {
+    throw new Error(resolved.error || 'Mautic is not configured');
   }
 
-  const response = await fetch(buildUrl(path), {
+  await assertMauticFetchAllowed(resolved.config);
+
+  const response = await fetch(buildUrl(resolved.config, path), {
     ...init,
     headers: {
       Accept: 'application/json',
-      Authorization: buildAuthHeader(),
+      Authorization: buildAuthHeader(resolved.config),
       'Content-Type': 'application/json',
       ...(init.headers || {}),
     },
@@ -140,9 +356,14 @@ function mapContact(contact: MauticContact): MauticContact {
   };
 }
 
-async function findContactByEmail(email: string): Promise<MauticContact | null> {
+async function findContactByEmail(
+  email: string,
+  config?: MauticClientConfig
+): Promise<MauticContact | null> {
   const response = await mauticRequest<{ contacts?: MauticContact[]; items?: MauticContact[] }>(
-    `/api/contacts?search=${encodeURIComponent(email)}`
+    `/api/contacts?search=${encodeURIComponent(email)}`,
+    {},
+    config
   );
   const matches = extractCollection<MauticContact>(response).filter(
     (contact) => contact.email?.toLowerCase() === email.toLowerCase()
@@ -150,14 +371,17 @@ async function findContactByEmail(email: string): Promise<MauticContact | null> 
   return matches[0] ? mapContact(matches[0]) : null;
 }
 
-async function upsertContact(input: {
-  email: string;
-  firstName: string;
-  lastName: string;
-  phone?: string;
-  tags?: string[];
-}): Promise<MauticContact> {
-  const existing = await findContactByEmail(input.email);
+async function upsertContact(
+  input: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    phone?: string;
+    tags?: string[];
+  },
+  config?: MauticClientConfig
+): Promise<MauticContact> {
+  const existing = await findContactByEmail(input.email, config);
   const payload = {
     firstname: input.firstName,
     lastname: input.lastName,
@@ -167,36 +391,54 @@ async function upsertContact(input: {
   };
 
   if (existing) {
-    const updated = await mauticRequest<MauticContact>(`/api/contacts/${existing.id}/edit`, {
-      method: 'PATCH',
-      body: JSON.stringify(payload),
-    });
+    const updated = await mauticRequest<MauticContact>(
+      `/api/contacts/${existing.id}/edit`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      },
+      config
+    );
     return mapContact({ ...existing, ...updated });
   }
 
-  const created = await mauticRequest<MauticContact>('/api/contacts/new', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
+  const created = await mauticRequest<MauticContact>(
+    '/api/contacts/new',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+    config
+  );
   return mapContact(created);
 }
 
-async function assignContactToSegment(segmentId: string, contactId: string): Promise<void> {
-  await mauticRequest<void>(`/api/segments/${segmentId}/contact/${contactId}/add`, {
-    method: 'POST',
-  });
+async function assignContactToSegment(
+  segmentId: string,
+  contactId: string,
+  config?: MauticClientConfig
+): Promise<void> {
+  await mauticRequest<void>(
+    `/api/segments/${segmentId}/contact/${contactId}/add`,
+    {
+      method: 'POST',
+    },
+    config
+  );
 }
 
-export async function getStatus(): Promise<MauticStatus> {
-  if (!isConfigured) {
+export async function getStatus(config?: MauticClientConfig): Promise<MauticStatus> {
+  const resolved = resolveMauticRuntimeConfig(config);
+  if (!resolved.config) {
     return { configured: false };
   }
 
   try {
-    const segments = await getSegments();
+    await assertMauticFetchAllowed(resolved.config);
+    const segments = await getSegments(config);
     return {
       configured: true,
-      baseUrl: mauticBaseUrl,
+      baseUrl: resolved.config.baseUrl,
       segmentCount: segments.length,
     };
   } catch (error) {
@@ -205,8 +447,8 @@ export async function getStatus(): Promise<MauticStatus> {
   }
 }
 
-export async function getSegments(): Promise<MauticSegment[]> {
-  if (!isConfigured) {
+export async function getSegments(config?: MauticClientConfig): Promise<MauticSegment[]> {
+  if (!isMauticConfigured(config)) {
     return [];
   }
 
@@ -224,7 +466,7 @@ export async function getSegments(): Promise<MauticSegment[]> {
         contacts?: number;
         member_count?: number;
       }>;
-    }>('/api/segments?limit=100');
+    }>('/api/segments?limit=100', {}, config);
 
     return extractCollection<{
       id: string | number;
@@ -242,8 +484,11 @@ export async function getSegments(): Promise<MauticSegment[]> {
   }
 }
 
-export async function syncContact(request: SyncContactRequest): Promise<SyncResult> {
-  if (!isConfigured) {
+export async function syncContact(
+  request: SyncContactRequest,
+  config?: MauticClientConfig
+): Promise<SyncResult> {
+  if (!isMauticConfigured(config)) {
     return {
       contactId: request.contactId,
       email: '',
@@ -300,18 +545,21 @@ export async function syncContact(request: SyncContactRequest): Promise<SyncResu
       };
     }
 
-    const existingContact = await findContactByEmail(contact.email);
+    const existingContact = await findContactByEmail(contact.email, config);
     const action = existingContact ? 'updated' : 'added';
-    const mauticContact = await upsertContact({
-      email: contact.email,
-      firstName: contact.first_name || '',
-      lastName: contact.last_name || '',
-      phone: contact.phone || undefined,
-      tags: request.tags || [],
-    });
+    const mauticContact = await upsertContact(
+      {
+        email: contact.email,
+        firstName: contact.first_name || '',
+        lastName: contact.last_name || '',
+        phone: contact.phone || undefined,
+        tags: request.tags || [],
+      },
+      config
+    );
 
     if (request.listId) {
-      await assignContactToSegment(request.listId, mauticContact.id);
+      await assignContactToSegment(request.listId, mauticContact.id, config);
     }
 
     logger.info('Contact synced to Mautic', {
@@ -339,8 +587,11 @@ export async function syncContact(request: SyncContactRequest): Promise<SyncResu
   }
 }
 
-export async function bulkSyncContacts(request: BulkSyncRequest): Promise<BulkSyncResponse> {
-  if (!isConfigured) {
+export async function bulkSyncContacts(
+  request: BulkSyncRequest,
+  config?: MauticClientConfig
+): Promise<BulkSyncResponse> {
+  if (!isMauticConfigured(config)) {
     return {
       total: request.contactIds.length,
       added: 0,
@@ -359,11 +610,14 @@ export async function bulkSyncContacts(request: BulkSyncRequest): Promise<BulkSy
 
   const results = await Promise.all(
     request.contactIds.map((contactId) =>
-      syncContact({
-        contactId,
-        listId: request.listId,
-        tags: request.tags,
-      })
+      syncContact(
+        {
+          contactId,
+          listId: request.listId,
+          tags: request.tags,
+        },
+        config
+      )
     )
   );
 

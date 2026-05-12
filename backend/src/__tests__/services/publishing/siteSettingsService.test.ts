@@ -1,6 +1,7 @@
 import type { Pool } from 'pg';
 import {
   WebsiteSiteSettingsService,
+  maskWebsiteSiteSettings,
   mergeManagedComponentConfig,
   mergeWebsiteFormOperationalConfig,
 } from '@services/publishing/siteSettingsService';
@@ -249,6 +250,139 @@ describe('WebsiteSiteSettingsService', () => {
     ]);
   });
 
+  it('preserves existing Mautic password when update omits password', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            site_id: 'site-1',
+            organization_id: 'org-1',
+            newsletter_config: { provider: 'mautic' },
+            mailchimp_config: {},
+            mautic_config: {
+              baseUrl: 'https://mautic.example.org',
+              username: 'api-user',
+              password: 'stored-secret',
+              segmentId: 'seg-old',
+            },
+            stripe_config: {},
+            form_defaults: {},
+            form_overrides: {},
+            conversion_tracking: {},
+            created_at: '2026-03-01T00:00:00.000Z',
+            updated_at: '2026-03-01T00:00:00.000Z',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            site_id: 'site-1',
+            organization_id: 'org-1',
+            newsletter_config: { provider: 'mautic' },
+            mailchimp_config: {},
+            mautic_config: {
+              baseUrl: 'https://mautic.example.org',
+              username: 'api-user',
+              password: 'stored-secret',
+              segmentId: 'seg-new',
+            },
+            stripe_config: {},
+            form_defaults: {},
+            form_overrides: {},
+            conversion_tracking: {},
+            created_at: '2026-03-01T00:00:00.000Z',
+            updated_at: '2026-03-06T00:00:00.000Z',
+          },
+        ],
+      });
+
+    await service.updateMauticSettings(
+      'site-1',
+      {
+        segmentId: 'seg-new',
+      },
+      'user-1',
+      'org-1'
+    );
+
+    expect(JSON.parse(mockQuery.mock.calls[1]?.[1]?.[4] as string)).toEqual(
+      {
+        baseUrl: 'https://mautic.example.org',
+        username: 'api-user',
+        password: 'stored-secret',
+        segmentId: 'seg-new',
+      }
+    );
+  });
+
+  it('does not persist the masked Mautic password sentinel as a real password', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            site_id: 'site-1',
+            organization_id: 'org-1',
+            newsletter_config: { provider: 'mautic' },
+            mailchimp_config: {},
+            mautic_config: {
+              baseUrl: 'https://mautic.example.org',
+              username: 'api-user',
+              password: 'stored-secret',
+              segmentId: 'seg-old',
+            },
+            stripe_config: {},
+            form_defaults: {},
+            form_overrides: {},
+            conversion_tracking: {},
+            created_at: '2026-03-01T00:00:00.000Z',
+            updated_at: '2026-03-01T00:00:00.000Z',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            site_id: 'site-1',
+            organization_id: 'org-1',
+            newsletter_config: { provider: 'mautic' },
+            mailchimp_config: {},
+            mautic_config: {
+              baseUrl: 'https://mautic.example.org',
+              username: 'api-user',
+              password: 'stored-secret',
+              segmentId: 'seg-new',
+            },
+            stripe_config: {},
+            form_defaults: {},
+            form_overrides: {},
+            conversion_tracking: {},
+            created_at: '2026-03-01T00:00:00.000Z',
+            updated_at: '2026-03-06T00:00:00.000Z',
+          },
+        ],
+      });
+
+    await service.updateMauticSettings(
+      'site-1',
+      {
+        segmentId: 'seg-new',
+        password: '********',
+      },
+      'user-1',
+      'org-1'
+    );
+
+    expect(JSON.parse(mockQuery.mock.calls[1]?.[1]?.[4] as string)).toEqual(
+      {
+        baseUrl: 'https://mautic.example.org',
+        username: 'api-user',
+        password: 'stored-secret',
+        segmentId: 'seg-new',
+      }
+    );
+  });
+
   it('blocks settings mutations for sites awaiting organization assignment', async () => {
     siteManagementModule.__mocks.getSite.mockResolvedValue({
       ...baseSite,
@@ -304,6 +438,20 @@ describe('siteSettings merge helpers', () => {
     createdAt: null,
     updatedAt: null,
   };
+
+  it('masks saved Mautic credentials in read-facing settings copies', () => {
+    const masked = maskWebsiteSiteSettings({
+      ...settings,
+      mautic: {
+        baseUrl: 'https://mautic.example.org',
+        username: 'api-user',
+        password: 'stored-secret',
+        segmentId: 'seg-1',
+      },
+    });
+
+    expect(masked.mautic.password).toBe('********');
+  });
 
   it('applies template config, site defaults, and form overrides in precedence order', () => {
     expect(

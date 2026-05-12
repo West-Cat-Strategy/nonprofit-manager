@@ -68,11 +68,6 @@ const workflowCoverageQuerySchema = z
   })
   .strict();
 
-const reportExportSchema = z.object({
-  definition: z.record(z.string(), z.unknown()),
-  format: z.enum(['csv', 'xlsx']),
-});
-
 const reportExportJobCreateSchema = z.object({
   definition: reportGenerateSchema,
   format: z.enum(['csv', 'xlsx']),
@@ -129,8 +124,6 @@ export const createReportsRoutes = (): Router => {
   );
 
   router.get('/fields/:entity', validateParams(reportFieldsParamsSchema), controller.getAvailableFields);
-
-  router.post('/export', validateBody(reportExportSchema), controller.exportReport);
 
   router.post('/exports', validateBody(reportExportJobCreateSchema), controller.createExportJob);
 

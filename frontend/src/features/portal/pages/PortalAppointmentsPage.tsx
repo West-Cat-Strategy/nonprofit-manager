@@ -5,7 +5,7 @@ import {
   ChatBubbleLeftRightIcon,
   ClockIcon,
 } from '@heroicons/react/24/outline';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import portalApi from '../../../services/portalApi';
 import { unwrapApiData } from '../../../services/apiEnvelope';
 import { useToast } from '../../../contexts/useToast';
@@ -88,6 +88,9 @@ const getStreamStatusBadge = (status: PortalStreamStatus): { label: string; clas
 };
 
 export default function PortalAppointments() {
+  const [searchParams] = useSearchParams();
+  const requestedAppointmentId = searchParams.get('appointment');
+  const requestedCaseId = searchParams.get('case');
   const [mode, setMode] = useState<'slot' | 'request'>('slot');
   const [slots, setSlots] = useState<PortalAppointmentSlot[]>([]);
   const [context, setContext] = useState<PortalPointpersonContext | null>(null);
@@ -102,7 +105,9 @@ export default function PortalAppointments() {
   const [appointmentSearch, setAppointmentSearch] = useState('');
   const [appointmentStatusFilter, setAppointmentStatusFilter] =
     useState<AppointmentStatusFilter>('all');
-  const [appointmentCaseFilter, setAppointmentCaseFilter] = useState<AppointmentCaseFilter>('selected');
+  const [appointmentCaseFilter, setAppointmentCaseFilter] = useState<AppointmentCaseFilter>(
+    requestedAppointmentId && !requestedCaseId ? 'all' : 'selected'
+  );
   const [appointmentFrom, setAppointmentFrom] = useState('');
   const [appointmentTo, setAppointmentTo] = useState('');
   const [slotSearch, setSlotSearch] = useState('');
@@ -212,6 +217,7 @@ export default function PortalAppointments() {
 
     const caseIds = new Set(payload.cases.map((entry) => entry.case_id));
     const nextCaseId =
+      (requestedCaseId && caseIds.has(requestedCaseId) ? requestedCaseId : null) ||
       (selectedCaseId && caseIds.has(selectedCaseId) ? selectedCaseId : null) ||
       (payload.selected_case_id && caseIds.has(payload.selected_case_id) ? payload.selected_case_id : null) ||
       (payload.default_case_id && caseIds.has(payload.default_case_id) ? payload.default_case_id : null) ||
@@ -223,7 +229,7 @@ export default function PortalAppointments() {
     } else {
       clearSelectedCaseId();
     }
-  }, [clearSelectedCaseId, selectedCaseId, setSelectedCaseId]);
+  }, [clearSelectedCaseId, requestedCaseId, selectedCaseId, setSelectedCaseId]);
 
   const loadInitial = useCallback(async () => {
     try {
@@ -670,10 +676,22 @@ export default function PortalAppointments() {
                         title={appointment.title}
                         subtitle={new Date(appointment.start_time).toLocaleString()}
                         meta={`Status: ${appointment.status}`}
+                        className={
+                          appointment.id === requestedAppointmentId
+                            ? 'border-app-accent bg-app-surface-elevated shadow-md'
+                            : undefined
+                        }
                         badges={
-                          <span className="rounded bg-app-surface-muted px-2 py-0.5 text-xs text-app-text-muted">
-                            {appointment.request_type === 'slot_booking' ? 'Booked time' : 'Appointment request'}
-                          </span>
+                          <>
+                            <span className="rounded bg-app-surface-muted px-2 py-0.5 text-xs text-app-text-muted">
+                              {appointment.request_type === 'slot_booking' ? 'Booked time' : 'Appointment request'}
+                            </span>
+                            {appointment.id === requestedAppointmentId && (
+                              <span className="rounded bg-app-accent-soft px-2 py-0.5 text-xs font-semibold text-app-accent-text">
+                                Linked from dashboard
+                              </span>
+                            )}
+                          </>
                         }
                         actions={
                           appointment.status !== 'cancelled' && appointment.status !== 'completed' ? (

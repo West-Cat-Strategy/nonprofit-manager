@@ -1,5 +1,9 @@
 # P5-T93 Testing Strategy Overhaul Proof - 2026-05-09
 
+**Status:** Superseded - proof-complete in the May 11 revalidation
+
+> Supersession note, 2026-05-12: this artifact keeps the original testing-strategy validation outcome, including the backend blockers seen during that implementation pass. The live workboard and [P5 review-wave revalidation](P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md) now treat `P5-T93` as merged and removed from review on 2026-05-11, so the blocked status below is historical context rather than a live row state.
+
 ## Scope
 
 `P5-T93` revises the repo-local testing strategy and validation tooling contract without changing production application behavior, public API shape, database schema, or GitHub Actions posture.
@@ -19,7 +23,7 @@ The implementation runs in the isolated worktree `/Users/bryan/projects/nonprofi
 
 ## Validation Status
 
-Status: blocked at `make test-backend` by existing backend integration failures outside this docs/tooling lane. The P5-T93 selector, tooling, docs, and typecheck gates passed; host smoke and full-gate validation were not run after the backend gate failed.
+Historical status from the original lane: blocked at `make test-backend` by existing backend integration failures outside this docs/tooling lane. The P5-T93 selector, tooling, docs, and typecheck gates passed; host smoke and full-gate validation were not run after the backend gate failed.
 
 ### Passed
 

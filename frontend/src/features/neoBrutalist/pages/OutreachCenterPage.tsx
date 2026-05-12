@@ -55,6 +55,14 @@ export default function OutreachCenter() {
     const handleNewBlast = () => navigate('/settings/communications');
     const handleViewReports = () => navigate('/analytics');
     const handleManageEvent = (id: string) => navigate(`/events/${id}`);
+    const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+    const visibleEvents = normalizedSearchTerm
+        ? events.filter((event) =>
+            [event.title, event.date, event.time, String(event.rsvpCount)].some((value) =>
+                value.toLowerCase().includes(normalizedSearchTerm)
+            )
+        )
+        : events;
 
     if (loading) {
         return (
@@ -154,7 +162,7 @@ export default function OutreachCenter() {
                     </div>
 
                     <div className="space-y-4">
-                        {events.map((event, index) => {
+                        {visibleEvents.map((event, index) => {
                             const eventKey = event.id || `${event.title}-${event.date}-${event.time}-${index}`;
 
                             return (
@@ -183,6 +191,16 @@ export default function OutreachCenter() {
                                 </div>
                             );
                         })}
+                        {visibleEvents.length === 0 && (
+                            <div className="bg-app-surface border-2 border-black p-10 text-center shadow-[2px_2px_0px_0px_var(--shadow-color)]">
+                                <h3 className="text-2xl font-black uppercase text-black">
+                                    No Outreach Rows Found
+                                </h3>
+                                <p className="mt-2 font-bold text-black/80">
+                                    Try a different campaign, date, time, or RSVP count.
+                                </p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

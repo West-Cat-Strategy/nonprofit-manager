@@ -22,6 +22,7 @@ vi.mock('../organizations', () => ({
 }));
 
 import LoopApiService from '../../LoopApiService';
+import { areDemoRoutesEnabled, isDemoPath } from '../demo';
 
 describe('LoopApiService demo fallback', () => {
   beforeEach(() => {
@@ -29,6 +30,19 @@ describe('LoopApiService demo fallback', () => {
     mockGetCampaignEvents.mockReset();
     mockGetTasks.mockReset();
     mockGetOrganizations.mockReset();
+    vi.unstubAllEnvs();
+  });
+
+  it('requires the explicit demo route flag outside the test environment', () => {
+    expect(areDemoRoutesEnabled({ MODE: 'production' })).toBe(false);
+    expect(isDemoPath('/demo/outreach', { MODE: 'production' })).toBe(false);
+    expect(
+      isDemoPath('/demo/outreach', {
+        MODE: 'production',
+        VITE_DEMO_ROUTES_ENABLED: 'true',
+      })
+    ).toBe(true);
+    expect(isDemoPath('/outreach', { MODE: 'test' })).toBe(false);
   });
 
   it('returns demo outreach data on a demo route without calling the campaign APIs', async () => {

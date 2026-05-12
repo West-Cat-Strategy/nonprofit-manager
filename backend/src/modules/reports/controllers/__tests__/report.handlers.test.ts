@@ -4,12 +4,8 @@ import { AuthRequest } from '@middleware/auth';
 import {
   requirePermissionSafe,
   sendForbidden,
-  sendUnauthorized,
 } from '@services/authGuardService';
-import {
-  DirectReportExportTooLargeError,
-  reportService,
-} from '@modules/reports/services/reportService';
+import { reportService } from '@modules/reports/services/reportService';
 import { Permission } from '@utils/permissions';
 
 jest.mock('@utils/responseHelpers', () => ({
@@ -35,19 +31,14 @@ jest.mock('@modules/shared/export/tabularExport', () => ({
   }),
 }));
 
-jest.mock('@modules/reports/services/reportService', () => {
-  class DirectReportExportTooLargeError extends Error {}
-
-  return {
-    DirectReportExportTooLargeError,
-    reportService: {
-      assertDirectExportSupported: jest.fn(),
-      generateReport: jest.fn(),
-      getAvailableFields: jest.fn(),
-      exportReport: jest.fn(),
-    },
-  };
-});
+jest.mock('@modules/reports/services/reportService', () => ({
+  reportService: {
+    assertDirectExportSupported: jest.fn(),
+    generateReport: jest.fn(),
+    getAvailableFields: jest.fn(),
+    exportReport: jest.fn(),
+  },
+}));
 
 jest.mock('@services/reportExportJobService', () => ({
   ReportExportJobArtifactNotReadyError: class ReportExportJobArtifactNotReadyError extends Error {},
@@ -63,7 +54,6 @@ jest.mock('@services/reportExportJobService', () => ({
 const mockReportService = reportService as jest.Mocked<typeof reportService>;
 const mockRequirePermissionSafe = requirePermissionSafe as jest.Mock;
 const mockSendForbidden = sendForbidden as jest.Mock;
-const mockSendUnauthorized = sendUnauthorized as jest.Mock;
 const {
   ReportExportJobArtifactGoneError,
   reportExportJobService,
@@ -269,127 +259,6 @@ describe('Report Controller', () => {
         error: 'Invalid entity type',
         code: 'bad_request',
       });
-    });
-  });
-
-  describe('exportReport', () => {
-    it('exports CSV successfully with org scope', async () => {
-      const mockResult = { data: [{ name: 'Test' }], total: 1 };
-      const mockBuffer = Buffer.from('Name\nTest');
-      const definition = { entity: 'contacts', fields: ['name'] };
-      mockRequest.body = { definition, format: 'csv' };
-
-      mockReportService.generateReport.mockResolvedValue(mockResult as never);
-      mockReportService.exportReport.mockResolvedValue({
-        buffer: mockBuffer,
-        contentType: 'text/csv; charset=utf-8',
-        extension: 'csv',
-        filename: 'contacts.csv',
-      } as never);
-
-      await reportController.exportReport(
-        mockRequest as AuthRequest,
-        mockResponse as Response,
-        mockNext
-      );
-
-      expect(mockRequirePermissionSafe).toHaveBeenCalledWith(
-        mockRequest,
-        Permission.REPORT_EXPORT
-      );
-      expect(mockReportService.assertDirectExportSupported).toHaveBeenCalledWith(definition, {
-        organizationId: 'org-1',
-      });
-      expect(mockReportService.generateReport).toHaveBeenCalledWith(definition, {
-        organizationId: 'org-1',
-      });
-      expect(mockSetHeader).toHaveBeenCalledWith('Content-Type', 'text/csv; charset=utf-8');
-      expect(mockSetHeader).toHaveBeenCalledWith(
-        'Content-Disposition',
-        'attachment; filename="contacts.csv"'
-      );
-      expect(mockSend).toHaveBeenCalledWith(mockBuffer);
-    });
-
-    it('returns 400 when format is missing', async () => {
-      mockRequest.body = { definition: { entity: 'contacts' } };
-
-      await reportController.exportReport(
-        mockRequest as AuthRequest,
-        mockResponse as Response,
-        mockNext
-      );
-
-      expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({
-        error: 'Definition and format are required',
-        code: 'bad_request',
-      });
-    });
-
-    it('returns 400 for invalid format', async () => {
-      mockRequest.body = {
-        definition: { entity: 'contacts' },
-        format: 'pdf',
-      };
-
-      await reportController.exportReport(
-        mockRequest as AuthRequest,
-        mockResponse as Response,
-        mockNext
-      );
-
-      expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({
-        error: 'Invalid format. Supported formats: csv, xlsx',
-        code: 'bad_request',
-      });
-    });
-
-    it('returns 409 when the direct export exceeds the synchronous size cap', async () => {
-      const definition = { entity: 'contacts', fields: ['name'] };
-      mockRequest.body = { definition, format: 'csv' };
-      mockReportService.assertDirectExportSupported.mockRejectedValue(
-        new DirectReportExportTooLargeError()
-      );
-
-      await reportController.exportReport(
-        mockRequest as AuthRequest,
-        mockResponse as Response,
-        mockNext
-      );
-
-      expect(mockStatus).toHaveBeenCalledWith(409);
-      expect(mockJson).toHaveBeenCalledWith({
-        error:
-          'Report is too large for direct export. Use /v2/reports/exports to create an export job.',
-        code: 'conflict',
-      });
-      expect(mockReportService.generateReport).not.toHaveBeenCalled();
-      expect(mockReportService.exportReport).not.toHaveBeenCalled();
-      expect(mockNext).not.toHaveBeenCalled();
-    });
-
-    it('routes unauthorized guard failures to sendUnauthorized', async () => {
-      mockRequirePermissionSafe.mockReturnValue({
-        ok: false,
-        error: {
-          code: 'unauthorized',
-          message: 'Unauthorized: No authenticated user',
-        },
-      });
-
-      await reportController.exportReport(
-        mockRequest as AuthRequest,
-        mockResponse as Response,
-        mockNext
-      );
-
-      expect(mockSendUnauthorized).toHaveBeenCalledWith(
-        mockResponse,
-        'Unauthorized: No authenticated user'
-      );
-      expect(mockReportService.generateReport).not.toHaveBeenCalled();
     });
   });
 

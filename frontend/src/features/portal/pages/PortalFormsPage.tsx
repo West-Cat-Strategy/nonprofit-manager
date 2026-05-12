@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   ArrowDownTrayIcon,
   ClipboardDocumentCheckIcon,
@@ -57,6 +58,8 @@ const formActionClass =
 
 export default function PortalForms() {
   const { showSuccess, showError } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedAssignmentId = searchParams.get('assignment');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +86,11 @@ export default function PortalForms() {
 
         setForms(assignments);
         setSelectedAssignmentId((current) =>
-          current && assignments.some((item) => item.id === current) ? current : assignments[0]?.id || null
+          current && assignments.some((item) => item.id === current)
+            ? current
+            : requestedAssignmentId && assignments.some((item) => item.id === requestedAssignmentId)
+              ? requestedAssignmentId
+              : assignments[0]?.id || null
         );
 
         if (assignments.length === 0) {
@@ -104,7 +111,7 @@ export default function PortalForms() {
         }
       }
     },
-    [showError]
+    [requestedAssignmentId, showError]
   );
 
   const loadDetail = useCallback(
@@ -274,6 +281,13 @@ export default function PortalForms() {
     }
   };
 
+  const handleAssignmentSelect = (assignmentId: string): void => {
+    setSelectedAssignmentId(assignmentId);
+    const next = new URLSearchParams(searchParams);
+    next.set('assignment', assignmentId);
+    setSearchParams(next, { replace: true });
+  };
+
   return (
     <PortalPageShell
       title="Forms"
@@ -325,6 +339,11 @@ export default function PortalForms() {
                       title={form.title}
                       subtitle={formatAssignmentCaseContext(form) || formatAssignmentStatus(form.status)}
                       meta={formatAssignmentTimeline(form)}
+                      className={
+                        form.id === selectedAssignmentId
+                          ? 'border-app-accent bg-app-surface-elevated shadow-md'
+                          : undefined
+                      }
                       badges={
                         <>
                           <span className="rounded border border-app-border px-2 py-1 font-semibold uppercase">
@@ -340,7 +359,8 @@ export default function PortalForms() {
                       actions={
                         <button
                           type="button"
-                          onClick={() => setSelectedAssignmentId(form.id)}
+                          onClick={() => handleAssignmentSelect(form.id)}
+                          aria-current={form.id === selectedAssignmentId ? 'true' : undefined}
                           className={formActionClass}
                         >
                           <DocumentTextIcon className="h-4 w-4" aria-hidden="true" />

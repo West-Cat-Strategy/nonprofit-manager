@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChatBubbleLeftRightIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline';
+import { useSearchParams } from 'react-router-dom';
 import { createClientMessageId, shouldSubmitComposer } from '../../messaging/composer';
 import { usePersistedMessageDraft } from '../../messaging/drafts';
 import { pickPreferredMessageVersion } from '../../messaging/messageMerge';
@@ -34,6 +35,7 @@ interface PointpersonContextPayload {
 
 interface ThreadSummary {
   id: string;
+  case_id?: string | null;
   subject: string | null;
   status: 'open' | 'closed' | 'archived';
   case_number: string | null;
@@ -124,6 +126,9 @@ const getStreamStatusBadge = (status: PortalStreamStatus): { label: string; clas
 
 export default function PortalMessages() {
   const { showSuccess, showError } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedThreadId = searchParams.get('thread');
+  const requestedCaseId = searchParams.get('case');
   const [context, setContext] = useState<PointpersonContextPayload | null>(null);
   const [activeThread, setActiveThread] = useState<ThreadDetailResponse | null>(null);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
@@ -137,7 +142,9 @@ export default function PortalMessages() {
   const [replyMessage, setReplyMessage] = useState('');
   const [threadSearch, setThreadSearch] = useState('');
   const [threadStatusFilter, setThreadStatusFilter] = useState<ThreadStatusFilter>('all');
-  const [threadCaseFilter, setThreadCaseFilter] = useState<ThreadCaseFilter>('selected');
+  const [threadCaseFilter, setThreadCaseFilter] = useState<ThreadCaseFilter>(
+    requestedThreadId && !requestedCaseId ? 'all' : 'selected'
+  );
 
   const {
     selectedCaseId,
@@ -217,6 +224,7 @@ export default function PortalMessages() {
                 status: thread.status as ThreadSummary['status'],
                 case_number: thread.case_number,
                 case_title: thread.case_title,
+                case_id: thread.case_id ?? payload.case_id ?? null,
                 pointperson_first_name: thread.pointperson_first_name,
                 pointperson_last_name: thread.pointperson_last_name,
                 unread_count: thread.portal_unread_count,
@@ -241,6 +249,7 @@ export default function PortalMessages() {
   });
 
   const streamBadge = useMemo(() => getStreamStatusBadge(streamStatus), [streamStatus]);
+  const resolvedError = error || threadsError;
 
   const loadContext = useCallback(async () => {
     const response = await portalApi.get<PointpersonContextPayload>('/v2/portal/pointperson/context');
@@ -249,6 +258,7 @@ export default function PortalMessages() {
 
     const caseIds = new Set(payload.cases.map((entry) => entry.case_id));
     const fallbackCaseId =
+      (requestedCaseId && caseIds.has(requestedCaseId) ? requestedCaseId : null) ||
       (selectedCaseId && caseIds.has(selectedCaseId) ? selectedCaseId : null) ||
       (payload.selected_case_id && caseIds.has(payload.selected_case_id) ? payload.selected_case_id : null) ||
       (payload.default_case_id && caseIds.has(payload.default_case_id) ? payload.default_case_id : null) ||
@@ -260,7 +270,7 @@ export default function PortalMessages() {
     } else {
       clearSelectedCaseId();
     }
-  }, [clearSelectedCaseId, selectedCaseId, setSelectedCaseId]);
+  }, [clearSelectedCaseId, requestedCaseId, selectedCaseId, setSelectedCaseId]);
 
   const loadInitial = useCallback(async () => {
     try {
@@ -280,7 +290,7 @@ export default function PortalMessages() {
   }, [loadInitial]);
 
   useEffect(() => {
-    if (!activeThreadId) {
+    if (!activeThreadId || activeThreadId === requestedThreadId) {
       return;
     }
 
@@ -290,7 +300,21 @@ export default function PortalMessages() {
       setActiveThread(null);
       setReplyMessage('');
     }
-  }, [activeThreadId, threads]);
+  }, [activeThreadId, requestedThreadId, threads]);
+
+  useEffect(() => {
+    if (loading || resolvedError || !requestedThreadId || activeThreadId === requestedThreadId) {
+      return;
+    }
+
+    const linkedThread = threads.find((thread) => thread.id === requestedThreadId);
+    if (linkedThread?.case_id && linkedThread.case_id !== selectedCaseId) {
+      setSelectedCaseId(linkedThread.case_id);
+    }
+
+    void handleOpenThread(requestedThreadId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeThreadId, loading, requestedThreadId, resolvedError, selectedCaseId, threads]);
 
   const handleCreateThread = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -337,6 +361,14 @@ export default function PortalMessages() {
   const handleOpenThread = async (threadId: string) => {
     try {
       await loadThreadDetail(threadId, true);
+      const thread = threads.find((entry) => entry.id === threadId);
+      const next = new URLSearchParams(searchParams);
+      next.set('thread', threadId);
+      const caseId = thread?.case_id || selectedCaseId;
+      if (caseId) {
+        next.set('case', caseId);
+      }
+      setSearchParams(next, { replace: true });
       await refreshThreads();
     } catch (detailError) {
       console.error('Failed to load thread detail', detailError);
@@ -464,7 +496,6 @@ export default function PortalMessages() {
   };
 
   const composerBlocked = selectedCase ? !selectedCase.is_messageable : true;
-  const resolvedError = error || threadsError;
 
   return (
     <PortalPageShell

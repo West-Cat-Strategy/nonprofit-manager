@@ -59,6 +59,13 @@ function DashboardCompatibilityConsumer() {
       <div data-testid="assigned-total">{dashboardData?.assignedCasesTotal ?? -1}</div>
       <div data-testid="task-error">{dashboardData?.errors.taskSummary ?? 'none'}</div>
       <div data-testid="loading-state">{dashboardData?.loading.caseSummary ? 'loading' : 'idle'}</div>
+      <div data-testid="refresh-state">{dashboardData?.isRefreshing ? 'refreshing' : 'idle'}</div>
+      <button type="button" onClick={dashboardData?.refreshDashboardData}>
+        Refresh data
+      </button>
+      <button type="button" onClick={dashboardData?.clearDashboardCache}>
+        Clear dashboard cache
+      </button>
     </div>
   );
 }
@@ -387,5 +394,84 @@ describe('DashboardDataContext', () => {
     await waitFor(() => expect(screen.getByTestId('urgent-cases')).toHaveTextContent('2'));
     expect(analyticsSummaryMock).toHaveBeenCalledTimes(1);
     expect(taskSummaryMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('refreshes enabled lanes on demand even when startup results are cached', async () => {
+    const preloadedState = {
+      auth: {
+        user: {
+          id: 'user-1',
+          email: 'test@example.com',
+          firstName: 'Test',
+          lastName: 'User',
+          role: 'admin',
+        },
+        isAuthenticated: true,
+        authLoading: false,
+        loading: false,
+      },
+    };
+
+    renderWithProviders(
+      <DashboardDataProvider lanes={WORKBENCH_DASHBOARD_LANES}>
+        <DashboardCompatibilityConsumer />
+      </DashboardDataProvider>,
+      { preloadedState }
+    );
+
+    await waitFor(() => expect(screen.getByTestId('urgent-cases')).toHaveTextContent('2'));
+    expect(caseSummaryMock).toHaveBeenCalledTimes(1);
+    expect(donationTrendsMock).not.toHaveBeenCalled();
+
+    await act(async () => {
+      screen.getByRole('button', { name: /refresh data/i }).click();
+    });
+
+    await waitFor(() => expect(caseSummaryMock).toHaveBeenCalledTimes(2));
+    expect(analyticsSummaryMock).toHaveBeenCalledTimes(2);
+    expect(taskSummaryMock).toHaveBeenCalledTimes(2);
+    expect(donationTrendsMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId('refresh-state')).toHaveTextContent('idle');
+  });
+
+  it('clears cached lane results so the next remount fetches again', async () => {
+    const preloadedState = {
+      auth: {
+        user: {
+          id: 'user-1',
+          email: 'test@example.com',
+          firstName: 'Test',
+          lastName: 'User',
+          role: 'admin',
+        },
+        isAuthenticated: true,
+        authLoading: false,
+        loading: false,
+      },
+    };
+
+    const firstRender = renderWithProviders(
+      <DashboardDataProvider lanes={WORKBENCH_DASHBOARD_LANES}>
+        <DashboardCompatibilityConsumer />
+      </DashboardDataProvider>,
+      { preloadedState }
+    );
+
+    await waitFor(() => expect(screen.getByTestId('urgent-cases')).toHaveTextContent('2'));
+    expect(caseSummaryMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      screen.getByRole('button', { name: /clear dashboard cache/i }).click();
+    });
+    firstRender.unmount();
+
+    renderWithProviders(
+      <DashboardDataProvider lanes={WORKBENCH_DASHBOARD_LANES}>
+        <DashboardCompatibilityConsumer />
+      </DashboardDataProvider>,
+      { preloadedState }
+    );
+
+    await waitFor(() => expect(caseSummaryMock).toHaveBeenCalledTimes(2));
   });
 });

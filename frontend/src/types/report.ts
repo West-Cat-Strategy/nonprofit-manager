@@ -22,7 +22,7 @@ export const REPORT_ENTITIES = [
 
 export type ReportEntity = (typeof REPORT_ENTITIES)[number];
 
-export type ReportFormat = 'json' | 'csv' | 'pdf' | 'xlsx';
+export type ReportFormat = 'json' | 'csv' | 'xlsx';
 
 export type FilterOperator = 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte' | 'like' | 'in' | 'between';
 

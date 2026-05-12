@@ -17,15 +17,9 @@ import {
   ReportExportJobArtifactGoneError,
   ReportExportJobArtifactNotReadyError,
 } from '@services/reportExportJobService';
-import {
-  DirectReportExportTooLargeError,
-  reportService,
-} from '@modules/reports/services/reportService';
+import { reportService } from '@modules/reports/services/reportService';
 import { badRequest, conflict, notFoundMessage, unauthorized } from '@utils/responseHelpers';
 import { Permission } from '@utils/permissions';
-
-const DIRECT_EXPORT_TOO_LARGE_MESSAGE =
-  'Report is too large for direct export. Use /v2/reports/exports to create an export job.';
 
 /**
  * POST /api/reports/generate
@@ -91,50 +85,6 @@ export const getAvailableFields = async (
     const fields = await reportService.getAvailableFields(entity);
     res.json(fields);
   } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * POST /api/reports/export
- * Generate and export a report
- */
-export const exportReport = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
-    if (!ensureRequestPermission(req, res, Permission.REPORT_EXPORT)) return;
-
-    const { definition, format } = req.body;
-
-    if (!definition || !format) {
-      badRequest(res, 'Definition and format are required');
-      return;
-    }
-
-    if (!['csv', 'xlsx'].includes(format)) {
-      badRequest(res, 'Invalid format. Supported formats: csv, xlsx');
-      return;
-    }
-
-    const organizationId = getRequestOrganizationId(req);
-    if (!organizationId) {
-      unauthorized(res, 'Organization context required');
-      return;
-    }
-
-    await reportService.assertDirectExportSupported(definition, { organizationId });
-    const result = await reportService.generateReport(definition, { organizationId });
-    const file = await reportService.exportReport(result, format as 'csv' | 'xlsx');
-    setTabularDownloadHeaders(res, file);
-    res.send(file.buffer);
-  } catch (error) {
-    if (error instanceof DirectReportExportTooLargeError) {
-      conflict(res, DIRECT_EXPORT_TOO_LARGE_MESSAGE);
-      return;
-    }
     next(error);
   }
 };
@@ -289,7 +239,6 @@ export const downloadExportJob = async (
 export default {
   generateReport,
   getAvailableFields,
-  exportReport,
   createExportJob,
   listExportJobs,
   getExportJob,

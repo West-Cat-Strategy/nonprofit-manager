@@ -1,6 +1,6 @@
 # Dashboard Customization Feature
 
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-05-12
 
 
 ## Overview
@@ -42,6 +42,8 @@ This document describes the customizable dashboard feature implementation with d
    - Add widget modal
    - Save/cancel layout changes
    - Reset to default functionality
+   - Manual refresh and cache-clear controls for shared dashboard data lanes
+   - Responsive desktop grid and mobile-stack regression hooks
 
 ### 🔭 Follow-On Work
 
@@ -50,11 +52,12 @@ The core customizable dashboard is live. Remaining work is polish and expansion,
 1. **Refresh & Caching Enhancements**
    - Shared dashboard data already includes analytics summary, donation trends, case summary, task summary, follow-up summary, and assigned cases
    - Existing widgets ship lane-specific loading and error handling for their live data requests
-   - Future enhancement work can add manual refresh controls and longer-lived caching for frequently revisited widgets
+   - Manual refresh and cache-clear controls are available on the custom dashboard
+   - Future enhancement work can tune cache duration and add per-widget refresh affordances
 
 2. **Interaction Polish**
-   - Continue tightening drag-and-drop ergonomics and responsive layout behavior as the broader dashboard/workbench refactor progresses
-   - Add browser-level regression coverage for resize and rearrangement-heavy flows
+   - Browser-level regression coverage now exercises refresh controls, resize/rearrangement handles, cancel flow, mobile stack behavior, and horizontal-overflow prevention
+   - Continue tightening drag-and-drop ergonomics as the broader dashboard/workbench refactor progresses
 
 3. **Advanced Dashboard Features**
    - Expand per-widget settings, multi-dashboard workflows, and sharing/import-export options as follow-on product work

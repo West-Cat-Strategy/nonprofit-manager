@@ -1,10 +1,36 @@
 import type { Pool } from 'pg';
+import mailchimpService from '@services/mailchimpService';
+import mauticService from '@services/mauticService';
 import type {
   PublishedSite,
   WebsiteFormDefinition,
   WebsiteSiteSettings,
 } from '@app-types/publishing';
 import { SiteOperationsService } from '@services/publishing/siteOperationsService';
+
+jest.mock('@services/mailchimpService', () => ({
+  __esModule: true,
+  default: {
+    isMailchimpConfigured: jest.fn(),
+    getStatus: jest.fn(),
+    getLists: jest.fn(),
+  },
+}));
+
+jest.mock('@services/mauticService', () => ({
+  __esModule: true,
+  default: {
+    isMauticConfigured: jest.fn(),
+    getStatus: jest.fn(),
+    getSegments: jest.fn(),
+  },
+  isMauticConfigured: jest.fn(),
+  getStatus: jest.fn(),
+  getSegments: jest.fn(),
+}));
+
+const mailchimpModule = mailchimpService as jest.Mocked<typeof mailchimpService>;
+const mauticModule = mauticService as jest.Mocked<typeof mauticService>;
 
 const buildSite = (overrides: Partial<PublishedSite> = {}): PublishedSite => ({
   id: 'site-1',
@@ -30,7 +56,9 @@ const buildSite = (overrides: Partial<PublishedSite> = {}): PublishedSite => ({
   ...overrides,
 });
 
-const buildManagedForm = (overrides: Partial<WebsiteFormDefinition> = {}): WebsiteFormDefinition => ({
+const buildManagedForm = (
+  overrides: Partial<WebsiteFormDefinition> = {}
+): WebsiteFormDefinition => ({
   formKey: 'contact-form-1',
   componentId: 'contact-form-1',
   formType: 'contact-form',
@@ -67,6 +95,9 @@ const buildSettings = (): WebsiteSiteSettings => ({
   mailchimp: {},
   mautic: {},
   stripe: {},
+  social: {
+    facebook: {},
+  },
   formDefaults: {},
   formOverrides: {},
   conversionTracking: {
@@ -92,8 +123,17 @@ describe('SiteOperationsService', () => {
   let mockFormRegistry: { extract: jest.Mock };
 
   beforeEach(() => {
+    jest.clearAllMocks();
     mockQuery = jest.fn().mockResolvedValue({ rows: [] });
     service = new SiteOperationsService({ query: mockQuery } as unknown as Pool);
+    mailchimpModule.isMailchimpConfigured.mockReturnValue(false);
+    mailchimpModule.getStatus.mockResolvedValue({ configured: false });
+    mailchimpModule.getLists.mockResolvedValue([]);
+    mauticModule.isMauticConfigured.mockImplementation((config?: { baseUrl?: unknown }) =>
+      Boolean(config?.baseUrl)
+    );
+    mauticModule.getStatus.mockResolvedValue({ configured: false });
+    mauticModule.getSegments.mockResolvedValue([]);
 
     mockSiteManagement = {
       getSite: jest.fn().mockResolvedValue(buildSite()),
@@ -111,7 +151,8 @@ describe('SiteOperationsService', () => {
       mockSiteManagement;
     (service as unknown as { siteSettings: typeof mockSiteSettings }).siteSettings =
       mockSiteSettings;
-    (service as unknown as { formRegistry: typeof mockFormRegistry }).formRegistry = mockFormRegistry;
+    (service as unknown as { formRegistry: typeof mockFormRegistry }).formRegistry =
+      mockFormRegistry;
   });
 
   it('rejects unknown form keys before persisting overrides', async () => {
@@ -131,16 +172,14 @@ describe('SiteOperationsService', () => {
   });
 
   it('persists valid form overrides and returns the refreshed form definition', async () => {
-    mockFormRegistry.extract
-      .mockReturnValueOnce([buildManagedForm()])
-      .mockReturnValueOnce([
-        buildManagedForm({
-          operationalSettings: {
-            successMessage: 'Updated by site console',
-            defaultTags: ['console-updated'],
-          },
-        }),
-      ]);
+    mockFormRegistry.extract.mockReturnValueOnce([buildManagedForm()]).mockReturnValueOnce([
+      buildManagedForm({
+        operationalSettings: {
+          successMessage: 'Updated by site console',
+          defaultTags: ['console-updated'],
+        },
+      }),
+    ]);
 
     const result = await service.updateForm(
       'site-1',
@@ -231,6 +270,71 @@ describe('SiteOperationsService', () => {
     );
   });
 
+  it('uses site-scoped Mautic settings for integration status and audiences', async () => {
+    const settings: WebsiteSiteSettings = {
+      ...buildSettings(),
+      newsletter: {
+        provider: 'mautic',
+        selectedAudienceId: 'seg-42',
+      },
+      mautic: {
+        baseUrl: 'https://mautic.example.org',
+        username: 'site-api',
+        password: 'site-secret',
+        segmentId: 'seg-fallback',
+        defaultTags: ['website'],
+        syncEnabled: true,
+      },
+    };
+    mockSiteSettings.getSettingsForSite.mockResolvedValue(settings);
+    mauticModule.getStatus.mockResolvedValue({
+      configured: true,
+      baseUrl: 'https://mautic.example.org',
+      segmentCount: 1,
+    });
+    mauticModule.getSegments.mockResolvedValue([
+      {
+        id: 'seg-42',
+        name: 'Website Newsletter',
+        memberCount: 27,
+      },
+    ]);
+
+    const result = await service.getIntegrationStatus('site-1', 'user-1', 'org-1');
+
+    expect(mauticModule.getStatus).toHaveBeenCalledWith(settings.mautic);
+    expect(mauticModule.getSegments).toHaveBeenCalledWith(settings.mautic);
+    expect(result.newsletter).toMatchObject({
+      provider: 'mautic',
+      configured: true,
+      selectedAudienceId: 'seg-42',
+      selectedAudienceName: 'Website Newsletter',
+      audienceCount: 1,
+      availableAudiences: [
+        {
+          id: 'seg-42',
+          name: 'Website Newsletter',
+          memberCount: 27,
+        },
+      ],
+    });
+    expect(result.mautic).toMatchObject({
+      configured: true,
+      baseUrl: 'https://mautic.example.org',
+      password: '********',
+      segmentId: 'seg-fallback',
+      defaultTags: ['website'],
+      syncEnabled: true,
+      availableAudiences: [
+        {
+          id: 'seg-42',
+          name: 'Website Newsletter',
+          memberCount: 27,
+        },
+      ],
+    });
+  });
+
   it('returns a management snapshot with readiness and the next operator action', async () => {
     const site = buildSite({
       publishedContent: {
@@ -284,27 +388,27 @@ describe('SiteOperationsService', () => {
     (service as unknown as { getIntegrationStatus: jest.Mock }).getIntegrationStatus = jest
       .fn()
       .mockResolvedValue({
-      blocked: false,
-      publishStatus: 'draft',
-      newsletter: {
-        provider: 'mautic',
-        configured: false,
-        lastSyncAt: null,
-      },
-      mailchimp: {
-        configured: false,
-        availableAudiences: [],
-        lastSyncAt: null,
-      },
-      mautic: {
-        configured: false,
-        availableAudiences: [],
-        lastSyncAt: null,
-      },
-      stripe: {
-        configured: false,
-        publishableKeyConfigured: false,
-      },
+        blocked: false,
+        publishStatus: 'draft',
+        newsletter: {
+          provider: 'mautic',
+          configured: false,
+          lastSyncAt: null,
+        },
+        mailchimp: {
+          configured: false,
+          availableAudiences: [],
+          lastSyncAt: null,
+        },
+        mautic: {
+          configured: false,
+          availableAudiences: [],
+          lastSyncAt: null,
+        },
+        stripe: {
+          configured: false,
+          publishableKeyConfigured: false,
+        },
         social: {
           facebook: {
             lastSyncAt: null,

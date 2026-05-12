@@ -128,6 +128,65 @@ describe('newsletterProviderService', () => {
     expect(provider).toBe('local_email');
   });
 
+  it('resolves Mautic from complete site-scoped settings even when env Mautic is unavailable', () => {
+    mailchimpModule.isMailchimpConfigured.mockReturnValue(false);
+    mauticModule.isMauticConfigured.mockImplementation(
+      (config?: { baseUrl?: unknown; username?: unknown; password?: unknown }) =>
+        Boolean(config?.baseUrl && config.username && config.password)
+    );
+
+    const settings = {
+      newsletter: {
+        provider: 'mautic',
+        selectedAudienceId: 'seg-site',
+      },
+      mailchimp: {},
+      mautic: {
+        baseUrl: 'https://mautic.example.org',
+        username: 'site-api',
+        password: 'site-secret',
+      },
+    } satisfies Pick<WebsiteSiteSettings, 'newsletter' | 'mailchimp' | 'mautic'>;
+
+    expect(newsletterProviderService.resolveNewsletterProvider(settings)).toBe('mautic');
+    expect(mauticModule.isMauticConfigured).toHaveBeenCalledWith(settings.mautic);
+  });
+
+  it('uses site-scoped Mautic settings for signup destinations', () => {
+    mailchimpModule.isMailchimpConfigured.mockReturnValue(false);
+    mauticModule.isMauticConfigured.mockImplementation((config?: { baseUrl?: unknown }) =>
+      Boolean(config?.baseUrl)
+    );
+
+    const destination = newsletterProviderService.resolveNewsletterDestination(
+      {
+        newsletter: {
+          provider: 'mautic',
+          selectedAudienceId: 'seg-site',
+        },
+        mailchimp: {},
+        mautic: {
+          baseUrl: 'https://mautic.example.org',
+          username: 'site-api',
+          password: 'site-secret',
+          segmentId: 'seg-fallback',
+          defaultTags: ['mautic-default'],
+        },
+      } as never,
+      {
+        audienceMode: 'mautic',
+        defaultTags: ['newsletter'],
+      }
+    );
+
+    expect(destination).toEqual({
+      provider: 'mautic',
+      audienceId: 'seg-site',
+      shouldSync: true,
+      tags: ['newsletter', 'mautic-default'],
+    });
+  });
+
   it('routes sync requests to the active provider backend', async () => {
     mailchimpModule.isMailchimpConfigured.mockReturnValue(true);
     mauticModule.isMauticConfigured.mockReturnValue(false);
@@ -157,6 +216,44 @@ describe('newsletterProviderService', () => {
       tags: ['newsletter'],
     });
     expect(mauticModule.syncContact).not.toHaveBeenCalled();
+    expect(result.success).toBe(true);
+  });
+
+  it('passes site-scoped Mautic settings into confirmed signup sync', async () => {
+    mailchimpModule.isMailchimpConfigured.mockReturnValue(false);
+    mauticModule.isMauticConfigured.mockReturnValue(true);
+    mauticModule.syncContact.mockResolvedValue({
+      contactId: 'contact-1',
+      email: 'ada@example.com',
+      success: true,
+      action: 'updated',
+    });
+
+    const settings = {
+      newsletter: { provider: 'mautic' },
+      mailchimp: {},
+      mautic: {
+        baseUrl: 'https://mautic.example.org',
+        username: 'site-api',
+        password: 'site-secret',
+      },
+    } satisfies Pick<WebsiteSiteSettings, 'newsletter' | 'mailchimp' | 'mautic'>;
+
+    const result = await newsletterProviderService.syncNewsletterContact(settings, {
+      contactId: 'contact-1',
+      listId: 'seg-site',
+      tags: ['newsletter'],
+      provider: 'mautic',
+    });
+
+    expect(mauticModule.syncContact).toHaveBeenCalledWith(
+      {
+        contactId: 'contact-1',
+        listId: 'seg-site',
+        tags: ['newsletter'],
+      },
+      settings.mautic
+    );
     expect(result.success).toBe(true);
   });
 

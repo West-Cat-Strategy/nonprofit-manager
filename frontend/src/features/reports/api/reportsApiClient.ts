@@ -22,18 +22,6 @@ export class ReportsApiClient {
     return response.data;
   }
 
-  async exportReport(definition: ReportDefinition, format: 'csv' | 'xlsx'): Promise<DownloadedFile> {
-    const response = await api.post<Blob>('/v2/reports/export', {
-      definition,
-      format,
-    }, { responseType: 'blob' });
-
-    return buildDownloadedFile(
-      response,
-      `${definition.entity}_report_${new Date().toISOString().split('T')[0]}.${format}`
-    );
-  }
-
   async createExportJob(payload: CreateReportExportJobRequest): Promise<ReportExportJob> {
     const response = await api.post<ReportExportJob>(
       '/v2/reports/exports',

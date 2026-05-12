@@ -643,6 +643,21 @@ body.dark :is(button, a)[class*='border-app-'][aria-disabled='true'] {
 /* UTILITIES */
 .react-grid-layout { position: relative; transition: height 200ms ease; }
 .react-grid-item { transition: all 200ms ease; }
+[data-testid='custom-dashboard-grid'] .react-resizable-handle {
+  position: absolute;
+  right: 0.35rem;
+  bottom: 0.35rem;
+  width: 1rem;
+  height: 1rem;
+  border-right: 3px solid var(--app-accent);
+  border-bottom: 3px solid var(--app-accent);
+  opacity: 0.85;
+  cursor: se-resize;
+}
+
+[data-testid='custom-dashboard-grid'] .react-resizable-handle::after {
+  content: '';
+}
 .animate-slide-in { animation: slide-in 0.3s ease-out; }
 .animate-fadeIn { animation: fadeIn 0.2s ease-out; }
 

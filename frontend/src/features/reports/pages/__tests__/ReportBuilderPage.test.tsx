@@ -131,7 +131,6 @@ const controllerState = {
   setYAxisField: vi.fn(),
   handleDownloadExportJob: handleDownloadExportJobMock,
   handleEntityChange: handleEntityChangeMock,
-  handleExportPDF: vi.fn(),
   handleGenerateReport: handleGenerateReportMock,
   handleRetryExportJob: handleRetryExportJobMock,
   handleSaveReport: handleSaveReportMock,
@@ -223,19 +222,22 @@ describe('ReportBuilderPage', () => {
     expect(handleGenerateReportMock).toHaveBeenCalled();
   });
 
-  it('starts exports and retries recent export jobs through the controller', async () => {
+  it('starts CSV and Excel exports and retries recent export jobs through the controller', async () => {
     const user = userEvent.setup();
     renderWithProviders(<ReportBuilderPage />, {
       preloadedState: buildAuthState(['report:view', 'report:create', 'report:export']),
     });
 
     await user.click(screen.getByRole('button', { name: /export csv/i }));
+    await user.click(screen.getByRole('button', { name: /export excel/i }));
     await user.click(screen.getByRole('button', { name: /retry export/i }));
     await user.click(screen.getByRole('button', { name: /download/i }));
 
     expect(handleStartExportMock).toHaveBeenCalledWith('csv');
+    expect(handleStartExportMock).toHaveBeenCalledWith('xlsx');
     expect(handleRetryExportJobMock).toHaveBeenCalledWith(exportJob);
     expect(handleDownloadExportJobMock).toHaveBeenCalledWith(exportJob);
+    expect(screen.queryByRole('button', { name: /export pdf/i })).not.toBeInTheDocument();
   });
 
   it('opens and closes the save dialog through controller setters', async () => {

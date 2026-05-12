@@ -1,8 +1,10 @@
 # P5-T93 Safe-Current Dependency Refresh Proof
 
 **Date:** 2026-05-09
-**Status:** Blocked - E2E lock retry pending
+**Status:** Superseded - proof-complete in the May 11 revalidation
 **Rows:** `P5-T93`
+
+> Supersession note, 2026-05-12: this row-local artifact preserves the original dependency-refresh validation log, including the Playwright host lock blocker observed during that lane. The live workboard and [P5 review-wave revalidation](P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md) now treat `P5-T93` as merged and removed from review on 2026-05-11, so the blocker below is historical context rather than a live workboard blocker.
 
 ## Scope
 
@@ -52,4 +54,4 @@ Out of scope unless validation exposes a security blocker:
 
 ## Known Follow-Up
 
-- Retry the Playwright host CI portion of `make test` after the shared `/tmp/nonprofit-manager-e2e.lock` clears from the older original-checkout docker CI run. The lock owner was still active in `/Users/bryan/projects/nonprofit-manager/e2e` after more than one hour, and it was not terminated to preserve the unrelated in-flight lane.
+- Historical note: the original lane requested a Playwright host CI retry after the shared `/tmp/nonprofit-manager-e2e.lock` cleared. That retry requirement was superseded by the May 11 revalidation/main reconciliation that removed `P5-T93` from the live board.

@@ -1,6 +1,6 @@
 # Report Generator Guide
 
-**Last Updated:** 2026-04-25
+**Last Updated:** 2026-05-12
 
 
 ## Overview
@@ -14,6 +14,7 @@ Primary capabilities:
 - Publish optional public snapshot links with explicit CSV/XLSX downloads.
 - Export report-builder runs in `csv` and `xlsx`.
 - Schedule recurring report delivery by email.
+- Direct browser-generated PDF export is intentionally not exposed.
 
 ## Report Builder
 
@@ -30,6 +31,11 @@ Builder notes:
 Supported export formats:
 - `csv`
 - `xlsx`
+
+Manual report exports run through the queued worker-owned export path:
+- `POST /api/v2/reports/exports` creates the export job.
+- `GET /api/v2/reports/exports/:id` polls status.
+- `GET /api/v2/reports/exports/:id/download` downloads the completed artifact.
 
 ## Scheduled Reports
 
@@ -127,7 +133,7 @@ Storage notes:
 
 - Frequency options are controlled (no raw cron in v1).
 - Scheduled attachment formats are `csv` and `xlsx`.
-- PDF export and PDF scheduling are deferred.
+- PDF export and PDF scheduling are deferred. The report builder should not expose a direct client-side PDF export control; a future PDF path should be worker-owned and job-backed rather than browser-generated.
 
 ## Technical Architecture
 

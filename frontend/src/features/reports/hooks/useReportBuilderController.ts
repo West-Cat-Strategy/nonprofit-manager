@@ -445,26 +445,6 @@ export function useReportBuilderController() {
     });
   };
 
-  const handleExportPDF = async () => {
-    const { jsPDF } = await import('jspdf');
-    const { default: autoTable } = await import('jspdf-autotable');
-
-    const doc = new jsPDF();
-    doc.text(`${entity.toUpperCase()} REPORT`, 14, 15);
-
-    const body =
-      currentReport?.data.map((row) => allOutputFields.map((field) => String(row[field] ?? ''))) ||
-      [];
-
-    autoTable(doc, {
-      head: [allOutputFields.map((field) => field.replace(/_/g, ' ').toUpperCase())],
-      body,
-      startY: 20,
-    });
-
-    doc.save(`${entity}_report_${new Date().toISOString().split('T')[0]}.pdf`);
-  };
-
   const handleSaveReport = async () => {
     if (!savedReportName.trim()) {
       window.alert('Please enter a report name');
@@ -569,7 +549,6 @@ export function useReportBuilderController() {
     setYAxisField,
     handleDownloadExportJob,
     handleEntityChange,
-    handleExportPDF,
     handleGenerateReport,
     handleRetryExportJob,
     handleSaveReport,

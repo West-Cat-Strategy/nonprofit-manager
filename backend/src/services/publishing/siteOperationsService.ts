@@ -36,6 +36,8 @@ import {
 } from './siteOperationsServiceHelpers';
 import { SiteManagementService } from './siteManagementService';
 import {
+  maskMauticSettings,
+  maskWebsiteSiteSettings,
   WebsiteSiteSettingsService,
   websiteSiteSettingsService,
 } from './siteSettingsService';
@@ -173,7 +175,9 @@ export class SiteOperationsService {
     );
   }
 
-  private async loadContentSummary(siteId: string): Promise<WebsiteOverviewSummary['contentSummary']> {
+  private async loadContentSummary(
+    siteId: string
+  ): Promise<WebsiteOverviewSummary['contentSummary']> {
     const result = await this.pool.query<{ source: string; status: string; count: string }>(
       `SELECT source, status, COUNT(*)::text AS count
        FROM website_entries
@@ -361,14 +365,19 @@ export class SiteOperationsService {
     const lastSyncAt = await this.loadMailchimpLastSync(site.id);
     const newsletterProvider = newsletterProviderService.resolveNewsletterProvider(settings);
     const selectedPreset =
-      settings.newsletter.listPresets?.find((preset) => preset.id === settings.newsletter.selectedPresetId) ||
-      null;
+      settings.newsletter.listPresets?.find(
+        (preset) => preset.id === settings.newsletter.selectedPresetId
+      ) || null;
+    const selectedProviderPreset =
+      selectedPreset?.provider === newsletterProvider ? selectedPreset : null;
     const selectedAudienceId =
-      settings.newsletter.selectedAudienceId ||
-      selectedPreset?.audienceId ||
-      (newsletterProvider === 'mailchimp'
-        ? settings.mailchimp.audienceId || null
-        : settings.mautic.segmentId || null);
+      newsletterProvider === 'local_email'
+        ? null
+        : settings.newsletter.selectedAudienceId ||
+          selectedProviderPreset?.audienceId ||
+          (newsletterProvider === 'mailchimp'
+            ? settings.mailchimp.audienceId || null
+            : settings.mautic.segmentId || null);
     let facebookIntegration: WebsiteFacebookIntegrationStatus = {
       ...settings.social.facebook,
       trackedPageName: null,
@@ -379,15 +388,11 @@ export class SiteOperationsService {
     let mailchimpConfigured: boolean | undefined;
     let accountName: string | undefined;
     let listCount: number | undefined;
-    let availableAudiences:
-      | WebsiteIntegrationStatus['mailchimp']['availableAudiences']
-      | undefined;
+    let availableAudiences: WebsiteIntegrationStatus['mailchimp']['availableAudiences'] | undefined;
     let mauticConfigured: boolean | undefined;
     let mauticBaseUrl: string | undefined;
     let mauticSegmentCount: number | undefined;
-    let mauticAudiences:
-      | WebsiteIntegrationStatus['mautic']['availableAudiences']
-      | undefined;
+    let mauticAudiences: WebsiteIntegrationStatus['mautic']['availableAudiences'] | undefined;
 
     try {
       const status = await mailchimpService.getStatus();
@@ -411,18 +416,20 @@ export class SiteOperationsService {
     }
 
     try {
-      const mauticStatus = await mauticService.getStatus();
+      const mauticStatus = await mauticService.getStatus(settings.mautic);
       mauticConfigured = Boolean(mauticStatus?.configured);
       mauticBaseUrl = mauticStatus?.baseUrl;
       mauticSegmentCount = mauticStatus?.segmentCount;
 
       if (mauticConfigured) {
-        const segments = await mauticService.getSegments();
-        mauticAudiences = segments.map((segment: { id: string; name: string; memberCount: number }) => ({
-          id: segment.id,
-          name: segment.name,
-          memberCount: segment.memberCount,
-        }));
+        const segments = await mauticService.getSegments(settings.mautic);
+        mauticAudiences = segments.map(
+          (segment: { id: string; name: string; memberCount: number }) => ({
+            id: segment.id,
+            name: segment.name,
+            memberCount: segment.memberCount,
+          })
+        );
       } else {
         mauticAudiences = [];
       }
@@ -448,6 +455,13 @@ export class SiteOperationsService {
     }
 
     const donationProvider = settings.stripe.provider || 'stripe';
+    const newsletterAvailableAudiences =
+      newsletterProvider === 'mautic' ? mauticAudiences || [] : availableAudiences || [];
+    const selectedAudienceName =
+      settings.newsletter.selectedAudienceName ||
+      newsletterAvailableAudiences.find((audience) => audience.id === selectedAudienceId)?.name ||
+      selectedProviderPreset?.audienceName ||
+      null;
 
     return {
       blocked: site.migrationStatus === 'needs_assignment',
@@ -455,22 +469,22 @@ export class SiteOperationsService {
       newsletter: {
         provider: newsletterProvider,
         configured:
-          (newsletterProvider === 'mailchimp'
-            ? Boolean(mailchimpConfigured)
-            : Boolean(mauticConfigured)) && Boolean(selectedAudienceId),
+          newsletterProvider === 'local_email'
+            ? true
+            : (newsletterProvider === 'mailchimp'
+                ? Boolean(mailchimpConfigured)
+                : Boolean(mauticConfigured)) && Boolean(selectedAudienceId),
         selectedAudienceId,
-        selectedAudienceName:
-          settings.newsletter.selectedAudienceName ||
-          availableAudiences?.find((audience) => audience.id === selectedAudienceId)?.name ||
-          selectedPreset?.audienceName ||
-          null,
+        selectedAudienceName,
         selectedPresetId: settings.newsletter.selectedPresetId || null,
         listPresets: settings.newsletter.listPresets || [],
-        availableAudiences: availableAudiences || [],
+        availableAudiences: newsletterAvailableAudiences,
         audienceCount:
           newsletterProvider === 'mailchimp'
             ? listCount
-            : mauticSegmentCount,
+            : newsletterProvider === 'mautic'
+              ? mauticSegmentCount
+              : undefined,
         lastRefreshedAt: settings.newsletter.lastRefreshedAt || null,
         lastSyncAt: newsletterProvider === 'mailchimp' ? lastSyncAt : null,
       },
@@ -483,7 +497,7 @@ export class SiteOperationsService {
         lastSyncAt,
       },
       mautic: {
-        ...settings.mautic,
+        ...maskMauticSettings(settings.mautic),
         configured: Boolean(mauticConfigured),
         baseUrl: mauticBaseUrl || settings.mautic.baseUrl || undefined,
         segmentCount: mauticSegmentCount,
@@ -610,7 +624,7 @@ export class SiteOperationsService {
       conversionMetrics,
       integrations,
       managementSnapshot,
-      settings: siteSettings,
+      settings: maskWebsiteSiteSettings(siteSettings),
     };
   }
 }

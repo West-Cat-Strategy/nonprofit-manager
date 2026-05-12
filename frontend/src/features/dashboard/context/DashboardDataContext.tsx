@@ -83,16 +83,29 @@ export interface DashboardDataContextValue {
   loading: Record<DashboardDataKey, boolean>;
   errors: Partial<Record<DashboardDataKey, string>>;
   hasStartedLoading: boolean;
+  lastLoadedAt: number | null;
+  lastManualRefreshAt: number | null;
+  isRefreshing: boolean;
+  refreshDashboardData: () => void;
+  clearDashboardCache: () => void;
 }
 
 export const DashboardDataContext = createContext<DashboardDataContextValue | null>(null);
-const DashboardAnalyticsSummaryContext = createContext<DashboardAnalyticsSummaryContextValue | null>(null);
-const DashboardDonationTrendsContext = createContext<DashboardDonationTrendsContextValue | null>(null);
+const DashboardAnalyticsSummaryContext =
+  createContext<DashboardAnalyticsSummaryContextValue | null>(null);
+const DashboardDonationTrendsContext = createContext<DashboardDonationTrendsContextValue | null>(
+  null
+);
 const DashboardCaseSummaryContext = createContext<DashboardCaseSummaryContextValue | null>(null);
 const DashboardTaskSummaryContext = createContext<DashboardTaskSummaryContextValue | null>(null);
-const DashboardFollowUpSummaryContext = createContext<DashboardFollowUpSummaryContextValue | null>(null);
-const DashboardUpcomingFollowUpsContext = createContext<DashboardUpcomingFollowUpsContextValue | null>(null);
-const DashboardAssignedCasesContext = createContext<DashboardAssignedCasesContextValue | null>(null);
+const DashboardFollowUpSummaryContext = createContext<DashboardFollowUpSummaryContextValue | null>(
+  null
+);
+const DashboardUpcomingFollowUpsContext =
+  createContext<DashboardUpcomingFollowUpsContextValue | null>(null);
+const DashboardAssignedCasesContext = createContext<DashboardAssignedCasesContextValue | null>(
+  null
+);
 
 interface DashboardDataProviderProps {
   children: ReactNode;

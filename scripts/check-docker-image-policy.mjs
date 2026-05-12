@@ -88,14 +88,34 @@ function collectComposeImages(file) {
   }
 
   const parsed = document.toJSON();
-  const services = parsed?.services ?? {};
+  return collectComposeImageEntries(parsed, path.relative(repoRoot, file));
+}
 
-  return Object.entries(services)
-    .filter(([, service]) => service && typeof service.image === 'string')
-    .map(([serviceName, service]) => ({
-      ref: service.image,
-      source: `${path.relative(repoRoot, file)} service ${serviceName}`,
-    }));
+function collectComposeImageEntries(value, fileLabel, pathParts = []) {
+  if (!value || typeof value !== 'object') {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item, index) => collectComposeImageEntries(item, fileLabel, [...pathParts, String(index)]));
+  }
+
+  const entries = [];
+  for (const [key, childValue] of Object.entries(value)) {
+    const childPath = [...pathParts, key];
+
+    if (key === 'image' && typeof childValue === 'string') {
+      entries.push({
+        ref: childValue,
+        source: `${fileLabel} ${childPath.join('.')}`,
+      });
+      continue;
+    }
+
+    entries.push(...collectComposeImageEntries(childValue, fileLabel, childPath));
+  }
+
+  return entries;
 }
 
 function collectShellImageDefaults(file) {

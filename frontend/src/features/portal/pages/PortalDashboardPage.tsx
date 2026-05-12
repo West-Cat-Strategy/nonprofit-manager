@@ -4,7 +4,9 @@ import {
   BriefcaseIcon,
   CalendarDaysIcon,
   ChatBubbleLeftRightIcon,
+  ClipboardDocumentCheckIcon,
   DocumentTextIcon,
+  ExclamationCircleIcon,
   FolderOpenIcon,
 } from '@heroicons/react/24/outline';
 import { Link } from 'react-router-dom';
@@ -13,7 +15,11 @@ import PortalPageShell from '../../../components/portal/PortalPageShell';
 import PortalListCard from '../../../components/portal/PortalListCard';
 import { SectionCard, StatCard } from '../../../components/ui';
 import { portalV2ApiClient } from '../api/portalApiClient';
-import type { PortalDashboardData } from '../types/contracts';
+import type {
+  PortalDashboardActionItem,
+  PortalDashboardActionKind,
+  PortalDashboardData,
+} from '../types/contracts';
 import { usePersistentPortalCaseContext } from '../../../hooks/usePersistentPortalCaseContext';
 import { getPortalEventOccurrenceLabel } from '../utils/eventDisplay';
 import { formatPortalDateTime } from '../utils/dateDisplay';
@@ -27,6 +33,43 @@ const quietActionClass =
   'border-app-border text-app-text hover:border-app-accent hover:bg-app-surface-muted';
 const cardActionClass =
   'inline-flex items-center gap-1.5 rounded border border-app-input-border px-3 py-1 text-xs font-medium transition-colors duration-150 hover:border-app-accent hover:bg-app-surface-muted';
+const actionPriorityClass: Record<string, string> = {
+  urgent: 'border-app-accent bg-app-accent-soft text-app-accent-text',
+  high: 'border-app-accent/40 bg-app-accent-soft text-app-accent-text',
+  normal: 'border-app-border bg-app-surface-muted text-app-text-muted',
+  low: 'border-app-border-muted bg-app-surface-muted text-app-text-muted',
+};
+const actionCtaByKind: Record<PortalDashboardActionKind, { route: string; label: string }> = {
+  form: { route: '/portal/forms', label: 'View all forms' },
+  message: { route: '/portal/messages', label: 'Open messages' },
+  appointment: { route: '/portal/appointments', label: 'Manage appointments' },
+  document: { route: '/portal/documents', label: 'View documents' },
+  case: { route: '/portal/cases', label: 'View shared cases' },
+};
+
+const formatActionStatus = (value?: string | null): string | null =>
+  value ? value.replace(/_/g, ' ') : null;
+
+const getActionIcon = (kind: string) => {
+  if (kind === 'form') return <ClipboardDocumentCheckIcon className="h-5 w-5" aria-hidden="true" />;
+  if (kind === 'message') return <ChatBubbleLeftRightIcon className="h-5 w-5" aria-hidden="true" />;
+  if (kind === 'appointment') return <CalendarDaysIcon className="h-5 w-5" aria-hidden="true" />;
+  if (kind === 'document') return <DocumentTextIcon className="h-5 w-5" aria-hidden="true" />;
+  return <BriefcaseIcon className="h-5 w-5" aria-hidden="true" />;
+};
+
+const getNeedsAttentionAction = (items: PortalDashboardActionItem[]) => {
+  const firstAction = items[0];
+  if (!firstAction) return null;
+
+  const cta = actionCtaByKind[firstAction.kind];
+  const allSameKind = items.every((item) => item.kind === firstAction.kind);
+
+  return {
+    to: allSameKind ? cta.route : firstAction.href,
+    label: cta.label,
+  };
+};
 
 export default function PortalDashboard() {
   const [dashboard, setDashboard] = useState<PortalDashboardData | null>(null);
@@ -58,6 +101,9 @@ export default function PortalDashboard() {
   const upcomingEvents = dashboard?.upcoming_events ?? [];
   const nextAppointment = dashboard?.next_appointment ?? null;
   const recentActivity = dashboard?.recent_activity ?? [];
+  const actionItems = dashboard?.action_items ?? [];
+  const needsAttentionAction = getNeedsAttentionAction(actionItems);
+  const hasAssignedForms = actionItems.some((item) => item.kind === 'form');
   const primaryCase = activeCases[0] ?? null;
   const hasContent =
     activeCases.length > 0 ||
@@ -65,6 +111,7 @@ export default function PortalDashboard() {
     reminders.length > 0 ||
     recentDocuments.length > 0 ||
     upcomingEvents.length > 0 ||
+    actionItems.length > 0 ||
     nextAppointment !== null;
 
   return (
@@ -85,6 +132,62 @@ export default function PortalDashboard() {
 
       {!loading && !error && dashboard && (
         <div className="space-y-5">
+          <SectionCard
+            title="Needs Attention"
+            subtitle="Start with the portal items most likely to need a response or review."
+            actions={
+              needsAttentionAction ? (
+                <Link
+                  to={needsAttentionAction.to}
+                  className="text-sm font-medium text-app-accent hover:underline"
+                >
+                  {needsAttentionAction.label}
+                </Link>
+              ) : undefined
+            }
+          >
+            {actionItems.length === 0 ? (
+              <PortalPageState
+                empty
+                compact
+                emptyTitle="No portal actions need attention."
+                emptyDescription="New forms, unread messages, appointments, documents, and case updates will appear here."
+                emptyIcon={<ExclamationCircleIcon className="h-5 w-5" aria-hidden="true" />}
+              />
+            ) : (
+              <div className="grid gap-3 lg:grid-cols-2">
+                {actionItems.map((item) => (
+                  <Link key={item.id} to={item.href} className="block">
+                    <PortalListCard
+                      icon={getActionIcon(item.kind)}
+                      title={item.title}
+                      subtitle={item.description}
+                      meta={item.due_at ? `Due ${formatDateTime(item.due_at)}` : undefined}
+                      className="h-full border-app-border bg-app-surface-elevated"
+                      badges={
+                        <>
+                          <span
+                            className={`rounded border px-2 py-0.5 text-xs font-semibold capitalize ${
+                              actionPriorityClass[item.priority] || actionPriorityClass.normal
+                            }`}
+                          >
+                            {item.priority}
+                          </span>
+                          {formatActionStatus(item.status) && (
+                            <span className="rounded bg-app-surface-muted px-2 py-0.5 text-xs capitalize text-app-text-muted">
+                              {formatActionStatus(item.status)}
+                            </span>
+                          )}
+                        </>
+                      }
+                      actions={<span className={cardActionClass}>Open</span>}
+                    />
+                  </Link>
+                ))}
+              </div>
+            )}
+          </SectionCard>
+
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
               label="Shared Cases"
@@ -170,6 +273,15 @@ export default function PortalDashboard() {
                 <DocumentTextIcon className="h-4 w-4" aria-hidden="true" />
                 Shared Documents
               </Link>
+              {hasAssignedForms && (
+                <Link
+                  to="/portal/forms"
+                  className={`${quickActionClass} ${quietActionClass}`}
+                >
+                  <ClipboardDocumentCheckIcon className="h-4 w-4" aria-hidden="true" />
+                  Assigned Forms
+                </Link>
+              )}
             </div>
           </SectionCard>
 

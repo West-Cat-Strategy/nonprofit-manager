@@ -22,7 +22,22 @@ const cloneOrganizations = (organizations: Organization[]): Organization[] =>
 const clonePeople = (people: AdaptedPerson[]): AdaptedPerson[] =>
   people.map((person) => ({ ...person }));
 
-export const isDemoPath = (pathname: string): boolean => pathname.startsWith('/demo/');
+export const DEMO_ROUTES_ENABLED_ENV = 'VITE_DEMO_ROUTES_ENABLED';
+
+type DemoRouteEnvironment = Partial<
+  Record<typeof DEMO_ROUTES_ENABLED_ENV | 'MODE', string | boolean | undefined>
+>;
+
+const isTruthyEnvValue = (value: string | boolean | undefined): boolean =>
+  value === true || value === 'true' || value === '1';
+
+export const areDemoRoutesEnabled = (env: DemoRouteEnvironment = import.meta.env): boolean =>
+  isTruthyEnvValue(env[DEMO_ROUTES_ENABLED_ENV]) || env.MODE === 'test';
+
+export const isDemoPath = (
+  pathname: string,
+  env: DemoRouteEnvironment = import.meta.env
+): boolean => areDemoRoutesEnabled(env) && pathname.startsWith('/demo/');
 
 export const getDemoTasks = (): Task[] =>
   cloneTasks([

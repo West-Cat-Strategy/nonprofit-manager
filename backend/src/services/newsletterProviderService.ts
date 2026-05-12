@@ -25,14 +25,18 @@ interface NewsletterDestination {
 }
 
 const hasConfiguredMailchimp = (): boolean => mailchimpService.isMailchimpConfigured();
-const hasConfiguredMautic = (): boolean => mauticService.isMauticConfigured();
+const hasConfiguredMautic = (settings?: Pick<WebsiteSiteSettings, 'mautic'>): boolean =>
+  mauticService.isMauticConfigured(settings?.mautic);
 
 const uniqueTags = (values: readonly string[] = []): string[] =>
   Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)));
 
-const canUseProvider = (provider: WebsiteNewsletterProvider): boolean => {
+const canUseProvider = (
+  provider: WebsiteNewsletterProvider,
+  settings?: Pick<WebsiteSiteSettings, 'mautic'>
+): boolean => {
   if (provider === 'local_email') return true;
-  return provider === 'mailchimp' ? hasConfiguredMailchimp() : hasConfiguredMautic();
+  return provider === 'mailchimp' ? hasConfiguredMailchimp() : hasConfiguredMautic(settings);
 };
 
 const getSelectedPreset = (
@@ -50,7 +54,7 @@ export const resolveNewsletterProvider = (
   settings: Pick<WebsiteSiteSettings, 'newsletter' | 'mailchimp' | 'mautic'>
 ): WebsiteNewsletterProvider => {
   const selectedPreset = getSelectedPreset(settings);
-  if (selectedPreset && canUseProvider(selectedPreset.provider)) {
+  if (selectedPreset && canUseProvider(selectedPreset.provider, settings)) {
     return selectedPreset.provider;
   }
 
@@ -64,7 +68,7 @@ export const resolveNewsletterProvider = (
     return 'mailchimp';
   }
 
-  if (configuredProvider === 'mautic' && hasConfiguredMautic()) {
+  if (configuredProvider === 'mautic' && hasConfiguredMautic(settings)) {
     return 'mautic';
   }
 
@@ -85,12 +89,12 @@ export const resolveNewsletterDestination = (
       return hasConfiguredMailchimp() ? 'mailchimp' : 'local_email';
     }
     if (audienceMode === 'mautic') {
-      return hasConfiguredMautic() ? 'mautic' : 'local_email';
+      return hasConfiguredMautic(settings) ? 'mautic' : 'local_email';
     }
     if (componentConfig.mailchimpListId && hasConfiguredMailchimp()) {
       return 'mailchimp';
     }
-    if (componentConfig.mauticSegmentId && hasConfiguredMautic()) {
+    if (componentConfig.mauticSegmentId && hasConfiguredMautic(settings)) {
       return 'mautic';
     }
     return resolveNewsletterProvider(settings);
@@ -126,7 +130,7 @@ export const resolveNewsletterDestination = (
     audienceMode !== 'crm' &&
     audienceMode !== 'local_email' &&
     Boolean(audienceId) &&
-    canUseProvider(provider) &&
+    canUseProvider(provider, settings) &&
     (provider === 'mailchimp'
       ? settings.mailchimp.syncEnabled !== false
       : settings.mautic.syncEnabled !== false) &&
@@ -172,11 +176,14 @@ export const syncNewsletterContact = async (
     };
   }
 
-  return mauticService.syncContact({
-    contactId: request.contactId,
-    listId: request.listId,
-    tags: request.tags,
-  });
+  return mauticService.syncContact(
+    {
+      contactId: request.contactId,
+      listId: request.listId,
+      tags: request.tags,
+    },
+    settings.mautic
+  );
 };
 logger.debug('Newsletter provider service loaded');
 

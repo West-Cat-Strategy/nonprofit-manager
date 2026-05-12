@@ -1,4 +1,4 @@
-import { demoRouteCatalogEntries } from './demo';
+import { DEMO_ROUTES_ENABLED_ENV, demoRouteCatalogEntries } from './demo';
 import { portalRouteCatalogEntries } from './portal';
 import { publicRouteCatalogEntries } from './public';
 import { staffRouteCatalogEntries } from './staff';
@@ -94,6 +94,10 @@ export function isRouteCatalogEntryEnabled(
   }
 
   const flagValue = flags[entry.featureFlagEnv];
+  if (flagValue === undefined && entry.featureFlagEnv === DEMO_ROUTES_ENABLED_ENV) {
+    return false;
+  }
+
   if (flagValue === false || flagValue === 'false' || flagValue === '0') {
     return false;
   }

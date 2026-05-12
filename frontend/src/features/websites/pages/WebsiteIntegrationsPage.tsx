@@ -19,6 +19,8 @@ import {
 } from '../state';
 import { getWebsiteFormsPath } from '../lib/websiteRouteTargets';
 
+const MASKED_MAUTIC_PASSWORD = '********';
+
 const WebsiteIntegrationsPage: React.FC = () => {
   const { siteId } = useParams<{ siteId: string }>();
   const dispatch = useAppDispatch();
@@ -68,7 +70,11 @@ const WebsiteIntegrationsPage: React.FC = () => {
     setMauticBaseUrl(integrations.mautic.baseUrl || '');
     setMauticSegmentId(integrations.mautic.segmentId || '');
     setMauticUsername(integrations.mautic.username || '');
-    setMauticPassword(integrations.mautic.password || '');
+    setMauticPassword(
+      integrations.mautic.password === MASKED_MAUTIC_PASSWORD
+        ? ''
+        : integrations.mautic.password || ''
+    );
     setMauticTags((integrations.mautic.defaultTags || []).join(', '));
     setMauticSyncEnabled(integrations.mautic.syncEnabled ?? true);
     setStripeAccountId(integrations.stripe.accountId || '');
@@ -84,6 +90,17 @@ const WebsiteIntegrationsPage: React.FC = () => {
 
   const saveNewsletter = async () => {
     setNotice(null);
+    const mauticPatch = {
+      baseUrl: mauticBaseUrl || null,
+      segmentId: mauticSegmentId || null,
+      username: mauticUsername || null,
+      ...(mauticPassword.trim() ? { password: mauticPassword } : {}),
+      defaultTags: mauticTags
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean),
+      syncEnabled: mauticSyncEnabled,
+    };
     const result = await dispatch(
       updateWebsiteNewsletterIntegration({
         siteId,
@@ -102,17 +119,7 @@ const WebsiteIntegrationsPage: React.FC = () => {
               }
             : {
                 provider: newsletterProvider,
-                mautic: {
-                  baseUrl: mauticBaseUrl || null,
-                  segmentId: mauticSegmentId || null,
-                  username: mauticUsername || null,
-                  password: mauticPassword || null,
-                  defaultTags: mauticTags
-                    .split(',')
-                    .map((value) => value.trim())
-                    .filter(Boolean),
-                  syncEnabled: mauticSyncEnabled,
-                },
+                mautic: mauticPatch,
               },
       })
     );
@@ -369,7 +376,11 @@ const WebsiteIntegrationsPage: React.FC = () => {
                     aria-label="Mautic password"
                     value={mauticPassword}
                     onChange={(event) => setMauticPassword(event.target.value)}
-                    placeholder="Mautic API password"
+                    placeholder={
+                      integrations?.mautic.password === MASKED_MAUTIC_PASSWORD
+                        ? 'Saved password unchanged'
+                        : 'Mautic API password'
+                    }
                     className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
                   />
                   <input

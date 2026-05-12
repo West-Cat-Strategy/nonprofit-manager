@@ -69,7 +69,7 @@ const buildState = (provider: 'mautic' | 'mailchimp', donationProvider: 'stripe'
           baseUrl: 'https://mautic.example.org',
           segmentId: 'seg-1',
           username: 'api-user',
-          password: 'api-pass',
+          password: '********',
           defaultTags: ['supporters'],
           syncEnabled: provider === 'mautic',
           configured: provider === 'mautic',
@@ -163,7 +163,6 @@ describe('WebsiteIntegrationsPage', () => {
                 baseUrl: 'https://mautic.example.org',
                 segmentId: 'seg-2',
                 username: 'api-user',
-                password: 'api-pass',
                 defaultTags: ['supporters'],
                 syncEnabled: true,
               }),
@@ -200,6 +199,37 @@ describe('WebsiteIntegrationsPage', () => {
     });
     expect(thunkMocks.fetchWebsiteIntegrations).toHaveBeenCalledTimes(1);
     expect(screen.getByText('Donation provider settings saved.')).toBeInTheDocument();
+  });
+
+  it('does not resubmit the masked Mautic password sentinel when saving unchanged credentials', async () => {
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Mautic password')).toHaveValue('');
+    });
+    expect(screen.getByLabelText('Mautic password')).toHaveAttribute(
+      'placeholder',
+      'Saved password unchanged'
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save newsletter settings' }));
+
+    await waitFor(() => {
+      expect(dispatchMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'websites/updateNewsletterIntegration',
+          payload: {
+            siteId: 'site-1',
+            data: {
+              provider: 'mautic',
+              mautic: expect.not.objectContaining({
+                password: '********',
+              }),
+            },
+          },
+        })
+      );
+    });
   });
 
   it('switches to Mailchimp and preserves the legacy audience settings', async () => {

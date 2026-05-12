@@ -1,3 +1,45 @@
+jest.mock('@services/mauticService', () => {
+  type MockMauticConfig = {
+    baseUrl?: string | null;
+    username?: string | null;
+    password?: string | null;
+    segmentId?: string | null;
+  };
+  const isCompleteConfig = (config?: MockMauticConfig) =>
+    Boolean(config?.baseUrl && config?.username && config?.password);
+  const service = {
+    isMauticConfigured: jest.fn(isCompleteConfig),
+    getStatus: jest.fn(async (config?: MockMauticConfig) =>
+      isCompleteConfig(config)
+        ? {
+            configured: true,
+            baseUrl: config.baseUrl?.replace(/\/+$/, ''),
+            segmentCount: config.segmentId ? 1 : 0,
+          }
+        : { configured: false }
+    ),
+    getSegments: jest.fn(async (config?: MockMauticConfig) =>
+      isCompleteConfig(config)
+        ? [
+            {
+              id: config.segmentId || 'seg-123',
+              name: 'Mautic Website Segment',
+              memberCount: 0,
+            },
+          ]
+        : []
+    ),
+    syncContact: jest.fn(),
+    bulkSyncContacts: jest.fn(),
+  };
+
+  return {
+    __esModule: true,
+    ...service,
+    default: service,
+  };
+});
+
 import request, { type Test } from 'supertest';
 import jwt from 'jsonwebtoken';
 import app from '../../index';
@@ -739,14 +781,17 @@ describe('Publishing API Integration', () => {
         baseUrl?: string | null;
         segmentId?: string | null;
         username?: string | null;
+        password?: string | null;
         defaultTags?: string[];
         syncEnabled?: boolean;
         configured?: boolean;
       };
     }>(newsletterResponse.body);
-    expect(newsletter.newsletter.provider).toBe('local_email');
+    expect(newsletter.newsletter.provider).toBe('mautic');
+    expect(newsletter.newsletter.configured).toBe(true);
     expect(newsletter.mautic.baseUrl).toBe('https://mautic.example.org');
     expect(newsletter.mautic.segmentId).toBe('seg-123');
+    expect(newsletter.mautic.password).toBe('********');
     expect(newsletter.mautic.defaultTags).toEqual(['members', 'website']);
     expect(newsletter.mautic.syncEnabled).toBe(true);
 

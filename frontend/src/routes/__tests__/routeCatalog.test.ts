@@ -176,6 +176,56 @@ describe('routeCatalog matching', () => {
     );
   });
 
+  it('keeps secondary workbench shortcuts and demo fixtures mounted with explicit disposition', () => {
+    const secondaryWorkbenchShortcuts = [
+      ['people-directory', '/people'],
+      ['linking', '/linking'],
+      ['operations', '/operations'],
+      ['outreach', '/outreach'],
+    ] as const;
+
+    for (const [id, path] of secondaryWorkbenchShortcuts) {
+      expect(matchRouteCatalogEntry(path)).toMatchObject({
+        id,
+        path,
+        surface: 'staff',
+        authScope: 'staff',
+        requiresAuth: true,
+        navKind: 'leaf',
+      });
+    }
+
+    const demoFixtures = [
+      ['demo-people', '/demo/people'],
+      ['demo-linking', '/demo/linking'],
+      ['demo-operations', '/demo/operations'],
+      ['demo-outreach', '/demo/outreach'],
+    ] as const;
+
+    for (const [id, path] of demoFixtures) {
+      const entry = matchRouteCatalogEntry(path);
+
+      expect(entry).toMatchObject({
+        id,
+        path,
+        surface: 'demo',
+        authScope: 'public',
+        requiresAuth: false,
+        section: 'Demo',
+        featureFlagEnv: 'VITE_DEMO_ROUTES_ENABLED',
+        featureStatus: 'flag-disabled',
+      });
+
+      expect(entry).not.toBeNull();
+      if (!entry) {
+        throw new Error(`Expected demo route catalog entry for ${path}`);
+      }
+
+      expect(isRouteCatalogEntryEnabled(entry)).toBe(false);
+      expect(isRouteCatalogEntryEnabled(entry, { VITE_DEMO_ROUTES_ENABLED: 'true' })).toBe(true);
+    }
+  });
+
   it('anchors admin tools beneath the admin tools hub', () => {
     expect(
       collectRouteAncestors(matchRouteCatalogEntry('/settings/api'))?.map((entry) => entry.id)

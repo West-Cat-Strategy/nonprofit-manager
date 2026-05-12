@@ -20,7 +20,6 @@ COPY --from=workspace /contracts/package.json ./contracts/package.json
 COPY --from=workspace /e2e/package.json ./e2e/package.json
 RUN --mount=type=cache,target=/root/.npm,sharing=locked \
     npm ci --workspace backend --include-workspace-root=false --no-audit --no-fund && \
-    npm install --workspace backend undici@8.2.0 --no-audit --no-fund && \
     mkdir -p backend/node_modules
 
 FROM npm-tooling AS deps
@@ -56,7 +55,6 @@ COPY --from=workspace /contracts/package.json ./contracts/package.json
 COPY --from=workspace /e2e/package.json ./e2e/package.json
 RUN --mount=type=cache,target=/root/.npm,sharing=locked \
     npm ci --workspace backend --include-workspace-root=false --omit=dev --no-audit --no-fund && \
-    npm install --workspace backend undici@8.2.0 --omit=dev --no-audit --no-fund && \
     mkdir -p backend/node_modules
 
 FROM npm-tooling AS production-deps

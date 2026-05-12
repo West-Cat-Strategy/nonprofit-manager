@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { analyticsApiClient } from '../../analytics/api/analyticsApiClient';
 import { casesApiClient } from '../../cases/api/casesApiClient';
 import { followUpsApiClient } from '../../followUps/api/followUpsApiClient';
@@ -44,9 +44,10 @@ const recentDashboardLaneResults = new Map<
 >();
 const scheduledDashboardLaneCleanup = new Map<string, ReturnType<typeof setTimeout>>();
 
-const getLaneCacheKey = (key: DashboardDataKey, userId: string | null) => `${key}:${userId ?? 'anonymous'}`;
+const getLaneCacheKey = (key: DashboardDataKey, userId: string | null) =>
+  `${key}:${userId ?? 'anonymous'}`;
 
-const getRecentLaneResult = <T,>(cacheKey: string): T | undefined => {
+const getRecentLaneResult = <T>(cacheKey: string): T | undefined => {
   const cached = recentDashboardLaneResults.get(cacheKey);
   if (!cached) {
     return undefined;
@@ -85,6 +86,11 @@ const scheduleLaneCleanup = (cacheKey: string): void => {
   scheduledDashboardLaneCleanup.set(cacheKey, cleanupHandle);
 };
 
+const clearRecentLaneResult = (cacheKey: string): void => {
+  cancelScheduledLaneCleanup(cacheKey);
+  recentDashboardLaneResults.delete(cacheKey);
+};
+
 export const resetDashboardDataLoaderCacheForTests = (): void => {
   inflightDashboardLaneRequests.clear();
   recentDashboardLaneResults.clear();
@@ -110,8 +116,28 @@ export function useDashboardDataLoader({
   const [loading, setLoading] = useState<Record<DashboardDataKey, boolean>>(initialLoadingState);
   const [errors, setErrors] = useState<Partial<Record<DashboardDataKey, string>>>({});
   const [hasStartedLoading, setHasStartedLoading] = useState(false);
+  const [lastLoadedAt, setLastLoadedAt] = useState<number | null>(null);
+  const [lastManualRefreshAt, setLastManualRefreshAt] = useState<number | null>(null);
+  const [reloadRequest, setReloadRequest] = useState({ sequence: 0, bypassCache: false });
 
   const enabledLanes = useMemo(() => new Set<DashboardDataKey>(lanes), [lanes]);
+  const activeLaneCacheKeys = useMemo(
+    () => Array.from(enabledLanes, (key) => getLaneCacheKey(key, userId)),
+    [enabledLanes, userId]
+  );
+
+  const clearDashboardCache = useCallback(() => {
+    activeLaneCacheKeys.forEach(clearRecentLaneResult);
+  }, [activeLaneCacheKeys]);
+
+  const refreshDashboardData = useCallback(() => {
+    activeLaneCacheKeys.forEach(clearRecentLaneResult);
+    setLastManualRefreshAt(Date.now());
+    setReloadRequest((current) => ({
+      sequence: current.sequence + 1,
+      bypassCache: true,
+    }));
+  }, [activeLaneCacheKeys]);
 
   useEffect(() => {
     let cancelled = false;
@@ -139,6 +165,8 @@ export function useDashboardDataLoader({
       setLoading(initialLoadingState);
       setErrors({});
       setHasStartedLoading(false);
+      setLastLoadedAt(null);
+      setLastManualRefreshAt(null);
       return undefined;
     }
 
@@ -166,7 +194,7 @@ export function useDashboardDataLoader({
       });
     };
 
-    const runRequest = async <T,>(
+    const runRequest = async <T>(
       key: DashboardDataKey,
       request: () => Promise<T>,
       onSuccess: (result: T) => void,
@@ -174,11 +202,14 @@ export function useDashboardDataLoader({
     ) => {
       const cacheKey = getLaneCacheKey(key, userId);
       cancelScheduledLaneCleanup(cacheKey);
-      const recentResult = getRecentLaneResult<T>(cacheKey);
+      const recentResult = reloadRequest.bypassCache ? undefined : getRecentLaneResult<T>(cacheKey);
       if (recentResult !== undefined) {
         updateError(key, null);
         onSuccess(recentResult);
         updateLoading(key, false);
+        if (!cancelled) {
+          setLastLoadedAt(Date.now());
+        }
         return;
       }
 
@@ -204,14 +235,13 @@ export function useDashboardDataLoader({
         const result = await requestPromise;
         if (cancelled) return;
         onSuccess(result);
+        setLastLoadedAt(Date.now());
       } catch (error) {
         updateError(key, toErrorMessage(error, fallbackMessage));
       } finally {
         updateLoading(key, false);
       }
     };
-
-    const activeLaneCacheKeys = Array.from(enabledLanes, (key) => getLaneCacheKey(key, userId));
 
     const loadDashboardData = () => {
       if (enabledLanes.has('analytics')) {
@@ -327,7 +357,9 @@ export function useDashboardDataLoader({
         scheduleLaneCleanup(cacheKey);
       }
     };
-  }, [enabledLanes, isAuthenticated, userId]);
+  }, [activeLaneCacheKeys, enabledLanes, isAuthenticated, reloadRequest, userId]);
+
+  const isRefreshing = useMemo(() => Object.values(loading).some(Boolean), [loading]);
 
   return useMemo(
     () => ({
@@ -342,6 +374,11 @@ export function useDashboardDataLoader({
       loading,
       errors,
       hasStartedLoading,
+      lastLoadedAt,
+      lastManualRefreshAt,
+      isRefreshing,
+      refreshDashboardData,
+      clearDashboardCache,
     }),
     [
       analyticsSummary,
@@ -352,7 +389,12 @@ export function useDashboardDataLoader({
       errors,
       followUpSummary,
       hasStartedLoading,
+      isRefreshing,
+      lastLoadedAt,
+      lastManualRefreshAt,
       loading,
+      refreshDashboardData,
+      clearDashboardCache,
       taskSummary,
       upcomingFollowUps,
     ]

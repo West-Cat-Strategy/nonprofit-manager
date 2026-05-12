@@ -220,6 +220,22 @@ describe('staffBootstrap', () => {
     });
   });
 
+  it('does not bypass staff bootstrap for disabled demo routes outside tests', async () => {
+    vi.stubEnv('MODE', 'production');
+    vi.stubEnv('VITE_DEMO_ROUTES_ENABLED', 'false');
+    vi.mocked(api.get).mockRejectedValueOnce(new Error('not signed in'));
+    window.history.pushState({}, '', '/demo/dashboard');
+
+    const snapshot = await getStaffBootstrapSnapshot({ forceRefresh: true });
+
+    expect(api.get).toHaveBeenCalledWith('/auth/bootstrap');
+    expect(snapshot).toMatchObject({
+      status: 'anonymous',
+      user: null,
+      organizationId: null,
+    });
+  });
+
   it('skips the staff bootstrap probe on portal routes', async () => {
     window.history.pushState({}, '', '/portal/login');
 

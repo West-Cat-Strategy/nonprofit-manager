@@ -142,6 +142,7 @@ export interface PortalReminder {
 
 export interface PortalThreadSummary {
   id: string;
+  case_id?: string | null;
   subject: string | null;
   status: 'open' | 'closed' | 'archived';
   case_number: string | null;
@@ -259,6 +260,22 @@ export interface PortalCaseReviewRequest {
   updatedAt: string;
 }
 
+export type PortalDashboardActionKind = 'form' | 'message' | 'appointment' | 'case' | 'document';
+export type PortalDashboardActionPriority = 'urgent' | 'high' | 'normal' | 'low';
+
+export interface PortalDashboardActionItem {
+  id: string;
+  kind: PortalDashboardActionKind;
+  priority: PortalDashboardActionPriority;
+  title: string;
+  description: string;
+  href: string;
+  case_id?: string | null;
+  due_at?: string | null;
+  status?: string | null;
+  created_at?: string | null;
+}
+
 export interface PortalDashboardData {
   active_cases: PortalCaseSummary[];
   unread_threads_count: number;
@@ -268,6 +285,7 @@ export interface PortalDashboardData {
   recent_documents: PortalDocument[];
   reminders: PortalReminder[];
   recent_activity: PortalCaseTimelineEvent[];
+  action_items?: PortalDashboardActionItem[];
 }
 
 export interface PortalPointpersonCaseContext {

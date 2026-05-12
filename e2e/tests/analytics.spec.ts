@@ -111,4 +111,65 @@ test.describe('Analytics Module', () => {
             timeout: 10000,
         });
     });
+
+    test('custom dashboard refresh controls and responsive editor stay operable', async ({ authenticatedPage }) => {
+        await authenticatedPage.setViewportSize({ width: 1280, height: 900 });
+        await authenticatedPage.goto('/dashboard/custom');
+
+        await expect(authenticatedPage.getByRole('button', { name: /edit layout/i })).toBeVisible({
+            timeout: 10000,
+        });
+        await expect(authenticatedPage.getByRole('region', { name: /dashboard data refresh/i })).toBeVisible();
+        await expect(authenticatedPage.getByRole('button', { name: /refresh data/i })).toBeVisible();
+        await expect(authenticatedPage.getByRole('button', { name: /clear cache/i })).toBeVisible();
+        await expect(authenticatedPage.getByTestId('custom-dashboard-grid')).toBeVisible();
+        await expect(authenticatedPage.getByTestId('custom-dashboard-refresh-state')).toHaveText(/data ready|refreshing data/i);
+
+        await authenticatedPage.getByRole('button', { name: /refresh data/i }).click();
+        await expect(authenticatedPage.getByTestId('custom-dashboard-refresh-state')).toHaveText(/data ready|refreshing data/i);
+
+        await authenticatedPage.getByRole('button', { name: /edit layout/i }).click();
+        const firstGridItem = authenticatedPage.getByTestId('custom-dashboard-grid').locator('.react-grid-item').first();
+        const firstDragHandle = firstGridItem.locator('.drag-handle').first();
+        await expect(firstDragHandle).toBeVisible();
+
+        const dragBox = await firstDragHandle.boundingBox();
+        expect(dragBox).toBeTruthy();
+        if (dragBox) {
+            await authenticatedPage.mouse.move(dragBox.x + dragBox.width / 2, dragBox.y + dragBox.height / 2);
+            await authenticatedPage.mouse.down();
+            await authenticatedPage.mouse.move(dragBox.x + dragBox.width / 2 + 180, dragBox.y + dragBox.height / 2 + 90, {
+                steps: 8,
+            });
+            await authenticatedPage.mouse.up();
+        }
+
+        const resizeHandle = firstGridItem.locator('.react-resizable-handle').first();
+        await expect(resizeHandle).toBeVisible();
+        const resizeBox = await resizeHandle.boundingBox();
+        expect(resizeBox).toBeTruthy();
+        if (resizeBox) {
+            await authenticatedPage.mouse.move(resizeBox.x + resizeBox.width / 2, resizeBox.y + resizeBox.height / 2);
+            await authenticatedPage.mouse.down();
+            await authenticatedPage.mouse.move(resizeBox.x + resizeBox.width / 2 + 120, resizeBox.y + resizeBox.height / 2 + 80, {
+                steps: 8,
+            });
+            await authenticatedPage.mouse.up();
+        }
+
+        await expect(authenticatedPage.getByRole('button', { name: /save layout/i })).toBeVisible();
+        await authenticatedPage.getByRole('button', { name: /^cancel$/i }).click();
+        await expect(authenticatedPage.getByRole('button', { name: /edit layout/i })).toBeVisible();
+
+        await authenticatedPage.setViewportSize({ width: 390, height: 844 });
+        await authenticatedPage.goto('/dashboard/custom');
+        await expect(authenticatedPage.getByTestId('custom-dashboard-mobile-stack')).toBeVisible({
+            timeout: 10000,
+        });
+        await expect(authenticatedPage.getByTestId('custom-dashboard-grid')).toHaveCount(0);
+        const hasHorizontalOverflow = await authenticatedPage.evaluate(
+            () => document.documentElement.scrollWidth > document.documentElement.clientWidth
+        );
+        expect(hasHorizontalOverflow).toBe(false);
+    });
 });

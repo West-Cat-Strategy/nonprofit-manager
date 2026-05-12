@@ -6,11 +6,15 @@
 **Task:** `P5-T4`  
 **Row:** Website surfaces wave: website builder plus public website
 
+**Status:** Archived proof-complete; original review note retained
+
+> Supersession note, 2026-05-12: `P5-T4` was removed from the live workboard by [archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md](../phases/archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md). The review wording below is historical context, not a current live-board status.
+
 ## Summary
 
 - Commit `82a26d39` landed the coordinated managed-form publish-loop slice across backend publishing/runtime metadata, website-console verification UI, and site-aware builder cues.
 - The remaining `docs-e2e` gap is now closed for the narrow row-local slice: the Playwright proof saves a real site-level form override from `/websites/:siteId/forms`, publishes from `/websites/:siteId/publishing`, then verifies the override on the public site before submission.
-- `P5-T4` is in `Review` on the live workboard. The shared `P5-T2B` host-plus-Docker validation lane is now green, so this row waits on final row-local signoff rather than broad validation follow-through.
+- Historical context: `P5-T4` was in `Review` on the live workboard when this note was written. The shared `P5-T2B` host-plus-Docker validation lane was green, and the row was later archived as proof-complete.
 
 ## Landed Lanes
 
@@ -40,5 +44,5 @@
 
 ## Board Disposition
 
-- Move `P5-T4` from `In Progress` to `Review`.
-- Keep `P5-T4` in `Review` for final row-local signoff; the broader browser-matrix and Docker follow-through is now recorded under the green `P5-T2B` validation artifact.
+- Historical disposition from the original note: move `P5-T4` from `In Progress` to `Review` while final row-local signoff was pending.
+- Current disposition: `P5-T4` is archived proof-complete and no longer appears on the live workboard.

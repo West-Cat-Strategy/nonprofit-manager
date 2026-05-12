@@ -182,6 +182,32 @@ services:
   assert.match(result.stderr, /ghcr.io\/example\/helper:latest/);
 });
 
+test('Docker image policy checks Compose images moved into reusable anchors', () => {
+  const root = createTempDir();
+  const composeFile = path.join(root, 'docker-compose.policy.yml');
+
+  fs.writeFileSync(
+    composeFile,
+    `
+x-runtime-service: &runtime-service
+  image: redis:8-alpine
+  restart: unless-stopped
+
+services:
+  worker:
+    <<: *runtime-service
+`,
+    'utf8'
+  );
+
+  const result = run('node', ['scripts/check-docker-image-policy.mjs', '--files', composeFile]);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /Docker image policy failed/);
+  assert.match(result.stderr, /x-runtime-service\.image/);
+  assert.match(result.stderr, /redis:8-alpine/);
+});
+
 test('route audit collects catalog entries across split files', () => {
   const catalogFileA = collectRouteCatalogTargetsFromSource(
     '/repo/frontend/src/routes/routeCatalog/staffPeople.ts',

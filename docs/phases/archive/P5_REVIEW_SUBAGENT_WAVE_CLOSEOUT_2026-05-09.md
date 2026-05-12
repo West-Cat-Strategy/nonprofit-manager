@@ -1,8 +1,9 @@
 # Phase 5 Review Subagent Wave Closeout
 
 **Date:** 2026-05-09
+**Updated:** 2026-05-11
 
-This artifact preserves the closeout for proof-complete rows from the May 9 validation-only review wave. The wave covered the original 26 live `Review` rows, kept `P5-T75` as a time-gated blocker, and left newly added `P5-T93` out of scope because it appeared after the wave baseline.
+This artifact preserves the closeout for proof-complete rows from the May 9 validation-only review wave, the May 10 remaining-blocker wave, and the May 11 main-merge reconciliation. The wave covered the original 26 live `Review` rows and kept `P5-T75` as a time-gated blocker.
 
 Current validation details and blockers live in [../../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md](../../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md).
 
@@ -30,15 +31,23 @@ Current validation details and blockers live in [../../validation/P5_REVIEW_SUBA
 | `P5-T78` | Removed from live board; host Chromium public workflow and starter public-site proof passed after fixture recovery. | [../../validation/P5-T78_PUBLIC_ACTION_BLOCK_SUBMISSION_REGRESSION_PROOF_2026-05-05.md](../../validation/P5-T78_PUBLIC_ACTION_BLOCK_SUBMISSION_REGRESSION_PROOF_2026-05-05.md), [../../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md](../../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md) |
 | `P5-T85` | Removed from live board; stale board text was reconciled against the newer proof showing fresh Docker review stack, full desktop matrix, exact Firefox rerun, mobile tail, and Docker audit pass. | [../../validation/P5-T85_DOCKER_STACK_EFFICIENCY_PROOF_2026-05-06.md](../../validation/P5-T85_DOCKER_STACK_EFFICIENCY_PROOF_2026-05-06.md), [../../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md](../../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md) |
 | `P5-T90` | Removed from live board; volunteer service is now under the implementation-size cap and focused volunteer approval DB proof passed. | [../../validation/P5-T90_VOLUNTEER_APPROVAL_FLOW_PROOF_2026-05-06.md](../../validation/P5-T90_VOLUNTEER_APPROVAL_FLOW_PROOF_2026-05-06.md), [../../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md](../../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md) |
-| `P5-T91` | Removed from live board; queue-view route registrar no longer imports `express-serve-static-core` directly and focused queue-view proof passed. Residual unrelated Knip findings are tracked under `P5-T94`. | [../../validation/P5-T91_QUEUE_VIEW_MODULARITY_PROOF_2026-05-08.md](../../validation/P5-T91_QUEUE_VIEW_MODULARITY_PROOF_2026-05-08.md), [../../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md](../../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md) |
+| `P5-T91` | Removed from live board; queue-view route registrar no longer imports `express-serve-static-core` directly and focused queue-view proof passed. Residual unrelated Knip findings were resolved under `P5-T94`. | [../../validation/P5-T91_QUEUE_VIEW_MODULARITY_PROOF_2026-05-08.md](../../validation/P5-T91_QUEUE_VIEW_MODULARITY_PROOF_2026-05-08.md), [../../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md](../../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md) |
 | `P5-T92` | Removed from live board; explicit reject-click proof was added for the forms-console staff transition controls and focused website/type/lint/contracts proof passed. | [../../validation/P5-T92_PUBLIC_ACTION_STAFF_TRANSITIONS_FOLLOWUP_PROOF_2026-05-09.md](../../validation/P5-T92_PUBLIC_ACTION_STAFF_TRANSITIONS_FOLLOWUP_PROOF_2026-05-09.md), [../../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md](../../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md) |
+
+## Removed Rows - 2026-05-11 Main-Merge Reconciliation
+
+| Row | Disposition | Evidence |
+|---|---|---|
+| `P5-T93` | Removed from live board; the safe dependency refresh, testing-strategy overhaul, and case-form authoring diagnostics follow-through are merged on `main`, including the fixed single-checkbox diagnostic and focused Vitest proof. | [../../validation/P5-T93_SAFE_CURRENT_DEPENDENCY_REFRESH_PROOF_2026-05-09.md](../../validation/P5-T93_SAFE_CURRENT_DEPENDENCY_REFRESH_PROOF_2026-05-09.md), [../../validation/P5-T93_TESTING_STRATEGY_OVERHAUL_PROOF_2026-05-09.md](../../validation/P5-T93_TESTING_STRATEGY_OVERHAUL_PROOF_2026-05-09.md), [../../validation/P5-T93_CASE_FORM_AUTHORING_DIAGNOSTICS_PROOF_2026-05-10.md](../../validation/P5-T93_CASE_FORM_AUTHORING_DIAGNOSTICS_PROOF_2026-05-10.md) |
+| `P5-T94` | Removed from live board; Mailchimp campaign-dialog modularity, scoped semantic cleanup, Knip, lint, and typecheck gate proof are merged on `main`. | [../../validation/P5-T94_MAILCHIMP_MODULARITY_GATE_CLEANUP_PROOF_2026-05-10.md](../../validation/P5-T94_MAILCHIMP_MODULARITY_GATE_CLEANUP_PROOF_2026-05-10.md), [../../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md](../../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md) |
+| `P5-T95` | Removed from live board; worker container parity and hardening proof is merged on `main`, and no separate review target remains. | [../../validation/P5-T95_WORKER_CONTAINER_PARITY_PROOF_2026-05-10.md](../../validation/P5-T95_WORKER_CONTAINER_PARITY_PROOF_2026-05-10.md) |
+| `P5-T96` | Removed from live board; small-VPS runtime and queued export refactor proof is merged on `main`, including host-side and Docker runtime evidence. | [../../validation/P5-T96_SMALL_VPS_RUNTIME_EXPORT_PROOF_2026-05-10.md](../../validation/P5-T96_SMALL_VPS_RUNTIME_EXPORT_PROOF_2026-05-10.md) |
+| `P5-T97` | Removed from live board; controller helper modularity proof is merged on `main`, and no separate review target remains. | [../../validation/P5-T97_CONTROLLER_HELPER_MODULARITY_PROOF_2026-05-10.md](../../validation/P5-T97_CONTROLLER_HELPER_MODULARITY_PROOF_2026-05-10.md) |
 
 ## Rows Still Live
 
 - `P5-T6` remains live as the Phase 5 backlog scope-control gate.
 - `P5-T75` remains blocked by the auth-alias telemetry calendar.
-- `P5-T93` remains in review after the May 10 read-only review found a single-checkbox diagnostics false-positive and focused Vitest reproducibility cleanup.
-- `P5-T94` is ready as residual local-gate cleanup for unrelated Knip findings and UI audit baseline drift found during final lead gates.
 
 ## Validation
 
@@ -46,6 +55,5 @@ Current validation details and blockers live in [../../validation/P5_REVIEW_SUBA
 - `make check-links` passed with 215 files and 1400 local links after lead closeout docs were updated.
 - `git diff --check` passed.
 - `cd frontend && npm run lint` passed.
-- `npm run knip` no longer reports the queue-view unlisted dependency, but still fails on unrelated Mailchimp unused files and the root `express-rate-limit` devDependency.
-- `make lint` now passes implementation-size policy and fails at UI audit baseline drift: expected `1517/9933/60`, got `1524/9934/60`.
-- `make ci-full` was deferred because the local lint gate remains blocked by `P5-T94`.
+- Earlier May 10 lead gates exposed the residual Mailchimp/Knip and UI audit drift that was resolved under `P5-T94`; [../../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md](../../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md) records the later passing Knip, lint, and typecheck proof.
+- 2026-05-11 docs reconciliation: `make check-links` passed with 221 files and 1425 local links, and `git diff --check` passed after removing stale review state from the live board, closeout note, and validation index.

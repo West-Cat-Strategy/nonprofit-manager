@@ -26,6 +26,26 @@ x-backend-dev-build: &backend-dev-build
   target: dev
   additional_contexts: *workspace-build-contexts
 
+x-dev-ready-healthcheck: &dev-ready-healthcheck
+  interval: 10s
+  timeout: 5s
+  retries: 20
+  start_period: 20s
+
+x-backend-dev-depends-on: &backend-dev-depends-on
+  postgres:
+    condition: service_healthy
+  redis:
+    condition: service_healthy
+
+x-backend-dev-service: &backend-dev-service
+  image: ${DEV_BACKEND_DOCKER_IMAGE:-nonprofit-dev-backend-dev:latest}
+  restart: unless-stopped
+  init: true
+  env_file:
+    - ${DEV_ENV_FILE:-.env.development}
+  depends_on: *backend-dev-depends-on
+
 services:
   postgres:
     image: postgres:18-alpine@sha256:54451ecb8ab38c24c3ec123f2fd501303a3a1856a5c66e98cecf2460d5e1e9d7
@@ -49,7 +69,7 @@ services:
       start_period: 10s
 
   redis:
-    image: redis:8-alpine@sha256:c5e375abb885e6b2021c0377879e4890bf76f9065b8922ffc113f2b226b9fc17
+    image: redis:8-alpine@sha256:d146f83b1e0f02fc27c26a50cee39338c736674c5959db84363e6ae3cd9e02d2
     restart: unless-stopped
     ports:
       - "${DEV_REDIS_PORT:-8003}:6379"
@@ -61,12 +81,8 @@ services:
       start_period: 5s
 
   backend-dev:
-    image: ${DEV_BACKEND_DOCKER_IMAGE:-nonprofit-dev-backend-dev:latest}
+    <<: *backend-dev-service
     build: *backend-dev-build
-    restart: unless-stopped
-    init: true
-    env_file:
-      - ${DEV_ENV_FILE:-.env.development}
     environment:
       <<: *backend-dev-env
       CORS_ORIGIN: http://localhost:5173,http://localhost:${DEV_FRONTEND_PORT:-8005},http://127.0.0.1:5173,http://127.0.0.1:${DEV_FRONTEND_PORT:-8005}
@@ -77,24 +93,12 @@ services:
       - ./backend:/app
       - backend-uploads:/app/uploads
       - backend-dev-node-modules:/app/node_modules
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     healthcheck:
+      <<: *dev-ready-healthcheck
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/health/ready > /dev/null"]
-      interval: 10s
-      timeout: 5s
-      retries: 20
-      start_period: 20s
 
   public-site-dev:
-    image: ${DEV_BACKEND_DOCKER_IMAGE:-nonprofit-dev-backend-dev:latest}
-    restart: unless-stopped
-    init: true
-    env_file:
-      - ${DEV_ENV_FILE:-.env.development}
+    <<: *backend-dev-service
     environment:
       <<: *backend-dev-env
       PORT: 8006
@@ -107,17 +111,9 @@ services:
       - ./backend:/app
       - backend-uploads:/app/uploads
       - public-site-dev-node-modules:/app/node_modules
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     healthcheck:
+      <<: *dev-ready-healthcheck
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8006/health/ready > /dev/null"]
-      interval: 10s
-      timeout: 5s
-      retries: 20
-      start_period: 20s
 
   frontend-dev:
     image: ${DEV_FRONTEND_DOCKER_IMAGE:-nonprofit-dev-frontend-dev:latest}
@@ -137,19 +133,12 @@ services:
       - ./frontend:/app
       - frontend-dev-node-modules:/app/node_modules
     healthcheck:
+      <<: *dev-ready-healthcheck
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8005 > /dev/null"]
-      interval: 10s
-      timeout: 5s
-      retries: 20
-      start_period: 20s
 
   worker-dev:
-    image: ${DEV_BACKEND_DOCKER_IMAGE:-nonprofit-dev-backend-dev:latest}
+    <<: *backend-dev-service
     build: *backend-dev-build
-    restart: unless-stopped
-    init: true
-    env_file:
-      - ${DEV_ENV_FILE:-.env.development}
     environment:
       <<: *backend-dev-env
     command: npm run worker:dev
@@ -157,11 +146,6 @@ services:
       - ./backend:/app
       - backend-uploads:/app/uploads
       - worker-dev-node-modules:/app/node_modules
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
 
 volumes:
   nonprofit-manager-postgres-data:

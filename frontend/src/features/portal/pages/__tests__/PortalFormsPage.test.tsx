@@ -65,6 +65,8 @@ const buildAssignment = (
   delivery_target: overrides.delivery_target ?? 'portal',
   sent_at: overrides.sent_at ?? '2026-04-16T12:00:00.000Z',
   submitted_at: overrides.submitted_at,
+  revision_requested_at: overrides.revision_requested_at,
+  revision_notes: overrides.revision_notes,
   created_at: overrides.created_at ?? '2026-04-16T12:00:00.000Z',
   updated_at: overrides.updated_at ?? '2026-04-16T12:00:00.000Z',
 });
@@ -184,6 +186,48 @@ describe('PortalFormsPage', () => {
 
     await waitFor(() => {
       expect(getFormMock).toHaveBeenCalledWith('assignment-active');
+    });
+  });
+
+  it('opens the assignment requested by the dashboard action link', async () => {
+    listFormsMock.mockImplementation(async (bucket?: string) =>
+      bucket === 'completed'
+        ? []
+        : [
+            buildAssignment({
+              id: 'assignment-first',
+              title: 'First Form',
+              status: 'sent',
+              description: 'First available form',
+            }),
+            buildAssignment({
+              id: 'assignment-target',
+              title: 'Target Form',
+              status: 'revision_requested',
+              description: 'Needs an update',
+            }),
+          ]
+    );
+    getFormMock.mockImplementation(async (assignmentId: string) =>
+      buildDetail({
+        id: assignmentId,
+        title: assignmentId === 'assignment-target' ? 'Target Form' : 'First Form',
+        status: assignmentId === 'assignment-target' ? 'revision_requested' : 'sent',
+        description: assignmentId === 'assignment-target' ? 'Needs an update' : 'First available form',
+        revision_notes: assignmentId === 'assignment-target' ? 'Please add the missing signature.' : null,
+        latest_submission: null,
+        submitted_at: null,
+      })
+    );
+
+    renderWithProviders(<PortalFormsPage />, { route: '/portal/forms?assignment=assignment-target' });
+
+    expect(await screen.findByRole('heading', { name: 'Target Form' })).toBeInTheDocument();
+    expect(screen.getByText('Changes requested.')).toBeInTheDocument();
+    expect(screen.getByText('Please add the missing signature.')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(getFormMock).toHaveBeenCalledWith('assignment-target');
     });
   });
 

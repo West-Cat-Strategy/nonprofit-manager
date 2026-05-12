@@ -274,6 +274,9 @@ describe('SavedReportsPage', () => {
     });
 
     await user.type(screen.getByLabelText(/recipients \(comma-separated\)/i), 'ops@example.org');
+    expect(screen.getByRole('option', { name: /^csv$/i })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /^xlsx$/i })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /^pdf$/i })).not.toBeInTheDocument();
     await user.clear(screen.getByLabelText(/day of month/i));
     await user.type(screen.getByLabelText(/day of month/i), '15');
     await user.click(screen.getByRole('button', { name: /save schedule/i }));

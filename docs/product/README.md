@@ -1,9 +1,18 @@
 # Product Documentation Index
 
-**Last Updated:** 2026-05-01
+**Last Updated:** 2026-05-11
 
-Use this section for current product reference material, summary docs, and archived product research. For active sequencing and tracked status, use [../phases/PHASE_5_DEVELOPMENT_PLAN.md](../phases/PHASE_5_DEVELOPMENT_PLAN.md) and [../phases/planning-and-progress.md](../phases/planning-and-progress.md). The detailed persona and benchmark canon now lives in tracked repo-local skill references.
-For the first-step organization-facing overview, use [../../README.md](../../README.md).
+Use this section for current product reference material, summary docs, and archived product research. For the first-step organization-facing overview, use [../../README.md](../../README.md).
+
+## Evaluator Path
+
+Start with the adoption-focused front door in [../../README.md](../../README.md), then use this product section to verify what is mounted today:
+
+1. Read [product-spec.md](product-spec.md) for the current product story and product-surface map.
+2. Check [../features/FEATURE_MATRIX.md](../features/FEATURE_MATRIX.md) for route-level capability evidence and code anchors.
+3. Use [persona-workflows.md](persona-workflows.md), [user-personas.md](user-personas.md), and [OPEN_SOURCE_NONPROFIT_CRM_BENCHMARK_2026-04.md](OPEN_SOURCE_NONPROFIT_CRM_BENCHMARK_2026-04.md) when the evaluation question is persona fit, workflow coverage, or benchmark posture.
+
+For active sequencing and tracked status, use [../phases/PHASE_5_DEVELOPMENT_PLAN.md](../phases/PHASE_5_DEVELOPMENT_PLAN.md) and [../phases/planning-and-progress.md](../phases/planning-and-progress.md). The detailed persona and benchmark canon lives in tracked repo-local skill references.
 
 ## Tracked Persona And Benchmark Canon
 
@@ -19,6 +28,7 @@ For the first-step organization-facing overview, use [../../README.md](../../REA
 |---|---|
 | [product-spec.md](product-spec.md) | Current-state product reference across staff, reporting, grants, publishing, portal, messaging, and integrations |
 | [user-personas.md](user-personas.md) | Persona summary and navigation surface for the tracked persona canon |
+| [../features/FEATURE_MATRIX.md](../features/FEATURE_MATRIX.md) | Route-first capability map for mounted staff, publishing, public-site, portal, reporting, and integration surfaces |
 
 ## Current Planning And Supporting Docs
 

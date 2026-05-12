@@ -46,6 +46,13 @@ describe('OutreachCenterPage', () => {
         rsvpCount: 24,
         time: '6:00 PM',
       },
+      {
+        id: 'event-2',
+        title: 'Volunteer Welcome',
+        date: 'APR 22',
+        rsvpCount: 11,
+        time: '4:30 PM',
+      },
     ]);
   });
 
@@ -99,5 +106,51 @@ describe('OutreachCenterPage', () => {
 
     expect(consoleErrorSpy).not.toHaveBeenCalled();
     consoleErrorSpy.mockRestore();
+  });
+
+  it.each([
+    ['title', 'volunteer', 'Volunteer Welcome'],
+    ['date', 'apr 17', 'Spring Community Night'],
+    ['time', '4:30', 'Volunteer Welcome'],
+    ['RSVP count', '24', 'Spring Community Night'],
+  ])('filters visible outreach rows by %s', async (_field, query, expectedTitle) => {
+    const user = userEvent.setup();
+    mockLocation.mockReturnValue({ pathname: '/outreach' });
+
+    renderWithProviders(<OutreachCenterPage />, {
+      route: '/outreach',
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Spring Community Night')).toBeInTheDocument();
+    });
+
+    await user.type(screen.getByRole('searchbox', { name: /search outreach campaigns/i }), query);
+
+    expect(screen.getByText(expectedTitle)).toBeInTheDocument();
+    const otherTitle =
+      expectedTitle === 'Spring Community Night' ? 'Volunteer Welcome' : 'Spring Community Night';
+    expect(screen.queryByText(otherTitle)).not.toBeInTheDocument();
+  });
+
+  it('shows an empty state when outreach search has no matches', async () => {
+    const user = userEvent.setup();
+    mockLocation.mockReturnValue({ pathname: '/outreach' });
+
+    renderWithProviders(<OutreachCenterPage />, {
+      route: '/outreach',
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Spring Community Night')).toBeInTheDocument();
+    });
+
+    await user.type(screen.getByRole('searchbox', { name: /search outreach campaigns/i }), 'zzzz');
+
+    expect(screen.getByRole('heading', { name: /no outreach rows found/i })).toBeInTheDocument();
+    expect(
+      screen.getByText(/try a different campaign, date, time, or rsvp count/i)
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Spring Community Night')).not.toBeInTheDocument();
   });
 });

@@ -215,6 +215,9 @@ describe('ScheduledReportsPage', () => {
     expect(screen.getByRole('heading', { name: /scheduled reports/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/saved report/i)).toBeInTheDocument();
     expect(screen.getByDisplayValue('Monthly donor digest')).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /^csv$/i })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /^xlsx$/i })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /^pdf$/i })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /save schedule/i }));
     await user.click(screen.getByRole('button', { name: /cancel/i }));

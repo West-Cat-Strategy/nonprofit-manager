@@ -36,6 +36,8 @@ const MANAGED_FORM_TYPES = new Set<WebsiteManagedFormType>([
   'event-registration',
 ]);
 
+export const MASKED_MAUTIC_PASSWORD = '********';
+
 const asObject = (value: unknown): Record<string, unknown> =>
   value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -167,6 +169,31 @@ const normalizeMauticSettings = (value: unknown): WebsiteMauticSettings => {
     syncEnabled: cleanBoolean(config.syncEnabled),
   };
 };
+
+const isMaskedMauticPassword = (value: unknown): boolean =>
+  typeof value === 'string' && value.trim() === MASKED_MAUTIC_PASSWORD;
+
+const normalizeMauticSettingsPatch = (value: unknown): WebsiteMauticSettings => {
+  const normalized = normalizeMauticSettings(value);
+  if (isMaskedMauticPassword(normalized.password)) {
+    return {
+      ...normalized,
+      password: undefined,
+    };
+  }
+
+  return normalized;
+};
+
+export const maskMauticSettings = (settings: WebsiteMauticSettings): WebsiteMauticSettings => ({
+  ...settings,
+  password: settings.password ? MASKED_MAUTIC_PASSWORD : settings.password,
+});
+
+export const maskWebsiteSiteSettings = (settings: WebsiteSiteSettings): WebsiteSiteSettings => ({
+  ...settings,
+  mautic: maskMauticSettings(settings.mautic),
+});
 
 const normalizeNewsletterSettings = (
   value: unknown,
@@ -702,7 +729,7 @@ export class WebsiteSiteSettingsService {
       ...current,
       mautic: {
         ...current.mautic,
-        ...stripUndefined(normalizeMauticSettings(patch)),
+        ...stripUndefined(normalizeMauticSettingsPatch(patch)),
       },
     };
 

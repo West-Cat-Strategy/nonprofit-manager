@@ -1,7 +1,6 @@
 import {
   createExportJob,
   downloadExportJob,
-  exportReport,
   generateReport,
   getExportJob,
   getAvailableFields,
@@ -23,7 +22,6 @@ export const createReportsController = () => {
     getOutcomesReport,
     getWorkflowCoverageReport,
     getAvailableFields,
-    exportReport,
     createExportJob,
     listExportJobs,
     getExportJob,
