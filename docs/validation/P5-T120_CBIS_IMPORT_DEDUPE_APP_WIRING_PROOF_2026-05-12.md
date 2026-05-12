@@ -1,7 +1,7 @@
 # P5-T120 CBIS Import, Dedupe, And App Wiring Proof
 
 **Date:** 2026-05-12
-**Status:** In Progress
+**Status:** Review
 **Scope:** Mainline the operator-only CBIS staged importer, add deterministic duplicate-name holdouts in CBIS import prep, fix contact Notes count/timeline consistency for imported null-account contacts, and prove the path against the local CBIS clone only.
 
 ## Summary
@@ -14,21 +14,45 @@
 - Moved remaining actionable invalid/gap queues into dedicated review artifacts so the generic gap report only carries intentional system-reference exclusions.
 - Fixed the contact Notes count/timeline mismatch for imported contacts with null `account_id`.
 - Proved a local-clone dry-run against `normalized_candidate_bundle_20260512T184418Z`; live app row counts did not change and production was untouched.
+- Closed the production follow-up by allowing backend case visibility for imported CBIS null-account cases without widening cross-org or arbitrary null-account access.
+- Deployed the committed runtime fix to `cbis.westcat.ca` and proved Dora's note case link, case search, contact notes, health, and container status.
 
 ## Production Follow-Up
 
 - The approved P5-T120 app code was deployed to `cbis.westcat.ca` on 2026-05-12.
 - Post-deploy proof confirmed Dora Ogden's imported contact Notes rendered with `NOTES(147)`.
 - The same production proof exposed a remaining app-wiring gap: note-linked case `49f7f188-be03-4cd7-b4ce-be48aea9703c` / `CBIS-TICIPANT2709` returned "Case not found".
-- Continue the same P5-T120 row by fixing backend imported null-account case visibility. Do not run a production import, production dry-run, support SQL, or schema migration for this follow-up.
+- Continued the same P5-T120 row and fixed backend imported null-account case visibility. The follow-up did not add a production import, production dry-run, schema migration, data write, or corrective SQL.
 
 ## Imported Case Visibility Fix
 
-- Added one shared backend case organization-scope predicate that preserves normal `COALESCE(c.account_id, con.account_id)` ownership and admits CBIS-imported null-account case/contact pairs only when `cbis_import_target_provenance` scopes either the case or linked contact to the active organization.
+- Added one shared backend case organization-scope predicate that preserves normal `COALESCE(c.account_id, con.account_id)` ownership and admits imported null-account case/contact pairs only when CBIS evidence scopes the record to the active organization.
+- The primary CBIS evidence path uses `cbis_import_target_provenance` for either the case or linked contact, accepting both plural and legacy singular target labels.
+- Production read-only inspection found Dora's older imported case existed as a null-account case/contact pair without target provenance rows, while the linked imported notes carried the same case/contact IDs. The final policy therefore also admits a narrow legacy pre-provenance path: `case_number LIKE 'CBIS-%'` plus a linked contact note whose content starts with `Imported from CBIS.`.
 - Reused that predicate for case list/detail lookup, shared case ownership checks, and case-note lookup scoping.
-- Added backend integration coverage for CBIS-proven null-account case detail, contact-filtered list de-duplication, timeline and notes access, cross-org 404 behavior, and null-account cases without CBIS provenance staying hidden.
+- Added backend integration coverage for CBIS-proven null-account case detail, contact-filtered list de-duplication, timeline and notes access, singular legacy provenance labels, legacy note-backed cases, cross-org 404 behavior, and otherwise identical null-account cases without CBIS evidence staying hidden.
 - Added frontend regressions proving real UUID case links stay inside the correct contact note card and imported `account_id: null` cases render the normal case detail view.
-- This follow-up adds no migration, production import, production dry-run, or support SQL.
+- This follow-up added no migration, production import, production dry-run, data write, or corrective SQL.
+
+## Production Deploy And Verification
+
+Runtime commit:
+
+- `cce6c7b8 fix: allow legacy CBIS note backed cases`
+
+Deployment:
+
+- Deployed the committed app tree to `wcs.pw` with `git archive HEAD | ssh ... tar -xf - -C /srv/nonprofit-manager`.
+- Rolled the current four-file compose stack: `docker-compose.yml`, `docker-compose.host-access.yml`, `docker-compose.db-self-hosted.yml`, and `docker-compose.postgres14-root.yml`.
+
+Post-deploy proof:
+
+- `https://cbis.westcat.ca/health` returned `200` with `status: ok`.
+- `nonprofit-prod-backend-1`, `nonprofit-prod-frontend-1`, `nonprofit-prod-postgres-1`, and `nonprofit-prod-redis-1` were healthy after rollout.
+- Dora contact `622e1a1b-a988-40ac-92d3-ccc10ddebaf8` still rendered `NOTES(147)`.
+- Clicking `Open Case (CBIS-TICIPANT2709)` from Dora's contact notes opened `/cases/49f7f188-be03-4cd7-b4ce-be48aea9703c` and rendered the normal case detail view.
+- Case search for `CBIS-TICIPANT2709` returned one case.
+- People search for `Dora Ogden` showed the target contact `622e1a1b-a988-40ac-92d3-ccc10ddebaf8` once, alongside the existing distinct Dora records.
 
 ## Data Prep Evidence
 
@@ -124,6 +148,16 @@ Screenshots:
 
 ## Validation Commands
 
+Imported case visibility follow-up passed:
+
+- `npm --workspace backend run type-check`
+- `npm --workspace backend run lint`
+- `npm --workspace backend test -- --runTestsByPath src/__tests__/integration/cases.test.ts --runInBand`
+- `npm --workspace backend test -- --runTestsByPath src/__tests__/integration/contacts.test.ts --runInBand`
+- `npm --workspace frontend test -- --run src/features/contacts/components/__tests__/ContactNotesPanel.test.tsx src/features/cases/pages/__tests__/CaseDetailTabs.test.tsx`
+- `npm --workspace frontend run type-check`
+- `git diff --check`
+
 Passed:
 
 - `npm --workspace backend run type-check`
@@ -148,4 +182,4 @@ Notes:
 
 - The first two backend focused-test attempts were invalid because multiple suites were launched in parallel against the single isolated test DB container; rerunning them sequentially passed.
 - The first local-clone CLI attempt used Docker-internal `DB_HOST=postgres` from `.env.cbis-local` and failed before reaching the DB. The successful dry-run used host overrides to `127.0.0.1:8002`.
-- Production was not queried or mutated in this implementation slice.
+- The original importer/app-wiring implementation did not query or mutate production. The production follow-up used read-only inspection to confirm the legacy provenance shape after the first deploy still returned 404, then deployed the backend-only visibility fix; no production data was changed.

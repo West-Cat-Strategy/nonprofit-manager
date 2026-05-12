@@ -10,8 +10,8 @@ Use this file only for live tracked work. Historical phase closeouts, earlier wo
 |---|---:|
 | Current phase | Phase 5 - Email, Website, Portal, and Reliability |
 | Active rows | 25 |
-| In Progress | 1 |
-| Review | 14 |
+| In Progress | 0 |
+| Review | 15 |
 | Ready | 9 |
 | Blocked | 1 |
 | Phase 4 carry-over rows | 0 |
@@ -50,7 +50,7 @@ Use this file only for live tracked work. Historical phase closeouts, earlier wo
 
 | Status | ID | Task | Immediate Next Move | Evidence |
 |---|---|---|---|---|
-| In Progress | P5-T120 | CBIS import, dedupe, and app wiring follow-through | Fix the deployed imported-case visibility gap: Dora Ogden's Notes render, but note-linked case `49f7f188-be03-4cd7-b4ce-be48aea9703c` / `CBIS-TICIPANT2709` returns "Case not found." Keep the patch to backend case-scope policy plus focused regression proof; no production import, dry-run, support SQL, or new row. | [../validation/P5-T120_CBIS_IMPORT_DEDUPE_APP_WIRING_PROOF_2026-05-12.md](../validation/P5-T120_CBIS_IMPORT_DEDUPE_APP_WIRING_PROOF_2026-05-12.md) |
+| Review | P5-T120 | CBIS import, dedupe, and app wiring follow-through | Review the completed imported-case visibility fix and production proof: Dora Ogden's `NOTES(147)` still renders, note-linked case `49f7f188-be03-4cd7-b4ce-be48aea9703c` / `CBIS-TICIPANT2709` opens normally, case search returns one result, and the target contact is not duplicated. No production import, dry-run, migration, corrective SQL, or new row was added. | [../validation/P5-T120_CBIS_IMPORT_DEDUPE_APP_WIRING_PROOF_2026-05-12.md](../validation/P5-T120_CBIS_IMPORT_DEDUPE_APP_WIRING_PROOF_2026-05-12.md) |
 | Review | P5-T110 | Open-source-first service provider posture | Review the completed open-source-first provider posture: local email remains default, Mautic is wired as preferred open-source external sync, Mailchimp stays optional, error tracking uses Sentry-compatible/GlitchTip wording and redaction, Plausible CE is preferred, OpenSearch is the primary self-hosted log overlay, and ELK remains legacy transition support. | [../validation/P5-T110_OPEN_SOURCE_SERVICE_POSTURE_PROOF_2026-05-12.md](../validation/P5-T110_OPEN_SOURCE_SERVICE_POSTURE_PROOF_2026-05-12.md) |
 | Review | P5-T98 | Client portal action-clarity audit and enhancement | Review the completed action-only dashboard empty-state fix, action-kind-aware Needs Attention CTA, focused portal tests, backend action proof, and host Playwright link proof. | [../validation/P5-T98_CLIENT_PORTAL_ACTION_CLARITY_AUDIT_2026-05-11.md](../validation/P5-T98_CLIENT_PORTAL_ACTION_CLARITY_AUDIT_2026-05-11.md) |
 | Review | P5-T99 | Site-scoped Mautic provider runtime wiring | Review the complete site-scoped Mautic provider runtime wiring, env fallback behavior, fail-closed URL handling, focused backend tests, type-check, lint, and policy proof. | [../validation/P5-T99_SITE_SCOPED_MAUTIC_PROVIDER_PROOF_2026-05-12.md](../validation/P5-T99_SITE_SCOPED_MAUTIC_PROVIDER_PROOF_2026-05-12.md) |
