@@ -19,6 +19,7 @@ interface CliOptions {
   expectedSchemaVersion?: string;
   mode?: MergeMode;
   bundleDir?: string;
+  mergeLegacyProductionMatches?: boolean;
 }
 
 interface RunOptions {
@@ -29,6 +30,7 @@ interface RunOptions {
   expectedSchemaVersion: string;
   mode: MergeMode;
   bundleDir?: string;
+  mergeLegacyProductionMatches?: boolean;
 }
 
 interface QueryablePool {
@@ -73,6 +75,12 @@ interface ValidationSummary {
   resolved_missing_anchors: number;
 }
 
+interface LegacyProductionMergeCandidate {
+  contact_id: string;
+  duplicate_name_key: string;
+  anchor_contact_id: string;
+}
+
 export interface MergeDuplicateContactsResult {
   mode: MergeMode;
   import_run_id: string;
@@ -90,8 +98,10 @@ export interface MergeDuplicateContactsResult {
     inactive_held_skips: number;
     keep_held_contacts: number;
     resolved_missing_anchors: number;
+    legacy_active_merge_candidates: number;
   };
   applied_merges: number;
+  legacy_applied_merges: number;
   provenance_retargets: number;
 }
 
@@ -132,6 +142,8 @@ export const parseArgs = (argv: string[]): CliOptions => {
       options.mode = mode;
     } else if (arg === '--bundle') {
       options.bundleDir = readValue();
+    } else if (arg === '--merge-legacy-production-matches') {
+      options.mergeLegacyProductionMatches = true;
     } else {
       throw new Error(`Unknown option ${arg}`);
     }
@@ -541,19 +553,16 @@ const assertValidContactStates = async (
 
 const assertAppliedMergeState = async (
   db: QueryablePool,
-  mergeDecisions: DuplicateContactDecision[]
+  contactIds: string[]
 ): Promise<void> => {
-  const contactStates = await loadContactStates(
-    db,
-    mergeDecisions.map((decision) => decision.held_contact_id)
-  );
+  const contactStates = await loadContactStates(db, contactIds);
   const issues: string[] = [];
-  for (const decision of mergeDecisions) {
-    const held = contactStates.get(decision.held_contact_id);
+  for (const contactId of contactIds) {
+    const held = contactStates.get(contactId);
     if (!held) {
-      issues.push(`missing merged held contact ${decision.held_contact_id}`);
+      issues.push(`missing merged contact ${contactId}`);
     } else if (held.is_active) {
-      issues.push(`merged held contact is still active ${decision.held_contact_id}`);
+      issues.push(`merged contact is still active ${contactId}`);
     }
   }
   if (issues.length > 0) {
@@ -565,6 +574,109 @@ const assertAppliedMergeState = async (
 
 const anchorPreferredResolutions = (): ContactMergeRequest['resolutions'] =>
   Object.fromEntries(getMergeableResolutionFieldNames().map((field) => [field, 'target']));
+
+const duplicateNameParts = (duplicateNameKey: string): { firstName: string; lastName: string } | null => {
+  const normalized = normalizeText(duplicateNameKey);
+  if (!normalized) {
+    return null;
+  }
+  const [firstName, ...lastNameParts] = normalized.split(' ');
+  const lastName = lastNameParts.join(' ').trim();
+  if (!firstName || !lastName) {
+    return null;
+  }
+  return { firstName, lastName };
+};
+
+const resolveAnchorsByDuplicateName = (
+  mergeDecisions: DuplicateContactDecision[],
+  validation: ValidationSummary
+): Map<string, string> => {
+  const anchorsByName = new Map<string, string>();
+  for (const decision of mergeDecisions) {
+    const anchorContactId =
+      validation.anchor_contact_id_by_held_contact_id.get(decision.held_contact_id) ?? decision.anchor_contact_id;
+    const existing = anchorsByName.get(decision.duplicate_name_key);
+    if (existing && existing !== anchorContactId) {
+      throw new Error(`Duplicate name ${decision.duplicate_name_key} resolves to multiple anchors`);
+    }
+    anchorsByName.set(decision.duplicate_name_key, anchorContactId);
+  }
+  return anchorsByName;
+};
+
+const loadLegacyProductionMergeCandidates = async (
+  db: QueryablePool,
+  organizationId: string,
+  mergeDecisions: DuplicateContactDecision[],
+  keepHeldDecisions: DuplicateContactDecision[],
+  validation: ValidationSummary
+): Promise<LegacyProductionMergeCandidate[]> => {
+  const anchorsByName = resolveAnchorsByDuplicateName(mergeDecisions, validation);
+  const mergeNames = [...anchorsByName.entries()].flatMap(([duplicateNameKey, anchorContactId]) => {
+    const parts = duplicateNameParts(duplicateNameKey);
+    return parts
+      ? [
+          {
+            duplicate_name_key: duplicateNameKey,
+            first_name: parts.firstName,
+            last_name: parts.lastName,
+            anchor_contact_id: anchorContactId,
+          },
+        ]
+      : [];
+  });
+
+  if (mergeNames.length === 0) {
+    return [];
+  }
+
+  const excludedContactIds = [
+    ...new Set([
+      ...mergeDecisions.map((decision) => decision.held_contact_id),
+      ...mergeDecisions.map((decision) => decision.anchor_contact_id),
+      ...keepHeldDecisions.map((decision) => decision.held_contact_id),
+      ...keepHeldDecisions.map((decision) => decision.anchor_contact_id),
+      ...validation.anchor_contact_id_by_held_contact_id.values(),
+    ]),
+  ];
+
+  const result = await db.query<LegacyProductionMergeCandidate>(
+    `
+      WITH merge_names AS (
+        SELECT *
+        FROM jsonb_to_recordset($2::jsonb) AS x(
+          duplicate_name_key text,
+          first_name text,
+          last_name text,
+          anchor_contact_id uuid
+        )
+      )
+      SELECT
+        c.id::text AS contact_id,
+        mn.duplicate_name_key,
+        mn.anchor_contact_id::text
+      FROM merge_names mn
+      JOIN contacts c
+        ON lower(c.first_name) = mn.first_name
+       AND lower(c.last_name) = mn.last_name
+      LEFT JOIN cbis_import_target_provenance p
+        ON p.organization_id = $1::uuid
+       AND p.target_entity_type = 'contacts'
+       AND p.target_entity_id = c.id
+      WHERE c.is_active = true
+        AND c.account_id IS NULL
+        AND c.id <> mn.anchor_contact_id
+        AND c.id <> ALL($3::uuid[])
+        AND p.id IS NULL
+      GROUP BY c.id, mn.duplicate_name_key, mn.anchor_contact_id
+      ORDER BY mn.duplicate_name_key, c.updated_at DESC, c.id ASC
+    `,
+    [organizationId, JSON.stringify(mergeNames), excludedContactIds]
+  );
+
+  return result.rows;
+};
 
 const retargetContactProvenance = async (
   db: QueryablePool,
@@ -623,8 +735,18 @@ export const runMergeDuplicateContacts = async (
     options.expectedSchemaVersion
   );
   const validation = await assertValidContactStates(db, decisions, anchorRows);
+  const legacyCandidates = options.mergeLegacyProductionMatches
+    ? await loadLegacyProductionMergeCandidates(
+        db,
+        options.organizationId,
+        mergeDecisions,
+        keepHeldDecisions,
+        validation
+      )
+    : [];
 
   let appliedMerges = 0;
+  let legacyAppliedMerges = 0;
   let provenanceRetargets = 0;
   if (options.mode === 'apply') {
     const resolutions = anchorPreferredResolutions();
@@ -667,8 +789,27 @@ export const runMergeDuplicateContacts = async (
       );
     }
 
+    for (const candidate of legacyCandidates) {
+      const result = await mergeService.mergeContacts(
+        candidate.contact_id,
+        {
+          target_contact_id: candidate.anchor_contact_id,
+          resolutions,
+        },
+        options.actorId,
+        'admin'
+      );
+      if (!result) {
+        throw new Error(`Merge returned no result for legacy production contact ${candidate.contact_id}`);
+      }
+      legacyAppliedMerges += 1;
+    }
+
     await assertValidContactStates(db, decisions, anchorRows);
-    await assertAppliedMergeState(db, mergeDecisions);
+    await assertAppliedMergeState(db, [
+      ...mergeDecisions.map((decision) => decision.held_contact_id),
+      ...legacyCandidates.map((candidate) => candidate.contact_id),
+    ]);
   }
 
   return {
@@ -688,8 +829,10 @@ export const runMergeDuplicateContacts = async (
       inactive_held_skips: validation.merge_inactive_contact_ids.length,
       keep_held_contacts: validation.keep_held_contact_ids.length,
       resolved_missing_anchors: validation.resolved_missing_anchors,
+      legacy_active_merge_candidates: legacyCandidates.length,
     },
     applied_merges: appliedMerges,
+    legacy_applied_merges: legacyAppliedMerges,
     provenance_retargets: provenanceRetargets,
   };
 };
@@ -705,6 +848,7 @@ const buildRequiredOptions = (options: CliOptions): RunOptions => ({
   expectedSchemaVersion: requireOption(options.expectedSchemaVersion, '--expected-schema-version'),
   mode: options.mode ?? 'dry-run',
   bundleDir: options.bundleDir,
+  mergeLegacyProductionMatches: options.mergeLegacyProductionMatches ?? false,
 });
 
 async function main(): Promise<void> {
