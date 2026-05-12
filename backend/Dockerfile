@@ -6,7 +6,7 @@ WORKDIR /app
 
 FROM node-runtime AS npm-tooling
 
-RUN npm install -g npm@11.13.0 && npm cache clean --force
+RUN npm install -g npm@11.14.1 && npm cache clean --force
 
 FROM npm-tooling AS workspace-deps
 
