@@ -41,7 +41,8 @@ COPY --from=workspace /contracts/messaging.d.ts ./node_modules/@nonprofit-manage
 COPY --from=workspace /contracts/websiteBuilder.d.ts ./node_modules/@nonprofit-manager/contracts/websiteBuilder.d.ts
 
 FROM app AS build
-RUN ./node_modules/.bin/tsc -p tsconfig.docker.json && \
+ARG BACKEND_BUILD_NODE_OPTIONS=--max-old-space-size=1536
+RUN NODE_OPTIONS="${BACKEND_BUILD_NODE_OPTIONS}" ./node_modules/.bin/tsc -p tsconfig.docker.json && \
     ./node_modules/.bin/tsc-alias -p tsconfig.docker.json
 
 FROM npm-tooling AS workspace-production-deps
