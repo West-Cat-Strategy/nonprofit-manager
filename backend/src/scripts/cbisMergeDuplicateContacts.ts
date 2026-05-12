@@ -50,6 +50,16 @@ interface ContactState {
   account_id: string | null;
 }
 
+interface AnchorCandidate extends ContactState {
+  first_name: string | null;
+  middle_name: string | null;
+  last_name: string | null;
+  birth_date: string | Date | null;
+  phone: string | null;
+  mobile_phone: string | null;
+  link_count: string | number;
+}
+
 interface ImportApplyProof {
   run_id: string;
   contact_provenance_rows: number;
@@ -244,6 +254,155 @@ const querySingleAnchorCandidate = async (
   return result.rows[0] ?? null;
 };
 
+const candidateIdentitySelect = `
+  SELECT
+    c.id::text,
+    c.is_active,
+    c.account_id::text,
+    c.first_name,
+    c.middle_name,
+    c.last_name,
+    c.birth_date,
+    c.phone,
+    c.mobile_phone,
+    (
+      (SELECT COUNT(*) FROM contact_notes cn WHERE cn.contact_id = c.id)
+      + (SELECT COUNT(*) FROM cases ca WHERE ca.contact_id = c.id)
+      + (SELECT COUNT(*) FROM event_registrations er WHERE er.contact_id = c.id)
+      + (SELECT COUNT(*) FROM contact_role_assignments cra WHERE cra.contact_id = c.id)
+      + (SELECT COUNT(*) FROM contact_email_addresses cea WHERE cea.contact_id = c.id)
+      + (SELECT COUNT(*) FROM contact_phone_numbers cpn WHERE cpn.contact_id = c.id)
+      + (SELECT COUNT(*) FROM contact_relationships cr WHERE cr.contact_id = c.id OR cr.related_contact_id = c.id)
+      + (SELECT COUNT(*) FROM activities a WHERE a.regarding_type = 'contact' AND a.regarding_id = c.id)
+    ) AS link_count
+  FROM contacts c
+`;
+
+const normalizedCandidateName = (value: string | null | undefined): string | null =>
+  normalizeText(value ?? null);
+
+const candidateMatchesAnchorName = (
+  candidate: AnchorCandidate,
+  anchorRow: CbisImportRow
+): boolean => {
+  const firstName = normalizeText(compact(anchorRow.first_name));
+  const middleName = normalizeText(compact(anchorRow.middle_name));
+  const lastName = normalizeText(compact(anchorRow.last_name));
+  if (!firstName || !lastName) {
+    return false;
+  }
+
+  const candidateFirstName = normalizedCandidateName(candidate.first_name);
+  const candidateLastName = normalizedCandidateName(candidate.last_name);
+  if (candidateFirstName !== firstName || !candidateLastName) {
+    return false;
+  }
+
+  if (candidateLastName === lastName) {
+    return true;
+  }
+
+  return Boolean(middleName && candidateLastName === `${middleName} ${lastName}`);
+};
+
+const candidateBirthDate = (candidate: AnchorCandidate): string | null => {
+  if (!candidate.birth_date) {
+    return null;
+  }
+  return candidate.birth_date instanceof Date
+    ? candidate.birth_date.toISOString().slice(0, 10)
+    : String(candidate.birth_date).slice(0, 10);
+};
+
+const candidateMatchesAnchorBirthDate = (
+  candidate: AnchorCandidate,
+  anchorRow: CbisImportRow
+): boolean => {
+  const birthDate = compact(anchorRow.birth_date);
+  return Boolean(birthDate && candidateBirthDate(candidate) === birthDate);
+};
+
+const candidateMatchesAnchorPhone = (
+  candidate: AnchorCandidate,
+  anchorRow: CbisImportRow
+): boolean => {
+  const anchorPhone = normalizePhone(compact(anchorRow.phone) ?? compact(anchorRow.mobile_phone));
+  const candidatePhone = normalizePhone(candidate.phone ?? candidate.mobile_phone);
+  return Boolean(anchorPhone && candidatePhone === anchorPhone);
+};
+
+const pickRichestCandidate = (
+  candidates: AnchorCandidate[],
+  label: string
+): AnchorCandidate | null => {
+  if (candidates.length === 0) {
+    return null;
+  }
+  const sorted = [...candidates].sort((left, right) => {
+    const rightLinks = Number(right.link_count ?? 0);
+    const leftLinks = Number(left.link_count ?? 0);
+    if (rightLinks !== leftLinks) {
+      return rightLinks - leftLinks;
+    }
+    return left.id.localeCompare(right.id);
+  });
+  const top = sorted[0];
+  const second = sorted[1];
+  if (second && Number(second.link_count ?? 0) === Number(top.link_count ?? 0)) {
+    throw new Error(`Multiple active contacts match missing anchor by ${label}`);
+  }
+  return top;
+};
+
+const queryEmailAnchorCandidates = async (
+  db: QueryablePool,
+  email: string
+): Promise<AnchorCandidate[]> => {
+  const result = await db.query<AnchorCandidate>(
+    `
+      ${candidateIdentitySelect}
+      WHERE c.is_active = true
+        AND lower(c.email) = $1
+      ORDER BY c.created_at ASC, c.id ASC
+    `,
+    [email]
+  );
+  return result.rows;
+};
+
+const resolveEmailAnchorCandidate = async (
+  db: QueryablePool,
+  anchorRow: CbisImportRow,
+  email: string
+): Promise<AnchorCandidate | null> => {
+  const candidates = await queryEmailAnchorCandidates(db, email);
+  if (candidates.length <= 1) {
+    return candidates[0] ?? null;
+  }
+
+  const nameMatches = candidates.filter((candidate) => candidateMatchesAnchorName(candidate, anchorRow));
+  const birthDateMatches = nameMatches.filter((candidate) =>
+    candidateMatchesAnchorBirthDate(candidate, anchorRow)
+  );
+  const birthDateMatch = pickRichestCandidate(birthDateMatches, `email/name/birth date ${email}`);
+  if (birthDateMatch) {
+    return birthDateMatch;
+  }
+
+  const phoneMatches = nameMatches.filter((candidate) => candidateMatchesAnchorPhone(candidate, anchorRow));
+  const phoneMatch = pickRichestCandidate(phoneMatches, `email/name/phone ${email}`);
+  if (phoneMatch) {
+    return phoneMatch;
+  }
+
+  const nameMatch = pickRichestCandidate(nameMatches, `email/name ${email}`);
+  if (nameMatch) {
+    return nameMatch;
+  }
+
+  return pickRichestCandidate(candidates, `email ${email}`);
+};
+
 const resolveMissingAnchor = async (
   db: QueryablePool,
   anchorRow: CbisImportRow | undefined
@@ -254,18 +413,7 @@ const resolveMissingAnchor = async (
 
   const email = normalizeText(compact(anchorRow.email));
   if (email) {
-    const byEmail = await querySingleAnchorCandidate(
-      db,
-      `
-        SELECT id::text, is_active, account_id::text
-        FROM contacts
-        WHERE is_active = true
-          AND lower(email) = $1
-        ORDER BY created_at ASC, id ASC
-      `,
-      [email],
-      `email ${email}`
-    );
+    const byEmail = await resolveEmailAnchorCandidate(db, anchorRow, email);
     if (byEmail) {
       return byEmail;
     }
