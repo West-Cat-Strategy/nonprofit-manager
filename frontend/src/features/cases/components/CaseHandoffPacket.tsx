@@ -8,7 +8,15 @@ interface CaseHandoffPacketProps {
 }
 
 export const CaseHandoffPacket: React.FC<CaseHandoffPacketProps> = ({ data }) => {
-  const { case_details, risks, next_actions, visibility, artifacts_summary, generated_at } = data;
+  const { case_details, risks, continuity, next_actions, visibility, artifacts_summary, generated_at } = data;
+  const readinessLabel =
+    continuity.handoff_readiness.status === 'ready' ? 'Ready for Handoff' : 'Needs Handoff Review';
+  const closureLabel: Record<HandoffData['continuity']['closure']['status'], string> = {
+    ready: 'Closure Continuity Ready',
+    open_actions: 'Closure Actions Open',
+    closed_with_evidence: 'Closed With Continuity Evidence',
+    closed_needs_review: 'Closed Case Needs Review',
+  };
 
   return (
     <div className="p-4 space-y-8 max-w-4xl mx-auto print:p-0 print:space-y-4 print:max-w-none">
@@ -75,6 +83,55 @@ export const CaseHandoffPacket: React.FC<CaseHandoffPacketProps> = ({ data }) =>
           )}
         </BrutalCard>
       </div>
+
+      {/* Continuity */}
+      <BrutalCard className="bg-app-surface">
+        <h2 className="text-xl font-black uppercase mb-4 border-b-2 border-app-border pb-2">Continuity</h2>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3 print:grid-cols-3 print:gap-4">
+          <div className="border-2 border-app-border bg-app-surface-muted p-3">
+            <p className="font-black uppercase text-sm text-app-text-muted mb-2">Reassessment Rigor</p>
+            <BrutalBadge color={continuity.reassessment.status === 'current' ? 'green' : 'yellow'}>
+              {continuity.reassessment.headline}
+            </BrutalBadge>
+            <p className="mt-2 text-sm font-bold text-app-text-muted">
+              {continuity.reassessment.detail}
+            </p>
+            {continuity.reassessment.current && (
+              <p className="mt-2 text-xs font-mono">
+                Current due: {continuity.reassessment.current.due_date || 'Not set'}
+              </p>
+            )}
+          </div>
+          <div className="border-2 border-app-border bg-app-surface-muted p-3">
+            <p className="font-black uppercase text-sm text-app-text-muted mb-2">Handoff Readiness</p>
+            <BrutalBadge color={continuity.handoff_readiness.status === 'ready' ? 'green' : 'yellow'}>
+              {readinessLabel}
+            </BrutalBadge>
+            <ul className="mt-2 space-y-1 text-sm font-bold text-app-text-muted">
+              {continuity.handoff_readiness.cues.map((cue) => (
+                <li key={cue}>{cue}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="border-2 border-app-border bg-app-surface-muted p-3">
+            <p className="font-black uppercase text-sm text-app-text-muted mb-2">Closure Continuity</p>
+            <BrutalBadge
+              color={
+                continuity.closure.status.includes('needs') || continuity.closure.status === 'open_actions'
+                  ? 'yellow'
+                  : 'green'
+              }
+            >
+              {closureLabel[continuity.closure.status]}
+            </BrutalBadge>
+            <ul className="mt-2 space-y-1 text-sm font-bold text-app-text-muted">
+              {continuity.closure.cues.map((cue) => (
+                <li key={cue}>{cue}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </BrutalCard>
 
       {/* Next Actions */}
       <BrutalCard className="bg-app-surface">

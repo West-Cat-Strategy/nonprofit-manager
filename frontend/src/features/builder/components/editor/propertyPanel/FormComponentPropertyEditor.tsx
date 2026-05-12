@@ -313,14 +313,15 @@ const FormComponentPropertyEditor: React.FC<FormComponentPropertyEditorProps> = 
               value={selectedComponent.sourceFilter || 'all'}
               onChange={(e) =>
                 update({
-                  sourceFilter: e.target.value as 'native' | 'mailchimp' | 'all',
+                  sourceFilter: e.target.value as 'native' | 'mailchimp' | 'mautic' | 'all',
                 })
               }
               className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
             >
-              <option value="all">Native + Mailchimp</option>
+              <option value="all">Native + providers</option>
               <option value="native">Native only</option>
               <option value="mailchimp">Mailchimp only</option>
+              <option value="mautic">Mautic only</option>
             </select>
           </div>
         </>

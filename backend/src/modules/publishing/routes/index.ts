@@ -273,7 +273,7 @@ const updateSiteFacebookSettingsSchema = z
   .strict();
 
 const websiteEntryStatusSchema = z.enum(['draft', 'published', 'archived']);
-const websiteEntrySourceSchema = z.enum(['native', 'mailchimp']);
+const websiteEntrySourceSchema = z.enum(['native', 'mailchimp', 'mautic']);
 const websiteEntryKindSchema = z.enum(['newsletter', 'blog_post', 'campaign_update']);
 const websiteEntrySlugSchema = z
   .string()
@@ -331,6 +331,12 @@ const updateWebsiteEntrySchema = z
 const syncMailchimpEntriesSchema = z
   .object({
     listId: z.string().trim().min(1).max(255).optional(),
+  })
+  .strict();
+
+const syncMauticEntriesSchema = z
+  .object({
+    segmentId: z.string().trim().min(1).max(255).optional(),
   })
   .strict();
 
@@ -665,6 +671,14 @@ router.post(
   validateParams(siteIdParamsSchema),
   validateBody(syncMailchimpEntriesSchema),
   publishingController.syncMailchimpEntries
+);
+
+router.post(
+  '/:siteId/entries/sync-mautic',
+  ...withOrganizationContext,
+  validateParams(siteIdParamsSchema),
+  validateBody(syncMauticEntriesSchema),
+  publishingController.syncMauticEntries
 );
 
 // Unpublish a site

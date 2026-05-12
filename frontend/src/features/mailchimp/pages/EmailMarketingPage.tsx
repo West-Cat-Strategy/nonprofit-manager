@@ -42,12 +42,14 @@ import type { Contact } from '../../contacts/state';
 import AdminQuickActionsBar from '../../adminOps/components/AdminQuickActionsBar';
 import AdminWorkspaceShell from '../../adminOps/components/AdminWorkspaceShell';
 import { CampaignCard, CampaignRunCard, ListCard } from '../components/EmailMarketingCards';
+import { EmailMarketingProviderControls } from '../components/EmailMarketingProviderControls';
 import { SyncResultModal } from '../components/EmailMarketingPageParts';
 import EmailSettingsSection from '../../adminOps/pages/adminSettings/sections/EmailSettingsSection';
 
 const CONTACT_SELECTOR_LIMIT = 25;
 const LOCAL_AUDIENCE_ID = 'local_email:crm';
 const EMPTY_CONTACTS: Contact[] = [];
+const externalSyncProviders: CommunicationProvider[] = ['mautic', 'mailchimp'];
 const CampaignCreateModal = lazy(() =>
   import('../components/CampaignCreateModal').then(({ CampaignCreateModal }) => ({ default: CampaignCreateModal }))
 );
@@ -110,7 +112,9 @@ export default function EmailMarketing() {
     total_pages: 1,
   };
   const localProviderStatus = status?.providers?.local_email || status?.localEmail;
+  const mauticProviderStatus = status?.providers?.mautic || status?.mautic;
   const mailchimpProviderStatus = status?.providers?.mailchimp || status?.mailchimp;
+  const isMauticConfigured = mauticProviderStatus?.configured === true;
   const isMailchimpConfigured =
     mailchimpProviderStatus?.configured === true ||
     (status?.configured === true && status?.provider !== 'local_email');
@@ -166,12 +170,30 @@ export default function EmailMarketing() {
     () => lists.filter((list) => getAudienceProvider(list, isMailchimpConfigured) === 'mailchimp'),
     [isMailchimpConfigured, lists]
   );
-  const displayedAudiences = selectedProvider === 'mailchimp' ? mailchimpAudiences : localAudiences;
+  const mauticAudiences = useMemo(
+    () => lists.filter((list) => getAudienceProvider(list, isMailchimpConfigured) === 'mautic'),
+    [isMailchimpConfigured, lists]
+  );
+  const displayedAudiences =
+    selectedProvider === 'mailchimp'
+      ? mailchimpAudiences
+      : selectedProvider === 'mautic'
+        ? mauticAudiences
+        : localAudiences;
   const selectedAudienceProvider = selectedList
     ? getAudienceProvider(selectedList, isMailchimpConfigured)
     : selectedProvider;
   const isSelectedProviderDeliveryReady =
-    selectedProvider === 'local_email' ? isLocalSmtpReady : true;
+    selectedProvider === 'local_email' ? isLocalSmtpReady : selectedProvider === 'mailchimp';
+  const isExternalSyncProvider = externalSyncProviders.includes(selectedProvider);
+  const selectedProviderLabel =
+    selectedProvider === 'mautic'
+      ? 'Mautic'
+      : selectedProvider === 'mailchimp'
+        ? 'Mailchimp'
+        : 'Local Email';
+  const campaignButtonDisabled =
+    displayedAudiences.length === 0 || selectedProvider === 'mautic';
 
   // Fetch communications status on mount, then load local-first workspace data.
   useEffect(() => {
@@ -190,13 +212,19 @@ export default function EmailMarketing() {
   }, [dispatch, status]);
 
   useEffect(() => {
-    if (!isMailchimpConfigured && selectedProvider === 'mailchimp') {
+    if (
+      (!isMailchimpConfigured && selectedProvider === 'mailchimp') ||
+      (!isMauticConfigured && selectedProvider === 'mautic')
+    ) {
       setSelectedProvider('local_email');
     }
-  }, [isMailchimpConfigured, selectedProvider]);
+  }, [isMailchimpConfigured, isMauticConfigured, selectedProvider]);
 
   useEffect(() => {
     if (displayedAudiences.length === 0) {
+      if (selectedList) {
+        dispatch(setSelectedList(null));
+      }
       return;
     }
 
@@ -294,15 +322,17 @@ export default function EmailMarketing() {
 
   // Handle sync
   const handleSync = () => {
-    if (selectedProvider !== 'mailchimp' || !selectedList || selectedContactIds.length === 0) {
+    if (!isExternalSyncProvider || !selectedList || selectedContactIds.length === 0) {
       return;
     }
+    const syncProvider = selectedProvider === 'mautic' ? 'mautic' : 'mailchimp';
 
     dispatch(
       bulkSyncContacts({
+        provider: syncProvider,
         contactIds: selectedContactIds,
         listId: selectedList.id,
-        tags: selectedTags,
+        tags: syncProvider === 'mailchimp' ? selectedTags : undefined,
       })
     );
   };
@@ -372,6 +402,9 @@ export default function EmailMarketing() {
     if (selectedProvider === 'local_email' && !isLocalSmtpReady && (sendNow || data.sendTime)) {
       return;
     }
+    if (selectedProvider === 'mautic') {
+      return;
+    }
 
     try {
       const result = await dispatch(
@@ -402,6 +435,8 @@ export default function EmailMarketing() {
   ): Promise<CampaignTestSendResponse> =>
     selectedProvider === 'local_email' && !isLocalSmtpReady
       ? Promise.reject('Configure SMTP before sending a local test email.')
+      : selectedProvider === 'mautic'
+        ? Promise.reject('Mautic sync is available here, but campaign sending stays on Local Email or Mailchimp.')
       : dispatch(sendCampaignTest({ ...data, provider: selectedProvider })).unwrap();
 
   const handleArchiveSavedAudience = async (audienceId: string) => {
@@ -472,67 +507,17 @@ export default function EmailMarketing() {
           </div>
         )}
 
-        <div className="grid gap-3 md:grid-cols-2">
-          <div className="rounded-lg border border-app-border bg-app-surface p-4">
-            <p className="text-sm font-medium text-app-text-heading">Local Email</p>
-            <p className="mt-1 text-sm text-app-text-muted">
-              {isLocalSmtpReady
-                ? localDeliveryReadinessMessage
-                : `CRM audience building is available. ${localDeliveryReadinessMessage}`}
-            </p>
-          </div>
-          {isMailchimpConfigured ? (
-            <div className="rounded-lg border border-app-border bg-app-surface p-4">
-              <p className="text-sm font-medium text-app-text-heading">Mailchimp</p>
-              <p className="mt-1 text-sm text-app-text-muted">
-                Optional provider connected
-                {mailchimpProviderStatus?.accountName || status?.accountName
-                  ? `: ${mailchimpProviderStatus?.accountName || status?.accountName}`
-                  : ''}
-                .
-              </p>
-            </div>
-          ) : (
-            <div className="rounded-lg border border-dashed border-app-input-border bg-app-surface p-4">
-              <p className="text-sm font-medium text-app-text-heading">Mailchimp Optional</p>
-              <p className="mt-1 text-sm text-app-text-muted">
-                Mailchimp is not configured, so the workspace stays on local email and CRM
-                audiences.
-              </p>
-            </div>
-          )}
-        </div>
-
-        <div className="rounded-lg border border-app-border bg-app-surface p-3">
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              aria-pressed={selectedProvider === 'local_email'}
-              onClick={() => setSelectedProvider('local_email')}
-              className={`rounded-lg px-3 py-2 text-sm font-medium ${
-                selectedProvider === 'local_email'
-                  ? 'bg-app-accent text-[var(--app-accent-foreground)]'
-                  : 'border border-app-input-border text-app-text-muted'
-              }`}
-            >
-              Local Email
-            </button>
-            {isMailchimpConfigured ? (
-              <button
-                type="button"
-                aria-pressed={selectedProvider === 'mailchimp'}
-                onClick={() => setSelectedProvider('mailchimp')}
-                className={`rounded-lg px-3 py-2 text-sm font-medium ${
-                  selectedProvider === 'mailchimp'
-                    ? 'bg-app-accent text-[var(--app-accent-foreground)]'
-                    : 'border border-app-input-border text-app-text-muted'
-                }`}
-              >
-                Mailchimp
-              </button>
-            ) : null}
-          </div>
-        </div>
+        <EmailMarketingProviderControls
+          selectedProvider={selectedProvider}
+          onSelectProvider={setSelectedProvider}
+          isLocalSmtpReady={isLocalSmtpReady}
+          isMauticConfigured={isMauticConfigured}
+          isMailchimpConfigured={isMailchimpConfigured}
+          localDeliveryReadinessMessage={localDeliveryReadinessMessage}
+          mauticProviderStatus={mauticProviderStatus}
+          mailchimpProviderStatus={mailchimpProviderStatus}
+          legacyMailchimpAccountName={status?.accountName}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Audiences Column */}
@@ -564,11 +549,11 @@ export default function EmailMarketing() {
             <div className="bg-app-surface border border-app-border rounded-lg">
               <div className="p-4 border-b border-app-border">
                 <h2 className="text-lg font-medium text-app-text-heading">
-                  {selectedProvider === 'mailchimp' ? 'Sync Contacts' : 'CRM Audience Builder'}
+                  {isExternalSyncProvider ? 'Sync Contacts' : 'CRM Audience Builder'}
                 </h2>
                 <p className="text-sm text-app-text-muted mt-1">
-                  {selectedProvider === 'mailchimp'
-                    ? `Select contacts to sync with ${selectedList?.name || 'a Mailchimp audience'}`
+                  {isExternalSyncProvider
+                    ? `Select contacts to sync with ${selectedList?.name || `a ${selectedProviderLabel} audience`}`
                     : `Select email-ready CRM contacts for ${selectedList?.name || 'local delivery'}`}
                 </p>
               </div>
@@ -611,7 +596,7 @@ export default function EmailMarketing() {
                           placeholder="Search by name, email, or phone"
                         />
                       </div>
-                      {selectedProvider === 'mailchimp' ? (
+                      {isExternalSyncProvider ? (
                         <button
                           onClick={handleSync}
                           disabled={selectedContactIds.length === 0 || isSyncing}
@@ -653,7 +638,7 @@ export default function EmailMarketing() {
                               </svg>
                               Sync {selectedContactIds.length} Contact
                               {selectedContactIds.length !== 1 ? 's' : ''}
-                              {selectedTags.length > 0
+                              {selectedProvider === 'mailchimp' && selectedTags.length > 0
                                 ? ` with ${selectedTags.length} tag${selectedTags.length === 1 ? '' : 's'}`
                                 : ''}
                             </>
@@ -711,6 +696,11 @@ export default function EmailMarketing() {
                           </p>
                         )}
                       </div>
+                    ) : null}
+                    {selectedProvider === 'mautic' ? (
+                      <p className="text-xs text-app-text-muted">
+                        Mautic sync sends selected CRM contacts to the chosen segment. Campaign authoring and delivery remain on Local Email in this pass.
+                      </p>
                     ) : null}
                   </div>
 
@@ -854,7 +844,7 @@ export default function EmailMarketing() {
             </h2>
             <button
               onClick={handleOpenCampaignModal}
-              disabled={displayedAudiences.length === 0}
+              disabled={campaignButtonDisabled}
               className="inline-flex items-center gap-2 px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] text-sm font-medium rounded-lg hover:bg-app-accent-hover disabled:bg-app-text-subtle disabled:cursor-not-allowed transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

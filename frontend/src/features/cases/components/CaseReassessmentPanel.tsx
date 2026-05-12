@@ -215,6 +215,46 @@ const sortReassessments = (items: CaseReassessment[]): CaseReassessment[] =>
     return leftDate - rightDate;
   });
 
+const getContinuityCue = (
+  current: CaseReassessment | null,
+  recent: CaseReassessment | null
+): ReassessmentCue => {
+  if (current) {
+    const state = getWindowState(current);
+    const cue = getReassessmentCue(current, state);
+    return {
+      headline:
+        state === 'Overdue' || state === 'Window lapsed'
+          ? 'Continuity needs reassessment follow-through'
+          : 'Continuity reassessment is tracked',
+      detail: cue.detail,
+      tone: cue.tone,
+    };
+  }
+
+  if (recent?.status === 'completed') {
+    return {
+      headline: 'Continuity evidence recorded',
+      detail: recent.completion_summary || 'No active reassessment is scheduled after the latest completed cycle.',
+      tone: 'complete',
+    };
+  }
+
+  if (recent?.status === 'cancelled') {
+    return {
+      headline: 'Continuity reassessment was cancelled',
+      detail: recent.cancellation_reason || 'Create the next reassessment before treating continuity as current.',
+      tone: 'muted',
+    };
+  }
+
+  return {
+    headline: 'Continuity reassessment missing',
+    detail: 'Create a reassessment so handoffs and closure review have current case-plan evidence.',
+    tone: 'warning',
+  };
+};
+
 export default function CaseReassessmentPanel({
   caseId,
   defaultOwnerUserId,
@@ -278,6 +318,7 @@ export default function CaseReassessmentPanel({
 
   const currentReassessment = activeReassessments[0] || null;
   const nextReassessment = activeReassessments[1] || null;
+  const continuityCue = getContinuityCue(currentReassessment, closedReassessments[0] || null);
 
   const refreshAfterMutation = async () => {
     await loadReassessments();
@@ -735,6 +776,11 @@ export default function CaseReassessmentPanel({
         </div>
       ) : (
         <>
+          <div className={`border-2 p-4 text-sm font-bold ${getCueClassName(continuityCue.tone)}`}>
+            <p className="text-xs font-black uppercase">Continuity Cue</p>
+            <p className="mt-1 text-base font-black uppercase">{continuityCue.headline}</p>
+            <p className="mt-1">{continuityCue.detail}</p>
+          </div>
           <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
             {renderSummary('Current', currentReassessment)}
             {renderSummary('Next', nextReassessment)}

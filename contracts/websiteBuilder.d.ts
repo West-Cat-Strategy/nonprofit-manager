@@ -17,7 +17,7 @@ export type MigrationStatus = 'complete' | 'needs_assignment';
 export type TemplatePageType = 'static' | 'collectionIndex' | 'collectionDetail';
 export type PageCollectionType = 'events' | 'newsletters' | 'blog';
 export type WebsiteEntryKind = 'newsletter' | 'blog_post' | 'campaign_update';
-export type WebsiteEntrySource = 'native' | 'mailchimp';
+export type WebsiteEntrySource = 'native' | 'mailchimp' | 'mautic';
 export type WebsiteEntryStatus = 'draft' | 'published' | 'archived';
 export type PublicActionType =
   | 'event_signup'
@@ -453,7 +453,7 @@ export interface NewsletterSignupComponent extends BaseComponentProps {
 export interface NewsletterArchiveComponent extends BaseComponentProps {
   type: 'newsletter-archive';
   maxItems?: number;
-  sourceFilter?: 'native' | 'mailchimp' | 'all';
+  sourceFilter?: WebsiteEntrySource | 'all';
   emptyMessage?: string;
 }
 

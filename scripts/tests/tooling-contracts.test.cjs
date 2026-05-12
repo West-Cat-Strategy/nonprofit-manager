@@ -845,7 +845,7 @@ EOF`,
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /\.gitignore:\d+:\.env\.\*\t\.env\.development/);
   assert.match(result.stdout, /\.gitignore:\d+:!\.env\.example\t\.env\.example/);
-  assert.match(result.stdout, /\.gitignore:\d+:output\/playwright\/\toutput\/playwright\/session\/trace\.zip/);
+  assert.match(result.stdout, /\.gitignore:\d+:output\/(?:playwright\/)?\toutput\/playwright\/session\/trace\.zip/);
   assert.match(
     result.stdout,
     /\.gitignore:\d+:!\.codex\/skills\/nonprofit-manager-persona-analysis\/references\/\*\*\t\.codex\/skills\/nonprofit-manager-persona-analysis\/references\/source-map\.md/

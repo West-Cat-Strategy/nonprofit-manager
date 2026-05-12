@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generatedAt": "2026-05-01",
+  "generatedAt": "2026-05-12",
   "workspaceRoot": "/Users/bryan/projects/reference-repos/repos",
   "trackedFilesOnly": [
     "README.md",
@@ -31,6 +31,11 @@
       "id": "P5-T41-form-builder-template-refresh",
       "status": "implementation-reference",
       "description": "Reference-only form builder refresh for case-form template library, autosave, and SMS/email/portal opening workflow."
+    },
+    {
+      "id": "P5-T111-reference-corpus-expansion-2026-05",
+      "status": "metadata-first",
+      "description": "Metadata-first expansion for fundraising, logistics, field evidence, program analytics, health/service evidence, and social-protection references; source-level claims remain behind P5-T111 clone-cache hygiene."
     }
   ],
   "repos": [
@@ -1331,6 +1336,279 @@
       "runtimeResult": "not attempted for runtime; cloned and pinned for architecture review",
       "compatibilityPath": "reference-repos/external/nm--survey-creator",
       "centralId": "surveyjs__survey-creator"
+    },
+    {
+      "id": "nm--houdini",
+      "product": "Houdini",
+      "centralId": "houdiniproject__houdini",
+      "remote": "https://github.com/houdiniproject/houdini.git",
+      "branch": "main",
+      "commit": "db9d4326ef52f45dee059b534fa3cce015b249ec",
+      "reuseClass": "reference_only",
+      "license": "AGPL-3.0-or-later WITH WTO-AP-3.0-or-later",
+      "licenseRisk": "high",
+      "domains": [
+        "fundraising",
+        "donations",
+        "crowdfunding",
+        "payment-flows"
+      ],
+      "techStack": [
+        "ruby",
+        "node",
+        "docker"
+      ],
+      "summary": "Nonprofit-native donation, recurring giving, crowdfunding, and payment-flow reference; no source copying.",
+      "notableEntryPoints": [
+        "README.md",
+        "LICENSE",
+        "app",
+        "db",
+        "docker-compose.yml"
+      ],
+      "wave": "P5-T111-reference-corpus-expansion-2026-05",
+      "role": "candidate",
+      "reviewLane": "reference-corpus-expansion-review",
+      "path": "/Users/bryan/projects/reference-repos/repos/houdiniproject__houdini",
+      "runtimeStrategy": "metadata-first; source-level review waits for P5-T111 clone-cache hygiene",
+      "runtimeResult": "not cloned or booted in this pass",
+      "compatibilityPath": null,
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ]
+    },
+    {
+      "id": "nm--openboxes",
+      "product": "OpenBoxes",
+      "centralId": "openboxes__openboxes",
+      "remote": "https://github.com/openboxes/openboxes.git",
+      "branch": "develop",
+      "commit": "31ec68c9ef38191d1598e8fcaf9fd516d7bb9b40",
+      "reuseClass": "architecture_only",
+      "license": "EPL-1.0",
+      "licenseRisk": "medium",
+      "domains": [
+        "inventory",
+        "supply-chain",
+        "shipments",
+        "program-operations"
+      ],
+      "techStack": [
+        "groovy",
+        "grails",
+        "docker"
+      ],
+      "summary": "Program inventory, stock movement, shipment, and logistics workflow reference.",
+      "notableEntryPoints": [
+        "README.md",
+        "grails-app",
+        "src",
+        "build.gradle"
+      ],
+      "wave": "P5-T111-reference-corpus-expansion-2026-05",
+      "role": "candidate",
+      "reviewLane": "reference-corpus-expansion-review",
+      "path": "/Users/bryan/projects/reference-repos/repos/openboxes__openboxes",
+      "runtimeStrategy": "metadata-first; source-level review waits for P5-T111 clone-cache hygiene",
+      "runtimeResult": "not cloned or booted in this pass",
+      "compatibilityPath": null,
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ]
+    },
+    {
+      "id": "nm--kpi",
+      "product": "KoboToolbox KPI",
+      "centralId": "kobotoolbox__kpi",
+      "remote": "https://github.com/kobotoolbox/kpi.git",
+      "branch": "main",
+      "commit": "3c83573b5380b9fec8384f0a1db998a11bad79ab",
+      "reuseClass": "reference_only",
+      "license": "AGPL-3.0",
+      "licenseRisk": "high",
+      "domains": [
+        "field-data",
+        "forms",
+        "exports",
+        "reporting",
+        "humanitarian"
+      ],
+      "techStack": [
+        "python",
+        "django",
+        "node",
+        "docker"
+      ],
+      "summary": "Field forms, data collection, sharing, reporting, and export reference.",
+      "notableEntryPoints": [
+        "README.md",
+        "docs",
+        "kobo",
+        "jsapp",
+        "docker"
+      ],
+      "wave": "P5-T111-reference-corpus-expansion-2026-05",
+      "role": "candidate",
+      "reviewLane": "reference-corpus-expansion-review",
+      "path": "/Users/bryan/projects/reference-repos/repos/kobotoolbox__kpi",
+      "runtimeStrategy": "metadata-first; source-level review waits for P5-T111 clone-cache hygiene",
+      "runtimeResult": "not cloned or booted in this pass",
+      "compatibilityPath": null,
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ]
+    },
+    {
+      "id": "nm--dhis2-core",
+      "product": "DHIS2 Core",
+      "centralId": "dhis2__dhis2-core",
+      "remote": "https://github.com/dhis2/dhis2-core.git",
+      "branch": "master",
+      "commit": "0ee4312e49babf009fa4bb7c9777eba2e6efff39",
+      "reuseClass": "architecture_only",
+      "license": "BSD-3-Clause",
+      "licenseRisk": "low",
+      "domains": [
+        "program-analytics",
+        "indicators",
+        "org-units",
+        "monitoring-evaluation"
+      ],
+      "techStack": [
+        "java",
+        "maven",
+        "spring"
+      ],
+      "summary": "Program indicators, org-unit hierarchy, analytics API, and monitoring/evaluation reference.",
+      "notableEntryPoints": [
+        "README.md",
+        "dhis-2",
+        "dhis-web",
+        "pom.xml"
+      ],
+      "wave": "P5-T111-reference-corpus-expansion-2026-05",
+      "role": "candidate",
+      "reviewLane": "reference-corpus-expansion-review",
+      "path": "/Users/bryan/projects/reference-repos/repos/dhis2__dhis2-core",
+      "runtimeStrategy": "metadata-first; source-level review waits for P5-T111 clone-cache hygiene",
+      "runtimeResult": "not cloned or booted in this pass",
+      "compatibilityPath": null,
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ]
+    },
+    {
+      "id": "nm--openmrs-core",
+      "product": "OpenMRS Core",
+      "centralId": "openmrs__openmrs-core",
+      "remote": "https://github.com/openmrs/openmrs-core.git",
+      "branch": "master",
+      "commit": "d0cab7bae3a61ed44113909d980267c87375069f",
+      "reuseClass": "architecture_only",
+      "license": "MPL-2.0",
+      "licenseRisk": "medium",
+      "domains": [
+        "health-records",
+        "encounters",
+        "concept-dictionary",
+        "service-evidence"
+      ],
+      "techStack": [
+        "java",
+        "maven"
+      ],
+      "summary": "Encounter, concept dictionary, and structured service-evidence reference; not an EMR adoption plan.",
+      "notableEntryPoints": [
+        "README.md",
+        "LICENSE",
+        "api",
+        "web",
+        "pom.xml"
+      ],
+      "wave": "P5-T111-reference-corpus-expansion-2026-05",
+      "role": "candidate",
+      "reviewLane": "reference-corpus-expansion-review",
+      "path": "/Users/bryan/projects/reference-repos/repos/openmrs__openmrs-core",
+      "runtimeStrategy": "metadata-first; source-level review waits for P5-T111 clone-cache hygiene",
+      "runtimeResult": "not cloned or booted in this pass",
+      "compatibilityPath": null,
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ]
+    },
+    {
+      "id": "nm--openimis-be-py",
+      "product": "openIMIS Backend",
+      "centralId": "openimis__openimis-be_py",
+      "remote": "https://github.com/openimis/openimis-be_py.git",
+      "branch": "develop",
+      "commit": "fa5a860407f161381ddc204bd7fc344213c62784",
+      "reuseClass": "reference_only",
+      "license": "NOASSERTION",
+      "licenseRisk": "high",
+      "domains": [
+        "social-protection",
+        "claims",
+        "payments",
+        "eligibility",
+        "modular-platform"
+      ],
+      "techStack": [
+        "python",
+        "django"
+      ],
+      "summary": "Eligibility, claims, contributions, payments, and modular social-protection backend reference.",
+      "notableEntryPoints": [
+        "README.md",
+        "openIMIS",
+        "api_fhir_r4",
+        "requirements.txt"
+      ],
+      "wave": "P5-T111-reference-corpus-expansion-2026-05",
+      "role": "candidate",
+      "reviewLane": "reference-corpus-expansion-review",
+      "path": "/Users/bryan/projects/reference-repos/repos/openimis__openimis-be_py",
+      "runtimeStrategy": "metadata-first; source-level review waits for P5-T111 clone-cache hygiene",
+      "runtimeResult": "not cloned or booted in this pass",
+      "compatibilityPath": null,
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ]
+    },
+    {
+      "id": "nm--openimis-dist-dkr",
+      "product": "openIMIS Docker Distribution",
+      "centralId": "openimis__openimis-dist_dkr",
+      "remote": "https://github.com/openimis/openimis-dist_dkr.git",
+      "branch": "develop",
+      "commit": "0d2de8a1f766537e0c4f40ef86322cfb71c0b96f",
+      "reuseClass": "reference_only",
+      "license": "NOASSERTION",
+      "licenseRisk": "high",
+      "domains": [
+        "social-protection",
+        "runtime-lab",
+        "docker-distribution"
+      ],
+      "techStack": [
+        "docker"
+      ],
+      "summary": "openIMIS all-in-one Docker companion for module assembly and runtime topology comparison.",
+      "notableEntryPoints": [
+        "README.md",
+        "docker-compose.yml",
+        "env.example"
+      ],
+      "wave": "P5-T111-reference-corpus-expansion-2026-05",
+      "role": "companion",
+      "reviewLane": "reference-corpus-expansion-review",
+      "path": "/Users/bryan/projects/reference-repos/repos/openimis__openimis-dist_dkr",
+      "runtimeStrategy": "metadata-first; source-level review waits for P5-T111 clone-cache hygiene",
+      "runtimeResult": "not cloned or booted in this pass",
+      "compatibilityPath": null,
+      "sourceFamilies": [
+        "nonprofit-manager"
+      ]
     }
   ],
   "compatibilityRoot": "/Users/bryan/projects/nonprofit-manager/reference-repos",

@@ -8,6 +8,12 @@ import type {
   MailchimpList,
 } from '../../../types/mailchimp';
 
+const getProviderLabel = (provider?: string): string => {
+  if (provider === 'mautic') return 'Mautic';
+  if (provider === 'mailchimp') return 'Mailchimp';
+  return 'Local Email';
+};
+
 function StatusBadge({ status }: { status: string }) {
   const statusColors: Record<string, string> = {
     sent: 'bg-app-accent-soft text-app-accent-text',
@@ -46,7 +52,7 @@ function StatusBadge({ status }: { status: string }) {
 
 export function CampaignCard({ campaign }: { campaign: MailchimpCampaign }) {
   const sendTimeLabel = campaign.status === 'schedule' ? 'Scheduled' : 'Sent';
-  const providerLabel = campaign.provider === 'mailchimp' ? 'Mailchimp' : 'Local Email';
+  const providerLabel = getProviderLabel(campaign.provider);
 
   return (
     <div className="bg-app-surface border border-app-border rounded-lg p-4 hover:shadow-md transition-shadow">
@@ -185,11 +191,16 @@ export function CampaignRunCard({
       ? run.audienceSnapshot.savedAudienceName
       : run.includeAudienceId
         ? 'Saved audience'
-        : run.provider === 'mailchimp'
+        : run.provider === 'mailchimp' || run.provider === 'mautic'
           ? 'Provider audience'
           : 'CRM audience';
   const providerCampaignId =
-    run.providerCampaignId || (run.provider === 'mailchimp' ? 'Pending provider id' : 'Local queue');
+    run.providerCampaignId ||
+    (run.provider === 'mailchimp'
+      ? 'Pending provider id'
+      : run.provider === 'mautic'
+        ? 'Mautic sync'
+        : 'Local queue');
   const requestedCount =
     typeof run.counts.requestedContactCount === 'number'
       ? run.counts.requestedContactCount
@@ -245,7 +256,8 @@ export function CampaignRunCard({
       ? localDeliveryBlockedReason ||
         'Configure SMTP before sending local campaign runs.'
       : undefined;
-  const contactsActionLabel = run.provider === 'mailchimp' ? 'synced' : 'selected';
+  const contactsActionLabel =
+    run.provider === 'mailchimp' || run.provider === 'mautic' ? 'synced' : 'selected';
   const sendActionLabel =
     run.provider === 'local_email' && run.status === 'sending' ? 'Continue sending' : 'Send run now';
   const recipientStatusOptions: Array<CampaignRunRecipientStatus | 'all'> = [
@@ -391,7 +403,7 @@ export function CampaignRunCard({
             <button
               type="button"
               disabled
-              title="Mailchimp campaign cancellation is not supported by this backend contract yet."
+              title="External-provider campaign cancellation is not supported by this backend contract yet."
               className="rounded-lg border border-app-input-border px-3 py-1.5 text-xs font-medium text-app-text-muted opacity-60"
             >
               Cancel unsupported
@@ -399,7 +411,7 @@ export function CampaignRunCard({
             <button
               type="button"
               disabled
-              title="Mailchimp campaign rescheduling is not supported by this backend contract yet."
+              title="External-provider campaign rescheduling is not supported by this backend contract yet."
               className="rounded-lg border border-app-input-border px-3 py-1.5 text-xs font-medium text-app-text-muted opacity-60"
             >
               Reschedule unsupported
@@ -503,7 +515,7 @@ export function ListCard({
           {list.provider === 'local_email' ? 'eligible contacts' : 'subscribers'}
         </span>
         {list.provider ? (
-          <span>{list.provider === 'mailchimp' ? 'Mailchimp' : 'Local Email'}</span>
+          <span>{getProviderLabel(list.provider)}</span>
         ) : null}
         {list.doubleOptIn && (
           <span className="flex items-center gap-1">

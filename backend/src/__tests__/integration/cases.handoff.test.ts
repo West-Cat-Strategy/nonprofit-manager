@@ -10,6 +10,7 @@ describe('Case Handoff Packet Integration Tests', () => {
   let caseTypeId = '';
   let contactId = '';
   let caseId = '';
+  let reassessmentFollowUpId = '';
 
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
@@ -104,12 +105,54 @@ describe('Case Handoff Packet Integration Tests', () => {
         due_date: '2020-01-01', // Overdue
       }))
       .expect(201);
+
+    const followUpResult = await pool.query<{ id: string }>(
+      `INSERT INTO follow_ups (
+         organization_id,
+         entity_type,
+         entity_id,
+         title,
+         description,
+         scheduled_date,
+         frequency,
+         status,
+         assigned_to,
+         reminder_minutes_before,
+         created_by,
+         modified_by
+       )
+       VALUES ($1, 'case', $2, 'Reassessment follow-up', NULL, '2020-01-15', 'once', 'scheduled', $3, NULL, $3, $3)
+       RETURNING id`,
+      [organizationId, caseId, userId]
+    );
+    reassessmentFollowUpId = followUpResult.rows[0].id;
+
+    await pool.query(
+      `INSERT INTO case_reassessment_cycles (
+         organization_id,
+         case_id,
+         follow_up_id,
+         owner_user_id,
+         status,
+         title,
+         summary,
+         earliest_review_date,
+         due_date,
+         latest_review_date,
+         created_by,
+         updated_by
+       )
+       VALUES ($1, $2, $3, $4, 'scheduled', 'Housing reassessment', 'Confirm housing continuity', '2019-12-01', '2020-01-15', '2020-01-31', $4, $4)`,
+      [organizationId, caseId, reassessmentFollowUpId, userId]
+    );
   });
 
   afterAll(async () => {
     if (caseId) {
+      await pool.query('DELETE FROM case_reassessment_cycles WHERE case_id = $1', [caseId]);
       await pool.query('DELETE FROM case_milestones WHERE case_id = $1', [caseId]);
       await pool.query('DELETE FROM case_notes WHERE case_id = $1', [caseId]);
+      await pool.query('DELETE FROM follow_ups WHERE entity_type = $1 AND entity_id = $2', ['case', caseId]);
       await pool.query('DELETE FROM cases WHERE id = $1', [caseId]);
     }
     if (contactId) {
@@ -142,12 +185,23 @@ describe('Case Handoff Packet Integration Tests', () => {
     expect(packet.risks.risk_summary).toContain('Marked as Urgent');
     expect(packet.risks.risk_summary).toContain('High Priority');
     expect(packet.risks.risk_summary).toContain('1 Overdue Milestones');
+    expect(packet.risks.risk_summary).toContain('1 Overdue Reassessments');
+    expect(packet.risks.risk_summary).toContain('1 Lapsed Reassessment Windows');
 
     expect(packet.artifacts_summary.notes_count).toBe(1);
     expect(packet.artifacts_summary.documents_count).toBe(0);
     
     expect(packet.next_actions.pending_milestones.length).toBe(1);
     expect(packet.next_actions.pending_milestones[0].name).toBe('Test Milestone');
+    expect(packet.next_actions.pending_follow_ups.length).toBe(1);
+    expect(packet.next_actions.pending_follow_ups[0].title).toBe('Reassessment follow-up');
+    expect(packet.continuity.reassessment.status).toBe('lapsed');
+    expect(packet.continuity.reassessment.current.title).toBe('Housing reassessment');
+    expect(packet.continuity.handoff_readiness.status).toBe('needs_attention');
+    expect(packet.continuity.handoff_readiness.cues).toContain('1 pending milestone');
+    expect(packet.continuity.handoff_readiness.cues).toContain('1 pending follow-up');
+    expect(packet.continuity.closure.status).toBe('open_actions');
+    expect(packet.continuity.closure.cues).toContain('1 lapsed reassessment window before closure');
   });
 
   it('requires CASE_VIEW permission', async () => {

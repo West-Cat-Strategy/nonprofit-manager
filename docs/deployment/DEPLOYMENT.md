@@ -142,7 +142,7 @@ See [../testing/TESTING.md](../testing/TESTING.md) for the full validation map a
 - Plausible analytics: [PLAUSIBLE_SETUP.md](PLAUSIBLE_SETUP.md)
 - Deployment proof and Docker proof notes: [../validation/README.md](../validation/README.md)
 
-Plausible and ELK remain optional overlays, not base-stack requirements. On 1-2 GB VPS hosts, keep the Plausible and ELK Compose overlays disabled unless they run on separate infrastructure or the host has been resized and revalidated with the overlays included.
+Plausible CE and OpenSearch/OpenSearch Dashboards are the preferred optional self-hosted overlays, not base-stack requirements. ELK remains a legacy transition overlay for existing deployments only. On 1-2 GB VPS hosts, keep Plausible, OpenSearch, and legacy ELK Compose overlays disabled unless they run on separate infrastructure or the host has been resized and revalidated with the overlays included.
 
 ## Rollback
 

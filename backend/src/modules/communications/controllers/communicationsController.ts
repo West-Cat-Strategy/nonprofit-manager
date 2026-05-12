@@ -6,6 +6,7 @@ import { badRequest, created, notFoundMessage, serverError } from '@utils/respon
 import type { DataScopeFilter } from '@app-types/dataScope';
 import type {
   CommunicationAudiencePreviewRequest,
+  CommunicationBulkSyncRequest,
   CommunicationCampaignActionResult,
   CommunicationCampaignRescheduleRequest,
   CommunicationCampaignTestSendRequest,
@@ -149,6 +150,20 @@ export const previewAudience = async (req: AuthRequest, res: Response): Promise<
     }
     logger.error('Error previewing communications audience', { error });
     serverError(res, 'Failed to preview communications audience');
+  }
+};
+
+export const bulkSyncContacts = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const body = req.body as CommunicationBulkSyncRequest;
+    sendSuccess(res, await communicationsService.bulkSyncContacts(body));
+  } catch (error) {
+    if (isValidationStatusError(error)) {
+      badRequest(res, error instanceof Error ? error.message : 'Invalid provider sync request');
+      return;
+    }
+    logger.error('Error bulk syncing communications contacts', { error });
+    serverError(res, 'Failed to bulk sync contacts');
   }
 };
 

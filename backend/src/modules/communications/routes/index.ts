@@ -10,7 +10,8 @@ import * as communicationsController from '../controllers';
 const router = Router();
 const publicRouter = Router();
 
-const providerSchema = z.enum(['local_email', 'mailchimp']);
+const providerSchema = z.enum(['local_email', 'mautic', 'mailchimp']);
+const syncProviderSchema = z.enum(['mautic', 'mailchimp']);
 const listIdSchema = z.string().trim().min(1).optional();
 
 const campaignRunIdParamsSchema = z.object({
@@ -160,10 +161,24 @@ const campaignTestSendSchema = campaignSchema
   })
   .strict();
 
+const bulkSyncContactsSchema = z
+  .object({
+    provider: syncProviderSchema,
+    contactIds: z.array(uuidSchema).min(1).max(500),
+    listId: z.string().trim().min(1, 'List ID is required'),
+    tags: z.array(z.string().trim().min(1)).optional(),
+  })
+  .strict();
+
 router.use(authenticate, requirePermission(Permission.ADMIN_SETTINGS));
 
 router.get('/status', communicationsController.getStatus);
 router.get('/audiences', validateQuery(audiencesQuerySchema), communicationsController.getAudiences);
+router.post(
+  '/sync/bulk',
+  validateBody(bulkSyncContactsSchema),
+  communicationsController.bulkSyncContacts
+);
 router.post('/audiences', validateBody(savedAudienceSchema), communicationsController.createAudience);
 router.post(
   '/audiences/preview',

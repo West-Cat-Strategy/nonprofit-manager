@@ -23,11 +23,22 @@ jest.mock('@services/mailchimpService', () => ({
   __esModule: true,
   default: {
     getStatus: jest.fn(),
+    getLists: jest.fn(),
     getCampaigns: jest.fn(),
     createCampaign: jest.fn(),
+    bulkSyncContacts: jest.fn(),
     sendCampaignRun: jest.fn(),
     refreshCampaignRunStatus: jest.fn(),
     sendDraftCampaignTest: jest.fn(),
+  },
+}));
+
+jest.mock('@services/mauticService', () => ({
+  __esModule: true,
+  default: {
+    getStatus: jest.fn(),
+    getSegments: jest.fn(),
+    bulkSyncContacts: jest.fn(),
   },
 }));
 
@@ -46,14 +57,18 @@ jest.mock('../services/browserViewTokenService', () => ({
 }));
 
 import pool from '@config/database';
+import { getEmailSettings } from '@services/emailSettingsService';
 import { sendMail } from '@services/emailService';
 import mailchimpService from '@services/mailchimpService';
+import mauticService from '@services/mauticService';
 import * as communicationsService from '../services/communicationsService';
 import { drainDueLocalCampaignRuns } from '../services/localCampaignDrainService';
 
 const mockPool = pool as jest.Mocked<typeof pool>;
+const mockGetEmailSettings = getEmailSettings as jest.Mock;
 const mockSendMail = sendMail as jest.Mock;
 const mockMailchimpService = mailchimpService as jest.Mocked<typeof mailchimpService>;
+const mockMauticService = mauticService as jest.Mocked<typeof mauticService>;
 const originalApiOrigin = process.env.API_ORIGIN;
 const originalSiteBaseUrl = process.env.SITE_BASE_URL;
 const originalFrontendUrl = process.env.FRONTEND_URL;
@@ -174,6 +189,11 @@ const mockPoolBySql = (): void => {
 describe('communicationsService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGetEmailSettings.mockResolvedValue({ isConfigured: false });
+    mockMailchimpService.getStatus.mockResolvedValue({ configured: false });
+    mockMailchimpService.getLists.mockResolvedValue([]);
+    mockMauticService.getStatus.mockResolvedValue({ configured: false });
+    mockMauticService.getSegments.mockResolvedValue([]);
     process.env.API_ORIGIN = 'https://api.example.org';
     process.env.SITE_BASE_URL = 'https://site.example.org';
     process.env.FRONTEND_URL = 'https://frontend.example.org';
@@ -860,5 +880,97 @@ describe('communicationsService', () => {
         title: 'Provider Campaign',
       })
     );
+  });
+
+  it('reports Mautic status as the preferred open-source external sync provider', async () => {
+    mockGetEmailSettings.mockResolvedValue({
+      isConfigured: true,
+      smtpFromAddress: 'team@example.org',
+      smtpFromName: 'Team',
+    });
+    mockMauticService.getStatus.mockResolvedValue({
+      configured: true,
+      baseUrl: 'https://mautic.example.org',
+      segmentCount: 2,
+    });
+
+    const status = await communicationsService.getStatus();
+
+    expect(status.defaultProvider).toBe('local_email');
+    expect(status.providers?.mautic).toEqual(
+      expect.objectContaining({
+        provider: 'mautic',
+        configured: true,
+        ready: true,
+        baseUrl: 'https://mautic.example.org',
+        audienceCount: 2,
+      })
+    );
+  });
+
+  it('lists Mautic segments as provider audiences without requiring Mailchimp', async () => {
+    mockMailchimpService.getLists.mockRejectedValue(new Error('Mailchimp disabled'));
+    mockMauticService.getSegments.mockResolvedValue([
+      { id: '42', name: 'Mautic Newsletter', memberCount: 12 },
+    ]);
+
+    const audiences = await communicationsService.listProviderAudiences();
+
+    expect(audiences).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ provider: 'local_email' }),
+        expect.objectContaining({
+          id: 'mautic:42',
+          provider: 'mautic',
+          name: 'Mautic Newsletter',
+          memberCount: 12,
+        }),
+      ])
+    );
+  });
+
+  it('syncs selected contacts to Mautic segments through the neutral communications facade', async () => {
+    mockMauticService.bulkSyncContacts.mockResolvedValue({
+      total: 1,
+      added: 1,
+      updated: 0,
+      skipped: 0,
+      errors: 0,
+      results: [
+        {
+          contactId: contactIds.deliverable,
+          email: 'ada@example.org',
+          success: true,
+          action: 'added',
+        },
+      ],
+    });
+
+    const result = await communicationsService.bulkSyncContacts({
+      provider: 'mautic',
+      contactIds: [contactIds.deliverable],
+      listId: 'mautic:42',
+    });
+
+    expect(result.added).toBe(1);
+    expect(mockMauticService.bulkSyncContacts).toHaveBeenCalledWith({
+      contactIds: [contactIds.deliverable],
+      listId: '42',
+      tags: undefined,
+    });
+  });
+
+  it('rejects Mautic campaign send parity until that backend contract exists', async () => {
+    await expect(
+      communicationsService.createCampaign({
+        provider: 'mautic',
+        listId: 'mautic:42',
+        title: 'Provider Campaign',
+        subject: 'Provider Campaign',
+        fromName: 'Team',
+        replyTo: 'team@example.org',
+        plainTextContent: 'Hello',
+      })
+    ).rejects.toThrow('Mautic campaign sending is not implemented');
   });
 });

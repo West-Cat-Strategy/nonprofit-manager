@@ -195,7 +195,7 @@ export class SiteOperationsService {
       if (row.source === 'native') {
         nativeNewsletters += count;
       }
-      if (row.source === 'mailchimp') {
+      if (row.source !== 'native') {
         syncedNewsletters += count;
       }
       if (row.status === 'published') {
@@ -216,6 +216,18 @@ export class SiteOperationsService {
        FROM website_entries
        WHERE site_id = $1
          AND source = 'mailchimp'`,
+      [siteId]
+    );
+
+    return result.rows[0]?.last_sync_at ? new Date(result.rows[0].last_sync_at) : null;
+  }
+
+  private async loadMauticLastSync(siteId: string): Promise<Date | null> {
+    const result = await this.pool.query<{ last_sync_at: string | null }>(
+      `SELECT MAX(updated_at)::text AS last_sync_at
+       FROM website_entries
+       WHERE site_id = $1
+         AND source = 'mautic'`,
       [siteId]
     );
 
@@ -363,6 +375,7 @@ export class SiteOperationsService {
     const site = await this.requireOwnedSite(siteId, userId, organizationId);
     const settings = await this.siteSettings.getSettingsForSite(site);
     const lastSyncAt = await this.loadMailchimpLastSync(site.id);
+    const mauticLastSyncAt = await this.loadMauticLastSync(site.id);
     const newsletterProvider = newsletterProviderService.resolveNewsletterProvider(settings);
     const selectedPreset =
       settings.newsletter.listPresets?.find(
@@ -486,7 +499,12 @@ export class SiteOperationsService {
               ? mauticSegmentCount
               : undefined,
         lastRefreshedAt: settings.newsletter.lastRefreshedAt || null,
-        lastSyncAt: newsletterProvider === 'mailchimp' ? lastSyncAt : null,
+        lastSyncAt:
+          newsletterProvider === 'mailchimp'
+            ? lastSyncAt
+            : newsletterProvider === 'mautic'
+              ? mauticLastSyncAt
+              : null,
       },
       mailchimp: {
         ...settings.mailchimp,
@@ -502,7 +520,7 @@ export class SiteOperationsService {
         baseUrl: mauticBaseUrl || settings.mautic.baseUrl || undefined,
         segmentCount: mauticSegmentCount,
         availableAudiences: mauticAudiences || [],
-        lastSyncAt: null,
+        lastSyncAt: mauticLastSyncAt,
         segmentId: settings.mautic.segmentId || undefined,
         defaultTags: settings.mautic.defaultTags,
         syncEnabled: settings.mautic.syncEnabled,

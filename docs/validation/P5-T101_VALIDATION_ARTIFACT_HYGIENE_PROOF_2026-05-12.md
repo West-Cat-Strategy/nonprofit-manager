@@ -38,14 +38,14 @@ Excluded:
 - `P5-T93_TESTING_STRATEGY_OVERHAUL_PROOF_2026-05-09.md` now records that its backend blocked state is historical and superseded by the May 11 revalidation.
 - `P5-T40_UI_UX_PLAIN_LANGUAGE_AUDIT_2026-05-01.md` and `P5-T4_MANAGED_FORM_PUBLISH_LOOP_REVIEW_2026-04-20.md` now state their archived proof-complete disposition.
 - `WEBSITE_BUILDER_FUNCTIONS_AUDIT_2026-04-30.md` now distinguishes current duplicate/move controls from future authoring polish.
-- `docs/ui/archive/app-ux-audit.json` was refreshed from `1524/9936/60` to `1530/9981/60` after the current frontend remediation changed the measured style-audit baseline. The enforced UI audit now passes with those counts.
+- `docs/ui/archive/app-ux-audit.json` was refreshed from `1524/9936/60` to `1530/10005/60` after the current frontend remediation changed the measured style-audit baseline. The enforced UI audit now passes with those counts.
 - Docker/runtime policy updates are part of this validation-hygiene cleanup: the Dockerfile, Compose files, and Docker image policy checks now align with the current review wave instead of remaining detached tool churn.
 
 ## Validation Proof
 
 - Pass: `make check-links` (225 files, 1453 local links).
 - Pass: `make lint-doc-api-versioning`.
-- Pass: `node scripts/ui-audit.ts --enforce-baseline` (`1530/9981/60`).
+- Pass: `node scripts/ui-audit.ts --enforce-baseline` (`1530/10005/60`).
 - Pass: `make lint` after the UI audit baseline refresh.
 - Pass: `git diff --check`.
 - Partial: `make ci-full` passed `make lint`, `make typecheck`, backend coverage (275 suites, 2231 tests), frontend coverage (250 files, 1371 tests), and the host Playwright Chromium project. It then failed during the Firefox/WebKit host Playwright projects because local browser executables were missing from `/Users/bryan/Library/Caches/ms-playwright`.

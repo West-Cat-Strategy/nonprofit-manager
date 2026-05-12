@@ -34,6 +34,7 @@ import type {
   WebsiteEntry,
   WebsiteEntryKind,
   WebsiteEntryListResult,
+  WebsiteEntrySource,
 } from '../../../types/websiteBuilder';
 
 const buildQuery = (params: Record<string, string | number | undefined>): string => {
@@ -273,7 +274,7 @@ export class WebsitesApiClient {
 
   listEntries(
     siteId: string,
-    source?: 'native' | 'mailchimp',
+    source?: WebsiteEntrySource,
     status?: string,
     kind?: WebsiteEntryKind
   ): Promise<WebsiteEntryListResult> {
@@ -301,6 +302,15 @@ export class WebsitesApiClient {
   syncMailchimpEntries(siteId: string, listId?: string): Promise<WebsiteEntryListResult> {
     return api
       .post<WebsiteEntryListResult>(`/sites/${siteId}/entries/sync-mailchimp`, listId ? { listId } : {})
+      .then((response) => response.data);
+  }
+
+  syncMauticEntries(siteId: string, segmentId?: string): Promise<WebsiteEntryListResult> {
+    return api
+      .post<WebsiteEntryListResult>(
+        `/sites/${siteId}/entries/sync-mautic`,
+        segmentId ? { segmentId } : {}
+      )
       .then((response) => response.data);
   }
 

@@ -174,7 +174,7 @@ export const listWebsiteEntries = async (
     const query = (req.validatedQuery ?? req.query) as {
       kind?: WebsiteEntryKind;
       status?: 'draft' | 'published' | 'archived';
-      source?: 'native' | 'mailchimp';
+      source?: 'native' | 'mailchimp' | 'mautic';
     };
 
     const result = await websiteEntryService.listEntries(
@@ -321,6 +321,31 @@ export const syncMailchimpEntries = async (
   }
 };
 
+export const syncMauticEntries = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { siteId } = req.params;
+    const segmentId =
+      typeof req.body?.segmentId === 'string' && req.body.segmentId.trim().length > 0
+        ? req.body.segmentId.trim()
+        : undefined;
+    const result = await websiteEntryService.syncMauticEmails(
+      siteId,
+      req.user!.id,
+      segmentId,
+      req.organizationId
+    );
+    await siteCacheService.invalidateSite(siteId);
+    sendSuccess(res, result);
+  } catch (error) {
+    if (mapKnownError(error, res)) return;
+    next(error);
+  }
+};
+
 const resolvePublishedSiteFromRequest = async (
   req: Request,
   explicitSiteKey?: string
@@ -358,7 +383,7 @@ export const listPublicNewsletters = async (
       site?: string;
       limit?: number | string;
       offset?: number | string;
-      source?: 'native' | 'mailchimp' | 'all';
+      source?: 'native' | 'mailchimp' | 'mautic' | 'all';
     };
 
     const site = await resolvePublishedSiteFromRequest(req, query.site);
@@ -432,7 +457,7 @@ export const listPublicContentEntries = async (
       kind?: WebsiteEntryKind;
       limit?: number | string;
       offset?: number | string;
-      source?: 'native' | 'mailchimp' | 'all';
+      source?: 'native' | 'mailchimp' | 'mautic' | 'all';
     };
 
     const site = await resolvePublishedSiteFromRequest(req, query.site);

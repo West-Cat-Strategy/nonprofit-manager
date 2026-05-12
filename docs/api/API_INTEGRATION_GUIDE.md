@@ -95,17 +95,20 @@ The provider-neutral communications surface is the primary staff campaign API.
 | Provider-neutral campaign operations | `/api/v2/communications/*` |
 | Local Email queueing and status | `/api/v2/communications/campaign-runs/*` |
 | Audience preview and recipient selection | `/api/v2/communications/audiences/*` and related campaign-run routes |
+| Provider audience sync | `/api/v2/communications/sync/bulk` |
 
 Current behavior:
 
 - Local Email is the default newsletter/blast-email path.
+- Mautic is the preferred open-source external sync provider. `GET /api/v2/communications/audiences?scope=provider` exposes Mautic segments as provider audiences when configured, and `/api/v2/communications/sync/bulk` can sync selected CRM contacts to Mautic segments.
+- Mautic campaign sending is intentionally not implemented through this staff campaign contract yet; use Local Email for local delivery or Mailchimp only when explicitly configured as an optional compatibility provider.
 - Campaign send, retry, preview, and run-history behavior should be represented through provider-neutral communications contracts first.
 - Provider-specific behavior should return explicit unsupported-provider responses when no safe local behavior exists.
 - Suppression, opt-in, unsubscribe, and campaign-run proof is indexed from [../validation/README.md](../validation/README.md).
 
 ## Mailchimp Integration
 
-Mailchimp remains an explicit optional-provider compatibility surface.
+Mailchimp remains an explicit optional proprietary-provider compatibility surface.
 
 | Capability | Routes |
 |---|---|

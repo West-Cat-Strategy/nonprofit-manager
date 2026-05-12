@@ -96,6 +96,68 @@ describe('mauticService scoped configuration', () => {
     );
   });
 
+  it('lists published Mautic emails with site-scoped settings and segment filtering', async () => {
+    mockMauticJsonResponse({
+      emails: {
+        12: {
+          id: 12,
+          name: 'April Newsletter',
+          subject: 'April updates',
+          preheaderText: 'Program highlights',
+          customHtml: '<p>April body</p>',
+          plainText: 'April body',
+          isPublished: true,
+          emailType: 'list',
+          sentCount: 42,
+          readCount: 11,
+          lists: [{ id: 42, name: 'Website Newsletter' }],
+          dateAdded: '2026-04-01T00:00:00+00:00',
+          dateModified: '2026-04-02T00:00:00+00:00',
+        },
+        13: {
+          id: 13,
+          name: 'Draft Newsletter',
+          subject: 'Draft',
+          isPublished: false,
+          lists: [{ id: 42, name: 'Website Newsletter' }],
+        },
+        14: {
+          id: 14,
+          name: 'Other Segment Newsletter',
+          subject: 'Other',
+          isPublished: true,
+          lists: [{ id: 99, name: 'Other Segment' }],
+        },
+      },
+    });
+
+    const emails = await mauticService.getEmails(siteMauticConfig, { segmentId: '42' });
+
+    expect(emails).toEqual([
+      expect.objectContaining({
+        id: '12',
+        name: 'April Newsletter',
+        subject: 'April updates',
+        preheaderText: 'Program highlights',
+        customHtml: '<p>April body</p>',
+        plainText: 'April body',
+        isPublished: true,
+        emailType: 'list',
+        sentCount: 42,
+        readCount: 11,
+        lists: ['42'],
+      }),
+    ]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://mautic.example.org/app/api/emails?limit=100&publishedOnly=true&orderBy=date_modified&orderByDir=desc',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: `Basic ${Buffer.from('site-api:site-secret').toString('base64')}`,
+        }),
+      })
+    );
+  });
+
   it('falls back to env-backed settings when site-scoped settings are incomplete', async () => {
     process.env.MAUTIC_BASE_URL = 'https://env-mautic.example.org';
     process.env.MAUTIC_USERNAME = 'env-api';

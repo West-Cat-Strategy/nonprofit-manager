@@ -63,6 +63,7 @@ describe('BackupService redaction', () => {
       'access_token_encrypted',
     ]);
     expect(DEFAULT_SECRET_FIELDS.social_media_pages).toContain('page_access_token_encrypted');
+    expect(DEFAULT_SECRET_FIELDS.website_site_settings).toContain('mautic_password_encrypted');
     expect(DEFAULT_SECRET_FIELDS.webhook_endpoints).toContain('secret');
     expect(DEFAULT_SECRET_FIELDS.pending_registration_webauthn_challenges).toContain('challenge');
     expect(DEFAULT_SECRET_FIELDS.user_webauthn_challenges).toContain('challenge');
@@ -188,6 +189,7 @@ describe('BackupService redaction', () => {
       redact(service, 'website_site_settings', {
         id: 'settings-id',
         site_id: 'site-1',
+        mautic_password_encrypted: 'enc:mautic-secret',
         mautic_config: {
           baseUrl: 'https://mautic.example.org',
           username: 'api-user',
@@ -198,6 +200,7 @@ describe('BackupService redaction', () => {
     ).toEqual({
       id: 'settings-id',
       site_id: 'site-1',
+      mautic_password_encrypted: null,
       mautic_config: {
         baseUrl: 'https://mautic.example.org',
         username: 'api-user',

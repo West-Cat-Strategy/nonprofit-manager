@@ -719,8 +719,9 @@ describe('EmailMarketingPage', () => {
 
     await waitFor(() => {
       expect(mockedApi.post).toHaveBeenCalledWith(
-        '/mailchimp/sync/bulk',
+        '/communications/sync/bulk',
         expect.objectContaining({
+          provider: 'mailchimp',
           contactIds: ['contact-1'],
           listId: 'list-1',
           tags: ['newsletter'],
@@ -728,6 +729,87 @@ describe('EmailMarketingPage', () => {
       );
     });
     expect(screen.getByText(/do-not-email contacts stay excluded/i)).toBeInTheDocument();
+  });
+
+  it('renders Mautic as preferred open-source sync and keeps campaign sending disabled', async () => {
+    mockedApi.get.mockImplementation((url: string) => {
+      if (url === '/communications/status') {
+        return Promise.resolve({
+          data: {
+            configured: true,
+            provider: 'local_email',
+            defaultProvider: 'local_email',
+            providers: {
+              local_email: { provider: 'local_email', configured: true, ready: true },
+              mautic: { provider: 'mautic', configured: true, ready: true, audienceCount: 1 },
+              mailchimp: { provider: 'mailchimp', configured: false },
+            },
+          },
+        });
+      }
+      if (url === '/communications/audiences?scope=provider') {
+        return Promise.resolve({
+          data: [
+            {
+              id: 'mautic:42',
+              name: 'Mautic Newsletter',
+              memberCount: 12,
+              doubleOptIn: false,
+              provider: 'mautic',
+            },
+          ],
+        });
+      }
+      if (url === '/communications/campaigns') return Promise.resolve({ data: [] });
+      if (url === '/communications/audiences?scope=saved') return Promise.resolve({ data: [] });
+      if (url === '/communications/campaign-runs') return Promise.resolve({ data: [] });
+      if (url === '/v2/contacts') {
+        return Promise.resolve({
+          data: {
+            success: true,
+            data: {
+              data: [
+                {
+                  contact_id: 'contact-1',
+                  first_name: 'Ada',
+                  last_name: 'Lovelace',
+                  email: 'ada@example.org',
+                  do_not_email: false,
+                },
+              ],
+              pagination: { total: 1, page: 1, limit: 25, total_pages: 1 },
+            },
+          },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+    mockedApi.post.mockResolvedValue({
+      data: { total: 1, added: 1, updated: 0, skipped: 0, errors: 0, results: [] },
+    });
+
+    const user = userEvent.setup();
+    renderWithProviders(<EmailMarketingPage />, {
+      route: '/settings/email-marketing',
+    });
+
+    expect(await screen.findByText(/preferred open-source external sync provider/i)).toBeInTheDocument();
+    await user.click(await screen.findByRole('button', { name: /^mautic$/i }));
+    expect(screen.getByRole('button', { name: /new campaign/i })).toBeDisabled();
+    await user.click(await screen.findByText('Mautic Newsletter'));
+    fireEvent.click(screen.getByRole('checkbox', { name: /ada lovelace/i }));
+    fireEvent.click(screen.getByRole('button', { name: /sync 1 contact/i }));
+
+    await waitFor(() => {
+      expect(mockedApi.post).toHaveBeenCalledWith(
+        '/communications/sync/bulk',
+        expect.objectContaining({
+          provider: 'mautic',
+          contactIds: ['contact-1'],
+          listId: 'mautic:42',
+        })
+      );
+    });
   });
 
   it('archives saved audiences from the communications workspace', async () => {

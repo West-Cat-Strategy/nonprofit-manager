@@ -27,6 +27,23 @@ export interface MauticSegment {
   memberCount: number;
 }
 
+export interface MauticEmail {
+  id: string;
+  name: string;
+  subject?: string;
+  preheaderText?: string;
+  customHtml?: string;
+  plainText?: string;
+  isPublished: boolean;
+  emailType?: string;
+  sentCount?: number;
+  readCount?: number;
+  lists?: string[];
+  dateAdded?: string;
+  dateModified?: string;
+  publishUp?: string | null;
+}
+
 interface MauticContact {
   id: string;
   email: string;
@@ -291,6 +308,7 @@ const extractCollection = <T>(payload: unknown): T[] => {
     items?: unknown;
     contacts?: unknown;
     segments?: unknown;
+    emails?: unknown;
   };
 
   if (Array.isArray(record.items)) {
@@ -301,6 +319,12 @@ const extractCollection = <T>(payload: unknown): T[] => {
   }
   if (Array.isArray(record.segments)) {
     return record.segments as T[];
+  }
+  if (Array.isArray(record.emails)) {
+    return record.emails as T[];
+  }
+  if (record.emails && typeof record.emails === 'object') {
+    return Object.values(record.emails as Record<string, unknown>) as T[];
   }
   return [];
 };
@@ -484,6 +508,95 @@ export async function getSegments(config?: MauticClientConfig): Promise<MauticSe
   }
 }
 
+const mapMauticEmail = (email: {
+  id: string | number;
+  name?: string;
+  subject?: string | null;
+  preheaderText?: string | null;
+  customHtml?: string | null;
+  plainText?: string | null;
+  isPublished?: boolean | number;
+  emailType?: string | null;
+  sentCount?: number | string | null;
+  readCount?: number | string | null;
+  lists?: Array<string | number> | Record<string, unknown> | null;
+  dateAdded?: string | null;
+  dateModified?: string | null;
+  publishUp?: string | null;
+}): MauticEmail => {
+  const listValues = Array.isArray(email.lists)
+    ? email.lists
+    : email.lists && typeof email.lists === 'object'
+      ? Object.values(email.lists)
+      : [];
+
+  return {
+    id: String(email.id),
+    name: email.name || email.subject || `Mautic email ${email.id}`,
+    subject: email.subject || undefined,
+    preheaderText: email.preheaderText || undefined,
+    customHtml: email.customHtml || undefined,
+    plainText: email.plainText || undefined,
+    isPublished: email.isPublished === true || email.isPublished === 1,
+    emailType: email.emailType || undefined,
+    sentCount:
+      email.sentCount === undefined || email.sentCount === null
+        ? undefined
+        : Number(email.sentCount),
+    readCount:
+      email.readCount === undefined || email.readCount === null
+        ? undefined
+        : Number(email.readCount),
+    lists: listValues
+      .map((value) => {
+        if (typeof value === 'string' || typeof value === 'number') {
+          return String(value);
+        }
+        if (value && typeof value === 'object' && 'id' in value) {
+          return String((value as { id: string | number }).id);
+        }
+        return undefined;
+      })
+      .filter((value): value is string => Boolean(value)),
+    dateAdded: email.dateAdded || undefined,
+    dateModified: email.dateModified || undefined,
+    publishUp: email.publishUp ?? null,
+  };
+};
+
+export async function getEmails(
+  config?: MauticClientConfig,
+  options: { segmentId?: string; limit?: number } = {}
+): Promise<MauticEmail[]> {
+  if (!isMauticConfigured(config)) {
+    return [];
+  }
+
+  const limit = Math.max(1, Math.min(options.limit || 100, 100));
+  const params = new URLSearchParams({
+    limit: String(limit),
+    publishedOnly: 'true',
+    orderBy: 'date_modified',
+    orderByDir: 'desc',
+  });
+
+  try {
+    const response = await mauticRequest<{
+      emails?: unknown;
+      items?: unknown;
+    }>(`/api/emails?${params.toString()}`, {}, config);
+
+    const segmentId = options.segmentId?.trim();
+    return extractCollection<Parameters<typeof mapMauticEmail>[0]>(response)
+      .map((email) => mapMauticEmail(email))
+      .filter((email) => email.isPublished)
+      .filter((email) => !segmentId || email.lists?.includes(segmentId));
+  } catch (error) {
+    logger.error('Failed to get Mautic emails', { error });
+    throw error;
+  }
+}
+
 export async function syncContact(
   request: SyncContactRequest,
   config?: MauticClientConfig
@@ -657,6 +770,7 @@ export default {
   isMauticConfigured,
   getStatus,
   getSegments,
+  getEmails,
   syncContact,
   bulkSyncContacts,
 };

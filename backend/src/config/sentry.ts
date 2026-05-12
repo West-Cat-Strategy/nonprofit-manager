@@ -1,5 +1,5 @@
 /**
- * Sentry Integration for Error Tracking
+ * Sentry-compatible integration for error tracking
  * 
  * Provides centralized error and performance monitoring.
  * Automatically captures:
@@ -8,12 +8,12 @@
  * - Performance metrics
  * - Request/response data
  * 
- * PII Handling: Sentry automatically redacts some fields, but we add extra scrubbing.
+ * PII Handling: Sentry-compatible collectors may redact some fields, and we add extra scrubbing.
  * 
  * Setup:
- * 1. Install: npm install @sentry/node @sentry/tracing
+ * 1. Install: npm install @sentry/node
  * 2. Enable: Set SENTRY_DSN in .env.production
- * 3. Verify: Check events in https://sentry.io
+ * 3. Verify: Check events in a Sentry-compatible backend such as GlitchTip
  */
 
 import * as Sentry from '@sentry/node';
@@ -23,19 +23,19 @@ import { logger } from './logger';
 let sentryInitialized = false;
 
 /**
- * Initialize Sentry error tracking
+ * Initialize Sentry-compatible error tracking
  * 
  * Can be called multiple times safely (only initializes once).
  */
 export function initializeSentry(): void {
-  // Only initialize in production with DSN
+  // Initialize only when a Sentry-compatible DSN is configured.
   if (sentryInitialized) {
     return;
   }
 
   const dsn = process.env.SENTRY_DSN;
   if (!dsn) {
-    logger.debug('Sentry is not configured (SENTRY_DSN not set)');
+    logger.debug('Sentry-compatible error tracking is not configured (SENTRY_DSN not set)');
     return;
   }
 
@@ -49,7 +49,7 @@ export function initializeSentry(): void {
         Sentry.httpIntegration(),
         nodeContextIntegration(),
       ],
-      // Beforehand hooks for scrubbing PII before sending
+      // Before-send hook for scrubbing PII before provider ingestion.
       beforeSend: (event: Sentry.ErrorEvent, _hint: Sentry.EventHint) => {
         // Redact sensitive fields from all events
         return scrubbSentryEvent(event, _hint) as Sentry.ErrorEvent;
@@ -70,16 +70,19 @@ export function initializeSentry(): void {
     });
 
     sentryInitialized = true;
-    logger.info('Sentry initialized for error tracking', { dsn, environment: process.env.NODE_ENV });
+    logger.info('Sentry-compatible error tracking initialized', {
+      environment: process.env.NODE_ENV,
+      hasDsn: true,
+    });
   } catch (error) {
-    logger.error('Failed to initialize Sentry', { error });
+    logger.error('Failed to initialize Sentry-compatible error tracking', { error });
   }
 }
 
 /**
- * Scrub PII from Sentry events before sending
+ * Scrub PII from Sentry-compatible events before sending
  * 
- * Sentry has automatic scrubbing, but we add extra protection.
+ * Providers can have automatic scrubbing, but we add extra protection.
  */
 function scrubbSentryEvent(event: Sentry.Event, _hint: Sentry.EventHint): Sentry.Event | null {
   // List of sensitive field names to redact
@@ -181,7 +184,7 @@ function scrubbSentryEvent(event: Sentry.Event, _hint: Sentry.EventHint): Sentry
 }
 
 /**
- * Capture an exception with Sentry
+ * Capture an exception with the configured error-tracking provider
  */
 export function captureException(error: Error, context?: Record<string, unknown>): void {
   if (!sentryInitialized) {
@@ -196,7 +199,7 @@ export function captureException(error: Error, context?: Record<string, unknown>
 }
 
 /**
- * Capture a message with Sentry
+ * Capture a message with the configured error-tracking provider
  */
 export function captureMessage(message: string, level: 'fatal' | 'error' | 'warning' | 'info' = 'info'): void {
   if (!sentryInitialized) {
@@ -223,9 +226,10 @@ export function startTransaction(name: string, op?: string): any {
 /**
  * Set user context for error tracking
  * 
- * Helps identify which users are affected by errors.
+ * Prefer opaque user IDs. Email is intentionally ignored unless a future support
+ * workflow documents why provider-side email context is required.
  */
-export function setUserContext(userId: string | null, email?: string): void {
+export function setUserContext(userId: string | null, _email?: string): void {
   if (!sentryInitialized) {
     return;
   }
@@ -233,7 +237,6 @@ export function setUserContext(userId: string | null, email?: string): void {
   if (userId) {
     Sentry.setUser({
       id: userId,
-      email: email || undefined,
     });
   } else {
     Sentry.setUser(null);

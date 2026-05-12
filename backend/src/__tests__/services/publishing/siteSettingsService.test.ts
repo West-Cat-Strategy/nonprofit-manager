@@ -1,4 +1,10 @@
 import type { Pool } from 'pg';
+
+jest.mock('@utils/encryption', () => ({
+  encrypt: jest.fn((value: string) => `enc(${value})`),
+  decrypt: jest.fn((value: string) => value.replace(/^enc\((.*)\)$/, '$1')),
+}));
+
 import {
   WebsiteSiteSettingsService,
   maskWebsiteSiteSettings,
@@ -138,6 +144,7 @@ describe('WebsiteSiteSettingsService', () => {
         syncEnabled: true,
       }),
       JSON.stringify({}),
+      null,
       JSON.stringify({}),
       JSON.stringify({
         facebook: {},
@@ -226,6 +233,7 @@ describe('WebsiteSiteSettingsService', () => {
       }),
       JSON.stringify({}),
       JSON.stringify({}),
+      null,
       JSON.stringify({
         provider: 'paypal',
         currency: 'usd',
@@ -284,9 +292,9 @@ describe('WebsiteSiteSettingsService', () => {
             mautic_config: {
               baseUrl: 'https://mautic.example.org',
               username: 'api-user',
-              password: 'stored-secret',
               segmentId: 'seg-new',
             },
+            mautic_password_encrypted: 'enc(stored-secret)',
             stripe_config: {},
             form_defaults: {},
             form_overrides: {},
@@ -310,10 +318,10 @@ describe('WebsiteSiteSettingsService', () => {
       {
         baseUrl: 'https://mautic.example.org',
         username: 'api-user',
-        password: 'stored-secret',
         segmentId: 'seg-new',
       }
     );
+    expect(mockQuery.mock.calls[1]?.[1]?.[5]).toBe('enc(stored-secret)');
   });
 
   it('does not persist the masked Mautic password sentinel as a real password', async () => {
@@ -350,9 +358,9 @@ describe('WebsiteSiteSettingsService', () => {
             mautic_config: {
               baseUrl: 'https://mautic.example.org',
               username: 'api-user',
-              password: 'stored-secret',
               segmentId: 'seg-new',
             },
+            mautic_password_encrypted: 'enc(stored-secret)',
             stripe_config: {},
             form_defaults: {},
             form_overrides: {},
@@ -377,10 +385,199 @@ describe('WebsiteSiteSettingsService', () => {
       {
         baseUrl: 'https://mautic.example.org',
         username: 'api-user',
-        password: 'stored-secret',
         segmentId: 'seg-new',
       }
     );
+    expect(mockQuery.mock.calls[1]?.[1]?.[5]).toBe('enc(stored-secret)');
+  });
+
+  it('decrypts encrypted Mautic credentials for internal runtime settings', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          site_id: 'site-1',
+          organization_id: 'org-1',
+          newsletter_config: { provider: 'mautic' },
+          mailchimp_config: {},
+          mautic_config: {
+            baseUrl: 'https://mautic.example.org',
+            username: 'api-user',
+            segmentId: 'seg-1',
+          },
+          mautic_password_encrypted: 'enc(stored-secret)',
+          stripe_config: {},
+          form_defaults: {},
+          form_overrides: {},
+          conversion_tracking: {},
+          created_at: '2026-03-01T00:00:00.000Z',
+          updated_at: '2026-03-01T00:00:00.000Z',
+        },
+      ],
+    });
+
+    const result = await service.getSettingsForSite(baseSite);
+
+    expect(result.mautic).toMatchObject({
+      baseUrl: 'https://mautic.example.org',
+      username: 'api-user',
+      password: 'stored-secret',
+      segmentId: 'seg-1',
+    });
+  });
+
+  it('stores updated Mautic passwords in the encrypted column outside the JSON config', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            site_id: 'site-1',
+            organization_id: 'org-1',
+            newsletter_config: { provider: 'mautic' },
+            mailchimp_config: {},
+            mautic_config: {
+              baseUrl: 'https://mautic.example.org',
+              username: 'api-user',
+              segmentId: 'seg-old',
+            },
+            mautic_password_encrypted: 'enc(old-secret)',
+            stripe_config: {},
+            form_defaults: {},
+            form_overrides: {},
+            conversion_tracking: {},
+            created_at: '2026-03-01T00:00:00.000Z',
+            updated_at: '2026-03-01T00:00:00.000Z',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            site_id: 'site-1',
+            organization_id: 'org-1',
+            newsletter_config: { provider: 'mautic' },
+            mailchimp_config: {},
+            mautic_config: {
+              baseUrl: 'https://mautic.example.org',
+              username: 'api-user',
+              segmentId: 'seg-new',
+            },
+            mautic_password_encrypted: 'enc(new-secret)',
+            stripe_config: {},
+            form_defaults: {},
+            form_overrides: {},
+            conversion_tracking: {},
+            created_at: '2026-03-01T00:00:00.000Z',
+            updated_at: '2026-03-06T00:00:00.000Z',
+          },
+        ],
+      });
+
+    await service.updateMauticSettings(
+      'site-1',
+      {
+        segmentId: 'seg-new',
+        password: 'new-secret',
+      },
+      'user-1',
+      'org-1'
+    );
+
+    expect(JSON.parse(mockQuery.mock.calls[1]?.[1]?.[4] as string)).toEqual({
+      baseUrl: 'https://mautic.example.org',
+      username: 'api-user',
+      segmentId: 'seg-new',
+    });
+    expect(mockQuery.mock.calls[1]?.[1]?.[5]).toBe('enc(new-secret)');
+  });
+
+  it('clears the encrypted Mautic password when password is set to null', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            site_id: 'site-1',
+            organization_id: 'org-1',
+            newsletter_config: { provider: 'mautic' },
+            mailchimp_config: {},
+            mautic_config: {
+              baseUrl: 'https://mautic.example.org',
+              username: 'api-user',
+            },
+            mautic_password_encrypted: 'enc(stored-secret)',
+            stripe_config: {},
+            form_defaults: {},
+            form_overrides: {},
+            conversion_tracking: {},
+            created_at: '2026-03-01T00:00:00.000Z',
+            updated_at: '2026-03-01T00:00:00.000Z',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            site_id: 'site-1',
+            organization_id: 'org-1',
+            newsletter_config: { provider: 'mautic' },
+            mailchimp_config: {},
+            mautic_config: {
+              baseUrl: 'https://mautic.example.org',
+              username: 'api-user',
+            },
+            mautic_password_encrypted: null,
+            stripe_config: {},
+            form_defaults: {},
+            form_overrides: {},
+            conversion_tracking: {},
+            created_at: '2026-03-01T00:00:00.000Z',
+            updated_at: '2026-03-06T00:00:00.000Z',
+          },
+        ],
+      });
+
+    await service.updateMauticSettings(
+      'site-1',
+      {
+        password: null,
+      },
+      'user-1',
+      'org-1'
+    );
+
+    expect(JSON.parse(mockQuery.mock.calls[1]?.[1]?.[4] as string)).toEqual({
+      baseUrl: 'https://mautic.example.org',
+      username: 'api-user',
+    });
+    expect(mockQuery.mock.calls[1]?.[1]?.[5]).toBeNull();
+  });
+
+  it('falls back to legacy JSON Mautic passwords before backfill', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          site_id: 'site-1',
+          organization_id: 'org-1',
+          newsletter_config: { provider: 'mautic' },
+          mailchimp_config: {},
+          mautic_config: {
+            baseUrl: 'https://mautic.example.org',
+            username: 'api-user',
+            password: 'legacy-secret',
+          },
+          mautic_password_encrypted: null,
+          stripe_config: {},
+          form_defaults: {},
+          form_overrides: {},
+          conversion_tracking: {},
+          created_at: '2026-03-01T00:00:00.000Z',
+          updated_at: '2026-03-01T00:00:00.000Z',
+        },
+      ],
+    });
+
+    const result = await service.getSettingsForSite(baseSite);
+
+    expect(result.mautic.password).toBe('legacy-secret');
   });
 
   it('blocks settings mutations for sites awaiting organization assignment', async () => {

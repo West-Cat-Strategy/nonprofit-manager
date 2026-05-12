@@ -3,7 +3,7 @@
  * Type definitions for email marketing UI
  */
 
-export type CommunicationProvider = 'local_email' | 'mailchimp';
+export type CommunicationProvider = 'local_email' | 'mautic' | 'mailchimp';
 
 export interface CommunicationProviderStatus {
   provider: CommunicationProvider;
@@ -26,6 +26,7 @@ export interface MailchimpStatus {
   defaultProvider?: CommunicationProvider;
   provider?: CommunicationProvider;
   localEmail?: CommunicationProviderStatus;
+  mautic?: CommunicationProviderStatus;
   mailchimp?: CommunicationProviderStatus;
   providers?: Partial<Record<CommunicationProvider, CommunicationProviderStatus>>;
 }
@@ -210,6 +211,7 @@ export interface SyncContactRequest {
  * Bulk sync request
  */
 export interface BulkSyncRequest {
+  provider?: Exclude<CommunicationProvider, 'local_email'>;
   contactIds: string[];
   listId: string;
   tags?: string[];

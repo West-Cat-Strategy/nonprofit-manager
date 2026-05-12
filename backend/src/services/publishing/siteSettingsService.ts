@@ -16,6 +16,7 @@ import type {
   WebsiteSiteSettings,
   WebsiteStripeSettings,
 } from '@app-types/publishing';
+import { decrypt, encrypt } from '@utils/encryption';
 import { SiteManagementService } from './siteManagementService';
 
 const DEFAULT_CONVERSION_TRACKING: WebsiteSiteSettings['conversionTracking'] = {
@@ -168,6 +169,23 @@ const normalizeMauticSettings = (value: unknown): WebsiteMauticSettings => {
     defaultTags: cleanStringArray(config.defaultTags),
     syncEnabled: cleanBoolean(config.syncEnabled),
   };
+};
+
+const decryptMauticPassword = (encrypted: unknown): string | undefined => {
+  const value = cleanString(encrypted);
+  return value ? decrypt(value) : undefined;
+};
+
+const resolveStoredMauticPassword = (row: Record<string, unknown>): string | undefined => {
+  return decryptMauticPassword(row.mautic_password_encrypted) || cleanString(asObject(row.mautic_config).password);
+};
+
+const stripMauticPasswordForStorage = (
+  settings: WebsiteMauticSettings
+): Omit<WebsiteMauticSettings, 'password'> => {
+  const storedSettings: Partial<WebsiteMauticSettings> = { ...settings };
+  delete storedSettings.password;
+  return storedSettings;
 };
 
 const isMaskedMauticPassword = (value: unknown): boolean =>
@@ -394,7 +412,10 @@ export class WebsiteSiteSettingsService {
     }
 
     const mailchimp = normalizeMailchimpSettings(row.mailchimp_config);
-    const mautic = normalizeMauticSettings(row.mautic_config);
+    const mautic = {
+      ...normalizeMauticSettings(row.mautic_config),
+      password: resolveStoredMauticPassword(row),
+    };
     const formOverridesSource = asObject(row.form_overrides);
     const formOverrides = Object.fromEntries(
       Object.entries(formOverridesSource).map(([formKey, config]) => [
@@ -461,6 +482,7 @@ export class WebsiteSiteSettingsService {
          newsletter_config,
          mailchimp_config,
          mautic_config,
+         mautic_password_encrypted,
          stripe_config,
          social_config,
          form_defaults,
@@ -468,13 +490,14 @@ export class WebsiteSiteSettingsService {
          conversion_tracking,
          created_by,
          updated_by
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
        ON CONFLICT (site_id)
        DO UPDATE SET
          organization_id = EXCLUDED.organization_id,
          newsletter_config = EXCLUDED.newsletter_config,
          mailchimp_config = EXCLUDED.mailchimp_config,
          mautic_config = EXCLUDED.mautic_config,
+         mautic_password_encrypted = EXCLUDED.mautic_password_encrypted,
          stripe_config = EXCLUDED.stripe_config,
          social_config = EXCLUDED.social_config,
          form_defaults = EXCLUDED.form_defaults,
@@ -488,7 +511,8 @@ export class WebsiteSiteSettingsService {
         site.organizationId,
         JSON.stringify(settings.newsletter || { provider: 'mautic' }),
         JSON.stringify(settings.mailchimp || {}),
-        JSON.stringify(settings.mautic || {}),
+        JSON.stringify(stripMauticPasswordForStorage(settings.mautic || {})),
+        settings.mautic?.password ? encrypt(settings.mautic.password) : null,
         JSON.stringify(settings.stripe || {}),
         JSON.stringify(settings.social || { facebook: {} }),
         JSON.stringify(settings.formDefaults || {}),

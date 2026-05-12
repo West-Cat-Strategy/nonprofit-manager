@@ -285,8 +285,11 @@ export const bulkSyncContacts = createAsyncThunk<BulkSyncResponse, BulkSyncReque
   'mailchimp/bulkSync',
   async (data, { rejectWithValue }) => {
     try {
-      const response = await api.post('/mailchimp/sync/bulk', data);
-      return response.data;
+      const response = await api.post(`${COMMUNICATIONS_BASE}/sync/bulk`, {
+        ...data,
+        provider: data.provider ?? 'mailchimp',
+      });
+      return unwrapData<BulkSyncResponse>(response.data);
     } catch (error) {
       const message = getErrorMessage(error, 'Bulk sync failed');
       return rejectWithValue(message);

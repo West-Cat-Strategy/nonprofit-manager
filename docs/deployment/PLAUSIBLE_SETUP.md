@@ -26,7 +26,7 @@ It does not rely on a repo-owned frontend `services/plausible` helper, manual sc
 
 The live application path is:
 
-1. Plausible runs either on Plausible Cloud or the optional self-hosted stack from `docker-compose.plausible.yml`.
+1. Plausible runs on the preferred optional self-hosted Plausible CE stack from `docker-compose.plausible.yml`, or on Plausible Cloud when `PLAUSIBLE_API_HOST=https://plausible.io` is intentionally configured.
 2. The backend module in `backend/src/modules/plausibleProxy/routes/index.ts` calls Plausible's Stats API with the server-side `PLAUSIBLE_API_KEY`.
 3. Authenticated admin and manager users load dashboard metrics through `GET /api/v2/plausible/stats/aggregate`.
 4. The frontend widget in `frontend/src/components/dashboard/PlausibleStatsWidget.tsx` renders the aggregate metrics returned by that proxy.
@@ -35,7 +35,7 @@ Current backend environment variables:
 
 ```bash
 PLAUSIBLE_API_KEY=your_plausible_api_key_here
-PLAUSIBLE_API_HOST=https://plausible.io
+PLAUSIBLE_API_HOST=http://localhost:8000
 PLAUSIBLE_DOMAIN=your-domain.com
 ```
 
@@ -45,7 +45,7 @@ These variables are defined in `backend/.env.example` and are the app-facing con
 
 ## Self-Hosting Plausible
 
-Use the optional compose stack only when you want to run your own Plausible instance.
+Use the optional Compose stack when you want the preferred open-source Plausible CE posture.
 
 ### 1. Prepare the Plausible stack env file
 
@@ -92,7 +92,7 @@ The stack starts:
 3. Add the site that matches the domain you want the app to query.
 4. Create a Plausible API key in Plausible settings.
 
-If you are using Plausible Cloud instead, skip the compose steps and create the API key in your Plausible Cloud workspace.
+If you are intentionally using Plausible Cloud instead, skip the compose steps, create the API key in your Plausible Cloud workspace, and set `PLAUSIBLE_API_HOST=https://plausible.io`.
 
 ---
 

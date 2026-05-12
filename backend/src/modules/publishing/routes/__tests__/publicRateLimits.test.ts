@@ -118,6 +118,7 @@ jest.mock('../../controllers', () => {
     submitPublicAction: ok,
     submitPublicWebsiteForm: ok,
     syncMailchimpEntries: ok,
+    syncMauticEntries: ok,
     unpublishSite: ok,
     fulfillSitePublicActionSubmission: ok,
     updateSite: ok,

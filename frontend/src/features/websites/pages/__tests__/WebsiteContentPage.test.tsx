@@ -36,6 +36,7 @@ const thunkMocks = vi.hoisted(() => {
       'websites/syncMailchimpEntries',
       'syncMailchimpEntries'
     ),
+    syncWebsiteMauticEntries: createAction('websites/syncMauticEntries', 'syncMauticEntries'),
   };
 });
 
@@ -84,7 +85,8 @@ const overview = {
       lastSyncAt: null,
     },
     mautic: {
-      configured: false,
+      configured: true,
+      segmentId: 'segment-1',
       availableAudiences: [],
       lastSyncAt: null,
     },
@@ -175,6 +177,7 @@ vi.mock('../../state', async () => {
     updateWebsiteEntry: thunkMocks.updateWebsiteEntry,
     deleteWebsiteEntry: thunkMocks.deleteWebsiteEntry,
     syncWebsiteMailchimpEntries: thunkMocks.syncWebsiteMailchimpEntries,
+    syncWebsiteMauticEntries: thunkMocks.syncWebsiteMauticEntries,
   };
 });
 
@@ -255,6 +258,18 @@ describe('WebsiteContentPage', () => {
       );
     });
     expect(screen.getByText('Mailchimp archive synced.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sync Mautic' }));
+
+    await waitFor(() => {
+      expect(dispatchMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'websites/syncMauticEntries',
+          payload: { siteId: 'site-1', segmentId: 'segment-1' },
+        })
+      );
+    });
+    expect(screen.getByText('Mautic archive synced.')).toBeInTheDocument();
   });
 });
 

@@ -31,6 +31,8 @@ const handoffPacket: HandoffData = {
     priority: 'high',
     is_urgent: true,
     description: 'Stable housing support',
+    closed_date: null,
+    closure_reason: null,
     assigned_staff: {
       first_name: 'Alex',
       last_name: 'Rivera',
@@ -48,6 +50,40 @@ const handoffPacket: HandoffData = {
     overdue_milestones_count: 1,
     overdue_follow_ups_count: 1,
     risk_summary: ['Marked as Urgent', 'High Priority', '1 Overdue Milestones'],
+  },
+  continuity: {
+    reassessment: {
+      status: 'overdue',
+      headline: '1 reassessment overdue',
+      detail: 'Complete, reschedule, or cancel overdue reassessments before handoff or closure.',
+      overdue_count: 1,
+      lapsed_count: 0,
+      current: {
+        id: 'reassessment-1',
+        title: 'Quarterly review',
+        status: 'scheduled',
+        due_date: '2026-04-19',
+        earliest_review_date: '2026-04-01',
+        latest_review_date: '2026-04-30',
+        completion_summary: null,
+        cancellation_reason: null,
+        completed_at: null,
+      },
+      next: null,
+      recent: [],
+    },
+    handoff_readiness: {
+      status: 'needs_attention',
+      cues: ['1 pending milestone', '1 pending follow-up', '1 overdue reassessment'],
+    },
+    closure: {
+      status: 'open_actions',
+      cues: [
+        '1 pending milestone before closure',
+        '1 pending follow-up before closure',
+        '1 overdue reassessment before closure',
+      ],
+    },
   },
   next_actions: {
     pending_milestones: [
@@ -87,6 +123,10 @@ describe('CaseHandoffPacket', () => {
     expect(screen.getByText('CASE-001: Housing Support')).toBeInTheDocument();
     expect(screen.getByText('Open')).toBeInTheDocument();
     expect(screen.getByText('High Priority')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /continuity/i })).toBeInTheDocument();
+    expect(screen.getByText('1 reassessment overdue')).toBeInTheDocument();
+    expect(screen.getByText('Needs Handoff Review')).toBeInTheDocument();
+    expect(screen.getByText('Closure Actions Open')).toBeInTheDocument();
     expect(screen.getByText('Housing review')).toBeInTheDocument();
     expect(screen.getByText('Call landlord')).toBeInTheDocument();
     expect(screen.getByText('Internal Only')).toBeInTheDocument();

@@ -1,6 +1,10 @@
 import { createAsyncThunk, createSlice, isAnyOf } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import type { WebsiteEntry, WebsiteEntryKind } from '../../../types/websiteBuilder';
+import type {
+  WebsiteEntry,
+  WebsiteEntryKind,
+  WebsiteEntrySource,
+} from '../../../types/websiteBuilder';
 import { websitesApiClient } from '../api/websitesApiClient';
 import type {
   CreateWebsiteSiteRequest,
@@ -237,7 +241,7 @@ export const fetchWebsiteConversionFunnel = createAsyncThunk<
 
 export const fetchWebsiteEntries = createAsyncThunk<
   WebsiteEntry[],
-  { siteId: string; source?: 'native' | 'mailchimp'; status?: string; kind?: WebsiteEntryKind }
+  { siteId: string; source?: WebsiteEntrySource; status?: string; kind?: WebsiteEntryKind }
 >('websites/fetchEntries', async ({ siteId, source, status, kind }, { rejectWithValue }) => {
   try {
     const result = await websitesApiClient.listEntries(siteId, source, status, kind);
@@ -290,6 +294,18 @@ export const syncWebsiteMailchimpEntries = createAsyncThunk<
     return result.items;
   } catch (error) {
     return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to sync Mailchimp entries'));
+  }
+});
+
+export const syncWebsiteMauticEntries = createAsyncThunk<
+  WebsiteEntry[],
+  { siteId: string; segmentId?: string }
+>('websites/syncMauticEntries', async ({ siteId, segmentId }, { rejectWithValue }) => {
+  try {
+    const result = await websitesApiClient.syncMauticEntries(siteId, segmentId);
+    return result.items;
+  } catch (error) {
+    return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to sync Mautic entries'));
   }
 });
 
@@ -530,6 +546,18 @@ const websitesSlice = createSlice({
         state.entries = action.payload;
       })
       .addCase(syncWebsiteMailchimpEntries.rejected, (state, action) => {
+        state.isSaving = false;
+        state.error = action.payload as string;
+      })
+      .addCase(syncWebsiteMauticEntries.pending, (state) => {
+        state.isSaving = true;
+        state.error = null;
+      })
+      .addCase(syncWebsiteMauticEntries.fulfilled, (state, action) => {
+        state.isSaving = false;
+        state.entries = action.payload;
+      })
+      .addCase(syncWebsiteMauticEntries.rejected, (state, action) => {
         state.isSaving = false;
         state.error = action.payload as string;
       });

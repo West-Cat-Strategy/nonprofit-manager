@@ -16,11 +16,13 @@ import {
   fetchWebsiteEntries,
   fetchWebsiteOverview,
   syncWebsiteMailchimpEntries,
+  syncWebsiteMauticEntries,
   updateWebsiteEntry,
 } from '../state';
 import type {
   WebsiteEntry,
   WebsiteEntryKind,
+  WebsiteEntrySource,
   WebsiteEntryStatus,
 } from '../../../types/websiteBuilder';
 import type { WebsiteRouteSummary } from '../types';
@@ -48,7 +50,7 @@ const WebsiteContentPage: React.FC = () => {
   const { entries, isLoading, isSaving, error } = useAppSelector((state) => state.websites);
   const [draft, setDraft] = useState(emptyDraft);
   const [editingEntry, setEditingEntry] = useState<WebsiteEntry | null>(null);
-  const [sourceFilter, setSourceFilter] = useState<'all' | 'native' | 'mailchimp'>('all');
+  const [sourceFilter, setSourceFilter] = useState<'all' | WebsiteEntrySource>('all');
   const [kindFilter, setKindFilter] = useState<'all' | WebsiteEntryKind>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | WebsiteEntryStatus>('all');
   const [routeFilter, setRouteFilter] = useState<'all' | 'live' | 'draft'>('all');
@@ -94,7 +96,7 @@ const WebsiteContentPage: React.FC = () => {
     [visibleEntries]
   );
   const syncedEntries = useMemo(
-    () => visibleEntries.filter((entry) => entry.source === 'mailchimp'),
+    () => visibleEntries.filter((entry) => entry.source !== 'native'),
     [visibleEntries]
   );
   const visibleRoutes = useMemo(
@@ -230,6 +232,27 @@ const WebsiteContentPage: React.FC = () => {
     }
   };
 
+  const handleSyncMautic = async () => {
+    if (!siteId) return;
+    setNotice(null);
+    const result = await dispatch(
+      syncWebsiteMauticEntries({
+        siteId,
+        segmentId: overview?.integrations.mautic.segmentId || undefined,
+      })
+    );
+    if (syncWebsiteMauticEntries.fulfilled.match(result)) {
+      refreshOverview();
+      setNotice({ tone: 'success', message: 'Mautic archive synced.' });
+    } else {
+      setNotice({
+        tone: 'error',
+        message:
+          typeof result.payload === 'string' ? result.payload : 'Failed to sync Mautic entries.',
+      });
+    }
+  };
+
   if (!siteId) {
     return null;
   }
@@ -238,7 +261,7 @@ const WebsiteContentPage: React.FC = () => {
     <WebsiteConsoleLayout
       siteId={siteId}
       overview={overview}
-      title="Manage content entries, Mailchimp archive sync, and route-level visibility."
+      title="Manage content entries, provider archive sync, and route-level visibility."
       actions={
         <div className="flex flex-wrap gap-3">
           <WebsiteConsoleUrlAction
@@ -255,6 +278,14 @@ const WebsiteContentPage: React.FC = () => {
             className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted disabled:cursor-not-allowed disabled:opacity-60"
           >
             Sync Mailchimp
+          </button>
+          <button
+            type="button"
+            onClick={handleSyncMautic}
+            disabled={isSaving || Boolean(overview?.site.blocked)}
+            className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Sync Mautic
           </button>
         </div>
       }
@@ -291,13 +322,13 @@ const WebsiteContentPage: React.FC = () => {
             </div>
             <div>
               <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
-                Mailchimp synced
+                Provider synced
               </div>
               <div className="mt-2 text-3xl font-semibold text-app-text">
                 {managementSnapshot?.signals.syncedNewsletters ?? syncedEntries.length}
               </div>
               <p className="mt-2 text-sm text-app-text-muted">
-                Imported archive items that stay read-only.
+                Imported Mailchimp and Mautic archive items that stay read-only.
               </p>
             </div>
             <div>
@@ -489,6 +520,7 @@ const WebsiteContentPage: React.FC = () => {
                   <option value="all">All sources</option>
                   <option value="native">Native</option>
                   <option value="mailchimp">Mailchimp</option>
+                  <option value="mautic">Mautic</option>
                 </select>
                 <select
                   aria-label="Filter content status"
@@ -605,12 +637,12 @@ const WebsiteContentPage: React.FC = () => {
           </section>
 
           <section className="rounded-3xl border border-app-border bg-app-surface p-5">
-            <h2 className="text-lg font-semibold text-app-text">Mailchimp archive</h2>
+            <h2 className="text-lg font-semibold text-app-text">Provider archive</h2>
             <div className="mt-4 space-y-3">
               {syncedEntries.length === 0 ? (
                 <WebsiteConsoleStatePanel
                   tone="empty"
-                  title="No Mailchimp campaigns"
+                  title="No provider-synced campaigns"
                   message="No synced archive entries match the current filters."
                 />
               ) : (
@@ -621,7 +653,8 @@ const WebsiteContentPage: React.FC = () => {
                   >
                     <div className="font-medium text-app-text">{entry.title}</div>
                     <div className="text-sm text-app-text-muted">
-                      {entry.slug} • {entry.kind.replace('_', ' ')} • {entry.status} • read only
+                      {entry.slug} • {entry.kind.replace('_', ' ')} • {entry.source} •{' '}
+                      {entry.status} • read only
                     </div>
                   </div>
                 ))

@@ -103,6 +103,7 @@ describe('CaseReassessmentPanel', () => {
     render(<CaseReassessmentPanel caseId="case-1" defaultOwnerUserId="owner-1" />);
 
     expect(await screen.findByText('Quarterly review')).toBeInTheDocument();
+    expect(screen.getByText('Continuity reassessment is tracked')).toBeInTheDocument();
     expect(screen.getByText(/Due:/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /new reassessment/i }));
@@ -127,11 +128,12 @@ describe('CaseReassessmentPanel', () => {
 
     render(<CaseReassessmentPanel caseId="case-1" defaultOwnerUserId="owner-1" />);
 
+    expect(await screen.findByText('Continuity needs reassessment follow-through')).toBeInTheDocument();
     expect(await screen.findByText('Overdue')).toBeInTheDocument();
     expect(screen.getByText('Overdue by 5 days')).toBeInTheDocument();
     expect(
-      screen.getByText('Complete the reassessment or update the due date before closing the case plan.')
-    ).toBeInTheDocument();
+      screen.getAllByText('Complete the reassessment or update the due date before closing the case plan.').length
+    ).toBeGreaterThan(1);
   });
 
   it('surfaces open review-window cues before the due date', async () => {
@@ -150,7 +152,7 @@ describe('CaseReassessmentPanel', () => {
 
     expect(await screen.findByText('In window')).toBeInTheDocument();
     expect(screen.getByText('Review window open; due in 5 days')).toBeInTheDocument();
-    expect(screen.getByText(/Latest review date is/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Latest review date is/).length).toBeGreaterThan(1);
   });
 
   it('keeps recent completed reassessment evidence visible', async () => {
@@ -166,11 +168,23 @@ describe('CaseReassessmentPanel', () => {
 
     render(<CaseReassessmentPanel caseId="case-1" />);
 
+    expect(await screen.findByText('Continuity evidence recorded')).toBeInTheDocument();
     expect(await screen.findByText('Recent reassessment history')).toBeInTheDocument();
     expect(screen.getByText(/Completed .*2032/)).toBeInTheDocument();
     expect(screen.getAllByText('Housing plan reviewed').length).toBeGreaterThan(0);
     expect(
       screen.getByText((_, node) => node?.textContent === 'Completion: Housing plan reviewed')
+    ).toBeInTheDocument();
+  });
+
+  it('surfaces a continuity cue when no reassessment cadence exists', async () => {
+    vi.mocked(casesApiClient.listCaseReassessments).mockResolvedValue([]);
+
+    render(<CaseReassessmentPanel caseId="case-1" />);
+
+    expect(await screen.findByText('Continuity reassessment missing')).toBeInTheDocument();
+    expect(
+      screen.getByText('Create a reassessment so handoffs and closure review have current case-plan evidence.')
     ).toBeInTheDocument();
   });
 

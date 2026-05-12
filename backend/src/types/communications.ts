@@ -1,4 +1,6 @@
 import type {
+  BulkSyncRequest,
+  BulkSyncResponse,
   CreateCampaignRequest as MailchimpCreateCampaignRequest,
   EmailBuilderContent,
   MailchimpCampaign,
@@ -7,7 +9,7 @@ import type {
   MailchimpStatus,
 } from './mailchimp';
 
-export type CommunicationProvider = 'local_email' | 'mailchimp';
+export type CommunicationProvider = 'local_email' | 'mautic' | 'mailchimp';
 
 export type CommunicationCampaignRunStatus =
   | 'draft'
@@ -38,14 +40,24 @@ export interface CommunicationProviderStatus {
     lastTestSuccess?: boolean | null;
   };
   mailchimp: MailchimpStatus;
+  mautic?: {
+    provider?: CommunicationProvider;
+    configured: boolean;
+    ready?: boolean;
+    baseUrl?: string;
+    audienceCount?: number;
+    message?: string;
+  };
   providers?: Partial<Record<CommunicationProvider, {
     provider: CommunicationProvider;
     configured: boolean;
     ready?: boolean;
     accountName?: string;
+    baseUrl?: string;
     audienceCount?: number;
     fromAddress?: string | null;
     fromName?: string | null;
+    message?: string;
   }>>;
   defaultProvider: CommunicationProvider;
 }
@@ -215,3 +227,7 @@ export interface CommunicationCampaignTestSendResponse {
 
 export type CommunicationCampaignPreview = MailchimpCampaignPreview;
 export type MailchimpCompatibleCampaignRequest = MailchimpCreateCampaignRequest;
+export type CommunicationBulkSyncRequest = BulkSyncRequest & {
+  provider: Exclude<CommunicationProvider, 'local_email'>;
+};
+export type CommunicationBulkSyncResponse = BulkSyncResponse;

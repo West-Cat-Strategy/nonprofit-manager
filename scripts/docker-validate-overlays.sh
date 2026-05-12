@@ -73,6 +73,10 @@ run_with_env "Plausible compose config" \
   PLAUSIBLE_ENV_FILE=.env.plausible.example \
   "${compose_cmd[@]}" --env-file .env.plausible.example -p nonprofit-plausible -f docker-compose.plausible.yml config --quiet
 
+run_with_env "OpenSearch compose config" \
+  OPENSEARCH_ENV_FILE=.env.opensearch.example \
+  "${compose_cmd[@]}" --env-file .env.opensearch.example -p nonprofit-opensearch -f docker-compose.opensearch.yml config --quiet
+
 run_with_env "ELK compose config" \
   ELK_ENV_FILE=.env.elk.example \
   "${compose_cmd[@]}" --env-file .env.elk.example -p nonprofit-elk -f docker-compose.elk.yml config --quiet

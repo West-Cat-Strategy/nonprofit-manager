@@ -53,7 +53,7 @@ make docker-validate-overlays
 Expected result:
 
 - The backend and frontend Dockerfiles both build successfully.
-- The Compose overlays render successfully against tracked example env files, including optional Caddy, Plausible, ELK, and database-at-rest overlays.
+- The Compose overlays render successfully against tracked example env files, including optional Caddy, Plausible CE, OpenSearch, legacy ELK, and database-at-rest overlays.
 - The frontend production image includes `/usr/share/nginx/html/vite.svg` from `frontend/public`.
 
 ## Path 2: Optional Compose Dev Stack

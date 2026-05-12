@@ -31,6 +31,7 @@ export const DEFAULT_SECRET_FIELDS: Record<string, string[]> = {
   twilio_settings: ['auth_token_encrypted'],
   social_media_org_settings: ['app_secret_encrypted', 'access_token_encrypted'],
   social_media_pages: ['page_access_token_encrypted'],
+  website_site_settings: ['mautic_password_encrypted'],
   webhook_endpoints: ['secret'],
   user_invitations: ['token'],
   portal_invitations: ['token'],

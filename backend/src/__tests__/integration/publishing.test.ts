@@ -794,6 +794,23 @@ describe('Publishing API Integration', () => {
     expect(newsletter.mautic.password).toBe('********');
     expect(newsletter.mautic.defaultTags).toEqual(['members', 'website']);
     expect(newsletter.mautic.syncEnabled).toBe(true);
+    const storedMautic = await pool.query<{
+      mautic_config: Record<string, unknown>;
+      mautic_password_encrypted: string | null;
+    }>(
+      'SELECT mautic_config, mautic_password_encrypted FROM website_site_settings WHERE site_id = $1',
+      [activeSiteId]
+    );
+    expect(storedMautic.rows[0]?.mautic_config).toMatchObject({
+      baseUrl: 'https://mautic.example.org',
+      segmentId: 'seg-123',
+      username: 'api-user',
+      defaultTags: ['members', 'website'],
+      syncEnabled: true,
+    });
+    expect(storedMautic.rows[0]?.mautic_config).not.toHaveProperty('password');
+    expect(storedMautic.rows[0]?.mautic_password_encrypted).toEqual(expect.any(String));
+    expect(storedMautic.rows[0]?.mautic_password_encrypted).not.toBe('secret');
 
     const mailchimpResponse = await withSiteConsoleAuth(
       request(app).put(`/api/v2/sites/${activeSiteId}/integrations/mailchimp`),

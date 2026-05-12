@@ -12,8 +12,10 @@ import type {
   WebsiteEntryStatus,
 } from '@app-types/websiteBuilder';
 import { getCampaigns } from '@services/mailchimpService';
+import mauticService from '@services/mauticService';
 import { sanitizeNewsletterHtml } from './newsletterHtmlSanitizer';
 import { SiteManagementService } from './siteManagementService';
+import { WebsiteSiteSettingsService } from './siteSettingsService';
 
 const normalizeSlug = (value: string): string =>
   value
@@ -65,9 +67,11 @@ interface PublicEntryListOptions {
 
 export class WebsiteEntryService {
   private readonly siteManagement: SiteManagementService;
+  private readonly siteSettings: WebsiteSiteSettingsService;
 
   constructor(private readonly pool: Pool) {
     this.siteManagement = new SiteManagementService(pool);
+    this.siteSettings = new WebsiteSiteSettingsService(pool);
   }
 
   private async requireOwnedSite(
@@ -195,7 +199,7 @@ export class WebsiteEntryService {
       return null;
     }
     if (existing.source !== 'native') {
-      throw new Error('Mailchimp-synced entries are read-only');
+      throw new Error('Provider-synced entries are read-only');
     }
 
     const updates: string[] = [];
@@ -269,7 +273,7 @@ export class WebsiteEntryService {
       return false;
     }
     if (existing.source !== 'native') {
-      throw new Error('Mailchimp-synced entries are read-only');
+      throw new Error('Provider-synced entries are read-only');
     }
 
     const result = await this.pool.query(
@@ -343,6 +347,77 @@ export class WebsiteEntryService {
       siteId,
       organizationId: site.organizationId,
       importedCount: campaigns.length,
+    });
+
+    return this.listEntries(siteId, userId, {}, organizationId);
+  }
+
+  async syncMauticEmails(
+    siteId: string,
+    userId: string,
+    segmentId: string | undefined,
+    organizationId?: string
+  ): Promise<WebsiteEntryListResult> {
+    const site = await this.requireOwnedSite(siteId, userId, organizationId);
+    const settings = await this.siteSettings.getSettingsForSite(site);
+    const emails = await mauticService.getEmails(settings.mautic, { segmentId });
+
+    for (const email of emails) {
+      const slugBase = normalizeSlug(email.name || email.subject || email.id);
+      const slug = slugBase || `mautic-email-${email.id.toLowerCase()}`;
+      const publishedAt = email.publishUp || email.dateModified || email.dateAdded || new Date().toISOString();
+      await this.pool.query(
+        `INSERT INTO website_entries (
+           organization_id, site_id, kind, source, status, slug, title, excerpt, body, body_html,
+           seo, metadata, external_source_id, published_at, created_by, updated_by
+         ) VALUES (
+           $1, $2, 'newsletter', 'mautic', 'published', $3, $4, $5, $6, $7,
+           $8, $9, $10, $11, $12, $12
+         )
+         ON CONFLICT (site_id, source, external_source_id)
+         DO UPDATE SET
+           slug = EXCLUDED.slug,
+           title = EXCLUDED.title,
+           excerpt = EXCLUDED.excerpt,
+           body = EXCLUDED.body,
+           body_html = EXCLUDED.body_html,
+           seo = EXCLUDED.seo,
+           metadata = EXCLUDED.metadata,
+           published_at = EXCLUDED.published_at,
+           updated_by = EXCLUDED.updated_by
+         `,
+        [
+          site.organizationId,
+          site.id,
+          slug,
+          email.name,
+          email.preheaderText || email.subject || null,
+          email.plainText || null,
+          sanitizeBodyHtml(email.customHtml),
+          JSON.stringify({
+            title: email.name,
+            description: email.preheaderText || email.subject,
+          }),
+          JSON.stringify({
+            source: 'mautic',
+            segmentId: segmentId || null,
+            subject: email.subject || null,
+            emailType: email.emailType || null,
+            lists: email.lists || [],
+            sentCount: email.sentCount ?? null,
+            readCount: email.readCount ?? null,
+          }),
+          email.id,
+          publishedAt,
+          userId,
+        ]
+      );
+    }
+
+    logger.info('Synced Mautic emails into website entries', {
+      siteId,
+      organizationId: site.organizationId,
+      importedCount: emails.length,
     });
 
     return this.listEntries(siteId, userId, {}, organizationId);

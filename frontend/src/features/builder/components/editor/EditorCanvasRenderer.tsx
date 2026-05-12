@@ -559,6 +559,13 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
           date: 'Feb 14, 2026',
           excerpt: 'A recap of campaign milestones and stewardship notes for the month.',
         },
+        {
+          id: 'newsletter-3',
+          title: 'January Volunteer Dispatch',
+          source: 'mautic',
+          date: 'Jan 30, 2026',
+          excerpt: 'A provider-imported update for testing source filters.',
+        },
       ]
         .filter((item) =>
           !component.sourceFilter || component.sourceFilter === 'all'

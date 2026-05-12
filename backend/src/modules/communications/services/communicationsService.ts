@@ -6,7 +6,10 @@ import {
   resolveMailchimpCampaignContent,
 } from '@services/template/emailCampaignRenderer';
 import mailchimpService from '@services/mailchimpService';
+import mauticService from '@services/mauticService';
 import type {
+  CommunicationBulkSyncRequest,
+  CommunicationBulkSyncResponse,
   CommunicationCampaign,
   CommunicationCampaignActionResult,
   CommunicationCampaignRescheduleRequest,
@@ -51,6 +54,16 @@ import {
   previewAudience,
 } from './savedAudienceService';
 
+const MAUTIC_AUDIENCE_PREFIX = 'mautic:';
+
+const isMauticAudienceId = (audienceId?: string): boolean =>
+  Boolean(audienceId?.startsWith(MAUTIC_AUDIENCE_PREFIX));
+
+const toMauticSegmentId = (audienceId: string): string =>
+  audienceId.startsWith(MAUTIC_AUDIENCE_PREFIX)
+    ? audienceId.slice(MAUTIC_AUDIENCE_PREFIX.length)
+    : audienceId;
+
 export {
   archiveAudience,
   createAudience,
@@ -61,9 +74,10 @@ export {
 };
 
 export const getStatus = async (): Promise<CommunicationProviderStatus> => {
-  const [emailSettings, mailchimp] = await Promise.all([
+  const [emailSettings, mailchimp, mautic] = await Promise.all([
     getEmailSettings(),
     mailchimpService.getStatus(),
+    mauticService.getStatus(),
   ]);
   const localConfigured = Boolean(emailSettings?.isConfigured);
 
@@ -80,6 +94,16 @@ export const getStatus = async (): Promise<CommunicationProviderStatus> => {
       lastTestSuccess: emailSettings?.lastTestSuccess ?? null,
     },
     mailchimp,
+    mautic: {
+      provider: 'mautic',
+      configured: Boolean(mautic.configured),
+      ready: Boolean(mautic.configured),
+      baseUrl: mautic.baseUrl,
+      audienceCount: mautic.segmentCount,
+      message: mautic.configured
+        ? 'Mautic is configured for open-source audience sync.'
+        : 'Configure Mautic to enable open-source external audience sync.',
+    },
     providers: {
       local_email: {
         provider: 'local_email',
@@ -94,6 +118,16 @@ export const getStatus = async (): Promise<CommunicationProviderStatus> => {
         accountName: mailchimp.accountName,
         audienceCount: mailchimp.listCount,
       },
+      mautic: {
+        provider: 'mautic',
+        configured: Boolean(mautic.configured),
+        ready: Boolean(mautic.configured),
+        baseUrl: mautic.baseUrl,
+        audienceCount: mautic.segmentCount,
+        message: mautic.configured
+          ? 'Preferred open-source external sync provider.'
+          : 'Mautic is not configured; local email remains available.',
+      },
     },
     defaultProvider: 'local_email',
   };
@@ -103,19 +137,38 @@ export const listProviderAudiences = async (
   requesterScopeAccountIds?: string[]
 ): Promise<CommunicationProviderAudience[]> => {
   const localAudience = await getLocalAudience(requesterScopeAccountIds);
+  const audiences: CommunicationProviderAudience[] = [localAudience];
+
   try {
     const mailchimpLists = await mailchimpService.getLists();
-    return [
-      localAudience,
+    audiences.push(
       ...mailchimpLists.map((list) => ({
         ...list,
         provider: 'mailchimp' as const,
-      })),
-    ];
+      }))
+    );
   } catch (error) {
     logger.warn('Failed to load optional Mailchimp provider audiences', { error });
-    return [localAudience];
   }
+
+  try {
+    const mauticSegments = await mauticService.getSegments();
+    audiences.push(
+      ...mauticSegments.map((segment) => ({
+        id: `${MAUTIC_AUDIENCE_PREFIX}${segment.id}`,
+        name: segment.name,
+        memberCount: segment.memberCount,
+        createdAt: new Date(),
+        doubleOptIn: false,
+        provider: 'mautic' as const,
+        description: 'Mautic segment for open-source external contact sync.',
+      }))
+    );
+  } catch (error) {
+    logger.warn('Failed to load optional Mautic provider audiences', { error });
+  }
+
+  return audiences;
 };
 
 export const getProviderAudience = async (
@@ -151,6 +204,9 @@ export const listCampaigns = async (
   if (audienceId && isLocalAudienceId(audienceId)) {
     return campaigns;
   }
+  if (isMauticAudienceId(audienceId)) {
+    return campaigns;
+  }
 
   try {
     const mailchimpCampaigns = await mailchimpService.getCampaigns(audienceId);
@@ -171,6 +227,11 @@ export const createCampaign = async (
   request: CreateCommunicationCampaignRequest
 ): Promise<CommunicationCampaign> => {
   const provider = request.provider ?? 'local_email';
+  if (provider === 'mautic') {
+    throw new CommunicationsValidationError(
+      'Mautic campaign sending is not implemented by this backend contract. Use Local Email for delivery or sync CRM contacts to Mautic.'
+    );
+  }
   if (provider === 'mailchimp') {
     if (!request.listId) {
       throw new CommunicationsValidationError('Mailchimp campaigns require a provider audience');
@@ -252,7 +313,13 @@ export const refreshCampaignRunStatus = async (
 export const sendCampaignTest = async (
   request: CommunicationCampaignTestSendRequest
 ): Promise<CommunicationCampaignTestSendResponse> => {
-  if ((request.provider ?? 'local_email') === 'mailchimp') {
+  const provider = request.provider ?? 'local_email';
+  if (provider === 'mautic') {
+    throw new CommunicationsValidationError(
+      'Mautic test sending is not implemented by this backend contract. Use Local Email for delivery or sync CRM contacts to Mautic.'
+    );
+  }
+  if (provider === 'mailchimp') {
     return mailchimpService.sendDraftCampaignTest(asMailchimpRequest(request));
   }
 
@@ -286,6 +353,28 @@ export const sendCampaignTest = async (
   };
 };
 
+export const bulkSyncContacts = async (
+  request: CommunicationBulkSyncRequest
+): Promise<CommunicationBulkSyncResponse> => {
+  if (request.provider === 'mailchimp') {
+    return mailchimpService.bulkSyncContacts({
+      contactIds: request.contactIds,
+      listId: request.listId,
+      tags: request.tags,
+    });
+  }
+
+  if (request.provider === 'mautic') {
+    return mauticService.bulkSyncContacts({
+      contactIds: request.contactIds,
+      listId: toMauticSegmentId(request.listId),
+      tags: request.tags,
+    });
+  }
+
+  throw new CommunicationsValidationError('Local Email does not require provider sync.');
+};
+
 export default {
   getStatus,
   listProviderAudiences,
@@ -305,4 +394,5 @@ export default {
   retryFailedCampaignRunRecipients,
   refreshCampaignRunStatus,
   sendCampaignTest,
+  bulkSyncContacts,
 };

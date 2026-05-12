@@ -1,0 +1,12 @@
+log-pipeline:
+  source:
+    http:
+      path: "/logs"
+      port: 8080
+  sink:
+    - opensearch:
+        hosts: ["https://opensearch:9200"]
+        username: "${OPENSEARCH_USERNAME}"
+        password: "${OPENSEARCH_PASSWORD}"
+        insecure: true
+        index: "logs-%{yyyy.MM.dd}"

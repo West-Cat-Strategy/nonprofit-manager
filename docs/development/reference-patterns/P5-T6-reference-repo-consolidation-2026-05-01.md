@@ -36,6 +36,38 @@ These items fit existing local seams and are the strongest candidates for the ne
 | 9 | Volunteer dispatch cockpit | Sahana and Avni task-assignment views | [AssignmentForm.tsx](../../../frontend/src/components/AssignmentForm.tsx), [VolunteerDetailPage.tsx](../../../frontend/src/features/volunteers/pages/VolunteerDetailPage.tsx) | Add a focused assignment list/cockpit using existing task, event, availability, and fit-cue contracts. |
 | 10 | Audit and scheduled-report health polish | paperless-ngx audit retention, Kimai export/run history cues | [AuditLogsSection.tsx](../../../frontend/src/features/adminOps/pages/adminSettings/sections/AuditLogsSection.tsx), [scheduledReportSchedulerService.ts](../../../backend/src/services/scheduledReportSchedulerService.ts) | Surface stale/failed operational health before adding new report domains. |
 
+## May 12 Reference-Repo Improvement Synthesis
+
+The May 12 follow-up used the central profiles, `reference-repos/manifest.lock.json`, and current repo state while leaving the rebuildable clone cache absent. It opened [P5-T111 through P5-T119](../../validation/P5-T111_T119_REFERENCE_REPO_IMPROVEMENT_SYNTHESIS_2026-05-12.md) as Ready rows in the live workboard.
+
+| Row | Opportunity | Routing note |
+|---|---|---|
+| `P5-T111` | Reference corpus clone-cache hygiene | Prove metadata validity and re-cloneability before source-level follow-up. |
+| `P5-T112` | Typed appeal and campaign spine | Keep provider IDs and free-text campaign fields as compatibility inputs until migration is scoped. |
+| `P5-T113` | Donation batch close and control totals | Sequence after typed fund designations and before broader finance-control parity. |
+| `P5-T114` | Field-ready case packet | Extend existing case handoff surfaces without offline sync or service-site routing. |
+| `P5-T115` | Service-site snapshot | Add optional typed site references while preserving free-text fallback. |
+| `P5-T116` | Board and governance packet | Build read-only packet views from existing report/dashboard/public-snapshot surfaces. |
+| `P5-T117` | Provider-fed campaign evidence ledger | Store provider summaries without tracking pixels or automation-canvas scope. |
+| `P5-T118` | Public-action review polish | Improve review history and artifact visibility on existing website-console contracts. |
+| `P5-T119` | Case-form condition authoring | Add local authoring controls over the current schema without adopting external runtimes. |
+
+## May 12 Metadata-First Corpus Expansion
+
+The accepted follow-up added seven metadata-only central profiles and nonprofit manifest entries. These fill comparison gaps without cloning source or authorizing runtime implementation.
+
+| Reference | Why it was added | First backlog pressure |
+|---|---|---|
+| Houdini | Nonprofit-native fundraising, donations, recurring giving, crowdfunding, and payment-flow posture beyond GiveWP/OpenPetra/Open Collective. | Sharpen `P5-T112` appeal/campaign spine and later fundraising depth. |
+| OpenBoxes | Inventory, stock movement, shipment, and healthcare/disaster-response logistics workflows. | Future program-operations and service-logistics rows behind `P5-T6`. |
+| KoboToolbox KPI | Humanitarian field forms, sharing, reporting, and export workflows. | Sharpen `P5-T114`, `P5-T119`, and future field-evidence rows. |
+| DHIS2 Core | Program indicators, organization units, analytics APIs, and monitoring/evaluation vocabulary. | Future program-analytics and governance reporting rows. |
+| OpenMRS Core | Encounter, concept dictionary, and structured service-evidence modeling without adopting EMR scope. | Future health/rehab-adjacent service-evidence rows behind `P5-T6`. |
+| openIMIS Backend | Eligibility, claims, contributions, payments, and social-protection workflow vocabulary. | Future case-finance and social-protection operations rows. |
+| openIMIS Docker Distribution | Companion runtime topology for openIMIS module assembly. | Runtime-lab comparison only after clone-cache hygiene. |
+
+`OpenVolunteerPlatform` remains deferred until volunteer dispatch becomes the active lane. Coalesce and Creme CRM remain skipped for now because they add less than Sahana/OpenVolunteer and CiviCRM/SuiteCRM/Twenty.
+
 ## Queue For P5-T6
 
 These are useful but require typed records, migrations, or cross-domain contracts. Keep them behind `P5-T6` until a separate row defines the interface and validation path.
@@ -47,6 +79,7 @@ These are useful but require typed records, migrations, or cross-domain contract
 | Service delivery | Referral/transfer status, service-site routing, closure-readiness evidence, field-ready handoff packets, case-form revision history | Existing case, reassessment, handoff, closure, and revision seams are good anchors, but each needs a scoped transition or evidence model. |
 | Events and documents | Event order/check-in/payment snapshots, document retention/archive metadata, governance signature evidence | These cross events, payments, documents, and compliance. Do not fold them into current check-in, document, or case-form work without a new row. |
 | Reporting and governance | Public/board finance snapshots and finance-event state vocabulary | Borrow vocabulary from Blnk, Fineract, Open Collective, and LedgerSMB, but build projections from local donation/reporting models only. |
+| Program operations | Inventory, field evidence, program analytics, health/service evidence, and social-protection payment or claims vocabulary | Use OpenBoxes, KoboToolbox, DHIS2, OpenMRS, and openIMIS only to sharpen future row definitions; do not adopt logistics, EMR, insurance, or benefits-platform scope implicitly. |
 
 ## Reject For This Wave
 

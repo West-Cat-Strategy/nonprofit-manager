@@ -601,7 +601,12 @@ export class PublicSiteRenderer {
                   limit: typeof component.maxItems === 'number' ? component.maxItems : 10,
                   offset: 0,
                   sourceFilter:
-                    (component.sourceFilter as 'native' | 'mailchimp' | 'all' | undefined) || 'all',
+                    (component.sourceFilter as
+                      | 'native'
+                      | 'mailchimp'
+                      | 'mautic'
+                      | 'all'
+                      | undefined) || 'all',
                 })
               ).items;
         const detailPathPattern =

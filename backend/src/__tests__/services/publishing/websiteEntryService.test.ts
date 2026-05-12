@@ -33,6 +33,30 @@ jest.mock('@services/mailchimpService', () => ({
   },
 }));
 
+jest.mock('@services/mauticService', () => ({
+  __esModule: true,
+  default: {
+    getEmails: jest.fn(),
+  },
+}));
+
+jest.mock('@services/publishing/siteSettingsService', () => ({
+  WebsiteSiteSettingsService: jest.fn().mockImplementation(function WebsiteSiteSettingsServiceMock() {
+    const module = jest.requireMock('@services/publishing/siteSettingsService') as {
+      __mocks: {
+        getSettingsForSite: jest.Mock;
+      };
+    };
+
+    return {
+      getSettingsForSite: module.__mocks.getSettingsForSite,
+    };
+  }),
+  __mocks: {
+    getSettingsForSite: jest.fn(),
+  },
+}));
+
 const siteManagementModule = jest.requireMock('@services/publishing/siteManagementService') as {
   __mocks: {
     getSite: jest.Mock;
@@ -42,6 +66,18 @@ const siteManagementModule = jest.requireMock('@services/publishing/siteManageme
 const mailchimpModule = jest.requireMock('@services/mailchimpService') as {
   __mocks: {
     getCampaigns: jest.Mock;
+  };
+};
+
+const mauticModule = jest.requireMock('@services/mauticService') as {
+  default: {
+    getEmails: jest.Mock;
+  };
+};
+
+const siteSettingsModule = jest.requireMock('@services/publishing/siteSettingsService') as {
+  __mocks: {
+    getSettingsForSite: jest.Mock;
   };
 };
 
@@ -67,6 +103,16 @@ describe('WebsiteEntryService', () => {
     siteManagementModule.__mocks.getSite.mockReset();
     siteManagementModule.__mocks.getSite.mockResolvedValue(baseSite);
     mailchimpModule.__mocks.getCampaigns.mockReset();
+    mauticModule.default.getEmails.mockReset();
+    siteSettingsModule.__mocks.getSettingsForSite.mockReset();
+    siteSettingsModule.__mocks.getSettingsForSite.mockResolvedValue({
+      mautic: {
+        baseUrl: 'https://mautic.example.org',
+        username: 'site-api',
+        password: 'site-secret',
+        segmentId: 'segment-1',
+      },
+    });
   });
 
   it('creates native entries with normalized slugs and actor attribution', async () => {
@@ -224,5 +270,132 @@ describe('WebsiteEntryService', () => {
     expect(result.items).toHaveLength(1);
     expect(result.items[0]?.source).toBe('mailchimp');
     expect(siteManagementModule.__mocks.getSite).toHaveBeenCalledTimes(2);
+  });
+
+  it('syncs published Mautic emails into read-only website entries', async () => {
+    mauticModule.default.getEmails.mockResolvedValue([
+      {
+        id: 'email-1',
+        name: 'April Newsletter',
+        subject: 'April 2026',
+        preheaderText: 'Program highlights',
+        customHtml: '<p>April body</p>',
+        plainText: 'April body',
+        isPublished: true,
+        emailType: 'list',
+        sentCount: 42,
+        readCount: 11,
+        lists: ['segment-1'],
+        dateAdded: '2026-04-01T00:00:00.000Z',
+        dateModified: '2026-04-02T00:00:00.000Z',
+      },
+    ]);
+    mockQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'entry-mautic-1',
+            organization_id: 'org-1',
+            site_id: 'site-1',
+            kind: 'newsletter',
+            source: 'mautic',
+            status: 'published',
+            slug: 'april-newsletter',
+            title: 'April Newsletter',
+            excerpt: 'Program highlights',
+            body: 'April body',
+            body_html: '<p>April body</p>',
+            seo: {},
+            metadata: {},
+            external_source_id: 'email-1',
+            published_at: '2026-04-02T00:00:00.000Z',
+            created_by: 'user-1',
+            updated_by: 'user-1',
+            created_at: '2026-04-02T00:00:00.000Z',
+            updated_at: '2026-04-02T00:00:00.000Z',
+          },
+        ],
+      });
+
+    const result = await service.syncMauticEmails('site-1', 'user-1', 'segment-1', 'org-1');
+
+    expect(siteSettingsModule.__mocks.getSettingsForSite).toHaveBeenCalledWith(baseSite);
+    expect(mauticModule.default.getEmails).toHaveBeenCalledWith(
+      {
+        baseUrl: 'https://mautic.example.org',
+        username: 'site-api',
+        password: 'site-secret',
+        segmentId: 'segment-1',
+      },
+      { segmentId: 'segment-1' }
+    );
+    expect(mockQuery).toHaveBeenCalledTimes(2);
+    expect(mockQuery.mock.calls[0][0]).toContain('ON CONFLICT (site_id, source, external_source_id)');
+    expect(mockQuery.mock.calls[0][1]).toEqual([
+      'org-1',
+      'site-1',
+      'april-newsletter',
+      'April Newsletter',
+      'Program highlights',
+      'April body',
+      '<p>April body</p>',
+      JSON.stringify({
+        title: 'April Newsletter',
+        description: 'Program highlights',
+      }),
+      JSON.stringify({
+        source: 'mautic',
+        segmentId: 'segment-1',
+        subject: 'April 2026',
+        emailType: 'list',
+        lists: ['segment-1'],
+        sentCount: 42,
+        readCount: 11,
+      }),
+      'email-1',
+      '2026-04-02T00:00:00.000Z',
+      'user-1',
+    ]);
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]?.source).toBe('mautic');
+  });
+
+  it('keeps Mautic-synced entries read-only', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 'entry-mautic-1',
+          organization_id: 'org-1',
+          site_id: 'site-1',
+          kind: 'newsletter',
+          source: 'mautic',
+          status: 'published',
+          slug: 'april-newsletter',
+          title: 'April Newsletter',
+          excerpt: null,
+          body: null,
+          body_html: null,
+          seo: {},
+          metadata: {},
+          external_source_id: 'email-1',
+          published_at: '2026-04-02T00:00:00.000Z',
+          created_by: 'user-1',
+          updated_by: 'user-1',
+          created_at: '2026-04-02T00:00:00.000Z',
+          updated_at: '2026-04-02T00:00:00.000Z',
+        },
+      ],
+    });
+
+    await expect(
+      service.updateEntry(
+        'site-1',
+        'entry-mautic-1',
+        'user-1',
+        { title: 'Edited title' },
+        'org-1'
+      )
+    ).rejects.toThrow('Provider-synced entries are read-only');
   });
 });

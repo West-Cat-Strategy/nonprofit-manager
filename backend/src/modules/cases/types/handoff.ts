@@ -8,6 +8,8 @@ export interface CaseHandoffPacket {
     priority: string;
     is_urgent: boolean;
     description: string | null;
+    closed_date: string | null;
+    closure_reason: string | null;
     assigned_staff: {
       first_name: string | null;
       last_name: string | null;
@@ -25,6 +27,26 @@ export interface CaseHandoffPacket {
     overdue_milestones_count: number;
     overdue_follow_ups_count: number;
     risk_summary: string[];
+  };
+  continuity: {
+    reassessment: {
+      status: 'missing' | 'current' | 'due_soon' | 'overdue' | 'lapsed' | 'completed' | 'cancelled';
+      headline: string;
+      detail: string;
+      overdue_count: number;
+      lapsed_count: number;
+      current: CaseHandoffReassessmentSummary | null;
+      next: CaseHandoffReassessmentSummary | null;
+      recent: CaseHandoffReassessmentSummary[];
+    };
+    handoff_readiness: {
+      status: 'ready' | 'needs_attention';
+      cues: string[];
+    };
+    closure: {
+      status: 'ready' | 'open_actions' | 'closed_with_evidence' | 'closed_needs_review';
+      cues: string[];
+    };
   };
   next_actions: {
     pending_milestones: Array<{
@@ -50,4 +72,16 @@ export interface CaseHandoffPacket {
     documents_count: number;
   };
   generated_at: string;
+}
+
+export interface CaseHandoffReassessmentSummary {
+  id: string;
+  title: string;
+  status: string;
+  due_date: string | null;
+  earliest_review_date: string | null;
+  latest_review_date: string | null;
+  completion_summary: string | null;
+  cancellation_reason: string | null;
+  completed_at: string | null;
 }

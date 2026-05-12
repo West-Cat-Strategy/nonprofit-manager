@@ -123,3 +123,5 @@
 123	123_volunteer_background_check_approval.sql
 124	124_tenant_session_boundary_remediation.sql
 125	125_report_export_worker_queue_indexes.sql
+127	127_website_entries_mautic_source.sql
+128	128_mautic_site_credentials_encrypted.sql

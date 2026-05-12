@@ -36,11 +36,12 @@ When a roadmap note depends on local source review, use `$use-reference-repos` a
 | `P5-T6D` Volunteer assignment dispatch radar | Assignment dispatch needed less raw-ID friction | Active event/task pickers that preserve existing assignment payloads | CiviCRM, SuiteCRM |
 | `P5-T6` Broader workflow/customization backlog | Metadata-driven workflow and forms are still strategically light | Domain-scoped transition registries, revision-capable case-form review, due followups, auditable actions | OpenSPP, SuiteCRM, Sahana Eden |
 | `P5-T35` Finance/governance/evidence reference refresh | Later finance and governance rows need sharper control and evidence vocabulary before runtime signout | Maker-checker checkpoints, idempotent finance events, reconciliation/export vocabulary, signature/submission evidence | Fineract, Blnk, LedgerSMB, DocuSeal |
+| Future program operations row | Service programs may eventually need logistics, field evidence, monitoring/evaluation, or social-protection vocabulary beyond current case and portal depth | Inventory movements, shipment state, field-evidence exports, indicators/org units, encounter concepts, eligibility/claims/payment cycles | OpenBoxes, KoboToolbox KPI, DHIS2 Core, OpenMRS Core, openIMIS |
 
 ## Strategic Positioning
 
 - Lead with the unusual combination nonprofit-manager already has in one repo: staff workflows, reporting, portal collaboration, website publishing, public runtime, grants, and self-hosted operations.
 - Avoid parity claims in memberships, appeals, richer finance operations, and campaign depth until routed and validated here.
 - Reject generic workflow studios, runtime metadata builders, direct ERPNext nonprofit-module parity claims, and direct GPL/AGPL/LGPL source copying in this benchmark wave.
-- Keep Twenty, DHIS2, OpenSRP, KoBoToolbox, and OpenMRS as proposed or deferred candidates until a future scoped reference refresh verifies exact repos, licenses, and local landing zones.
+- Twenty, DHIS2 Core, KoboToolbox KPI, OpenMRS Core, OpenBoxes, Houdini, and the curated openIMIS backend/Docker pair are now central metadata profiles for nonprofit-manager. OpenSRP remains deferred until a future scoped refresh verifies the exact repo, license, and landing zone.
 - Use the benchmark to sharpen sequence and persona fit, not to inflate current-state claims.

@@ -14,9 +14,59 @@ This guide explains how to set up centralized log aggregation for the Nonprofit 
 
 ## Supported Solutions
 
-### Option 1: ELK Stack (Elasticsearch, Logstash, Kibana) - Self-Hosted
+### Option 1: OpenSearch, Data Prepper, And OpenSearch Dashboards - Preferred Self-Hosted
 
-**Best for:** Organizations wanting full control, running on-premises.
+**Best for:** Organizations wanting an open-source Elastic-compatible path with a repo-owned Compose overlay.
+
+The preferred self-hosted overlay is `docker-compose.opensearch.yml`. It runs:
+
+- `opensearch` for indexed log storage
+- `data-prepper` as the HTTP ingestion endpoint at `/logs`
+- `opensearch-dashboards` for query and dashboard workflows
+
+#### Setup
+
+1. **Prepare the overlay env file**:
+
+```bash
+cp .env.opensearch.example .env.opensearch
+```
+
+Set `OPENSEARCH_INITIAL_ADMIN_PASSWORD` and `OPENSEARCH_PASSWORD` to the same strong admin password unless you have created a separate OpenSearch user for Data Prepper and Dashboards.
+
+For config-only validation without a copied local file, use `make docker-validate-overlays`; the helper points the OpenSearch overlay at `.env.opensearch.example` through `OPENSEARCH_ENV_FILE`.
+
+2. **Start the overlay**:
+
+```bash
+docker compose --env-file .env.opensearch -f docker-compose.opensearch.yml up -d
+```
+
+3. **Configure application log forwarding**:
+
+```bash
+LOG_AGGREGATION_ENABLED=true
+LOG_AGGREGATION_HOST=data-prepper
+LOG_AGGREGATION_PORT=8080
+LOG_AGGREGATION_PATH=/logs
+LOG_AGGREGATION_PROTOCOL=http
+```
+
+4. **Open dashboards**:
+
+- OpenSearch API: `https://127.0.0.1:9201`
+- OpenSearch Dashboards: `http://127.0.0.1:5602`
+- Log index pattern: `logs-*`
+
+The overlay is optional and should not run on 1-2 GB VPS hosts unless it runs on separate infrastructure or the host has been resized and revalidated.
+
+---
+
+### Option 2: ELK Stack (Elasticsearch, Logstash, Kibana) - Legacy Transition Overlay
+
+**Best for:** Existing deployments already using the older ELK overlay.
+
+This overlay remains supported for one transition pass. New self-hosted deployments should prefer OpenSearch unless there is a deployment-specific reason to stay on Elastic images.
 
 #### Setup
 
@@ -128,9 +178,11 @@ LOG_AGGREGATION_PROTOCOL=http
 
 ---
 
-### Option 2: Loki (Grafana) - Lightweight
+### Option 3: Loki (Grafana) - Lightweight Documented Option
 
-**Best for:** Kubernetes deployments, lower resource footprint.
+**Best for:** Kubernetes deployments or teams that already operate a Loki collector pipeline.
+
+The current application log transport emits simple HTTP JSON. Loki's native push API expects stream-shaped payloads, so use a collector/adapter such as Promtail, Grafana Alloy, Vector, or OpenTelemetry Collector to transform stdout or HTTP logs before sending them to Loki. Do not point the current app HTTP transport directly at Loki until a Loki-specific transport or collector path has been implemented and validated.
 
 #### Setup
 
@@ -187,9 +239,9 @@ server:
   http_listen_port: 3100
 ```
 
-3. **Configure Application**:
+3. **Configure Application Through A Collector**:
 
-We use a custom HTTP transport that logs to Loki via HTTP endpoint, not syslog directly.
+Example collector-facing values:
 
 ```bash
 LOG_AGGREGATION_ENABLED=true
@@ -201,7 +253,7 @@ LOG_AGGREGATION_PROTOCOL=http
 
 ---
 
-### Option 3: Datadog - Managed Service
+### Option 4: Datadog - Managed Service
 
 **Best for:** Organizations wanting managed, SaaS solution with advanced features.
 
@@ -242,7 +294,7 @@ LOG_AGGREGATION_API_KEY=${DATADOG_API_KEY}
 
 ---
 
-### Option 4: CloudWatch - AWS
+### Option 5: CloudWatch - AWS
 
 **Best for:** AWS-native deployments.
 
@@ -295,6 +347,9 @@ LOG_AGGREGATION_ENABLED=false
 | `LOG_AGGREGATION_PROTOCOL` | No | `http` | `http` or `https` |
 | `LOG_AGGREGATION_API_KEY` | No | - | API key if required by service |
 | `LOG_LEVEL` | No | `info` | Log level: `error`, `warn`, `info`, `debug` |
+| `OPENSEARCH_INITIAL_ADMIN_PASSWORD` | Yes for OpenSearch overlay | - | Initial admin password for the local OpenSearch node |
+| `OPENSEARCH_USERNAME` | No | `admin` | OpenSearch user for Data Prepper and Dashboards |
+| `OPENSEARCH_PASSWORD` | Yes for OpenSearch overlay | - | Password for the OpenSearch user used by Data Prepper and Dashboards |
 | `ELASTIC_PASSWORD` | Yes for ELK | - | Password for the local ELK overlay's authenticated Elasticsearch/Kibana access |
 | `ELK_ELASTICSEARCH_USERNAME` | No | `elastic` | Elasticsearch user that Kibana and Logstash use in the local ELK overlay |
 
@@ -423,7 +478,7 @@ Access to sensitive data:
 
 ## Querying Logs
 
-### ELK/Kibana
+### OpenSearch Dashboards Or Legacy Kibana
 
 Find all failed logins:
 ```json
@@ -502,8 +557,9 @@ Time Window: 10 minutes
 
 | Solution | Daily Volume | Monthly Cost | Retention | Notes |
 |----------|--------------|--------------|-----------|-------|
-| ELK Stack | Up to 10GB | $0 (self-hosted) | Unlimited | Requires infrastructure |
-| Loki | Up to 50GB | $0 (self-hosted) | Unlimited | Lower resource footprint |
+| OpenSearch | Up to 10GB | $0 (self-hosted) | Unlimited | Preferred self-hosted Elastic-compatible path |
+| Loki | Up to 50GB | $0 (self-hosted) | Unlimited | Lower resource footprint with a collector/adapter |
+| Legacy ELK Stack | Up to 10GB | $0 (self-hosted) | Unlimited | Deprecated transition overlay |
 | Datadog | 1GB/day | ~$15-100/month | 15 days | Managed, advanced features |
 | CloudWatch | 1GB/day | ~$5-50/month | Configurable | AWS-native |
 
@@ -515,7 +571,7 @@ Time Window: 10 minutes
 
 1. Check network connectivity:
 ```bash
-docker exec backend curl -v logstash:8080/logs
+docker exec backend curl -v data-prepper:8080/logs
 ```
 
 2. Check environment variables:
@@ -533,7 +589,12 @@ docker logs backend | grep -i "log aggregation"
 ## Check logger.ts for HttpLogTransport registration
 ```
 
-5. Confirm the ELK overlay has credentials loaded:
+5. Confirm the OpenSearch overlay has credentials loaded:
+```bash
+docker compose -f docker-compose.opensearch.yml --env-file .env.opensearch config > /dev/null
+```
+
+6. For existing legacy ELK deployments, confirm the ELK overlay has credentials loaded:
 ```bash
 docker compose -f docker-compose.elk.yml --env-file .env.elk config > /dev/null
 ```
@@ -559,7 +620,7 @@ LOG_SAMPLE_RATE=0.1  # Log 10% of requests
 
 ## Next Steps
 
-1. Choose log aggregation solution based on infrastructure
+1. Choose log aggregation solution based on infrastructure; prefer OpenSearch for self-hosted Elastic-compatible deployments
 2. Deploy service (Docker) or create managed account
 3. Configure environment variables
 4. Run `make deploy-local` to test
