@@ -45,6 +45,7 @@ export const createDonationSchema = z
     stripe_invoice_id: z.string().max(255).optional(),
     is_recurring: z.boolean().optional(),
     recurring_frequency: recurringFrequencySchema.optional(),
+    appeal_campaign_id: uuidSchema.nullable().optional(),
     campaign_name: z.string().max(100).optional(),
     designation_id: uuidSchema.nullable().optional(),
     designation: z.string().max(100).nullable().optional(),
@@ -82,6 +83,7 @@ export const updateDonationSchema = z.object({
   stripe_invoice_id: z.string().max(255).nullable().optional(),
   is_recurring: z.boolean().optional(),
   recurring_frequency: recurringFrequencySchema.optional(),
+  appeal_campaign_id: uuidSchema.nullable().optional(),
   campaign_name: z.string().max(100).optional(),
   designation_id: uuidSchema.nullable().optional(),
   designation: z.string().max(100).nullable().optional(),
@@ -97,12 +99,35 @@ export const donationFilterSchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional(),
   payment_method: paymentMethodSchema.optional(),
   payment_status: paymentStatusSchema.optional(),
+  appeal_campaign_id: uuidSchema.optional(),
   is_recurring: z.boolean().optional(),
   min_amount: z.coerce.number().nonnegative().optional(),
   max_amount: z.coerce.number().nonnegative().optional(),
 });
 
 export type DonationFilterInput = z.infer<typeof donationFilterSchema>;
+
+export const createDonationBatchSchema = z
+  .object({
+    name: z.string().trim().min(1).max(160),
+    date_from: isoDateSchema,
+    date_to: isoDateSchema,
+    expected_count: z.number().int().min(0),
+    expected_amount: z.number().nonnegative(),
+    currency: z.string().trim().length(3).default('CAD'),
+    notes: z.string().trim().max(500).nullable().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.date_from > value.date_to) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'date_from must be on or before date_to',
+        path: ['date_to'],
+      });
+    }
+  });
+
+export type CreateDonationBatchInput = z.infer<typeof createDonationBatchSchema>;
 
 export const taxReceiptDeliveryModeSchema = z.enum(['download', 'email', 'both']);
 

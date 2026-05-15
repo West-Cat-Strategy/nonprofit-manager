@@ -3,6 +3,8 @@ import type {
   CaseFormDeliveryChannel,
   CaseFormDeliveryTarget,
   CaseFormAssignmentDetail,
+  CaseFormLogicOperator,
+  CaseFormLogicRule,
   CaseFormMappingTarget,
   CaseFormQuestion,
   CaseFormQuestionType,
@@ -43,6 +45,34 @@ export const CONTACT_MAPPING_FIELDS = [
 const OPTION_BACKED_QUESTION_TYPES: CaseFormQuestionType[] = ['select', 'radio'];
 const UPLOAD_QUESTION_TYPES: CaseFormQuestionType[] = ['file', 'signature'];
 const MIME_TYPE_PATTERN = /^[a-z0-9!#$&^_.+-]+\/(?:[a-z0-9!#$&^_.+-]+|\*)$/i;
+
+export const CASE_FORM_LOGIC_OPERATORS: Array<{
+  value: CaseFormLogicOperator;
+  label: string;
+  needsValue: boolean;
+}> = [
+  { value: 'equals', label: 'Equals', needsValue: true },
+  { value: 'not_equals', label: 'Does not equal', needsValue: true },
+  { value: 'contains', label: 'Contains', needsValue: true },
+  { value: 'not_contains', label: 'Does not contain', needsValue: true },
+  { value: 'answered', label: 'Is answered', needsValue: false },
+  { value: 'not_answered', label: 'Is not answered', needsValue: false },
+  { value: 'truthy', label: 'Is truthy', needsValue: false },
+  { value: 'falsy', label: 'Is falsy', needsValue: false },
+];
+
+export const CASE_MAPPING_TARGET_PRESETS: Array<{
+  label: string;
+  container: 'intake_data' | 'custom_data';
+  key: string;
+}> = [
+  { label: 'Intake summary', container: 'intake_data', key: 'summary' },
+  { label: 'Primary need', container: 'intake_data', key: 'primary_need' },
+  { label: 'Referral source', container: 'intake_data', key: 'referral_source' },
+  { label: 'Household size', container: 'intake_data', key: 'household_size' },
+  { label: 'Preferred language', container: 'custom_data', key: 'preferred_language' },
+  { label: 'Accessibility notes', container: 'custom_data', key: 'accessibility_notes' },
+];
 
 export interface CaseFormAuthoringDiagnostic {
   id: string;
@@ -113,6 +143,9 @@ export const formatOptionsText = (options?: Array<{ label: string; value: string
 export const formatLogicRulesText = (question: CaseFormQuestion): string =>
   question.visible_when?.length ? JSON.stringify(question.visible_when, null, 2) : '';
 
+export const formatLogicRules = (rules?: CaseFormLogicRule[]): string =>
+  rules?.length ? JSON.stringify(rules, null, 2) : '';
+
 export const parseLogicRulesText = (value: string): CaseFormQuestion['visible_when'] => {
   const trimmed = value.trim();
   if (!trimmed) {
@@ -126,6 +159,15 @@ export const parseLogicRulesText = (value: string): CaseFormQuestion['visible_wh
     return undefined;
   }
 };
+
+export const createLogicRule = (questionKey = ''): CaseFormLogicRule => ({
+  question_key: questionKey,
+  operator: 'equals',
+  value: '',
+});
+
+export const operatorNeedsValue = (operator: CaseFormLogicOperator): boolean =>
+  CASE_FORM_LOGIC_OPERATORS.find((item) => item.value === operator)?.needsValue ?? true;
 
 const parseLogicDraftForDiagnostics = (
   value: string
@@ -231,10 +273,28 @@ export const collectCaseFormAuthoringDiagnostics = (
           : '';
       if (!referencedKey) {
         pushDiagnostic(`missing-reference-${index}`, 'conditional rule needs a question_key.');
+      } else if (referencedKey === key) {
+        pushDiagnostic(
+          `self-reference-${index}`,
+          'conditional rule cannot reference this same question.'
+        );
       } else if (!knownKeys.has(referencedKey)) {
         pushDiagnostic(
           `unknown-reference-${index}`,
           `conditional rule references missing question key "${referencedKey}".`
+        );
+      }
+
+      const operator =
+        rule && typeof rule === 'object' && typeof rule.operator === 'string' ? rule.operator : '';
+      if (
+        !CASE_FORM_LOGIC_OPERATORS.some((item) => item.value === operator) ||
+        (operatorNeedsValue(operator as CaseFormLogicOperator) &&
+          (rule as CaseFormLogicRule).value === undefined)
+      ) {
+        pushDiagnostic(
+          `invalid-operator-${index}`,
+          'conditional rule needs a valid operator and value.'
         );
       }
     });

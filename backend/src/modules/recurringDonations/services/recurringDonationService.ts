@@ -5,6 +5,7 @@ import { DonationService } from '@services/donationService';
 import { SiteManagementService } from '@services/publishing/siteManagementService';
 import stripeService from '@services/stripeService';
 import paymentProviderService from '@services/paymentProviderService';
+import appealCampaignService from '@modules/appealCampaigns/services/appealCampaignService';
 import { DonationDesignationService } from '@modules/donations/services/donationDesignationService';
 import type {
   RecurringDonationPlan,
@@ -43,6 +44,7 @@ interface CreatePublicRecurringDonationPlanInput {
   amount: number;
   currency: string;
   provider?: PaymentProvider;
+  appealCampaignId?: string | null;
   campaignName?: string | null;
   designation?: string | null;
   notes?: string | null;
@@ -120,6 +122,8 @@ export class RecurringDonationService {
         rdp.donor_email ILIKE $${paramIndex}
         OR rdp.donor_name ILIKE $${paramIndex}
         OR COALESCE(rdp.campaign_name, '') ILIKE $${paramIndex}
+        OR COALESCE(ac.name, '') ILIKE $${paramIndex}
+        OR COALESCE(ac.code, '') ILIKE $${paramIndex}
       )`);
       params.push(`%${filters.search}%`);
       paramIndex += 1;
@@ -137,6 +141,7 @@ export class RecurringDonationService {
     const countResult = await this.pool.query<{ count: string }>(
       `SELECT COUNT(*)::text AS count
        FROM recurring_donation_plans rdp
+       LEFT JOIN appeal_campaigns ac ON rdp.appeal_campaign_id = ac.id
        WHERE ${whereClause}`,
       params
     );
@@ -147,6 +152,7 @@ export class RecurringDonationService {
         FROM recurring_donation_plans rdp
         LEFT JOIN accounts a ON COALESCE(rdp.account_id, rdp.organization_id) = a.id
         LEFT JOIN contacts c ON rdp.contact_id = c.id
+        LEFT JOIN appeal_campaigns ac ON rdp.appeal_campaign_id = ac.id
         WHERE ${whereClause}
         ORDER BY rdp.created_at DESC
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -209,6 +215,10 @@ export class RecurringDonationService {
       userId: input.userId,
       designationName: input.designation,
     });
+    const appealCampaign = await appealCampaignService.requireCampaignForScope(
+      input.appealCampaignId,
+      { organizationId: input.organizationId || input.accountId || null }
+    );
 
     const insertResult = await this.pool.query<{ id: string }>(
       `
@@ -224,6 +234,7 @@ export class RecurringDonationService {
           currency,
           interval,
           campaign_name,
+          appeal_campaign_id,
           designation_id,
           designation,
           notes,
@@ -238,8 +249,8 @@ export class RecurringDonationService {
           created_by,
           modified_by
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, 'monthly', $10, $11, $12, $13, 'checkout_pending',
-          $14, $15, $16, $17, $18, $19, $20, $21, $22
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, 'monthly', $10, $11, $12, $13, $14, 'checkout_pending',
+          $15, $16, $17, $18, $19, $20, $21, $22, $23
         )
         RETURNING id
       `,
@@ -254,6 +265,7 @@ export class RecurringDonationService {
         input.amount,
         input.currency.toUpperCase(),
         input.campaignName || null,
+        appealCampaign?.id ?? null,
         resolvedDesignation.designation_id,
         resolvedDesignation.designation,
         input.notes || null,
@@ -280,6 +292,7 @@ export class RecurringDonationService {
           productName: `Monthly Donation${input.donorName ? ` - ${input.donorName}` : ''}`,
           metadata: {
             recurringPlanId: plan.recurring_plan_id,
+            appealCampaignId: appealCampaign?.id ?? '',
             contactId: input.contactId || '',
             siteId: input.siteId || '',
           },
@@ -293,6 +306,7 @@ export class RecurringDonationService {
           cancelUrl: urls.cancelUrl,
           metadata: {
             recurringPlanId: plan.recurring_plan_id,
+            appealCampaignId: appealCampaign?.id ?? '',
             siteId: input.siteId || '',
             formKey: input.formKey || '',
             pagePath: input.pagePath || '',
@@ -342,6 +356,7 @@ export class RecurringDonationService {
         cancelUrl: `${FRONTEND_URL}/recurring-donations/checkout-result?provider=${provider}&status=cancelled&plan_id=${encodeURIComponent(plan.recurring_plan_id)}&return_to=${encodeURIComponent(returnUrl)}`,
         metadata: {
           recurringPlanId: plan.recurring_plan_id,
+          appealCampaignId: appealCampaign?.id ?? '',
           siteId: input.siteId || '',
           formKey: input.formKey || '',
           pagePath: input.pagePath || '',
@@ -489,6 +504,8 @@ export class RecurringDonationService {
     let nextBillingAt = current.next_billing_at;
     const nextCampaignName =
       data.campaign_name === undefined ? current.campaign_name : data.campaign_name;
+    const nextAppealCampaignId =
+      data.appeal_campaign_id === undefined ? current.appeal_campaign_id : data.appeal_campaign_id;
     let nextDesignationId =
       data.designation_id === undefined ? current.designation_id : data.designation_id;
     let nextDesignation =
@@ -508,6 +525,11 @@ export class RecurringDonationService {
       });
       nextDesignationId = resolvedDesignation.designation_id;
       nextDesignation = resolvedDesignation.designation;
+    }
+    if (Object.prototype.hasOwnProperty.call(data, 'appeal_campaign_id') && nextAppealCampaignId) {
+      await appealCampaignService.requireCampaignForScope(nextAppealCampaignId, {
+        organizationId,
+      });
     }
 
     if (typeof data.amount === 'number' && data.amount > 0 && data.amount !== current.amount) {
@@ -539,13 +561,14 @@ export class RecurringDonationService {
         UPDATE recurring_donation_plans
         SET amount = $3,
             campaign_name = $4,
-            designation_id = $5,
-            designation = $6,
-            notes = $7,
-            stripe_price_id = COALESCE($8, stripe_price_id),
-            stripe_product_id = COALESCE($9, stripe_product_id),
-            next_billing_at = COALESCE($10, next_billing_at),
-            modified_by = $11,
+            appeal_campaign_id = $5,
+            designation_id = $6,
+            designation = $7,
+            notes = $8,
+            stripe_price_id = COALESCE($9, stripe_price_id),
+            stripe_product_id = COALESCE($10, stripe_product_id),
+            next_billing_at = COALESCE($11, next_billing_at),
+            modified_by = $12,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
           AND organization_id = $2
@@ -556,6 +579,7 @@ export class RecurringDonationService {
         organizationId,
         nextAmount,
         nextCampaignName,
+        nextAppealCampaignId,
         nextDesignationId,
         nextDesignation,
         nextNotes,

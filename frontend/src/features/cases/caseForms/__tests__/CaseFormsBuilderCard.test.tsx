@@ -134,9 +134,108 @@ describe('CaseFormsBuilderCard', () => {
     );
 
     expect(screen.getByText('5 warnings found before save.')).toBeInTheDocument();
-    expect(screen.getByText(/First duplicate: question key "duplicate_key" is used more than once/)).toBeInTheDocument();
-    expect(screen.getByText(/Second duplicate: add at least one option with a label and value/)).toBeInTheDocument();
-    expect(screen.getByText(/Upload file: "not-a-mime-type" is not a valid MIME type/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/First duplicate: question key "duplicate_key" is used more than once/)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Second duplicate: add at least one option with a label and value/)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Upload file: "not-a-mime-type" is not a valid MIME type/)
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /save structure/i })).toBeEnabled();
+  });
+
+  it('builds conditional visibility rules with question and operator pickers', () => {
+    const schemaWithTwoQuestions: CaseFormSchema = {
+      version: 1,
+      title: 'Intake form',
+      sections: [
+        {
+          id: 'section-1',
+          title: 'Section 1',
+          questions: [
+            {
+              id: 'question-1',
+              key: 'question_1',
+              type: 'text',
+              label: 'Question 1',
+              placeholder: '',
+            },
+            {
+              id: 'question-2',
+              key: 'question_2',
+              type: 'text',
+              label: 'Question 2',
+              placeholder: '',
+            },
+          ],
+        },
+      ],
+    };
+
+    render(<BuilderHarness initialSchema={schemaWithTwoQuestions} />);
+
+    fireEvent.click(screen.getAllByRole('button', { name: '+ Rule' })[0]);
+
+    expect(screen.getByLabelText('Condition question for Question 1')).toHaveValue('question_2');
+
+    fireEvent.change(screen.getByLabelText('Condition operator for Question 1'), {
+      target: { value: 'answered' },
+    });
+
+    expect(screen.getByLabelText('Condition value for Question 1')).toBeDisabled();
+    expect(screen.getByText('No authoring warnings found.')).toBeInTheDocument();
+  });
+
+  it('clears mapping diagnostics through target pickers', () => {
+    const schemaWithMappingWarnings: CaseFormSchema = {
+      version: 1,
+      title: 'Intake form',
+      sections: [
+        {
+          id: 'section-1',
+          title: 'Section 1',
+          questions: [
+            {
+              id: 'question-1',
+              key: 'applicant_email',
+              type: 'email',
+              label: 'Applicant email',
+              placeholder: '',
+              mapping_target: {
+                entity: 'contact',
+                field: '',
+              },
+            },
+            {
+              id: 'question-2',
+              key: 'case_need',
+              type: 'text',
+              label: 'Case need',
+              placeholder: '',
+              mapping_target: {
+                entity: 'case',
+                container: 'intake_data',
+                key: '',
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    render(<BuilderHarness initialSchema={schemaWithMappingWarnings} />);
+
+    expect(screen.getByText('2 warnings found before save.')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Contact field for Applicant email'), {
+      target: { value: 'email' },
+    });
+    fireEvent.change(screen.getByLabelText('Case field for Case need'), {
+      target: { value: 'intake_data:primary_need' },
+    });
+
+    expect(screen.getByText('No authoring warnings found.')).toBeInTheDocument();
   });
 });

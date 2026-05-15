@@ -17,6 +17,7 @@ export const APPOINTMENT_SELECT = `
     a.checked_in_at,
     a.checked_in_by,
     a.location,
+    COALESCE(a.service_site_snapshot, s.service_site_snapshot) AS service_site_snapshot,
     a.created_at,
     a.updated_at,
     c.case_number,
@@ -64,6 +65,7 @@ export const APPOINTMENT_SELECT = `
   LEFT JOIN contacts contact ON contact.id = a.contact_id
   LEFT JOIN users u ON u.id = a.pointperson_user_id
   LEFT JOIN portal_users pu ON pu.id = a.requested_by_portal
+  LEFT JOIN appointment_availability_slots s ON s.id = a.slot_id
   LEFT JOIN LATERAL (
     SELECT
       MIN(j.scheduled_for) FILTER (WHERE j.status IN ('pending', 'processing')) AS next_reminder_at,

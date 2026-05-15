@@ -57,6 +57,14 @@ jest.mock('@services/publishing/siteSettingsService', () => ({
   },
 }));
 
+jest.mock('@modules/appealCampaigns/services/appealCampaignService', () => ({
+  __esModule: true,
+  default: {
+    requireCampaignForScope: jest.fn(),
+    resolveProviderCampaign: jest.fn(),
+  },
+}));
+
 const siteManagementModule = jest.requireMock('@services/publishing/siteManagementService') as {
   __mocks: {
     getSite: jest.Mock;
@@ -78,6 +86,15 @@ const mauticModule = jest.requireMock('@services/mauticService') as {
 const siteSettingsModule = jest.requireMock('@services/publishing/siteSettingsService') as {
   __mocks: {
     getSettingsForSite: jest.Mock;
+  };
+};
+
+const appealCampaignModule = jest.requireMock(
+  '@modules/appealCampaigns/services/appealCampaignService'
+) as {
+  default: {
+    requireCampaignForScope: jest.Mock;
+    resolveProviderCampaign: jest.Mock;
   };
 };
 
@@ -104,6 +121,10 @@ describe('WebsiteEntryService', () => {
     siteManagementModule.__mocks.getSite.mockResolvedValue(baseSite);
     mailchimpModule.__mocks.getCampaigns.mockReset();
     mauticModule.default.getEmails.mockReset();
+    appealCampaignModule.default.requireCampaignForScope.mockReset();
+    appealCampaignModule.default.requireCampaignForScope.mockResolvedValue(null);
+    appealCampaignModule.default.resolveProviderCampaign.mockReset();
+    appealCampaignModule.default.resolveProviderCampaign.mockResolvedValue(null);
     siteSettingsModule.__mocks.getSettingsForSite.mockReset();
     siteSettingsModule.__mocks.getSettingsForSite.mockResolvedValue({
       mautic: {
@@ -160,6 +181,7 @@ describe('WebsiteEntryService', () => {
     expect(mockQuery.mock.calls[0][1]).toEqual([
       'org-1',
       'site-1',
+      null,
       'newsletter',
       'published',
       'spring-update',
@@ -192,6 +214,11 @@ describe('WebsiteEntryService', () => {
   });
 
   it('syncs only sent Mailchimp campaigns and returns refreshed entries', async () => {
+    appealCampaignModule.default.resolveProviderCampaign.mockResolvedValueOnce({
+      id: 'appeal-1',
+      code: 'spring-appeal',
+      name: 'Spring Appeal',
+    });
     mailchimpModule.__mocks.getCampaigns.mockResolvedValue([
       {
         id: 'cmp-sent',
@@ -259,6 +286,7 @@ describe('WebsiteEntryService', () => {
     expect(mockQuery.mock.calls[0][1]).toEqual([
       'org-1',
       'site-1',
+      'appeal-1',
       'march-update',
       'March Update',
       'March 2026',
@@ -294,6 +322,9 @@ describe('WebsiteEntryService', () => {
           clickRate: 0.125,
           unsubscribeCount: 2,
           bounceCount: 1,
+          appealCampaignId: 'appeal-1',
+          appealCampaignCode: 'spring-appeal',
+          appealCampaignName: 'Spring Appeal',
         },
       }),
       'cmp-sent',
@@ -303,6 +334,11 @@ describe('WebsiteEntryService', () => {
     expect(result.items).toHaveLength(1);
     expect(result.items[0]?.source).toBe('mailchimp');
     expect(siteManagementModule.__mocks.getSite).toHaveBeenCalledTimes(2);
+    expect(appealCampaignModule.default.resolveProviderCampaign).toHaveBeenCalledWith(
+      'org-1',
+      'mailchimp',
+      'cmp-sent'
+    );
   });
 
   it('syncs published Mautic emails into read-only website entries', async () => {
@@ -368,6 +404,7 @@ describe('WebsiteEntryService', () => {
     expect(mockQuery.mock.calls[0][1]).toEqual([
       'org-1',
       'site-1',
+      null,
       'april-newsletter',
       'April Newsletter',
       'Program highlights',
@@ -396,6 +433,9 @@ describe('WebsiteEntryService', () => {
           openCount: 11,
           openRate: 11 / 42,
           emailType: 'list',
+          appealCampaignId: null,
+          appealCampaignCode: null,
+          appealCampaignName: null,
         },
       }),
       'email-1',

@@ -116,6 +116,7 @@ export interface CommunicationCampaignRun {
   id: string;
   provider: CommunicationProvider;
   providerCampaignId?: string | null;
+  appealCampaignId?: string | null;
   title: string;
   listId?: string | null;
   includeAudienceId?: string | null;
@@ -141,6 +142,7 @@ export interface CommunicationCampaign {
   provider: CommunicationProvider;
   campaignRunId?: string;
   providerCampaignId?: string | null;
+  appealCampaignId?: string | null;
   type: MailchimpCampaign['type'];
   status: CommunicationCampaignStatus;
   title: string;
@@ -192,6 +194,7 @@ export interface CreateCommunicationCampaignRequest {
   testRecipients?: string[];
   audienceSnapshot?: Record<string, unknown>;
   contactIds?: string[];
+  appealCampaignId?: string;
   requestedBy?: string;
   scopeAccountIds?: string[];
 }

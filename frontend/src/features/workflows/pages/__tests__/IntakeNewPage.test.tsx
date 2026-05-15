@@ -32,8 +32,32 @@ vi.mock('../../../../features/contacts/components/contactForm', () => ({
 }));
 
 vi.mock('../../../../components/CaseForm', () => ({
-  default: ({ initialData }: { initialData?: { contact_id?: string } }) => (
-    <div data-testid="case-form">{initialData?.contact_id || 'no-contact'}</div>
+  default: ({
+    disableContactSelection,
+    initialData,
+    onCreated,
+  }: {
+    disableContactSelection?: boolean;
+    initialData?: { contact_id?: string };
+    onCreated?: (createdCase: { id: string; contact_id?: string }) => void;
+  }) => (
+    <div data-testid="case-form">
+      <div>{initialData?.contact_id || 'no-contact'}</div>
+      <div>
+        {disableContactSelection ? 'contact-selection-disabled' : 'contact-selection-enabled'}
+      </div>
+      <button
+        type="button"
+        onClick={() =>
+          onCreated?.({
+            id: 'case-123',
+            contact_id: initialData?.contact_id,
+          })
+        }
+      >
+        Mock Save Case
+      </button>
+    </div>
   ),
 }));
 
@@ -50,6 +74,7 @@ describe('IntakeNew workflow', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /mock create contact/i }));
     expect(screen.getByTestId('case-form')).toHaveTextContent('contact-123');
+    expect(screen.getByTestId('case-form')).toHaveTextContent('contact-selection-disabled');
 
     fireEvent.click(screen.getByRole('button', { name: /^back$/i }));
     expect(screen.getByRole('button', { name: /mock create contact/i })).toBeInTheDocument();
@@ -71,5 +96,15 @@ describe('IntakeNew workflow', () => {
     expect(screen.getByTestId('case-form')).toHaveTextContent('contact-123');
     expect(screen.getByText(/casey client/i)).toBeInTheDocument();
     expect(screen.getByText(/casey@example.com/i)).toBeInTheDocument();
+  });
+
+  it('navigates to the saved case after the intake case save completes', () => {
+    renderWithProviders(<IntakeNew />, { route: '/intake/new' });
+
+    fireEvent.click(screen.getByRole('button', { name: /mock create contact/i }));
+    fireEvent.click(screen.getByRole('button', { name: /mock save case/i }));
+
+    expect(navigateMock).toHaveBeenCalledWith('/cases/case-123');
+    expect(sessionStorage.getItem('workflow:intake:new')).toBeNull();
   });
 });

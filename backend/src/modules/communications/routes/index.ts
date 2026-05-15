@@ -152,6 +152,7 @@ const campaignSchema = z
     testRecipients: z.array(emailSchema).max(50).optional(),
     audienceSnapshot: z.record(z.string(), z.unknown()).optional(),
     contactIds: z.array(uuidSchema).max(500).optional(),
+    appealCampaignId: uuidSchema.optional(),
   })
   .strict();
 

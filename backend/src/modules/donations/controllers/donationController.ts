@@ -6,6 +6,7 @@
 import { Response, NextFunction } from 'express';
 import { services } from '@container/services';
 import {
+  CreateDonationBatchDTO,
   CreateDonationDTO,
   PaymentMethod,
   PaymentStatus,
@@ -23,6 +24,7 @@ import { sendError, sendSuccess } from '@modules/shared/http/envelope';
 import { requireActiveOrganizationSafe } from '@services/authGuardService';
 
 const donationService = services.donation;
+const donationBatchService = services.donationBatch;
 const donationDesignationService = services.donationDesignation;
 const taxReceiptService = services.taxReceipt;
 
@@ -38,6 +40,7 @@ export class DonationController {
         contact_id: getString(req.query.contact_id),
         payment_method: getString(req.query.payment_method) as PaymentMethod | undefined,
         payment_status: getString(req.query.payment_status) as PaymentStatus | undefined,
+        appeal_campaign_id: getString(req.query.appeal_campaign_id),
         campaign_name: getString(req.query.campaign_name),
         is_recurring: getBoolean(req.query.is_recurring),
         min_amount: getNumber(req.query.min_amount),
@@ -193,6 +196,150 @@ export class DonationController {
       );
       sendSuccess(res, designations);
     } catch (error) {
+      next(error);
+    }
+  }
+
+  async listDonationBatches(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const orgResult = await requireActiveOrganizationSafe(req);
+      if (!orgResult.ok) {
+        sendError(
+          res,
+          orgResult.error.code.toUpperCase(),
+          orgResult.error.message,
+          orgResult.error.statusCode,
+          undefined,
+          req.correlationId
+        );
+        return;
+      }
+
+      const batches = await donationBatchService.listBatches(orgResult.data.organizationId);
+      sendSuccess(res, { data: batches });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getDonationBatch(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const orgResult = await requireActiveOrganizationSafe(req);
+      if (!orgResult.ok) {
+        sendError(
+          res,
+          orgResult.error.code.toUpperCase(),
+          orgResult.error.message,
+          orgResult.error.statusCode,
+          undefined,
+          req.correlationId
+        );
+        return;
+      }
+
+      const batch = await donationBatchService.getBatch(
+        req.params.batchId,
+        orgResult.data.organizationId
+      );
+      if (!batch) {
+        notFound(res, 'Donation batch');
+        return;
+      }
+
+      sendSuccess(res, batch);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async createDonationBatch(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const orgResult = await requireActiveOrganizationSafe(req);
+      if (!orgResult.ok) {
+        sendError(
+          res,
+          orgResult.error.code.toUpperCase(),
+          orgResult.error.message,
+          orgResult.error.statusCode,
+          undefined,
+          req.correlationId
+        );
+        return;
+      }
+
+      const batch = await donationBatchService.createBatch(
+        req.body as CreateDonationBatchDTO,
+        req.user!.id,
+        orgResult.data.organizationId
+      );
+      sendSuccess(res, batch, 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async transitionDonationBatch(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const orgResult = await requireActiveOrganizationSafe(req);
+      if (!orgResult.ok) {
+        sendError(
+          res,
+          orgResult.error.code.toUpperCase(),
+          orgResult.error.message,
+          orgResult.error.statusCode,
+          undefined,
+          req.correlationId
+        );
+        return;
+      }
+
+      const action = req.params.action;
+      const batch =
+        action === 'close'
+          ? await donationBatchService.closeForReview(
+              req.params.batchId,
+              orgResult.data.organizationId,
+              req.user!.id
+            )
+          : action === 'reopen'
+            ? await donationBatchService.reopen(
+                req.params.batchId,
+                orgResult.data.organizationId,
+                req.user!.id
+              )
+            : action === 'approve'
+              ? await donationBatchService.approve(
+                  req.params.batchId,
+                  orgResult.data.organizationId,
+                  req.user!.id
+                )
+              : action === 'post'
+                ? await donationBatchService.post(
+                    req.params.batchId,
+                    orgResult.data.organizationId,
+                    req.user!.id
+                  )
+                : null;
+
+      if (!batch) {
+        if (!['close', 'reopen', 'approve', 'post'].includes(action)) {
+          sendError(res, 'INVALID_BATCH_ACTION', 'Unsupported donation batch action', 400);
+          return;
+        }
+        notFound(res, 'Donation batch');
+        return;
+      }
+
+      sendSuccess(res, batch);
+    } catch (error) {
+      if (error instanceof Error) {
+        sendError(res, 'DONATION_BATCH_POLICY', error.message, 400, undefined, req.correlationId);
+        return;
+      }
       next(error);
     }
   }

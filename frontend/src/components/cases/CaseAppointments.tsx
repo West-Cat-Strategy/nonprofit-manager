@@ -37,6 +37,14 @@ const formatDateTime = (value: string | null | undefined): string => {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
 };
 
+const formatSiteAddress = (appointment: CaseAppointment): string | null => {
+  const site = appointment.service_site_snapshot;
+  if (!site) return null;
+  return [site.address_line1, site.address_line2, site.city, site.state_province, site.postal_code]
+    .filter(Boolean)
+    .join(', ') || null;
+};
+
 export default function CaseAppointments({
   caseId,
   outcomeDefinitions,
@@ -210,12 +218,17 @@ export default function CaseAppointments({
                   {appointment.end_time ? ` to ${formatDateTime(appointment.end_time)}` : ''}
                 </div>
                 <div className="text-xs text-app-text-muted">
-                  {appointment.location || 'No location set'}
+                  {appointment.service_site_snapshot?.name || appointment.location || 'No location set'}
                   {appointment.contact_name ? ` • ${appointment.contact_name}` : ''}
                   {appointment.pointperson_first_name
                     ? ` • ${appointment.pointperson_first_name} ${appointment.pointperson_last_name || ''}`
                     : ''}
                 </div>
+                {formatSiteAddress(appointment) && (
+                  <div className="text-xs font-mono text-app-text-muted">
+                    {formatSiteAddress(appointment)}
+                  </div>
+                )}
                 {appointment.description && (
                   <p className="text-sm text-app-text">{appointment.description}</p>
                 )}

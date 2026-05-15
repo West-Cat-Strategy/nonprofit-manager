@@ -83,6 +83,7 @@ describe('servicesQueries', () => {
         'housing',
         'Acme Support',
         'provider-1',
+        null,
         '2026-04-05',
         null,
         null,

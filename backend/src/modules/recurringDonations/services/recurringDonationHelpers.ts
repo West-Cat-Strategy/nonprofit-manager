@@ -35,6 +35,11 @@ export const PLAN_SELECT = `
   rdp.notes,
   rdp.status,
   rdp.payment_provider,
+  rdp.appeal_campaign_id,
+  ac.name AS appeal_campaign_name,
+  ac.code AS appeal_campaign_code,
+  ac.kind AS appeal_campaign_kind,
+  ac.status AS appeal_campaign_status,
   rdp.provider_customer_id,
   rdp.provider_subscription_id,
   rdp.provider_checkout_session_id,
@@ -92,6 +97,13 @@ export const mapPlanRow = (row: PlanRow | undefined | null): RecurringDonationPl
     notes: (row.notes as string | null) ?? null,
     status: String(row.status || 'checkout_pending') as RecurringDonationPlanStatus,
     payment_provider: (row.payment_provider as PaymentProvider | null) ?? null,
+    appeal_campaign_id: (row.appeal_campaign_id as string | null) ?? null,
+    appeal_campaign_name: (row.appeal_campaign_name as string | null) ?? null,
+    appeal_campaign_code: (row.appeal_campaign_code as string | null) ?? null,
+    appeal_campaign_kind:
+      (row.appeal_campaign_kind as RecurringDonationPlan['appeal_campaign_kind']) ?? null,
+    appeal_campaign_status:
+      (row.appeal_campaign_status as RecurringDonationPlan['appeal_campaign_status']) ?? null,
     provider_customer_id: (row.provider_customer_id as string | null) ?? null,
     provider_subscription_id: (row.provider_subscription_id as string | null) ?? null,
     provider_checkout_session_id: (row.provider_checkout_session_id as string | null) ?? null,
@@ -138,6 +150,7 @@ export const getPlanByWhere = async (
       FROM recurring_donation_plans rdp
       LEFT JOIN accounts a ON COALESCE(rdp.account_id, rdp.organization_id) = a.id
       LEFT JOIN contacts c ON rdp.contact_id = c.id
+      LEFT JOIN appeal_campaigns ac ON rdp.appeal_campaign_id = ac.id
       WHERE ${whereClause}
       LIMIT 1
     `,

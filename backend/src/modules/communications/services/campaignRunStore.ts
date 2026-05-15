@@ -46,7 +46,7 @@ export const updateRunCounts = async (
             failure_message = $4,
             updated_at = CURRENT_TIMESTAMP
       WHERE id = $1
-      RETURNING id, provider, provider_campaign_id, title, list_id, include_audience_id,
+      RETURNING id, provider, provider_campaign_id, appeal_campaign_id, title, list_id, include_audience_id,
                 exclusion_audience_ids, suppression_snapshot, test_recipients, audience_snapshot,
                 content_snapshot, requested_send_time, status, counts, scope_account_ids,
                 failure_message, requested_by, created_at, updated_at`,
@@ -64,7 +64,7 @@ export const listCampaignRuns = async (
 ): Promise<CommunicationCampaignRun[]> => {
   const scopeAccountIds = uniqueStrings(requesterScopeAccountIds ?? []);
   const result = await pool.query<CampaignRunRow>(
-    `SELECT id, provider, provider_campaign_id, title, list_id, include_audience_id,
+    `SELECT id, provider, provider_campaign_id, appeal_campaign_id, title, list_id, include_audience_id,
             exclusion_audience_ids, suppression_snapshot, test_recipients, audience_snapshot,
             COALESCE(content_snapshot, '{}'::jsonb) AS content_snapshot,
             requested_send_time, status, counts, scope_account_ids, failure_message,
@@ -84,7 +84,7 @@ export const getCampaignRun = async (
 ): Promise<CommunicationCampaignRun | null> => {
   const scopeAccountIds = uniqueStrings(requesterScopeAccountIds ?? []);
   const result = await pool.query<CampaignRunRow>(
-    `SELECT id, provider, provider_campaign_id, title, list_id, include_audience_id,
+    `SELECT id, provider, provider_campaign_id, appeal_campaign_id, title, list_id, include_audience_id,
             exclusion_audience_ids, suppression_snapshot, test_recipients, audience_snapshot,
             COALESCE(content_snapshot, '{}'::jsonb) AS content_snapshot,
             requested_send_time, status, counts, scope_account_ids, failure_message,

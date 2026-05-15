@@ -190,6 +190,7 @@ export interface CampaignRun {
   id: string;
   provider: 'mailchimp';
   providerCampaignId?: string | null;
+  appealCampaignId?: string | null;
   title: string;
   listId: string;
   includeAudienceId?: string | null;
@@ -261,6 +262,7 @@ export interface CreateCampaignRequest {
   suppressionSnapshot?: unknown[];
   testRecipients?: string[];
   audienceSnapshot?: Record<string, unknown>;
+  appealCampaignId?: string;
   requestedBy?: string;
   scopeAccountIds?: string[];
 }

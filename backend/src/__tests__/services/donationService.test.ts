@@ -18,6 +18,21 @@ jest.mock('../../services/activityEventService', () => ({
   },
 }));
 
+jest.mock('@modules/appealCampaigns/services/appealCampaignService', () => ({
+  __esModule: true,
+  default: {
+    requireCampaignForScope: jest.fn(),
+  },
+}));
+
+const appealCampaignModule = jest.requireMock(
+  '@modules/appealCampaigns/services/appealCampaignService'
+) as {
+  default: {
+    requireCampaignForScope: jest.Mock;
+  };
+};
+
 // Create mock pool
 const mockQuery = jest.fn();
 const mockPool = {
@@ -30,6 +45,7 @@ describe('DonationService', () => {
   beforeEach(() => {
     donationService = new DonationService(mockPool);
     jest.clearAllMocks();
+    appealCampaignModule.default.requireCampaignForScope.mockResolvedValue(null);
   });
 
   describe('getDonations', () => {
@@ -182,7 +198,9 @@ describe('DonationService', () => {
         amount: '50.00',
       };
 
-      mockQuery.mockResolvedValueOnce({ rows: [mockCreatedDonation] });
+      mockQuery
+        .mockResolvedValueOnce({ rows: [{ account_id: 'acc-123' }] })
+        .mockResolvedValueOnce({ rows: [mockCreatedDonation] });
 
       const result = await donationService.createDonation(
         {
@@ -194,6 +212,7 @@ describe('DonationService', () => {
       );
 
       expect(result).toEqual(mockCreatedDonation);
+      expect(mockQuery).toHaveBeenCalledTimes(2);
     });
 
     it('should throw error if neither account_id nor contact_id provided', async () => {
@@ -269,6 +288,40 @@ describe('DonationService', () => {
       expect(result.designation_id).toBe('designation-1');
       expect(result.designation).toBe('Building Fund');
       expect(mockQuery).toHaveBeenCalledTimes(3);
+    });
+
+    it('links a typed appeal campaign without replacing the legacy campaign label', async () => {
+      appealCampaignModule.default.requireCampaignForScope.mockResolvedValueOnce({
+        id: 'appeal-1',
+        organizationId: 'acc-123',
+      });
+      const mockCreatedDonation = {
+        donation_id: 'new-uuid',
+        appeal_campaign_id: 'appeal-1',
+        campaign_name: 'Spring legacy label',
+      };
+
+      mockQuery.mockResolvedValueOnce({ rows: [mockCreatedDonation] });
+
+      const result = await donationService.createDonation(
+        {
+          account_id: 'acc-123',
+          amount: 100,
+          donation_date: '2026-05-14',
+          appeal_campaign_id: 'appeal-1',
+          campaign_name: 'Spring legacy label',
+        },
+        'user-123'
+      );
+
+      expect(result).toEqual(mockCreatedDonation);
+      expect(appealCampaignModule.default.requireCampaignForScope).toHaveBeenCalledWith(
+        'appeal-1',
+        { organizationId: 'acc-123' }
+      );
+      expect(mockQuery.mock.calls[0][0]).toContain('appeal_campaign_id');
+      expect(mockQuery.mock.calls[0][1][17]).toBe('appeal-1');
+      expect(mockQuery.mock.calls[0][1][18]).toBe('Spring legacy label');
     });
   });
 

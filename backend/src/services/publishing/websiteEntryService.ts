@@ -1,6 +1,7 @@
 import { Pool } from 'pg';
 import dbPool from '@config/database';
 import { logger } from '@config/logger';
+import appealCampaignService from '@modules/appealCampaigns/services/appealCampaignService';
 import type { PublishedSite } from '@app-types/publishing';
 import type {
   CreateWebsiteEntryRequest,
@@ -30,6 +31,7 @@ const mapEntryRow = (row: Record<string, unknown>): WebsiteEntry => ({
   id: row.id as string,
   organizationId: row.organization_id as string,
   siteId: row.site_id as string,
+  appealCampaignId: (row.appeal_campaign_id as string | null) || null,
   kind: row.kind as WebsiteEntry['kind'],
   source: row.source as WebsiteEntrySource,
   status: row.status as WebsiteEntryStatus,
@@ -245,16 +247,21 @@ export class WebsiteEntryService {
     const slug = normalizeSlug(data.slug || data.title);
     const status = data.status || 'draft';
     const publishedAt = data.publishedAt || (status === 'published' ? new Date().toISOString() : null);
+    const appealCampaign = await appealCampaignService.requireCampaignForScope(
+      data.appealCampaignId,
+      { organizationId: site.organizationId }
+    );
 
     const result = await this.pool.query(
       `INSERT INTO website_entries (
-         organization_id, site_id, kind, source, status, slug, title,
+         organization_id, site_id, appeal_campaign_id, kind, source, status, slug, title,
          excerpt, body, body_html, seo, metadata, published_at, created_by, updated_by
-       ) VALUES ($1, $2, $3, 'native', $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13)
+       ) VALUES ($1, $2, $3, $4, 'native', $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14)
        RETURNING *`,
       [
         site.organizationId,
         site.id,
+        appealCampaign?.id ?? null,
         data.kind,
         status,
         slug,
@@ -291,6 +298,14 @@ export class WebsiteEntryService {
     const params: unknown[] = [];
     let paramIndex = 1;
 
+    if (data.appealCampaignId !== undefined) {
+      const appealCampaign = await appealCampaignService.requireCampaignForScope(
+        data.appealCampaignId,
+        { organizationId: existing.organizationId }
+      );
+      updates.push(`appeal_campaign_id = $${paramIndex++}`);
+      params.push(appealCampaign?.id ?? null);
+    }
     if (data.status !== undefined) {
       updates.push(`status = $${paramIndex++}`);
       params.push(data.status);
@@ -387,16 +402,28 @@ export class WebsiteEntryService {
 
       const slugBase = normalizeSlug(campaign.title || campaign.subject || campaign.id);
       const slug = slugBase || `campaign-${campaign.id.toLowerCase()}`;
+      const appealCampaign = await appealCampaignService.resolveProviderCampaign(
+        site.organizationId as string,
+        'mailchimp',
+        campaign.id
+      );
+      const campaignEvidence = {
+        ...buildMailchimpCampaignEvidence(campaign),
+        appealCampaignId: appealCampaign?.id ?? null,
+        appealCampaignCode: appealCampaign?.code ?? null,
+        appealCampaignName: appealCampaign?.name ?? null,
+      };
       await this.pool.query(
         `INSERT INTO website_entries (
-           organization_id, site_id, kind, source, status, slug, title, excerpt, body, body_html,
+           organization_id, site_id, appeal_campaign_id, kind, source, status, slug, title, excerpt, body, body_html,
            seo, metadata, external_source_id, published_at, created_by, updated_by
          ) VALUES (
-           $1, $2, 'newsletter', 'mailchimp', 'published', $3, $4, $5, NULL, NULL,
-           $6, $7, $8, $9, $10, $10
+           $1, $2, $3, 'newsletter', 'mailchimp', 'published', $4, $5, $6, NULL, NULL,
+           $7, $8, $9, $10, $11, $11
          )
          ON CONFLICT (site_id, source, external_source_id)
          DO UPDATE SET
+           appeal_campaign_id = COALESCE(EXCLUDED.appeal_campaign_id, website_entries.appeal_campaign_id),
            slug = EXCLUDED.slug,
            title = EXCLUDED.title,
            excerpt = EXCLUDED.excerpt,
@@ -408,6 +435,7 @@ export class WebsiteEntryService {
         [
           site.organizationId,
           site.id,
+          appealCampaign?.id ?? null,
           slug,
           campaign.title,
           campaign.subject || null,
@@ -420,7 +448,7 @@ export class WebsiteEntryService {
             listId: campaign.listId,
             reportSummary: campaign.reportSummary || null,
             emailsSent: campaign.emailsSent || null,
-            campaignEvidence: buildMailchimpCampaignEvidence(campaign),
+            campaignEvidence,
           }),
           campaign.id,
           campaign.sendTime ? campaign.sendTime.toISOString() : campaign.createdAt.toISOString(),
@@ -452,16 +480,28 @@ export class WebsiteEntryService {
       const slugBase = normalizeSlug(email.name || email.subject || email.id);
       const slug = slugBase || `mautic-email-${email.id.toLowerCase()}`;
       const publishedAt = email.publishUp || email.dateModified || email.dateAdded || new Date().toISOString();
+      const appealCampaign = await appealCampaignService.resolveProviderCampaign(
+        site.organizationId as string,
+        'mautic',
+        email.id
+      );
+      const campaignEvidence = {
+        ...buildMauticCampaignEvidence(email, segmentId, publishedAt),
+        appealCampaignId: appealCampaign?.id ?? null,
+        appealCampaignCode: appealCampaign?.code ?? null,
+        appealCampaignName: appealCampaign?.name ?? null,
+      };
       await this.pool.query(
         `INSERT INTO website_entries (
-           organization_id, site_id, kind, source, status, slug, title, excerpt, body, body_html,
+           organization_id, site_id, appeal_campaign_id, kind, source, status, slug, title, excerpt, body, body_html,
            seo, metadata, external_source_id, published_at, created_by, updated_by
          ) VALUES (
-           $1, $2, 'newsletter', 'mautic', 'published', $3, $4, $5, $6, $7,
-           $8, $9, $10, $11, $12, $12
+           $1, $2, $3, 'newsletter', 'mautic', 'published', $4, $5, $6, $7, $8,
+           $9, $10, $11, $12, $13, $13
          )
          ON CONFLICT (site_id, source, external_source_id)
          DO UPDATE SET
+           appeal_campaign_id = COALESCE(EXCLUDED.appeal_campaign_id, website_entries.appeal_campaign_id),
            slug = EXCLUDED.slug,
            title = EXCLUDED.title,
            excerpt = EXCLUDED.excerpt,
@@ -475,6 +515,7 @@ export class WebsiteEntryService {
         [
           site.organizationId,
           site.id,
+          appealCampaign?.id ?? null,
           slug,
           email.name,
           email.preheaderText || email.subject || null,
@@ -492,7 +533,7 @@ export class WebsiteEntryService {
             lists: email.lists || [],
             sentCount: email.sentCount ?? null,
             readCount: email.readCount ?? null,
-            campaignEvidence: buildMauticCampaignEvidence(email, segmentId, publishedAt),
+            campaignEvidence,
           }),
           email.id,
           publishedAt,

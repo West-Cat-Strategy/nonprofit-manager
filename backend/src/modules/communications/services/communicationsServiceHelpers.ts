@@ -28,6 +28,7 @@ export interface CampaignRunRow {
   id: string;
   provider: CommunicationProvider;
   provider_campaign_id: string | null;
+  appeal_campaign_id: string | null;
   title: string;
   list_id: string | null;
   include_audience_id: string | null;
@@ -114,6 +115,7 @@ export const mapRunRow = (row: CampaignRunRow): CommunicationCampaignRun => ({
   id: row.id,
   provider: row.provider,
   providerCampaignId: row.provider_campaign_id,
+  appealCampaignId: row.appeal_campaign_id,
   title: row.title,
   listId: row.list_id,
   includeAudienceId: row.include_audience_id,
@@ -159,6 +161,7 @@ export const mapLocalRunToCampaign = (run: CommunicationCampaignRun): Communicat
     provider: run.provider,
     campaignRunId: run.id,
     providerCampaignId: run.providerCampaignId,
+    appealCampaignId: run.appealCampaignId,
     type: 'regular',
     status: run.status,
     title: run.title,
@@ -178,6 +181,7 @@ export const mapMailchimpCampaign = (
   provider: 'mailchimp',
   campaignRunId,
   providerCampaignId: campaign.id,
+  appealCampaignId: undefined,
 });
 
 export const asMailchimpRequest = (
@@ -200,6 +204,7 @@ export const asMailchimpRequest = (
   suppressionSnapshot: request.suppressionSnapshot,
   testRecipients: request.testRecipients,
   audienceSnapshot: request.audienceSnapshot,
+  appealCampaignId: request.appealCampaignId,
   requestedBy: request.requestedBy,
   scopeAccountIds: request.scopeAccountIds,
 });

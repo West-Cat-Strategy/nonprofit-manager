@@ -376,6 +376,7 @@ export const getCaseTimelineQuery = async (
           'start_time', a.start_time,
           'end_time', a.end_time,
           'location', a.location,
+          'service_site_snapshot', COALESCE(a.service_site_snapshot, slot.service_site_snapshot),
           'attendance_state', CASE
             WHEN a.status = 'cancelled' THEN 'cancelled'
             WHEN a.checked_in_at IS NOT NULL OR a.status = 'completed' THEN 'attended'
@@ -419,6 +420,7 @@ export const getCaseTimelineQuery = async (
         pointperson.last_name
       FROM appointments a
       LEFT JOIN users pointperson ON pointperson.id = a.pointperson_user_id
+      LEFT JOIN appointment_availability_slots slot ON slot.id = a.slot_id
       WHERE a.case_id = $1
 
       UNION ALL

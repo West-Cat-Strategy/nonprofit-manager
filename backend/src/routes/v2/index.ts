@@ -23,6 +23,7 @@ import { alertsV2Routes } from '@modules/alerts';
 import { authV2Routes } from '@modules/auth';
 import { backupV2Routes } from '@modules/backup';
 import { donationsV2Routes } from '@modules/donations';
+import { appealCampaignsV2Routes } from '@modules/appealCampaigns';
 import { grantsV2Routes } from '@modules/grants';
 import { exportV2Routes } from '@modules/export';
 import { externalServiceProvidersV2Routes } from '@modules/externalServiceProviders';
@@ -132,6 +133,7 @@ mountWorkspaceModuleRoutes(
   externalServiceProvidersV2Routes
 );
 mountWorkspaceModuleRoutes('/donations', 'donations', donationsV2Routes);
+mountWorkspaceModuleRoutes('/appeal-campaigns', 'donations', appealCampaignsV2Routes);
 mountWorkspaceModuleRoutes('/grants', 'grants', grantsV2Routes);
 mountWorkspaceModuleRoutes(
   '/recurring-donations',

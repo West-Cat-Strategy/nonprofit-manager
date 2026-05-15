@@ -17,6 +17,16 @@
 - Closed the production follow-up by allowing backend case visibility for imported CBIS null-account cases without widening cross-org or arbitrary null-account access.
 - Deployed the committed runtime fix to `cbis.westcat.ca` and proved Dora's note case link, case search, contact notes, health, and container status.
 
+## Branch Reconciliation Recheck
+
+Date: 2026-05-13
+
+- Compared `main` with sibling branch `codex/cbis-live-import-refresh`, whose unique commit remains `19d0cc30 Add CBIS live import CLI`.
+- No reusable branch change needed a new cherry-pick: `backend/package.json`, `backend/src/modules/cbisImport/cbisImportBundle.ts`, `backend/src/modules/cbisImport/__tests__/cbisImportBundle.test.ts`, `database/migrations/126_cbis_staged_import_runs.sql`, and `database/migrations/129_cbis_import_duplicate_guards.sql` match the branch content.
+- The remaining differences are later `main` work: `backend/src/scripts/cbisImport.ts` adds `--duplicate-contact-decision-audit`, `cbisImportService.ts` is split into smaller helper modules, and `cbisImportService.test.ts` includes the reviewed duplicate-contact retarget regression.
+- The migration manifest and initdb order on `main` keep CBIS `126`, Mautic `127`/`128`, and CBIS `129` in the current schema sequence.
+- A fresh local-clone DB dry-run was not attempted during this recheck because Docker was unavailable and `127.0.0.1:8002` had no PostgreSQL listener. The earlier local-clone dry-run remains the runtime proof for this row; the current recheck proves the importer path is still represented in code, tests, migration metadata, and the compiled CLI output.
+
 ## Production Follow-Up
 
 - The approved P5-T120 app code was deployed to `cbis.westcat.ca` on 2026-05-12.
@@ -147,6 +157,14 @@ Screenshots:
 - `/Users/bryan/projects/nonprofit-manager/tmp/p5-t120-browser-proof/people-search-dora.png`
 
 ## Validation Commands
+
+Branch reconciliation recheck passed:
+
+- `npm --workspace backend run test:unit -- --runTestsByPath src/modules/cbisImport/__tests__/cbisImportBundle.test.ts src/modules/cbisImport/__tests__/cbisImportService.test.ts --runInBand` - 2 suites, 12 tests passed
+- `npm --workspace backend run type-check`
+- `npm --workspace backend run build`
+- `test -f backend/dist/scripts/cbisImport.js`
+- `node scripts/check-migration-manifest-policy.ts`
 
 Imported case visibility follow-up passed:
 

@@ -19,6 +19,7 @@ import {
 import { resolveSort } from '@utils/queryHelpers';
 import type { DataScopeFilter } from '@app-types/dataScope';
 import { activityEventService } from '@services/activityEventService';
+import appealCampaignService from '@modules/appealCampaigns/services/appealCampaignService';
 import { DonationDesignationService } from './donationDesignationService';
 
 type QueryValue = string | number | boolean | Date | null | string[];
@@ -74,6 +75,21 @@ export class DonationService {
     return `${prefix}-${sequence}`;
   }
 
+  private async resolveDonationOrganizationId(
+    input: { account_id?: string | null; contact_id?: string | null },
+    organizationId?: string | null
+  ): Promise<string | null> {
+    if (organizationId) return organizationId;
+    if (input.account_id) return input.account_id;
+    if (!input.contact_id) return null;
+
+    const result = await this.pool.query<{ account_id: string | null }>(
+      `SELECT account_id FROM contacts WHERE id = $1 LIMIT 1`,
+      [input.contact_id]
+    );
+    return result.rows[0]?.account_id ?? null;
+  }
+
   /**
    * Get all donations with filtering and pagination
    */
@@ -88,6 +104,7 @@ export class DonationService {
       contact_id,
       payment_method,
       payment_status,
+      appeal_campaign_id,
       campaign_name,
       is_recurring,
       min_amount,
@@ -114,6 +131,8 @@ export class DonationService {
       conditions.push(`(
         d.donation_number ILIKE $${paramCount} OR 
         d.campaign_name ILIKE $${paramCount} OR
+        ac.name ILIKE $${paramCount} OR
+        ac.code ILIKE $${paramCount} OR
         d.designation ILIKE $${paramCount} OR
         fd.name ILIKE $${paramCount} OR
         fd.code ILIKE $${paramCount} OR
@@ -147,8 +166,14 @@ export class DonationService {
       paramCount++;
     }
 
+    if (appeal_campaign_id) {
+      conditions.push(`d.appeal_campaign_id = $${paramCount}`);
+      params.push(appeal_campaign_id);
+      paramCount++;
+    }
+
     if (campaign_name) {
-      conditions.push(`d.campaign_name ILIKE $${paramCount}`);
+      conditions.push(`(d.campaign_name ILIKE $${paramCount} OR ac.name ILIKE $${paramCount} OR ac.code ILIKE $${paramCount})`);
       params.push(`%${campaign_name}%`);
       paramCount++;
     }
@@ -210,6 +235,7 @@ export class DonationService {
         COALESCE(AVG(amount), 0) as average_amount
       FROM donations d
       LEFT JOIN fund_designations fd ON d.designation_id = fd.id
+      LEFT JOIN appeal_campaigns ac ON d.appeal_campaign_id = ac.id
       ${whereClause}
     `;
     const summaryResult = await this.pool.query(summaryQuery, params);
@@ -244,6 +270,7 @@ export class DonationService {
       LEFT JOIN contacts c ON d.contact_id = c.id
       LEFT JOIN recurring_donation_plans rdp ON d.recurring_plan_id = rdp.id
       LEFT JOIN fund_designations fd ON d.designation_id = fd.id
+      LEFT JOIN appeal_campaigns ac ON d.appeal_campaign_id = ac.id
       ${DONATION_TAX_RECEIPT_JOIN}
       ${whereClause}
       ORDER BY ${sortColumn} ${sortOrder}
@@ -280,6 +307,7 @@ export class DonationService {
       LEFT JOIN contacts c ON d.contact_id = c.id
       LEFT JOIN recurring_donation_plans rdp ON d.recurring_plan_id = rdp.id
       LEFT JOIN fund_designations fd ON d.designation_id = fd.id
+      LEFT JOIN appeal_campaigns ac ON d.appeal_campaign_id = ac.id
       ${DONATION_TAX_RECEIPT_JOIN}
       WHERE d.id = $1
     `;
@@ -336,6 +364,7 @@ export class DonationService {
       provider_customer_id,
       stripe_subscription_id,
       stripe_invoice_id,
+      appeal_campaign_id,
       campaign_name,
       designation_id,
       designation,
@@ -355,18 +384,26 @@ export class DonationService {
       designationId: designation_id,
       designationName: designation,
     });
+    const resolvedOrganizationId = await this.resolveDonationOrganizationId(
+      { account_id, contact_id },
+      organizationId
+    );
+    const resolvedAppealCampaign = await appealCampaignService.requireCampaignForScope(
+      appeal_campaign_id,
+      { organizationId: resolvedOrganizationId }
+    );
 
     const query = `
       INSERT INTO donations (
         donation_number, account_id, contact_id, recurring_plan_id, amount, currency, donation_date,
         payment_method, payment_status, transaction_id, payment_provider, provider_transaction_id,
         provider_checkout_session_id, provider_subscription_id, provider_customer_id,
-        stripe_subscription_id, stripe_invoice_id, campaign_name, designation_id, designation, is_recurring,
+        stripe_subscription_id, stripe_invoice_id, appeal_campaign_id, campaign_name, designation_id, designation, is_recurring,
         recurring_frequency, notes, created_by, modified_by
       )
       VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
-        $19, $20, $21, $22, $23, $24, $25
+        $19, $20, $21, $22, $23, $24, $25, $26
       )
       RETURNING 
         ${DONATION_RETURNING_COLUMNS}
@@ -395,6 +432,7 @@ export class DonationService {
           provider_customer_id || null,
           stripe_subscription_id || null,
           stripe_invoice_id || null,
+          resolvedAppealCampaign?.id ?? null,
           campaign_name || null,
           resolvedDesignation.designation_id,
           resolvedDesignation.designation,
@@ -425,6 +463,7 @@ export class DonationService {
               currency,
               paymentStatus: payment_status,
               paymentMethod: payment_method || null,
+              appealCampaignId: resolvedAppealCampaign?.id ?? null,
               campaignName: campaign_name || null,
             },
           });
@@ -477,6 +516,10 @@ export class DonationService {
     const donorLinkageTouched =
       Object.prototype.hasOwnProperty.call(donationData, 'account_id') ||
       Object.prototype.hasOwnProperty.call(donationData, 'contact_id');
+    const appealCampaignTouched = Object.prototype.hasOwnProperty.call(
+      donationData,
+      'appeal_campaign_id'
+    );
 
     if (designationTouched) {
       let currentDesignationId: string | null = null;
@@ -531,6 +574,31 @@ export class DonationService {
       ) {
         updateData.designation_id = null;
       }
+    }
+
+    if (appealCampaignTouched && donationData.appeal_campaign_id) {
+      const resolvedOrganizationId = await this.resolveDonationOrganizationId(
+        {
+          account_id: donationData.account_id,
+          contact_id: donationData.contact_id,
+        },
+        organizationId
+      );
+      let fallbackOrganizationId = resolvedOrganizationId;
+      if (!fallbackOrganizationId) {
+        const current = await this.pool.query<{ organization_id: string | null }>(
+          `SELECT COALESCE(d.account_id, c.account_id) AS organization_id
+           FROM donations d
+           LEFT JOIN contacts c ON c.id = d.contact_id
+           WHERE d.id = $1
+           LIMIT 1`,
+          [donationId]
+        );
+        fallbackOrganizationId = current.rows[0]?.organization_id ?? null;
+      }
+      await appealCampaignService.requireCampaignForScope(donationData.appeal_campaign_id, {
+        organizationId: fallbackOrganizationId,
+      });
     }
 
     Object.entries(updateData).forEach(([key, value]) => {
@@ -618,6 +686,18 @@ export class DonationService {
       paramCount++;
     }
 
+    if (filters.appeal_campaign_id) {
+      conditions.push(`d.appeal_campaign_id = $${paramCount}`);
+      params.push(filters.appeal_campaign_id);
+      paramCount++;
+    }
+
+    if (filters.campaign_name) {
+      conditions.push(`(d.campaign_name ILIKE $${paramCount} OR ac.name ILIKE $${paramCount} OR ac.code ILIKE $${paramCount})`);
+      params.push(`%${filters.campaign_name}%`);
+      paramCount++;
+    }
+
     if (filters.start_date) {
       conditions.push(`d.donation_date >= $${paramCount}`);
       params.push(filters.start_date);
@@ -658,6 +738,7 @@ export class DonationService {
         COALESCE(SUM(CASE WHEN is_recurring THEN 1 ELSE 0 END), 0) as recurring_count,
         COALESCE(SUM(CASE WHEN is_recurring THEN amount ELSE 0 END), 0) as recurring_amount
       FROM donations d
+      LEFT JOIN appeal_campaigns ac ON d.appeal_campaign_id = ac.id
       ${whereClause}
     `;
 
@@ -671,6 +752,7 @@ export class DonationService {
         COUNT(*) as count,
         SUM(amount) as amount
       FROM donations d
+      LEFT JOIN appeal_campaigns ac ON d.appeal_campaign_id = ac.id
       ${whereClause}
       GROUP BY payment_method
     `;
@@ -687,12 +769,15 @@ export class DonationService {
     // Get by campaign
     const campaignQuery = `
       SELECT 
-        campaign_name,
+        COALESCE(ac.name, d.campaign_name) as campaign_name,
+        ac.id as appeal_campaign_id,
+        ac.code as appeal_campaign_code,
         COUNT(*) as count,
         SUM(amount) as amount
       FROM donations d
+      LEFT JOIN appeal_campaigns ac ON d.appeal_campaign_id = ac.id
       ${whereClause}
-      GROUP BY campaign_name
+      GROUP BY COALESCE(ac.name, d.campaign_name), ac.id, ac.code
     `;
 
     const campaignResult = await this.pool.query(campaignQuery, params);
@@ -712,6 +797,7 @@ export class DonationService {
         SUM(amount) as amount
       FROM donations d
       LEFT JOIN fund_designations fd ON d.designation_id = fd.id
+      LEFT JOIN appeal_campaigns ac ON d.appeal_campaign_id = ac.id
       ${whereClause}
       GROUP BY COALESCE(fd.name, d.designation, 'unrestricted'), fd.code
     `;

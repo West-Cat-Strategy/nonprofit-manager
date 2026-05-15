@@ -128,4 +128,51 @@ describe('collectCaseFormAuthoringDiagnostics', () => {
     expect(messages).not.toContain('Consent: add at least one option with a label and value.');
     expect(messages).toContain('Support needs: add at least one option with a label and value.');
   });
+
+  it('reports self-referencing and incomplete conditional rules', () => {
+    const schema: CaseFormSchema = {
+      version: 1,
+      title: 'Consent form',
+      sections: [
+        {
+          id: 'section-1',
+          title: 'Section 1',
+          questions: [
+            {
+              id: 'conditional',
+              key: 'conditional',
+              type: 'text',
+              label: 'Conditional',
+              visible_when: [
+                {
+                  question_key: 'conditional',
+                  operator: 'equals',
+                  value: 'yes',
+                },
+                {
+                  question_key: 'other',
+                  operator: 'equals',
+                },
+              ],
+            },
+            {
+              id: 'other',
+              key: 'other',
+              type: 'text',
+              label: 'Other',
+            },
+          ],
+        },
+      ],
+    };
+
+    const messages = collectCaseFormAuthoringDiagnostics(schema).map(
+      (diagnostic) => diagnostic.message
+    );
+
+    expect(messages).toContain(
+      'Conditional: conditional rule cannot reference this same question.'
+    );
+    expect(messages).toContain('Conditional: conditional rule needs a valid operator and value.');
+  });
 });

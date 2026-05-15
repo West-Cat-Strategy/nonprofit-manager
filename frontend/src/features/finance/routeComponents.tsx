@@ -10,6 +10,7 @@ export const DonationList = lazy(() => import('./pages/DonationListPage'));
 export const DonationDetail = lazy(() => import('./pages/DonationDetailPage'));
 export const DonationCreate = lazy(() => import('./pages/DonationCreatePage'));
 export const DonationEdit = lazy(() => import('./pages/DonationEditPage'));
+export const DonationBatchReview = lazy(() => import('./pages/DonationBatchReviewPage'));
 export const RecurringDonationList = lazy(() => import('./pages/RecurringDonationListPage'));
 export const RecurringDonationDetail = lazy(() => import('./pages/RecurringDonationDetailPage'));
 export const RecurringDonationEdit = lazy(() => import('./pages/RecurringDonationEditPage'));

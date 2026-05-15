@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { CaseHandoffPacket, CaseHandoffReassessmentSummary } from '../types/handoff';
+import { CaseHandoffPacket, CaseHandoffReassessmentSummary, CaseServiceSiteSnapshot } from '../types/handoff';
 import { requireCaseOwnership } from './shared';
 
 type ReassessmentRow = Omit<
@@ -21,8 +21,18 @@ const dateOnly = (value: string | Date | null): Date | null => {
 };
 
 const toIsoDate = (value: string | Date | null): string | null => {
-  const date = dateOnly(value);
-  return date ? date.toISOString().slice(0, 10) : null;
+  if (!value) return null;
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
+    return value.slice(0, 10);
+  }
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
+};
+
+const toIsoDateTime = (value: string | Date | null): string | null => {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
 };
 
 const daysUntil = (value: string | Date | null, today: Date): number | null => {
@@ -36,6 +46,32 @@ const pluralize = (count: number, label: string): string =>
 
 const isPendingFollowUp = (status: string | null): boolean =>
   status === 'pending' || status === 'scheduled';
+
+const nullableText = (value: unknown): string | null =>
+  typeof value === 'string' && value.trim() ? value.trim() : null;
+
+const normalizeServiceSiteSnapshot = (value: unknown): CaseServiceSiteSnapshot | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  const snapshot = value as Record<string, unknown>;
+  return {
+    id: nullableText(snapshot.id),
+    name: nullableText(snapshot.name),
+    provider_name: nullableText(snapshot.provider_name),
+    address_line1: nullableText(snapshot.address_line1),
+    address_line2: nullableText(snapshot.address_line2),
+    city: nullableText(snapshot.city),
+    state_province: nullableText(snapshot.state_province),
+    postal_code: nullableText(snapshot.postal_code),
+    country: nullableText(snapshot.country),
+    phone: nullableText(snapshot.phone),
+    email: nullableText(snapshot.email),
+    contact_name: nullableText(snapshot.contact_name),
+    notes: nullableText(snapshot.notes),
+  };
+};
 
 const mapReassessment = (row: ReassessmentRow): CaseHandoffReassessmentSummary => ({
   id: row.id,
@@ -236,6 +272,70 @@ export const getCaseHandoffPacketQuery = async (
     [caseId]
   );
 
+  const fieldServicesResult = await db.query(
+    `
+    SELECT
+      id,
+      service_name as name,
+      service_type as type,
+      service_provider as provider,
+      service_site_snapshot,
+      status,
+      service_date,
+      outcome
+    FROM case_services
+    WHERE case_id = $1
+    ORDER BY service_date DESC NULLS LAST, created_at DESC
+    LIMIT 8
+    `,
+    [caseId]
+  );
+
+  const fieldFormsResult = await db.query(
+    `
+    SELECT
+      id,
+      title,
+      status,
+      due_at,
+      sent_at,
+      submitted_at,
+      reviewed_at,
+      recipient_email
+    FROM case_form_assignments
+    WHERE case_id = $1
+    ORDER BY due_at ASC NULLS LAST, updated_at DESC, created_at DESC
+    LIMIT 8
+    `,
+    [caseId]
+  );
+
+  const fieldAppointmentsResult = await db.query(
+    `
+    SELECT
+      a.id,
+      a.title,
+      a.status,
+      a.start_time,
+      a.end_time,
+      a.location,
+      COALESCE(a.service_site_snapshot, slot.service_site_snapshot) as service_site_snapshot,
+      a.request_type,
+      u.first_name as pointperson_first_name,
+      u.last_name as pointperson_last_name,
+      u.email as pointperson_email
+    FROM appointments a
+    LEFT JOIN users u ON u.id = a.pointperson_user_id
+    LEFT JOIN appointment_availability_slots slot ON slot.id = a.slot_id
+    WHERE a.case_id = $1
+    ORDER BY
+      CASE WHEN a.status IN ('requested', 'confirmed') THEN 0 ELSE 1 END,
+      a.start_time ASC
+    LIMIT 8
+    `,
+    [caseId]
+  );
+
   const artifacts = artifactsResult.rows[0];
   const milestones = milestonesResult.rows;
   const followUps = followUpsResult.rows;
@@ -299,6 +399,18 @@ export const getCaseHandoffPacketQuery = async (
       ? 'open_actions'
       : 'ready';
 
+  const assignedStaff = caseRow.assigned_email ? {
+    first_name: caseRow.assigned_first_name,
+    last_name: caseRow.assigned_last_name,
+    email: caseRow.assigned_email
+  } : null;
+  const contact = {
+    first_name: caseRow.contact_first_name,
+    last_name: caseRow.contact_last_name,
+    email: caseRow.contact_email
+  };
+  const portalVisibilityStatus = caseRow.client_viewable ? 'Visible to Client' : 'Internal Only';
+
   return {
     case_details: {
       id: caseRow.id,
@@ -311,16 +423,8 @@ export const getCaseHandoffPacketQuery = async (
       description: caseRow.description,
       closed_date: toIsoDate(caseRow.closed_date),
       closure_reason: caseRow.closure_reason,
-      assigned_staff: caseRow.assigned_email ? {
-        first_name: caseRow.assigned_first_name,
-        last_name: caseRow.assigned_last_name,
-        email: caseRow.assigned_email
-      } : null,
-      contact: {
-        first_name: caseRow.contact_first_name,
-        last_name: caseRow.contact_last_name,
-        email: caseRow.contact_email
-      }
+      assigned_staff: assignedStaff,
+      contact
     },
     risks: {
       is_urgent: caseRow.is_urgent,
@@ -346,7 +450,7 @@ export const getCaseHandoffPacketQuery = async (
     },
     visibility: {
       client_viewable: caseRow.client_viewable,
-      portal_visibility_status: caseRow.client_viewable ? 'Visible to Client' : 'Internal Only'
+      portal_visibility_status: portalVisibilityStatus
     },
     artifacts_summary: {
       services_count: artifacts.services_count,
@@ -354,6 +458,61 @@ export const getCaseHandoffPacketQuery = async (
       appointments_count: artifacts.appointments_count,
       notes_count: artifacts.notes_count,
       documents_count: artifacts.documents_count
+    },
+    field_packet: {
+      scope: {
+        summary: [
+          'Portable staff review packet assembled from existing case-detail records',
+          'Includes current service, form, appointment, visibility, reassessment, next-action, and assignment context',
+          'Does not create an offline sync bundle, service-site routing record, referral transfer, or persisted packet entity'
+        ],
+        offline_sync_included: false,
+        service_site_routing_included: false,
+        referral_transfer_included: false,
+        persisted_packet_included: false
+      },
+      assignment_context: {
+        assigned_staff: assignedStaff,
+        contact,
+        case_status: caseRow.status_name,
+        priority: caseRow.priority,
+        portal_visibility_status: portalVisibilityStatus
+      },
+      services: fieldServicesResult.rows.map((service) => ({
+        id: service.id,
+        name: service.name,
+        type: service.type,
+        provider: service.provider,
+        service_site_snapshot: normalizeServiceSiteSnapshot(service.service_site_snapshot),
+        status: service.status,
+        service_date: toIsoDate(service.service_date),
+        outcome: service.outcome
+      })),
+      forms: fieldFormsResult.rows.map((form) => ({
+        id: form.id,
+        title: form.title,
+        status: form.status,
+        due_at: toIsoDateTime(form.due_at),
+        sent_at: toIsoDateTime(form.sent_at),
+        submitted_at: toIsoDateTime(form.submitted_at),
+        reviewed_at: toIsoDateTime(form.reviewed_at),
+        recipient_email: form.recipient_email
+      })),
+      appointments: fieldAppointmentsResult.rows.map((appointment) => ({
+        id: appointment.id,
+        title: appointment.title,
+        status: appointment.status,
+        start_time: toIsoDateTime(appointment.start_time) || new Date(appointment.start_time).toISOString(),
+        end_time: toIsoDateTime(appointment.end_time),
+        location: appointment.location,
+        service_site_snapshot: normalizeServiceSiteSnapshot(appointment.service_site_snapshot),
+        request_type: appointment.request_type,
+        pointperson: appointment.pointperson_email ? {
+          first_name: appointment.pointperson_first_name,
+          last_name: appointment.pointperson_last_name,
+          email: appointment.pointperson_email
+        } : null
+      }))
     },
     generated_at: new Date().toISOString()
   };

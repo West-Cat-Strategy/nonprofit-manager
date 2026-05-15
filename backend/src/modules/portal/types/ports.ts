@@ -72,6 +72,7 @@ export interface PortalAppointmentsPort {
     startTime: string;
     endTime?: string | null;
     location?: string | null;
+    serviceSiteSnapshot?: Record<string, unknown> | null;
   }): Promise<{ id: string } & object>;
   cancelPortalAppointment(input: {
     appointmentId: string;

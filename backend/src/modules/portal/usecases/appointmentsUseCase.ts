@@ -98,6 +98,7 @@ export class PortalAppointmentsUseCase {
     startTime: string;
     endTime: string | null;
     location: string | null;
+    serviceSiteSnapshot?: Record<string, unknown> | null;
     ipAddress?: string;
     userAgent?: string | string[];
   }): Promise<PortalClientAppointmentSummary> {
@@ -110,6 +111,7 @@ export class PortalAppointmentsUseCase {
       startTime: input.startTime,
       endTime: input.endTime,
       location: input.location,
+      serviceSiteSnapshot: input.serviceSiteSnapshot ?? null,
     })) as PortalAppointment;
 
     await logPortalActivity({

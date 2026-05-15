@@ -38,6 +38,12 @@ export const staffFinanceRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     path: '/donations/:id/edit',
   }),
   staffRoute({
+    id: 'donation-batches',
+    title: 'Donation Batch Review',
+    section: 'Finance',
+    path: '/donations/batches',
+  }),
+  staffRoute({
     id: 'donation-payment',
     title: 'Donation Payment',
     section: 'Finance',

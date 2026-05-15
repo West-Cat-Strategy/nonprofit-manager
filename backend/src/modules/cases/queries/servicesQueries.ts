@@ -188,9 +188,10 @@ export const createCaseServiceQuery = async (
   const result = await db.query<CaseServiceType>(
     `INSERT INTO case_services (
       case_id, service_name, service_type, service_provider, external_service_provider_id,
+      service_site_snapshot,
       service_date, start_time, end_time, duration_minutes,
       status, outcome, cost, currency, notes, created_by
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
     RETURNING *`,
     [
       caseId,
@@ -198,6 +199,7 @@ export const createCaseServiceQuery = async (
       data.service_type || null,
       providerResolution.providerName || null,
       providerResolution.providerId || null,
+      data.service_site_snapshot || null,
       data.service_date,
       data.start_time || null,
       data.end_time || null,

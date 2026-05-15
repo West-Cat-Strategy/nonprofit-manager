@@ -10,6 +10,7 @@ interface CampaignRunRow {
   id: string;
   provider: CommunicationProvider;
   provider_campaign_id: string | null;
+  appeal_campaign_id: string | null;
   title: string;
   list_id: string | null;
   include_audience_id: string | null;
@@ -39,6 +40,7 @@ const mapRunRow = (row: CampaignRunRow): CommunicationCampaignRun => ({
   id: row.id,
   provider: row.provider,
   providerCampaignId: row.provider_campaign_id,
+  appealCampaignId: row.appeal_campaign_id,
   title: row.title,
   listId: row.list_id,
   includeAudienceId: row.include_audience_id,
@@ -63,7 +65,7 @@ const getCampaignRun = async (
 ): Promise<CommunicationCampaignRun | null> => {
   const scopeAccountIds = uniqueStrings(requesterScopeAccountIds ?? []);
   const result = await pool.query<CampaignRunRow>(
-    `SELECT id, provider, provider_campaign_id, title, list_id, include_audience_id,
+    `SELECT id, provider, provider_campaign_id, appeal_campaign_id, title, list_id, include_audience_id,
             exclusion_audience_ids, suppression_snapshot, test_recipients, audience_snapshot,
             COALESCE(content_snapshot, '{}'::jsonb) AS content_snapshot,
             requested_send_time, status, counts, scope_account_ids, failure_message,
@@ -137,7 +139,7 @@ export const retryFailedCampaignRunRecipients = async (
             failure_message = CASE WHEN $2::integer > 0 THEN NULL ELSE failure_message END,
             updated_at = CURRENT_TIMESTAMP
       WHERE id = $1
-      RETURNING id, provider, provider_campaign_id, title, list_id, include_audience_id,
+      RETURNING id, provider, provider_campaign_id, appeal_campaign_id, title, list_id, include_audience_id,
                 exclusion_audience_ids, suppression_snapshot, test_recipients, audience_snapshot,
                 content_snapshot, requested_send_time, status, counts, scope_account_ids,
                 failure_message, requested_by, created_at, updated_at`,

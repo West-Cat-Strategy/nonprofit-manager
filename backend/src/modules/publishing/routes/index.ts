@@ -168,6 +168,7 @@ const formOperationalSettingsSchema = z
     buttonText: z.string().trim().max(255).optional(),
     successMessage: z.string().trim().max(500).optional(),
     accountId: z.union([uuidSchema, z.null()]).optional(),
+    appealCampaignId: z.union([uuidSchema, z.null()]).optional(),
     campaignId: z.union([z.string().trim().min(1).max(255), z.null()]).optional(),
     provider: paymentProviderSchema.optional(),
     mailchimpListId: z.union([z.string().trim().min(1).max(255), z.null()]).optional(),
@@ -261,6 +262,7 @@ const updateSiteStripeSettingsSchema = z
     currency: z.string().trim().min(3).max(10).optional(),
     suggestedAmounts: z.array(z.coerce.number().positive()).max(12).optional(),
     recurringDefault: optionalStrictBooleanSchema,
+    appealCampaignId: z.union([uuidSchema, z.null()]).optional(),
     campaignId: z.union([z.string().trim().min(1).max(255), z.null()]).optional(),
   })
   .strict();
@@ -301,6 +303,7 @@ const websiteEntriesQuerySchema = z
 const createWebsiteEntrySchema = z
   .object({
     kind: websiteEntryKindSchema,
+    appealCampaignId: z.union([uuidSchema, z.null()]).optional(),
     source: websiteEntrySourceSchema.optional(),
     status: websiteEntryStatusSchema.optional(),
     slug: websiteEntrySlugSchema.optional(),
@@ -316,6 +319,7 @@ const createWebsiteEntrySchema = z
 
 const updateWebsiteEntrySchema = z
   .object({
+    appealCampaignId: z.union([uuidSchema, z.null()]).optional(),
     status: websiteEntryStatusSchema.optional(),
     slug: websiteEntrySlugSchema.optional(),
     title: z.string().trim().min(1).max(255).optional(),
@@ -361,6 +365,7 @@ const publicActionSlugSchema = z
 const createPublicActionSchema = z
   .object({
     actionType: publicActionTypeSchema,
+    appealCampaignId: z.union([uuidSchema, z.null()]).optional(),
     status: publicActionStatusSchema.optional(),
     slug: publicActionSlugSchema.optional(),
     title: z.string().trim().min(1).max(255),

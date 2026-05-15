@@ -51,6 +51,11 @@ describe('ReportsHomePage', () => {
 
     expect(
       within(executiveCard as HTMLElement).getByRole('link', {
+        name: /packet workspace/i,
+      })
+    ).toHaveAttribute('href', '/reports/board-packet');
+    expect(
+      within(executiveCard as HTMLElement).getByRole('link', {
         name: /board pack templates/i,
       })
     ).toHaveAttribute('href', '/reports/templates?tag=board-pack');
@@ -81,6 +86,7 @@ describe('ReportsHomePage', () => {
       '/reports/scheduled'
     );
     expect(screen.queryByRole('link', { name: /board pack templates/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /packet workspace/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /fundraising templates/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /workflow coverage/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /saved reports/i })).not.toBeInTheDocument();
@@ -101,6 +107,9 @@ describe('ReportsHomePage', () => {
     expect(executiveCard).not.toBeNull();
     expect(adminCard).not.toBeNull();
 
+    expect(
+      within(executiveCard as HTMLElement).getByRole('link', { name: /packet workspace/i })
+    ).toHaveAttribute('href', '/reports/board-packet');
     expect(
       within(executiveCard as HTMLElement).getByRole('link', { name: /^saved reports$/i })
     ).toHaveAttribute('href', '/reports/saved');

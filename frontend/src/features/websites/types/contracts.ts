@@ -137,6 +137,7 @@ export interface WebsiteFormOperationalConfig {
   buttonText?: string;
   successMessage?: string;
   accountId?: string | null;
+  appealCampaignId?: string | null;
   campaignId?: string | null;
   provider?: PaymentProvider;
   mailchimpListId?: string | null;
@@ -228,6 +229,7 @@ export interface WebsiteStripeSettings {
   currency?: string;
   suggestedAmounts?: number[];
   recurringDefault?: boolean;
+  appealCampaignId?: string | null;
   campaignId?: string | null;
 }
 

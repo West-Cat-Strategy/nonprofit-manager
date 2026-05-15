@@ -558,6 +558,8 @@ export class PublicWebsiteFormService {
     const normalizedAmount = Number(amountValue.toFixed(2));
     const campaignName =
       typeof component.campaignId === 'string' ? component.campaignId : undefined;
+    const appealCampaignId =
+      typeof component.appealCampaignId === 'string' ? component.appealCampaignId : undefined;
     const provider = this.resolveDonationProvider(component, settings);
     const accountId = this.resolveDonationAccountId(component, site, settings);
     const providerLabel =
@@ -586,6 +588,7 @@ export class PublicWebsiteFormService {
         amount: normalizedAmount,
         currency,
         provider,
+        appealCampaignId,
         campaignName,
         notes: identity.message,
         userId: site.ownerUserId || site.userId,
@@ -641,6 +644,7 @@ export class PublicWebsiteFormService {
         payment_method: 'credit_card',
         payment_status: 'pending',
         notes: identity.message,
+        appeal_campaign_id: appealCampaignId,
         campaign_name: campaignName,
         payment_provider: provider,
         is_recurring: recurringDefault,

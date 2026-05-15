@@ -170,6 +170,68 @@ async function waitForCaseAvailability(page: Page, token: string, caseId: string
     );
 }
 
+type CaseSearchResult = {
+    id?: string;
+    title?: string;
+    contact_id?: string | null;
+    contactId?: string | null;
+    contact?: { id?: string | null } | null;
+    primary_contact?: { contact_id?: string | null; id?: string | null } | null;
+};
+
+function caseMatchesContact(item: CaseSearchResult, contactId: string): boolean {
+    const candidateContactIds = [
+        item.contact_id,
+        item.contactId,
+        item.contact?.id,
+        item.primary_contact?.contact_id,
+        item.primary_contact?.id,
+    ].filter((value): value is string => typeof value === 'string' && value.length > 0);
+
+    return candidateContactIds.length === 0 || candidateContactIds.includes(contactId);
+}
+
+async function waitForCreatedCaseId(
+    page: Page,
+    token: string,
+    title: string,
+    contactId: string
+): Promise<string> {
+    const deadline = Date.now() + 15000;
+    let lastStatus: number | null = null;
+    let lastBody = '';
+
+    while (Date.now() < deadline) {
+        const headers = await getReadHeaders(page, token);
+        const response = await page.request.get(
+            `${apiURL}/api/v2/cases?limit=25&search=${encodeURIComponent(title)}&contact_id=${encodeURIComponent(contactId)}&is_urgent=true`,
+            { headers }
+        );
+        lastStatus = response.status();
+        lastBody = await response.text().catch(() => '');
+
+        if (response.ok()) {
+            try {
+                const payload = unwrapSuccess<{ cases?: CaseSearchResult[] }>(JSON.parse(lastBody));
+                const createdCase = (payload.cases || []).find((item) =>
+                    item.id && item.title === title && caseMatchesContact(item, contactId)
+                );
+                if (createdCase?.id) {
+                    return createdCase.id;
+                }
+            } catch (error) {
+                lastBody = `Unable to parse case search response: ${error instanceof Error ? error.message : String(error)}; raw=${lastBody}`;
+            }
+        }
+
+        await page.waitForTimeout(750);
+    }
+
+    throw new Error(
+        `Created case "${title}" was not found after UI submit (lastStatus=${lastStatus ?? 'unknown'}, lastBody=${lastBody || 'empty response'})`
+    );
+}
+
 async function getFirstCaseTypeId(page: Page, token: string): Promise<string> {
     const headers = await getReadHeaders(page, token);
     const response = await page.request.get(`${apiURL}/api/v2/cases/types`, {
@@ -292,10 +354,49 @@ test.describe('Cases Module', () => {
     test('should create a new case via UI', async ({ authenticatedPage, authToken }) => {
         const suffix = uniqueSuffix();
         const title = `Test Case ${suffix}`;
-        const { id: createdCaseId } = await createTestCase(authenticatedPage, authToken, {
-            title,
-            description: 'This is a test case description.',
+        const organizationId = (await resolveOrganizationId(authenticatedPage, authToken)) || getTokenOrganizationId(authToken);
+        if (!organizationId) {
+            throw new Error('Unable to resolve organization context for case UI creation test');
+        }
+
+        const { id: contactId } = await createTestContact(authenticatedPage, authToken, {
+            firstName: 'Case',
+            lastName: `Ui-${suffix}`,
+            email: `case.ui.${suffix}@example.com`,
+            accountId: organizationId,
         });
+        const caseTypeId = await getFirstCaseTypeId(authenticatedPage, authToken);
+
+        await authenticatedPage.goto(`/cases/new?contact_id=${contactId}&case_type_id=${caseTypeId}`);
+        await expect(authenticatedPage.getByText(/prefilled context applied/i)).toBeVisible();
+        await expect(authenticatedPage.locator('input[name="contact_id"]')).toHaveValue(
+            contactId,
+            { timeout: 30000 }
+        );
+        await expect(authenticatedPage.getByText(/\(Primary\)/)).toBeVisible({ timeout: 30000 });
+
+        await authenticatedPage.locator('#case-title').fill(title);
+        await authenticatedPage.locator('#case-description').fill('This is a test case description.');
+        await authenticatedPage.locator('#case-is-urgent').check();
+
+        const createCaseResponsePromise = authenticatedPage.waitForResponse(
+            response => {
+                const url = new URL(response.url());
+                return response.request().method() === 'POST' && url.pathname === '/api/v2/cases';
+            },
+            { timeout: 30000 }
+        );
+        const saveCaseButton = authenticatedPage.getByTestId('case-form-primary-submit');
+        await expect(saveCaseButton).toBeEnabled({ timeout: 30000 });
+        await saveCaseButton.click();
+
+        const createCaseResponse = await createCaseResponsePromise;
+        if (!createCaseResponse.ok()) {
+            const body = await createCaseResponse.text().catch(() => '<response body unavailable>');
+            throw new Error(`Failed to create case via UI (${createCaseResponse.status()}): ${body}`);
+        }
+
+        const createdCaseId = await waitForCreatedCaseId(authenticatedPage, authToken, title, contactId);
         await waitForCaseAvailability(authenticatedPage, authToken, createdCaseId);
         await authenticatedPage.goto(`/cases/${createdCaseId}`);
         await expect(authenticatedPage.getByText(title).first()).toBeVisible({ timeout: 15000 });

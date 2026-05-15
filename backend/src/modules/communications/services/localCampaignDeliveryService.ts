@@ -2,6 +2,7 @@ import pool from '@config/database';
 import { logger } from '@config/logger';
 import { sendMail } from '@services/emailService';
 import { resolveMailchimpCampaignContent } from '@services/template/emailCampaignRenderer';
+import appealCampaignService from '@modules/appealCampaigns/services/appealCampaignService';
 import type {
   CommunicationCampaign,
   CommunicationCampaignActionResult,
@@ -132,10 +133,15 @@ export const createLocalCampaign = async (
     request.scopeAccountIds
   );
   const contentSnapshot = buildContentSnapshot(request);
+  const appealCampaign = await appealCampaignService.requireCampaignForScope(
+    request.appealCampaignId,
+    { scopeAccountIds: request.scopeAccountIds }
+  );
 
   const result = await pool.query<CampaignRunRow>(
     `INSERT INTO campaign_runs (
        provider,
+       appeal_campaign_id,
        title,
        list_id,
        include_audience_id,
@@ -152,13 +158,14 @@ export const createLocalCampaign = async (
      )
      VALUES (
        'local_email', $1, $2, $3, $4, $5, $6, $7, $8, $9,
-       $10, $11, $12, $13
+       $10, $11, $12, $13, $14
      )
-     RETURNING id, provider, provider_campaign_id, title, list_id, include_audience_id,
+     RETURNING id, provider, provider_campaign_id, appeal_campaign_id, title, list_id, include_audience_id,
                exclusion_audience_ids, suppression_snapshot, test_recipients, audience_snapshot,
                content_snapshot, requested_send_time, status, counts, scope_account_ids,
                failure_message, requested_by, created_at, updated_at`,
     [
+      appealCampaign?.id ?? null,
       request.title,
       request.listId ?? LOCAL_AUDIENCE_ID,
       request.includeAudienceId ?? null,
@@ -187,6 +194,16 @@ export const createLocalCampaign = async (
   );
 
   const run = mapRunRow(result.rows[0]);
+  await appealCampaignService.upsertProviderLink({
+    appealCampaignId: run.appealCampaignId,
+    organizationId: appealCampaign?.organizationId,
+    scopeAccountIds: request.scopeAccountIds,
+    provider: 'local_email',
+    providerCampaignId: run.id,
+    providerAudienceId: request.listId ?? LOCAL_AUDIENCE_ID,
+    label: request.title,
+    createdBy: request.requestedBy ?? null,
+  });
   const deliveryCounts = await insertLocalRecipients(run.id, contacts);
   const updated = await updateRunCounts(run.id, { ...deliveryCounts });
   return mapLocalRunToCampaign(updated);
@@ -416,7 +433,7 @@ export const rescheduleLocalCampaignRun = async (
             failure_message = NULL,
             updated_at = CURRENT_TIMESTAMP
       WHERE id = $1
-      RETURNING id, provider, provider_campaign_id, title, list_id, include_audience_id,
+      RETURNING id, provider, provider_campaign_id, appeal_campaign_id, title, list_id, include_audience_id,
                 exclusion_audience_ids, suppression_snapshot, test_recipients, audience_snapshot,
                 content_snapshot, requested_send_time, status, counts, scope_account_ids,
                 failure_message, requested_by, created_at, updated_at`,

@@ -10,6 +10,7 @@ import {
   DonationDetail,
   DonationCreate,
   DonationEdit,
+  DonationBatchReview,
   RecurringDonationList,
   RecurringDonationDetail,
   RecurringDonationEdit,
@@ -45,6 +46,10 @@ export function createFinanceRoutes(ProtectedRoute: React.ComponentType<RouteWra
       <Route
         path="/donations/:id"
         element={<ProtectedRoute><DonationDetail /></ProtectedRoute>}
+      />
+      <Route
+        path="/donations/batches"
+        element={<ProtectedRoute><DonationBatchReview /></ProtectedRoute>}
       />
       <Route
         path="/recurring-donations"

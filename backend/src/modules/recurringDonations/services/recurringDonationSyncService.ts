@@ -229,6 +229,7 @@ export class RecurringDonationSyncService {
             plan.provider_checkout_session_id || plan.stripe_checkout_session_id || undefined,
           stripe_subscription_id: invoice.subscription,
           stripe_invoice_id: invoice.id,
+          appeal_campaign_id: plan.appeal_campaign_id || undefined,
           campaign_name: plan.campaign_name || undefined,
           designation_id: plan.designation_id || undefined,
           designation: plan.designation || undefined,

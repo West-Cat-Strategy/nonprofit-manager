@@ -63,10 +63,17 @@ const workflowCards: ReportsHomeCard[] = [
     Icon: PresentationChartLineIcon,
     actions: [
       {
+        label: 'Packet Workspace',
+        summary: 'Assemble saved reports, schedules, snapshots, and follow-up gaps in one read-only view.',
+        to: '/reports/board-packet',
+        tone: 'primary',
+        isAvailable: (access) => access.canViewReports || access.canManageReports,
+      },
+      {
         label: 'Board Pack Templates',
         summary: 'Open templates tagged for board-ready reporting packs.',
         to: '/reports/templates?tag=board-pack',
-        tone: 'primary',
+        tone: 'secondary',
         isAvailable: (access) => access.canManageReports,
       },
       {

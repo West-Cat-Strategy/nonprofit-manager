@@ -24,7 +24,12 @@ export interface RecurringDonationPlan {
   currency: string;
   interval: 'monthly';
   payment_provider?: 'stripe' | 'paypal' | 'square' | null;
+  appeal_campaign_id?: string | null;
   campaign_name: string | null;
+  appeal_campaign_name?: string | null;
+  appeal_campaign_code?: string | null;
+  appeal_campaign_kind?: 'appeal' | 'campaign' | null;
+  appeal_campaign_status?: 'draft' | 'active' | 'completed' | 'archived' | null;
   designation_id: string | null;
   designation: string | null;
   designation_label?: string | null;
@@ -72,6 +77,7 @@ export interface RecurringDonationPlanListPage {
 
 export interface UpdateRecurringDonationPlanDTO {
   amount?: number;
+  appeal_campaign_id?: string | null;
   campaign_name?: string | null;
   designation_id?: string | null;
   designation?: string | null;

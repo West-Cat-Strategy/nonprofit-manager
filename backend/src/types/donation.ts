@@ -65,7 +65,12 @@ export interface Donation {
   provider_customer_id?: string | null;
   stripe_subscription_id?: string | null;
   stripe_invoice_id?: string | null;
+  appeal_campaign_id?: string | null;
   campaign_name: string | null;
+  appeal_campaign_name?: string | null;
+  appeal_campaign_code?: string | null;
+  appeal_campaign_kind?: 'appeal' | 'campaign' | null;
+  appeal_campaign_status?: 'draft' | 'active' | 'completed' | 'archived' | null;
   designation_id: string | null;
   designation: string | null;
   designation_label?: string | null;
@@ -108,6 +113,7 @@ export interface CreateDonationDTO {
   provider_customer_id?: string;
   stripe_subscription_id?: string;
   stripe_invoice_id?: string;
+  appeal_campaign_id?: string | null;
   campaign_name?: string;
   designation_id?: string | null;
   designation?: string | null;
@@ -133,6 +139,7 @@ export interface UpdateDonationDTO {
   provider_customer_id?: string | null;
   stripe_subscription_id?: string | null;
   stripe_invoice_id?: string | null;
+  appeal_campaign_id?: string | null;
   campaign_name?: string;
   designation_id?: string | null;
   designation?: string | null;
@@ -149,6 +156,7 @@ export interface DonationFilters {
   contact_id?: string;
   payment_method?: PaymentMethod;
   payment_status?: PaymentStatus;
+  appeal_campaign_id?: string;
   campaign_name?: string;
   is_recurring?: boolean;
   min_amount?: number;
@@ -183,4 +191,97 @@ export interface DonationSummary {
   by_designation: Record<string, { count: number; amount: number; code?: string | null }>;
   recurring_count: number;
   recurring_amount: number;
+}
+
+export type DonationBatchStatus = 'open' | 'under_review' | 'approved' | 'posted';
+
+export type DonationBatchAuditEventType =
+  | 'created'
+  | 'closed_for_review'
+  | 'reopened'
+  | 'approved'
+  | 'posted';
+
+export interface DonationBatchRestrictedFundSummary {
+  restriction_type: FundRestrictionType | 'unknown';
+  designation_id: string | null;
+  designation_label: string;
+  designation_code: string | null;
+  count: number;
+  amount: number;
+}
+
+export interface DonationBatchExceptionPreview {
+  code:
+    | 'control_count_mismatch'
+    | 'control_amount_mismatch'
+    | 'currency_mismatch'
+    | 'non_completed_payment'
+    | 'missing_donor_link';
+  severity: 'blocking' | 'warning';
+  message: string;
+  donation_id?: string;
+  donation_number?: string | null;
+  amount?: number;
+}
+
+export interface DonationBatchAuditEvent {
+  audit_event_id: string;
+  batch_id: string;
+  event_type: DonationBatchAuditEventType;
+  from_status: DonationBatchStatus | null;
+  to_status: DonationBatchStatus;
+  actor_user_id: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface DonationBatchControlSummary {
+  expected_count: number;
+  expected_amount: number;
+  actual_count: number;
+  actual_amount: number;
+  difference_count: number;
+  difference_amount: number;
+  currency: string;
+}
+
+export interface DonationBatch {
+  batch_id: string;
+  organization_id: string;
+  name: string;
+  date_from: string;
+  date_to: string;
+  expected_count: number;
+  expected_amount: number;
+  currency: string;
+  status: DonationBatchStatus;
+  notes: string | null;
+  closed_at: string | null;
+  reviewed_at: string | null;
+  approved_at: string | null;
+  posted_at: string | null;
+  reopened_at: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+  modified_by: string | null;
+  control_summary: DonationBatchControlSummary;
+  restricted_fund_summary: DonationBatchRestrictedFundSummary[];
+  exception_preview: DonationBatchExceptionPreview[];
+  audit_events: DonationBatchAuditEvent[];
+}
+
+export interface CreateDonationBatchDTO {
+  name: string;
+  date_from: string;
+  date_to: string;
+  expected_count: number;
+  expected_amount: number;
+  currency?: string;
+  notes?: string | null;
+}
+
+export interface DonationBatchListResponse {
+  data: DonationBatch[];
 }

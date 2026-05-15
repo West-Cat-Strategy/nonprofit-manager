@@ -45,6 +45,22 @@ export interface OrganizationSettings {
   updatedAt: string;
 }
 
+export interface ServiceSiteSnapshot {
+  id?: string | null;
+  name?: string | null;
+  provider_name?: string | null;
+  address_line1?: string | null;
+  address_line2?: string | null;
+  city?: string | null;
+  state_province?: string | null;
+  postal_code?: string | null;
+  country?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  contact_name?: string | null;
+  notes?: string | null;
+}
+
 export interface Role {
   id: string;
   name: string;
@@ -274,6 +290,7 @@ export interface PortalAppointmentSlot {
   title: string | null;
   details: string | null;
   location: string | null;
+  service_site_snapshot?: ServiceSiteSnapshot | null;
   start_time: string;
   end_time: string;
   capacity: number;
@@ -301,6 +318,7 @@ export interface PortalAdminAppointmentInboxItem {
   checked_in_at?: string | null;
   checked_in_by?: string | null;
   location: string | null;
+  service_site_snapshot?: ServiceSiteSnapshot | null;
   created_at: string;
   updated_at: string;
   case_number?: string | null;

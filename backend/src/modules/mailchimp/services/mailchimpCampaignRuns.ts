@@ -1,4 +1,5 @@
 import pool from '@config/database';
+import appealCampaignService from '@modules/appealCampaigns/services/appealCampaignService';
 import type {
   BulkSyncRequest,
   BulkSyncResponse,
@@ -30,6 +31,7 @@ interface CampaignRunRow {
   id: string;
   provider: 'mailchimp';
   provider_campaign_id: string | null;
+  appeal_campaign_id: string | null;
   title: string;
   list_id: string;
   include_audience_id: string | null;
@@ -196,6 +198,7 @@ const mapCampaignRunRow = (row: CampaignRunRow): CampaignRun => ({
   id: row.id,
   provider: row.provider,
   providerCampaignId: row.provider_campaign_id,
+  appealCampaignId: row.appeal_campaign_id,
   title: row.title,
   listId: row.list_id,
   includeAudienceId: row.include_audience_id,
@@ -308,7 +311,7 @@ export async function listCampaignRuns(
 ): Promise<CampaignRun[]> {
   const scopeAccountIds = uniqueStrings(requesterScopeAccountIds ?? []);
   const result = await pool.query<CampaignRunRow>(
-    `SELECT id, provider, provider_campaign_id, title, list_id, include_audience_id,
+    `SELECT id, provider, provider_campaign_id, appeal_campaign_id, title, list_id, include_audience_id,
             exclusion_audience_ids, suppression_snapshot, test_recipients, audience_snapshot,
             requested_send_time, status, counts, scope_account_ids, failure_message,
             requested_by, created_at, updated_at
@@ -329,7 +332,7 @@ export async function getCampaignRun(
 ): Promise<CampaignRun | null> {
   const scopeAccountIds = uniqueStrings(requesterScopeAccountIds ?? []);
   const result = await pool.query<CampaignRunRow>(
-    `SELECT id, provider, provider_campaign_id, title, list_id, include_audience_id,
+    `SELECT id, provider, provider_campaign_id, appeal_campaign_id, title, list_id, include_audience_id,
             exclusion_audience_ids, suppression_snapshot, test_recipients, audience_snapshot,
             requested_send_time, status, counts, scope_account_ids, failure_message,
             requested_by, created_at, updated_at
@@ -357,7 +360,7 @@ export async function updateCampaignRunStatus(
          updated_at = CURRENT_TIMESTAMP
      WHERE provider = 'mailchimp'
        AND id = $1
-     RETURNING id, provider, provider_campaign_id, title, list_id, include_audience_id,
+     RETURNING id, provider, provider_campaign_id, appeal_campaign_id, title, list_id, include_audience_id,
                exclusion_audience_ids, suppression_snapshot, test_recipients, audience_snapshot,
                requested_send_time, status, counts, scope_account_ids, failure_message,
                requested_by, created_at, updated_at`,
@@ -389,9 +392,14 @@ function buildCampaignRunAudienceSnapshot(
 export async function createPendingCampaignRun(
   request: CreateCampaignRequest
 ): Promise<CampaignRun> {
+  const appealCampaign = await appealCampaignService.requireCampaignForScope(
+    request.appealCampaignId,
+    { scopeAccountIds: request.scopeAccountIds }
+  );
   const result = await pool.query<CampaignRunRow>(
     `INSERT INTO campaign_runs (
        title,
+       appeal_campaign_id,
        list_id,
        include_audience_id,
        exclusion_audience_ids,
@@ -404,13 +412,14 @@ export async function createPendingCampaignRun(
        scope_account_ids,
        requested_by
      )
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'draft', '{}'::jsonb, $9, $10)
-     RETURNING id, provider, provider_campaign_id, title, list_id, include_audience_id,
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'draft', '{}'::jsonb, $10, $11)
+     RETURNING id, provider, provider_campaign_id, appeal_campaign_id, title, list_id, include_audience_id,
                exclusion_audience_ids, suppression_snapshot, test_recipients, audience_snapshot,
                requested_send_time, status, counts, scope_account_ids, failure_message,
                requested_by, created_at, updated_at`,
     [
       request.title,
+      appealCampaign?.id ?? null,
       request.listId,
       request.includeAudienceId || null,
       request.exclusionAudienceIds ?? [],
@@ -436,7 +445,7 @@ async function getCampaignRunsByIds(
 
   const scopeAccountIds = uniqueStrings(requesterScopeAccountIds ?? []);
   const result = await pool.query<CampaignRunRow>(
-    `SELECT id, provider, provider_campaign_id, title, list_id, include_audience_id,
+    `SELECT id, provider, provider_campaign_id, appeal_campaign_id, title, list_id, include_audience_id,
             exclusion_audience_ids, suppression_snapshot, test_recipients, audience_snapshot,
             requested_send_time, status, counts, scope_account_ids, failure_message,
             requested_by, created_at, updated_at
@@ -462,20 +471,21 @@ export async function finalizeCampaignRun(
      SET provider_campaign_id = $2,
          title = $3,
          list_id = $4,
-         include_audience_id = $5,
-         exclusion_audience_ids = $6,
-         suppression_snapshot = $7,
-         test_recipients = $8,
-         audience_snapshot = $9,
-         requested_send_time = $10,
-         status = $11,
-         counts = $12,
-         scope_account_ids = $13,
-         requested_by = $14,
+         appeal_campaign_id = $5,
+         include_audience_id = $6,
+         exclusion_audience_ids = $7,
+         suppression_snapshot = $8,
+         test_recipients = $9,
+         audience_snapshot = $10,
+         requested_send_time = $11,
+         status = $12,
+         counts = $13,
+         scope_account_ids = $14,
+         requested_by = $15,
          failure_message = NULL,
          updated_at = CURRENT_TIMESTAMP
      WHERE id = $1
-     RETURNING id, provider, provider_campaign_id, title, list_id, include_audience_id,
+     RETURNING id, provider, provider_campaign_id, appeal_campaign_id, title, list_id, include_audience_id,
                exclusion_audience_ids, suppression_snapshot, test_recipients, audience_snapshot,
                requested_send_time, status, counts, scope_account_ids, failure_message,
                requested_by, created_at, updated_at`,
@@ -484,6 +494,7 @@ export async function finalizeCampaignRun(
       providerCampaignId,
       request.title,
       request.listId,
+      request.appealCampaignId ?? null,
       request.includeAudienceId || null,
       request.exclusionAudienceIds ?? [],
       JSON.stringify(targeting?.suppressionSnapshot ?? request.suppressionSnapshot ?? []),
@@ -497,7 +508,17 @@ export async function finalizeCampaignRun(
     ]
   );
 
-  return mapCampaignRunRow(result.rows[0]);
+  const campaignRun = mapCampaignRunRow(result.rows[0]);
+  await appealCampaignService.upsertProviderLink({
+    appealCampaignId: campaignRun.appealCampaignId,
+    scopeAccountIds: request.scopeAccountIds,
+    provider: 'mailchimp',
+    providerCampaignId,
+    providerAudienceId: request.listId,
+    label: request.title,
+    createdBy: request.requestedBy ?? null,
+  });
+  return campaignRun;
 }
 
 export async function markCampaignRunFailed(runId: string, message: string): Promise<void> {

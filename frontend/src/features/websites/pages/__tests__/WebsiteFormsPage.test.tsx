@@ -671,7 +671,7 @@ describe('WebsiteFormsPage', () => {
     renderPage();
 
     expect(await screen.findByText('Recent submissions for Spring Pledge')).toBeInTheDocument();
-    expect(await screen.findByText('new')).toBeInTheDocument();
+    expect((await screen.findAllByText('Awaiting review')).length).toBeGreaterThan(0);
 
     fireEvent.click(await screen.findByRole('button', { name: 'Accept' }));
 
@@ -682,7 +682,14 @@ describe('WebsiteFormsPage', () => {
         'submission-pledge'
       );
     });
-    expect(await screen.findByText('accepted')).toBeInTheDocument();
+    expect((await screen.findAllByText('Accepted')).length).toBeGreaterThan(0);
+    expect(
+      screen.getByRole('region', { name: 'Review history for submission-pledge' })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('region', { name: 'Artifacts for submission-pledge' })
+    ).toBeInTheDocument();
+    expect(screen.getByText('pledge-1')).toBeInTheDocument();
     expect(screen.getByText('Submission accepted.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Reject' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Fulfill' })).toBeInTheDocument();
@@ -760,7 +767,7 @@ describe('WebsiteFormsPage', () => {
     renderPage();
 
     expect(await screen.findByText('Recent submissions for Library Petition')).toBeInTheDocument();
-    expect(await screen.findByText('needs_review')).toBeInTheDocument();
+    expect((await screen.findAllByText('Needs review')).length).toBeGreaterThan(0);
 
     fireEvent.click(await screen.findByRole('button', { name: 'Reject' }));
 
@@ -771,7 +778,7 @@ describe('WebsiteFormsPage', () => {
         'submission-reject'
       );
     });
-    expect(await screen.findByText('rejected')).toBeInTheDocument();
+    expect((await screen.findAllByText('Rejected')).length).toBeGreaterThan(0);
     expect(screen.getByText('Submission rejected.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Accept' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Reject' })).not.toBeInTheDocument();
@@ -812,7 +819,10 @@ describe('WebsiteFormsPage', () => {
         duplicateOfSubmissionId: null,
         consent: {},
         payloadRedacted: {},
-        generatedArtifact: {},
+        generatedArtifact: {
+          templateVersion: 'housing-v1',
+          letterTitle: 'Housing support letter',
+        },
         pagePath: '/letters',
         visitorId: null,
         sessionId: null,
@@ -836,7 +846,10 @@ describe('WebsiteFormsPage', () => {
         duplicateOfSubmissionId: null,
         consent: {},
         payloadRedacted: {},
-        generatedArtifact: {},
+        generatedArtifact: {
+          templateVersion: 'housing-v1',
+          letterTitle: 'Housing support letter',
+        },
         pagePath: '/letters',
         visitorId: null,
         sessionId: null,
@@ -861,7 +874,11 @@ describe('WebsiteFormsPage', () => {
         'submission-support-letter'
       );
     });
-    expect(await screen.findByText('fulfilled')).toBeInTheDocument();
+    expect((await screen.findAllByText('Fulfilled')).length).toBeGreaterThan(0);
+    expect(screen.getByText(/support_letter/)).toBeInTheDocument();
+    expect(screen.getByText('letter-1')).toBeInTheDocument();
+    expect(screen.getByText('Template')).toBeInTheDocument();
+    expect(screen.getByText('housing-v1')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Accept' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Fulfill' })).not.toBeInTheDocument();
 
@@ -925,8 +942,8 @@ describe('WebsiteFormsPage', () => {
 
     renderPage();
 
-    expect(await screen.findByText('rejected')).toBeInTheDocument();
-    expect(screen.getByText('fulfilled')).toBeInTheDocument();
+    expect((await screen.findAllByText('Rejected')).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Fulfilled').length).toBeGreaterThan(0);
     expect(screen.queryByRole('button', { name: 'Accept' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Reject' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Fulfill' })).not.toBeInTheDocument();
@@ -977,7 +994,10 @@ describe('WebsiteFormsPage', () => {
         duplicateOfSubmissionId: null,
         consent: {},
         payloadRedacted: {},
-        generatedArtifact: {},
+        generatedArtifact: {
+          templateVersion: 'housing-v1',
+          letterTitle: 'Housing support letter',
+        },
         pagePath: '/letters',
         visitorId: null,
         sessionId: null,

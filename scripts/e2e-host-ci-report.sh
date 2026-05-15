@@ -115,8 +115,7 @@ MOBILE_COMMAND=(
   CI=1
   bash ../scripts/e2e-playwright.sh host
   "$PLAYWRIGHT_BIN" test
-  --project
-  "Mobile Chrome"
+  "--project=Mobile Chrome"
   tests/ux-regression.spec.ts
   --grep "mobile navigation drawer keeps the compact section layout|mobile auth entry routes keep forms above the fold|mobile staff routes use compact cards and avoid horizontal overflow"
 )

@@ -1,6 +1,7 @@
 import { Pool, PoolClient } from 'pg';
 import dbPool, { setCurrentUserId } from '@config/database';
 import { services } from '@container/services';
+import appealCampaignService from '@modules/appealCampaigns/services/appealCampaignService';
 import type { PublishedSite } from '@app-types/publishing';
 import type {
   CreatePublicActionRequest,
@@ -56,6 +57,7 @@ const mapActionRow = (row: Record<string, unknown>): PublicAction => ({
   id: row.id as string,
   organizationId: row.organization_id as string,
   siteId: row.site_id as string,
+  appealCampaignId: (row.appeal_campaign_id as string | null) || null,
   pageId: (row.page_id as string | null) || null,
   componentId: (row.component_id as string | null) || null,
   actionType: row.action_type as PublicActionType,
@@ -197,17 +199,23 @@ export class PublicActionService {
     const slug = normalizeSlug(data.slug || data.title);
     const status = data.status || 'draft';
     const publishedAt = data.publishedAt || (status === 'published' ? new Date().toISOString() : null);
+    const compatibilityAppealCampaignId = asString(data.settings?.appealCampaignId);
+    const appealCampaign = await appealCampaignService.requireCampaignForScope(
+      data.appealCampaignId ?? compatibilityAppealCampaignId,
+      { organizationId: site.organizationId }
+    );
 
     const result = await this.pool.query(
       `INSERT INTO website_public_actions (
-         organization_id, site_id, page_id, component_id, action_type, status, slug,
+         organization_id, site_id, appeal_campaign_id, page_id, component_id, action_type, status, slug,
          title, description, settings, confirmation_message, published_at, closed_at,
          created_by, updated_by
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14)
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $15)
        RETURNING *, 0::int AS submission_count`,
       [
         site.organizationId,
         site.id,
+        appealCampaign?.id ?? null,
         data.pageId || null,
         data.componentId || null,
         data.actionType,
@@ -233,7 +241,7 @@ export class PublicActionService {
     data: UpdatePublicActionRequest,
     organizationId?: string
   ): Promise<PublicAction | null> {
-    await this.requireOwnedSite(siteId, userId, organizationId);
+    const site = await this.requireOwnedSite(siteId, userId, organizationId);
 
     const updates: string[] = [];
     const params: unknown[] = [];
@@ -249,6 +257,24 @@ export class PublicActionService {
     if (data.description !== undefined) add('description', data.description || null);
     if (data.pageId !== undefined) add('page_id', data.pageId || null);
     if (data.componentId !== undefined) add('component_id', data.componentId || null);
+    if (data.appealCampaignId !== undefined) {
+      const appealCampaign = await appealCampaignService.requireCampaignForScope(
+        data.appealCampaignId,
+        { organizationId: site.organizationId }
+      );
+      add('appeal_campaign_id', appealCampaign?.id ?? null);
+    } else if (
+      data.settings &&
+      Object.prototype.hasOwnProperty.call(data.settings, 'appealCampaignId')
+    ) {
+      const settingsAppealCampaignId =
+        data.settings.appealCampaignId === null ? null : asString(data.settings.appealCampaignId);
+      const appealCampaign = await appealCampaignService.requireCampaignForScope(
+        settingsAppealCampaignId,
+        { organizationId: site.organizationId }
+      );
+      add('appeal_campaign_id', appealCampaign?.id ?? null);
+    }
     if (data.settings !== undefined) add('settings', JSON.stringify(data.settings || {}));
     if (data.confirmationMessage !== undefined) {
       add('confirmation_message', data.confirmationMessage || null);
@@ -556,8 +582,9 @@ export class PublicActionService {
           await executor.query<{ id: string }>(
             `INSERT INTO website_public_pledges (
                organization_id, site_id, action_id, submission_id, contact_id, campaign_id,
+               appeal_campaign_id,
                amount, currency, schedule, due_date
-             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
              RETURNING id`,
             [
               site.organizationId,
@@ -566,6 +593,7 @@ export class PublicActionService {
               submission.id,
               contactId || null,
               asString(action.settings.campaignId) || null,
+              action.appealCampaignId || asString(action.settings.appealCampaignId) || null,
               amount,
               asString(action.settings.currency) || 'CAD',
               JSON.stringify({

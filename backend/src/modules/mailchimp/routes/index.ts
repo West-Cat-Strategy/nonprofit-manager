@@ -205,6 +205,7 @@ const createCampaignSchema = z
     suppressionSnapshot: z.array(z.unknown()).max(1000).optional(),
     testRecipients: z.array(emailSchema).max(50).optional(),
     audienceSnapshot: z.record(z.string(), z.unknown()).optional(),
+    appealCampaignId: uuidSchema.optional(),
   })
   .strict();
 

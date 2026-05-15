@@ -173,6 +173,14 @@ const CaseServices = ({ caseId, provenance }: CaseServicesProps) => {
         }
     };
 
+    const formatSiteAddress = (service: CaseService): string | null => {
+        const site = service.service_site_snapshot;
+        if (!site) return null;
+        return [site.address_line1, site.address_line2, site.city, site.state_province, site.postal_code]
+            .filter(Boolean)
+            .join(', ') || null;
+    };
+
     return (
         <div className="space-y-6">
             {provenance && (
@@ -380,6 +388,14 @@ const CaseServices = ({ caseId, provenance }: CaseServicesProps) => {
                                         <p className="text-xs font-bold text-black/60 italic">
                                             by {service.service_provider}
                                         </p>
+                                    )}
+                                    {(service.service_site_snapshot?.name || service.service_site_snapshot?.provider_name) && (
+                                        <p className="mt-1 text-xs font-black uppercase text-black/60">
+                                            Site: {service.service_site_snapshot.name || service.service_site_snapshot.provider_name}
+                                        </p>
+                                    )}
+                                    {formatSiteAddress(service) && (
+                                        <p className="text-xs font-mono text-black/60">{formatSiteAddress(service)}</p>
                                     )}
                                     {service.notes && (
                                         <p className="mt-2 text-sm font-medium text-black/80 line-clamp-2">

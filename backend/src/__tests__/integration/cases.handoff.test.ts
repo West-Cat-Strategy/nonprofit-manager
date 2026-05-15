@@ -145,11 +145,69 @@ describe('Case Handoff Packet Integration Tests', () => {
        VALUES ($1, $2, $3, $4, 'scheduled', 'Housing reassessment', 'Confirm housing continuity', '2019-12-01', '2020-01-15', '2020-01-31', $4, $4)`,
       [organizationId, caseId, reassessmentFollowUpId, userId]
     );
+
+    await pool.query(
+      `INSERT INTO case_services (
+         case_id,
+         service_name,
+         service_type,
+         service_provider,
+         service_date,
+         status,
+         outcome,
+         created_by
+       )
+       VALUES ($1, 'Housing navigation', 'housing', 'Community Housing Team', '2026-04-22', 'scheduled', 'Bring lease paperwork', $2)`,
+      [caseId, userId]
+    );
+
+    await pool.query(
+      `INSERT INTO case_form_assignments (
+         case_id,
+         contact_id,
+         account_id,
+         case_type_id,
+         title,
+         description,
+         status,
+         schema,
+         current_draft_answers,
+         due_at,
+         recipient_email,
+         sent_at,
+         created_by,
+         updated_by
+       )
+       VALUES ($1, $2, $3, $4, 'Housing eligibility review', 'Field packet fixture', 'sent', '{}'::jsonb, '{}'::jsonb, '2026-04-23T16:00:00Z', 'handoff-client@example.com', '2026-04-20T16:00:00Z', $5, $5)`,
+      [caseId, contactId, organizationId, caseTypeId, userId]
+    );
+
+    await pool.query(
+      `INSERT INTO appointments (
+         contact_id,
+         case_id,
+         account_id,
+         pointperson_user_id,
+         title,
+         description,
+         start_time,
+         end_time,
+         status,
+         location,
+         request_type,
+         created_by
+       )
+       VALUES ($1, $2, $3, $4, 'Housing site visit', 'Field packet appointment fixture', '2026-04-24T18:00:00Z', '2026-04-24T18:30:00Z', 'confirmed', 'Main office', 'slot_booking', $4)`,
+      [contactId, caseId, organizationId, userId]
+    );
   });
 
   afterAll(async () => {
     if (caseId) {
       await pool.query('DELETE FROM case_reassessment_cycles WHERE case_id = $1', [caseId]);
+      await pool.query('DELETE FROM appointments WHERE case_id = $1', [caseId]);
+      await pool.query('DELETE FROM case_form_assignments WHERE case_id = $1', [caseId]);
+      await pool.query('DELETE FROM case_services WHERE case_id = $1', [caseId]);
       await pool.query('DELETE FROM case_milestones WHERE case_id = $1', [caseId]);
       await pool.query('DELETE FROM case_notes WHERE case_id = $1', [caseId]);
       await pool.query('DELETE FROM follow_ups WHERE entity_type = $1 AND entity_id = $2', ['case', caseId]);
@@ -202,6 +260,46 @@ describe('Case Handoff Packet Integration Tests', () => {
     expect(packet.continuity.handoff_readiness.cues).toContain('1 pending follow-up');
     expect(packet.continuity.closure.status).toBe('open_actions');
     expect(packet.continuity.closure.cues).toContain('1 lapsed reassessment window before closure');
+    expect(packet.field_packet.scope.offline_sync_included).toBe(false);
+    expect(packet.field_packet.scope.service_site_routing_included).toBe(false);
+    expect(packet.field_packet.scope.referral_transfer_included).toBe(false);
+    expect(packet.field_packet.scope.persisted_packet_included).toBe(false);
+    expect(packet.field_packet.assignment_context.case_status).toBe('Open');
+    expect(packet.field_packet.assignment_context.portal_visibility_status).toBe('Internal Only');
+    expect(packet.field_packet.services).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'Housing navigation',
+          type: 'housing',
+          provider: 'Community Housing Team',
+          status: 'scheduled',
+          service_date: '2026-04-22',
+          outcome: 'Bring lease paperwork',
+        }),
+      ])
+    );
+    expect(packet.field_packet.forms).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          title: 'Housing eligibility review',
+          status: 'sent',
+          recipient_email: 'handoff-client@example.com',
+        }),
+      ])
+    );
+    expect(packet.field_packet.appointments).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          title: 'Housing site visit',
+          status: 'confirmed',
+          location: 'Main office',
+          request_type: 'slot_booking',
+          pointperson: expect.objectContaining({
+            email: testEmail,
+          }),
+        }),
+      ])
+    );
   });
 
   it('requires CASE_VIEW permission', async () => {

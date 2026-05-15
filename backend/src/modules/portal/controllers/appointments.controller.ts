@@ -126,6 +126,7 @@ export const createPortalAppointmentsController = (useCase: PortalAppointmentsUs
         startTime: req.body.start_time as string,
         endTime: (req.body.end_time as string | undefined) ?? null,
         location: (req.body.location as string | undefined) ?? null,
+        serviceSiteSnapshot: (req.body.service_site_snapshot as Record<string, unknown> | undefined) ?? null,
         ipAddress: req.ip,
         userAgent: req.headers['user-agent'],
       });

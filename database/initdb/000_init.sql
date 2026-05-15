@@ -145,6 +145,9 @@ CREATE INDEX IF NOT EXISTS idx_schema_migrations_canonical_filename
 \i /migrations/127_website_entries_mautic_source.sql
 \i /migrations/128_mautic_site_credentials_encrypted.sql
 \i /migrations/129_cbis_import_duplicate_guards.sql
+\i /migrations/130_typed_appeal_campaign_spine.sql
+\i /migrations/131_donation_batch_review_controls.sql
+\i /migrations/132_service_site_snapshots.sql
 
 UPDATE schema_migrations
 SET migration_id = '032',
@@ -295,7 +298,10 @@ VALUES
     ('126_cbis_staged_import_runs.sql', '126', '126_cbis_staged_import_runs.sql'),
     ('127_website_entries_mautic_source.sql', '127', '127_website_entries_mautic_source.sql'),
     ('128_mautic_site_credentials_encrypted.sql', '128', '128_mautic_site_credentials_encrypted.sql'),
-    ('129_cbis_import_duplicate_guards.sql', '129', '129_cbis_import_duplicate_guards.sql')
+    ('129_cbis_import_duplicate_guards.sql', '129', '129_cbis_import_duplicate_guards.sql'),
+    ('130_typed_appeal_campaign_spine.sql', '130', '130_typed_appeal_campaign_spine.sql'),
+    ('131_donation_batch_review_controls.sql', '131', '131_donation_batch_review_controls.sql'),
+    ('132_service_site_snapshots.sql', '132', '132_service_site_snapshots.sql')
 ON CONFLICT (filename) DO UPDATE
 SET migration_id = EXCLUDED.migration_id,
     canonical_filename = EXCLUDED.canonical_filename;

@@ -260,6 +260,7 @@ const normalizeStripeSettings = (value: unknown): WebsiteStripeSettings => {
     currency: cleanString(config.currency)?.toLowerCase(),
     suggestedAmounts: cleanNumberArray(config.suggestedAmounts),
     recurringDefault: cleanBoolean(config.recurringDefault),
+    appealCampaignId: config.appealCampaignId === null ? null : cleanString(config.appealCampaignId),
     campaignId: config.campaignId === null ? null : cleanString(config.campaignId),
   };
 };
@@ -288,6 +289,7 @@ const normalizeOperationalConfig = (value: unknown): WebsiteFormOperationalConfi
     buttonText: cleanString(config.buttonText),
     successMessage: cleanString(config.successMessage),
     accountId: config.accountId === null ? null : cleanString(config.accountId),
+    appealCampaignId: config.appealCampaignId === null ? null : cleanString(config.appealCampaignId),
     campaignId: config.campaignId === null ? null : cleanString(config.campaignId),
     provider: normalizePaymentProvider(config.provider),
     mailchimpListId: config.mailchimpListId === null ? null : cleanString(config.mailchimpListId),

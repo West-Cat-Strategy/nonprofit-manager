@@ -152,6 +152,11 @@ export const getReportFieldSpecs = (entity: ReportEntity): Record<
         currency: { label: 'Currency', type: 'string', column: 'd.currency' },
         payment_method: { label: 'Payment Method', type: 'string', column: 'd.payment_method' },
         payment_status: { label: 'Payment Status', type: 'string', column: 'd.payment_status' },
+        appeal_campaign_id: { label: 'Appeal/Campaign ID', type: 'string', column: 'd.appeal_campaign_id' },
+        appeal_campaign_name: { label: 'Appeal/Campaign', type: 'string', column: 'COALESCE(ac.name, d.campaign_name)' },
+        appeal_campaign_code: { label: 'Appeal/Campaign Code', type: 'string', column: 'ac.code' },
+        appeal_campaign_kind: { label: 'Appeal/Campaign Type', type: 'string', column: 'ac.kind' },
+        appeal_campaign_status: { label: 'Appeal/Campaign Status', type: 'string', column: 'ac.status' },
         campaign_name: { label: 'Campaign', type: 'string', column: 'd.campaign_name' },
         designation: { label: 'Designation', type: 'string', column: 'd.designation' },
         is_recurring: { label: 'Recurring', type: 'boolean', column: 'd.is_recurring' },
@@ -641,7 +646,8 @@ export const getReportTableName = (entity: ReportEntity): string => {
       'cases c LEFT JOIN contacts con ON c.contact_id = con.id LEFT JOIN accounts acc ON acc.id = COALESCE(c.account_id, con.account_id) LEFT JOIN users assignee ON assignee.id = c.assigned_to LEFT JOIN case_statuses cs ON c.status_id = cs.id LEFT JOIN case_types ct ON c.case_type_id = ct.id LEFT JOIN LATERAL (SELECT STRING_AGG(ct_lookup.name, \' | \' ORDER BY cta.is_primary DESC, cta.sort_order ASC, cta.created_at ASC, cta.id ASC) AS case_type_names, (ARRAY_AGG(ct_lookup.name ORDER BY cta.is_primary DESC, cta.sort_order ASC, cta.created_at ASC, cta.id ASC))[1] AS primary_case_type_name FROM case_type_assignments cta INNER JOIN case_types ct_lookup ON ct_lookup.id = cta.case_type_id WHERE cta.case_id = c.id) case_type_summary ON true LEFT JOIN LATERAL (SELECT STRING_AGG(coa.outcome_value, \' | \' ORDER BY coa.is_primary DESC, coa.sort_order ASC, coa.created_at ASC, coa.id ASC) AS case_outcome_values, (ARRAY_AGG(coa.outcome_value ORDER BY coa.is_primary DESC, coa.sort_order ASC, coa.created_at ASC, coa.id ASC))[1] AS primary_case_outcome_value FROM case_outcome_assignments coa WHERE coa.case_id = c.id) case_outcome_summary ON true LEFT JOIN LATERAL (SELECT s.outcome FROM case_services s WHERE s.case_id = c.id ORDER BY s.service_date DESC NULLS LAST, s.created_at DESC LIMIT 1) svc ON true',
     accounts: 'accounts a',
     contacts: 'contacts c LEFT JOIN accounts a ON c.account_id = a.id',
-    donations: 'donations d LEFT JOIN contacts dc ON d.contact_id = dc.id LEFT JOIN accounts da ON d.account_id = da.id',
+    donations:
+      'donations d LEFT JOIN contacts dc ON d.contact_id = dc.id LEFT JOIN accounts da ON d.account_id = da.id LEFT JOIN appeal_campaigns ac ON d.appeal_campaign_id = ac.id',
     events: 'events e',
     appointments:
       'appointments a LEFT JOIN cases c ON c.id = a.case_id LEFT JOIN contacts con ON con.id = a.contact_id LEFT JOIN users u ON u.id = a.pointperson_user_id',

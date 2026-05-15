@@ -49,6 +49,7 @@ const checkoutResultQuerySchema = z
 const updatePlanSchema = z
   .object({
     amount: z.coerce.number().positive().optional(),
+    appeal_campaign_id: z.union([uuidSchema, z.null()]).optional(),
     campaign_name: z.union([z.string().trim().max(255), z.null()]).optional(),
     designation_id: z.union([uuidSchema, z.null()]).optional(),
     designation: z.union([z.string().trim().max(255), z.null()]).optional(),

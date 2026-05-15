@@ -127,3 +127,6 @@
 127	127_website_entries_mautic_source.sql
 128	128_mautic_site_credentials_encrypted.sql
 129	129_cbis_import_duplicate_guards.sql
+130	130_typed_appeal_campaign_spine.sql
+131	131_donation_batch_review_controls.sql
+132	132_service_site_snapshots.sql

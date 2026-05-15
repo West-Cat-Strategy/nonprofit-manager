@@ -395,6 +395,7 @@ export interface DonationFormComponent extends BaseComponentProps {
   allowCustomAmount?: boolean;
   recurringOption?: boolean;
   buttonText?: string;
+  appealCampaignId?: string | null;
   campaignId?: string;
   accountId?: string;
   successMessage?: string;
@@ -835,6 +836,7 @@ export interface WebsiteEntry {
   id: string;
   organizationId: string;
   siteId: string;
+  appealCampaignId?: string | null;
   kind: WebsiteEntryKind;
   source: WebsiteEntrySource;
   status: WebsiteEntryStatus;
@@ -861,6 +863,7 @@ export interface WebsiteEntryListResult {
 export interface CreateWebsiteEntryRequest {
   siteId: string;
   kind: WebsiteEntryKind;
+  appealCampaignId?: string | null;
   source?: WebsiteEntrySource;
   status?: WebsiteEntryStatus;
   slug: string;
@@ -874,6 +877,7 @@ export interface CreateWebsiteEntryRequest {
 }
 
 export interface UpdateWebsiteEntryRequest {
+  appealCampaignId?: string | null;
   status?: WebsiteEntryStatus;
   slug?: string;
   title?: string;
@@ -889,6 +893,7 @@ export interface PublicAction {
   id: string;
   organizationId: string;
   siteId: string;
+  appealCampaignId?: string | null;
   pageId?: string | null;
   componentId?: string | null;
   actionType: PublicActionType;
@@ -957,6 +962,7 @@ export interface PublicActionSupportLetterArtifact {
 
 export interface CreatePublicActionRequest {
   actionType: PublicActionType;
+  appealCampaignId?: string | null;
   status?: PublicActionStatus;
   slug?: string;
   title: string;
@@ -970,6 +976,7 @@ export interface CreatePublicActionRequest {
 }
 
 export interface UpdatePublicActionRequest {
+  appealCampaignId?: string | null;
   status?: PublicActionStatus;
   slug?: string;
   title?: string;

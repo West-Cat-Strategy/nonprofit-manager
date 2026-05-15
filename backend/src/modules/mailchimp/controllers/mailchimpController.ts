@@ -550,6 +550,7 @@ export const createCampaign = async (req: AuthRequest, res: Response): Promise<v
       suppressionSnapshot,
       testRecipients,
       audienceSnapshot,
+      appealCampaignId,
     } = req.body as CreateCampaignRequest;
 
     if (!listId) {
@@ -600,6 +601,7 @@ export const createCampaign = async (req: AuthRequest, res: Response): Promise<v
       suppressionSnapshot,
       testRecipients,
       audienceSnapshot,
+      appealCampaignId,
       requestedBy: req.user?.id,
       scopeAccountIds: getRequesterScopeAccountIds(req),
     });

@@ -11,6 +11,7 @@ import {
   BanknotesIcon,
   ChartBarIcon,
   CheckCircleIcon,
+  ClipboardDocumentCheckIcon,
   ClockIcon,
   PlusCircleIcon,
 } from '@heroicons/react/24/outline';
@@ -40,6 +41,12 @@ import {
 const donationActionLinkClass =
   'inline-flex items-center justify-center gap-2 rounded-[var(--ui-radius-sm)] bg-[var(--app-accent)] px-4 py-2 text-sm font-semibold text-[var(--app-accent-foreground)] shadow-sm transition duration-150 hover:-translate-y-0.5 hover:bg-[var(--app-accent-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-2';
 const fundraiserWorkflowLinks = [
+  {
+    title: 'Batch review',
+    description: 'Check control totals before finance signoff.',
+    to: '/donations/batches',
+    Icon: ClipboardDocumentCheckIcon,
+  },
   {
     title: 'Reports workspace',
     description: 'Start from the fundraiser reporting home.',
@@ -127,7 +134,7 @@ const DonationList: React.FC = () => {
           title="Fundraiser Workflow"
           subtitle="Jump from gift intake to stewardship reporting, outreach setup, and pipeline follow-through."
         >
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
             {fundraiserWorkflowLinks.map((link) => {
               const LinkIcon = link.Icon;
               return (

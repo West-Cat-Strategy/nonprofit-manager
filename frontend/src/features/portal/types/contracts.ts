@@ -1,5 +1,21 @@
 import type { PortalCaseProvenance } from '../../../types/case';
 
+export interface ServiceSiteSnapshot {
+  id?: string | null;
+  name?: string | null;
+  provider_name?: string | null;
+  address_line1?: string | null;
+  address_line2?: string | null;
+  city?: string | null;
+  state_province?: string | null;
+  postal_code?: string | null;
+  country?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  contact_name?: string | null;
+  notes?: string | null;
+}
+
 export interface PortalEvent {
   id: string;
   name: string;
@@ -67,6 +83,7 @@ export interface PortalAppointmentSlot {
   title: string | null;
   details: string | null;
   location: string | null;
+  service_site_snapshot?: ServiceSiteSnapshot | null;
   start_time: string;
   end_time: string;
   available_count: number;
@@ -90,6 +107,7 @@ export interface PortalAppointmentRequestInput {
   start_time: string;
   end_time?: string;
   location?: string;
+  service_site_snapshot?: ServiceSiteSnapshot | null;
 }
 
 export interface PortalAppointmentSlotBookingInput {
@@ -163,6 +181,7 @@ export interface PortalAppointmentSummary {
   end_time?: string | null;
   status: string;
   location?: string | null;
+  service_site_snapshot?: ServiceSiteSnapshot | null;
   case_number?: string | null;
   case_title?: string | null;
   request_type?: 'manual_request' | 'slot_booking';

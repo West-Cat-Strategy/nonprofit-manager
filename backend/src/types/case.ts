@@ -75,6 +75,22 @@ export interface ExternalServiceProvider {
   attached_cases_count?: number;
 }
 
+export interface ServiceSiteSnapshot {
+  id?: string | null;
+  name?: string | null;
+  provider_name?: string | null;
+  address_line1?: string | null;
+  address_line2?: string | null;
+  city?: string | null;
+  state_province?: string | null;
+  postal_code?: string | null;
+  country?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  contact_name?: string | null;
+  notes?: string | null;
+}
+
 export interface CaseProvenanceSourceRoleBreakdown {
   source_role: string;
   source_tables: string[];
@@ -434,6 +450,7 @@ export interface CaseService {
   external_service_provider_id?: string | null;
   external_service_provider_name?: string | null;
   external_service_provider_type?: string | null;
+  service_site_snapshot?: ServiceSiteSnapshot | null;
   service_date: Date | string;
   start_time?: string | null;
   end_time?: string | null;
@@ -779,6 +796,7 @@ export interface CreateCaseServiceDTO {
   service_type?: ServiceType;
   service_provider?: string;
   external_service_provider_id?: string;
+  service_site_snapshot?: ServiceSiteSnapshot | null;
   service_date: Date | string;
   start_time?: string;
   end_time?: string;
@@ -798,6 +816,7 @@ export interface UpdateCaseServiceDTO {
   service_type?: ServiceType;
   service_provider?: string;
   external_service_provider_id?: string | null;
+  service_site_snapshot?: ServiceSiteSnapshot | null;
   service_date?: Date | string;
   start_time?: string;
   end_time?: string;

@@ -22,6 +22,24 @@ const optionalTrimmedString = (max: number) =>
     z.string().max(max).optional()
   );
 
+const serviceSiteSnapshotSchema = z
+  .object({
+    id: z.string().trim().max(120).optional().nullable(),
+    name: z.string().trim().max(255).optional().nullable(),
+    provider_name: z.string().trim().max(255).optional().nullable(),
+    address_line1: z.string().trim().max(255).optional().nullable(),
+    address_line2: z.string().trim().max(255).optional().nullable(),
+    city: z.string().trim().max(120).optional().nullable(),
+    state_province: z.string().trim().max(120).optional().nullable(),
+    postal_code: z.string().trim().max(30).optional().nullable(),
+    country: z.string().trim().max(120).optional().nullable(),
+    phone: z.string().trim().max(50).optional().nullable(),
+    email: emailSchema.optional().nullable(),
+    contact_name: z.string().trim().max(255).optional().nullable(),
+    notes: z.string().trim().max(1000).optional().nullable(),
+  })
+  .strict();
+
 export const portalSignupSchema = z.object({
   email: emailSchema,
   password: portalPasswordSchema,
@@ -266,6 +284,7 @@ export const portalManualAppointmentRequestSchema = z
     end_time: z.string().datetime().optional(),
     description: z.string().max(2000).optional().nullable(),
     location: z.string().max(255).optional().nullable(),
+    service_site_snapshot: serviceSiteSnapshotSchema.optional().nullable(),
   })
   .strict()
   .refine(
@@ -444,6 +463,7 @@ export const portalAdminSlotCreateSchema = z
     title: z.string().max(255).optional().nullable(),
     details: z.string().max(2000).optional().nullable(),
     location: z.string().max(255).optional().nullable(),
+    service_site_snapshot: serviceSiteSnapshotSchema.optional().nullable(),
     start_time: z.string().datetime(),
     end_time: z.string().datetime(),
     capacity: z.number().int().min(1).max(200).optional(),
@@ -461,6 +481,7 @@ export const portalAdminSlotPatchSchema = z
     title: z.string().max(255).optional().nullable(),
     details: z.string().max(2000).optional().nullable(),
     location: z.string().max(255).optional().nullable(),
+    service_site_snapshot: serviceSiteSnapshotSchema.optional().nullable(),
     start_time: z.string().datetime().optional(),
     end_time: z.string().datetime().optional(),
     capacity: z.number().int().min(1).max(200).optional(),

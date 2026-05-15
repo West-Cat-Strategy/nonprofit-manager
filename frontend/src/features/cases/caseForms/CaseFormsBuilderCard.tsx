@@ -2,18 +2,25 @@ import type { Dispatch, SetStateAction } from 'react';
 import { BrutalButton, BrutalCard } from '../../../components/neo-brutalist';
 import type {
   CaseFormAssignmentDetail,
+  CaseFormLogicOperator,
+  CaseFormLogicRule,
   CaseFormQuestionType,
   CaseFormSchema,
 } from '../../../types/caseForms';
 import {
+  CASE_FORM_LOGIC_OPERATORS,
+  CASE_MAPPING_TARGET_PRESETS,
   CONTACT_MAPPING_FIELDS,
   collectCaseFormAuthoringDiagnostics,
   createId,
+  createLogicRule,
   createQuestion,
   getDefaultPlaceholderForQuestionType,
   getQuestionPlaceholderLabel,
+  formatLogicRules,
   formatLogicRulesText,
   formatOptionsText,
+  operatorNeedsValue,
   parseLogicRulesText,
   parseOptionsText,
   updateQuestionMappingTarget,
@@ -57,6 +64,12 @@ const CASE_FORM_QUESTION_TYPES: CaseFormQuestionType[] = [
   'signature',
 ];
 
+const formatMappingFieldLabel = (field: string): string =>
+  field
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+
 export function CaseFormsBuilderCard({
   detail,
   editorDescription,
@@ -81,6 +94,7 @@ export function CaseFormsBuilderCard({
   setSendExpiryDays,
 }: CaseFormsBuilderCardProps) {
   const authoringDiagnostics = collectCaseFormAuthoringDiagnostics(editorSchema, logicDrafts);
+  const allQuestions = editorSchema.sections.flatMap((section) => section.questions);
 
   const updateSection = (
     sectionId: string,
@@ -103,10 +117,32 @@ export function CaseFormsBuilderCard({
           id: createId(),
           title: `Section ${editorSchema.sections.length + 1}`,
           description: '',
-          questions: [createQuestion(editorSchema.sections.flatMap((section) => section.questions).length + 1)],
+          questions: [
+            createQuestion(
+              editorSchema.sections.flatMap((section) => section.questions).length + 1
+            ),
+          ],
         },
       ],
     });
+  };
+
+  const updateQuestionVisibleRules = (
+    sectionId: string,
+    questionId: string,
+    rules: CaseFormLogicRule[]
+  ): void => {
+    const nextRules = rules.length ? rules : undefined;
+    updateSection(sectionId, (current) => ({
+      ...current,
+      questions: current.questions.map((item) =>
+        item.id === questionId ? { ...item, visible_when: nextRules } : item
+      ),
+    }));
+    setLogicDrafts((current) => ({
+      ...current,
+      [questionId]: formatLogicRules(nextRules),
+    }));
   };
 
   return (
@@ -171,7 +207,9 @@ export function CaseFormsBuilderCard({
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-black uppercase text-black/70">Recipient Email</label>
+          <label className="mb-1 block text-xs font-black uppercase text-black/70">
+            Recipient Email
+          </label>
           <input
             type="email"
             value={editorRecipientEmail}
@@ -180,7 +218,9 @@ export function CaseFormsBuilderCard({
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-black uppercase text-black/70">Recipient Phone</label>
+          <label className="mb-1 block text-xs font-black uppercase text-black/70">
+            Recipient Phone
+          </label>
           <input
             type="tel"
             value={editorRecipientPhone}
@@ -189,7 +229,9 @@ export function CaseFormsBuilderCard({
           />
         </div>
         <div className="md:col-span-2">
-          <label className="mb-1 block text-xs font-black uppercase text-black/70">Description</label>
+          <label className="mb-1 block text-xs font-black uppercase text-black/70">
+            Description
+          </label>
           <textarea
             value={editorDescription}
             onChange={(event) => setEditorDescription(event.target.value)}
@@ -207,7 +249,9 @@ export function CaseFormsBuilderCard({
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-black uppercase text-black/70">Email Link Expiry (days)</label>
+          <label className="mb-1 block text-xs font-black uppercase text-black/70">
+            Email Link Expiry (days)
+          </label>
           <input
             type="number"
             min={1}
@@ -224,7 +268,9 @@ export function CaseFormsBuilderCard({
           <div key={section.id} className="rounded border-2 border-black bg-[var(--loop-cyan)] p-4">
             <div className="grid gap-3 md:grid-cols-2">
               <div>
-                <label className="mb-1 block text-xs font-black uppercase text-black/70">Section Title</label>
+                <label className="mb-1 block text-xs font-black uppercase text-black/70">
+                  Section Title
+                </label>
                 <input
                   value={section.title}
                   onChange={(event) =>
@@ -237,7 +283,9 @@ export function CaseFormsBuilderCard({
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-black uppercase text-black/70">Section Description</label>
+                <label className="mb-1 block text-xs font-black uppercase text-black/70">
+                  Section Description
+                </label>
                 <input
                   value={section.description || ''}
                   onChange={(event) =>
@@ -256,14 +304,18 @@ export function CaseFormsBuilderCard({
                 <div key={question.id} className="rounded border-2 border-black bg-white p-4">
                   <div className="grid gap-3 lg:grid-cols-2">
                     <div>
-                      <label className="mb-1 block text-xs font-black uppercase text-black/70">Question Label</label>
+                      <label className="mb-1 block text-xs font-black uppercase text-black/70">
+                        Question Label
+                      </label>
                       <input
                         value={question.label}
                         onChange={(event) =>
                           updateSection(section.id, (current) => ({
                             ...current,
                             questions: current.questions.map((item) =>
-                              item.id === question.id ? { ...item, label: event.target.value } : item
+                              item.id === question.id
+                                ? { ...item, label: event.target.value }
+                                : item
                             ),
                           }))
                         }
@@ -271,7 +323,9 @@ export function CaseFormsBuilderCard({
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-black uppercase text-black/70">Question Key</label>
+                      <label className="mb-1 block text-xs font-black uppercase text-black/70">
+                        Question Key
+                      </label>
                       <input
                         value={question.key}
                         onChange={(event) =>
@@ -286,7 +340,9 @@ export function CaseFormsBuilderCard({
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-black uppercase text-black/70">Type</label>
+                      <label className="mb-1 block text-xs font-black uppercase text-black/70">
+                        Type
+                      </label>
                       <select
                         value={question.type}
                         onChange={(event) => {
@@ -300,15 +356,15 @@ export function CaseFormsBuilderCard({
                                     ...item,
                                     type: nextType,
                                     placeholder:
-                                      nextType === 'checkbox' &&
-                                      !item.multiple &&
-                                      !item.placeholder
-                                        ? getDefaultPlaceholderForQuestionType(nextType, item.multiple)
+                                      nextType === 'checkbox' && !item.multiple && !item.placeholder
+                                        ? getDefaultPlaceholderForQuestionType(
+                                            nextType,
+                                            item.multiple
+                                          )
                                         : item.placeholder,
-                                    options:
-                                      ['select', 'radio', 'checkbox'].includes(nextType)
-                                        ? item.options || [{ label: 'Option 1', value: 'option_1' }]
-                                        : undefined,
+                                    options: ['select', 'radio', 'checkbox'].includes(nextType)
+                                      ? item.options || [{ label: 'Option 1', value: 'option_1' }]
+                                      : undefined,
                                   }
                                 : item
                             ),
@@ -333,7 +389,9 @@ export function CaseFormsBuilderCard({
                           updateSection(section.id, (current) => ({
                             ...current,
                             questions: current.questions.map((item) =>
-                              item.id === question.id ? { ...item, placeholder: event.target.value } : item
+                              item.id === question.id
+                                ? { ...item, placeholder: event.target.value }
+                                : item
                             ),
                           }))
                         }
@@ -341,14 +399,18 @@ export function CaseFormsBuilderCard({
                       />
                     </div>
                     <div className="lg:col-span-2">
-                      <label className="mb-1 block text-xs font-black uppercase text-black/70">Helper Text</label>
+                      <label className="mb-1 block text-xs font-black uppercase text-black/70">
+                        Helper Text
+                      </label>
                       <textarea
                         value={question.helper_text || ''}
                         onChange={(event) =>
                           updateSection(section.id, (current) => ({
                             ...current,
                             questions: current.questions.map((item) =>
-                              item.id === question.id ? { ...item, helper_text: event.target.value } : item
+                              item.id === question.id
+                                ? { ...item, helper_text: event.target.value }
+                                : item
                             ),
                           }))
                         }
@@ -367,7 +429,9 @@ export function CaseFormsBuilderCard({
                           updateSection(section.id, (current) => ({
                             ...current,
                             questions: current.questions.map((item) =>
-                              item.id === question.id ? { ...item, required: event.target.checked } : item
+                              item.id === question.id
+                                ? { ...item, required: event.target.checked }
+                                : item
                             ),
                           }))
                         }
@@ -493,7 +557,10 @@ export function CaseFormsBuilderCard({
                         Mapping Target
                       </label>
                       <select
-                        value={question.mapping_target?.entity ? question.mapping_target.entity : 'none'}
+                        aria-label={`Mapping target for ${question.label}`}
+                        value={
+                          question.mapping_target?.entity ? question.mapping_target.entity : 'none'
+                        }
                         onChange={(event) =>
                           updateSection(section.id, (current) => ({
                             ...current,
@@ -525,6 +592,7 @@ export function CaseFormsBuilderCard({
                           Contact Field
                         </label>
                         <select
+                          aria-label={`Contact field for ${question.label}`}
                           value={question.mapping_target.field || ''}
                           onChange={(event) =>
                             updateSection(section.id, (current) => ({
@@ -533,10 +601,13 @@ export function CaseFormsBuilderCard({
                                 item.id === question.id
                                   ? {
                                       ...item,
-                                      mapping_target: updateQuestionMappingTarget(item.mapping_target, {
-                                        entity: 'contact',
-                                        field: event.target.value,
-                                      }),
+                                      mapping_target: updateQuestionMappingTarget(
+                                        item.mapping_target,
+                                        {
+                                          entity: 'contact',
+                                          field: event.target.value,
+                                        }
+                                      ),
                                     }
                                   : item
                               ),
@@ -547,7 +618,7 @@ export function CaseFormsBuilderCard({
                           <option value="">Choose a contact field</option>
                           {CONTACT_MAPPING_FIELDS.map((field) => (
                             <option key={field} value={field}>
-                              {field}
+                              {formatMappingFieldLabel(field)}
                             </option>
                           ))}
                         </select>
@@ -561,6 +632,7 @@ export function CaseFormsBuilderCard({
                             Case Container
                           </label>
                           <select
+                            aria-label={`Case container for ${question.label}`}
                             value={question.mapping_target.container || 'intake_data'}
                             onChange={(event) =>
                               updateSection(section.id, (current) => ({
@@ -569,10 +641,15 @@ export function CaseFormsBuilderCard({
                                   item.id === question.id
                                     ? {
                                         ...item,
-                                        mapping_target: updateQuestionMappingTarget(item.mapping_target, {
-                                          entity: 'case',
-                                          container: event.target.value as 'intake_data' | 'custom_data',
-                                        }),
+                                        mapping_target: updateQuestionMappingTarget(
+                                          item.mapping_target,
+                                          {
+                                            entity: 'case',
+                                            container: event.target.value as
+                                              | 'intake_data'
+                                              | 'custom_data',
+                                          }
+                                        ),
                                       }
                                     : item
                                 ),
@@ -586,64 +663,252 @@ export function CaseFormsBuilderCard({
                         </div>
                         <div className="lg:col-span-2">
                           <label className="mb-1 block text-xs font-black uppercase text-black/70">
-                            Case JSON Key
+                            Case Field
                           </label>
-                          <input
-                            value={question.mapping_target.key || ''}
+                          <select
+                            aria-label={`Case field for ${question.label}`}
+                            value={
+                              CASE_MAPPING_TARGET_PRESETS.some(
+                                (preset) =>
+                                  preset.container ===
+                                    (question.mapping_target?.container || 'intake_data') &&
+                                  preset.key === question.mapping_target?.key
+                              )
+                                ? `${question.mapping_target.container || 'intake_data'}:${
+                                    question.mapping_target.key || ''
+                                  }`
+                                : question.mapping_target.key
+                                  ? '__custom__'
+                                  : ''
+                            }
                             onChange={(event) =>
                               updateSection(section.id, (current) => ({
                                 ...current,
-                                questions: current.questions.map((item) =>
-                                  item.id === question.id
-                                    ? {
-                                        ...item,
-                                        mapping_target: updateQuestionMappingTarget(item.mapping_target, {
-                                          entity: 'case',
-                                          key: event.target.value,
-                                        }),
+                                questions: current.questions.map((item) => {
+                                  if (item.id !== question.id) return item;
+                                  const preset = CASE_MAPPING_TARGET_PRESETS.find(
+                                    (target) =>
+                                      `${target.container}:${target.key}` === event.target.value
+                                  );
+                                  return {
+                                    ...item,
+                                    mapping_target: updateQuestionMappingTarget(
+                                      item.mapping_target,
+                                      {
+                                        entity: 'case',
+                                        container:
+                                          preset?.container ||
+                                          item.mapping_target?.container ||
+                                          'intake_data',
+                                        key: preset?.key || '',
                                       }
-                                    : item
-                                ),
+                                    ),
+                                  };
+                                }),
                               }))
                             }
                             className="w-full border-2 border-black bg-app-surface px-3 py-2 text-sm"
-                          />
+                          >
+                            <option value="">Choose a case field</option>
+                            {CASE_MAPPING_TARGET_PRESETS.map((preset) => (
+                              <option
+                                key={`${preset.container}:${preset.key}`}
+                                value={`${preset.container}:${preset.key}`}
+                              >
+                                {preset.label}
+                              </option>
+                            ))}
+                            <option value="__custom__">Custom case key</option>
+                          </select>
+                          {!CASE_MAPPING_TARGET_PRESETS.some(
+                            (preset) =>
+                              preset.container ===
+                                (question.mapping_target?.container || 'intake_data') &&
+                              preset.key === question.mapping_target?.key
+                          ) && (
+                            <input
+                              value={question.mapping_target.key || ''}
+                              onChange={(event) =>
+                                updateSection(section.id, (current) => ({
+                                  ...current,
+                                  questions: current.questions.map((item) =>
+                                    item.id === question.id
+                                      ? {
+                                          ...item,
+                                          mapping_target: updateQuestionMappingTarget(
+                                            item.mapping_target,
+                                            {
+                                              entity: 'case',
+                                              key: event.target.value,
+                                            }
+                                          ),
+                                        }
+                                      : item
+                                  ),
+                                }))
+                              }
+                              placeholder="custom_case_key"
+                              className="mt-2 w-full border-2 border-black bg-app-surface px-3 py-2 text-sm"
+                            />
+                          )}
                         </div>
                       </>
                     )}
                   </div>
 
-                  <div className="mt-3">
-                    <label className="mb-1 block text-xs font-black uppercase text-black/70">
-                      Conditional Visibility Rules (JSON)
-                    </label>
-                    <textarea
-                      value={logicDrafts[question.id] ?? formatLogicRulesText(question)}
-                      onChange={(event) =>
-                        setLogicDrafts((current) => ({
-                          ...current,
-                          [question.id]: event.target.value,
-                        }))
-                      }
-                      onBlur={() =>
-                        updateSection(section.id, (current) => ({
-                          ...current,
-                          questions: current.questions.map((item) =>
-                            item.id === question.id
-                              ? {
-                                  ...item,
-                                  visible_when: parseLogicRulesText(
-                                    logicDrafts[question.id] ?? formatLogicRulesText(question)
-                                  ),
+                  <div className="mt-3 rounded border-2 border-black bg-app-surface p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <h5 className="text-xs font-black uppercase text-black/70">
+                          Conditional Visibility
+                        </h5>
+                      </div>
+                      <BrutalButton
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => {
+                          const referenceKey =
+                            allQuestions.find(
+                              (item) => item.id !== question.id && item.key.trim().length > 0
+                            )?.key || '';
+                          updateQuestionVisibleRules(section.id, question.id, [
+                            ...(question.visible_when || []),
+                            createLogicRule(referenceKey),
+                          ]);
+                        }}
+                        disabled={
+                          !allQuestions.some((item) => item.id !== question.id && item.key.trim())
+                        }
+                      >
+                        + Rule
+                      </BrutalButton>
+                    </div>
+
+                    {question.visible_when?.length ? (
+                      <div className="mt-3 space-y-3">
+                        {question.visible_when.map((rule, ruleIndex) => {
+                          const selectedOperator = rule.operator as CaseFormLogicOperator;
+                          const needsValue = operatorNeedsValue(selectedOperator);
+                          return (
+                            <div
+                              key={`${question.id}-rule-${ruleIndex}`}
+                              className="grid gap-2 rounded border-2 border-black bg-white p-3 md:grid-cols-[1fr_1fr_1fr_auto]"
+                            >
+                              <select
+                                aria-label={`Condition question for ${question.label}`}
+                                value={rule.question_key}
+                                onChange={(event) => {
+                                  const nextRules = [...(question.visible_when || [])];
+                                  nextRules[ruleIndex] = {
+                                    ...rule,
+                                    question_key: event.target.value,
+                                  };
+                                  updateQuestionVisibleRules(section.id, question.id, nextRules);
+                                }}
+                                className="w-full border-2 border-black bg-app-surface px-3 py-2 text-sm"
+                              >
+                                <option value="">Choose question</option>
+                                {allQuestions
+                                  .filter((item) => item.id !== question.id && item.key.trim())
+                                  .map((item) => (
+                                    <option key={item.id} value={item.key}>
+                                      {item.label || item.key}
+                                    </option>
+                                  ))}
+                              </select>
+                              <select
+                                aria-label={`Condition operator for ${question.label}`}
+                                value={rule.operator}
+                                onChange={(event) => {
+                                  const operator = event.target.value as CaseFormLogicOperator;
+                                  const nextRules = [...(question.visible_when || [])];
+                                  nextRules[ruleIndex] = {
+                                    question_key: rule.question_key,
+                                    operator,
+                                    ...(operatorNeedsValue(operator)
+                                      ? { value: rule.value ?? '' }
+                                      : {}),
+                                  };
+                                  updateQuestionVisibleRules(section.id, question.id, nextRules);
+                                }}
+                                className="w-full border-2 border-black bg-app-surface px-3 py-2 text-sm"
+                              >
+                                {CASE_FORM_LOGIC_OPERATORS.map((operator) => (
+                                  <option key={operator.value} value={operator.value}>
+                                    {operator.label}
+                                  </option>
+                                ))}
+                              </select>
+                              <input
+                                aria-label={`Condition value for ${question.label}`}
+                                value={needsValue ? String(rule.value ?? '') : ''}
+                                disabled={!needsValue}
+                                onChange={(event) => {
+                                  const nextRules = [...(question.visible_when || [])];
+                                  nextRules[ruleIndex] = {
+                                    ...rule,
+                                    value: event.target.value,
+                                  };
+                                  updateQuestionVisibleRules(section.id, question.id, nextRules);
+                                }}
+                                placeholder={needsValue ? 'Value' : 'No value needed'}
+                                className="w-full border-2 border-black bg-app-surface px-3 py-2 text-sm disabled:bg-black/10"
+                              />
+                              <BrutalButton
+                                size="sm"
+                                variant="danger"
+                                onClick={() =>
+                                  updateQuestionVisibleRules(
+                                    section.id,
+                                    question.id,
+                                    (question.visible_when || []).filter(
+                                      (_, index) => index !== ruleIndex
+                                    )
+                                  )
                                 }
-                              : item
-                          ),
-                        }))
-                      }
-                      rows={4}
-                      placeholder='[{"question_key":"question_1","operator":"equals","value":"yes"}]'
-                      className="w-full border-2 border-black bg-app-surface px-3 py-2 font-mono text-xs"
-                    />
+                              >
+                                Remove
+                              </BrutalButton>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-xs font-bold text-black/70">Always visible.</p>
+                    )}
+
+                    <details className="mt-3">
+                      <summary className="cursor-pointer text-xs font-black uppercase text-black/70">
+                        Advanced JSON
+                      </summary>
+                      <textarea
+                        value={logicDrafts[question.id] ?? formatLogicRulesText(question)}
+                        onChange={(event) =>
+                          setLogicDrafts((current) => ({
+                            ...current,
+                            [question.id]: event.target.value,
+                          }))
+                        }
+                        onBlur={() =>
+                          updateSection(section.id, (current) => ({
+                            ...current,
+                            questions: current.questions.map((item) =>
+                              item.id === question.id
+                                ? {
+                                    ...item,
+                                    visible_when: parseLogicRulesText(
+                                      logicDrafts[question.id] ?? formatLogicRulesText(question)
+                                    ),
+                                  }
+                                : item
+                            ),
+                          }))
+                        }
+                        rows={4}
+                        placeholder='[{"question_key":"question_1","operator":"equals","value":"yes"}]'
+                        className="mt-2 w-full border-2 border-black bg-white px-3 py-2 font-mono text-xs"
+                      />
+                    </details>
                   </div>
 
                   <div className="mt-3 flex justify-end gap-2">
@@ -672,7 +937,10 @@ export function CaseFormsBuilderCard({
                 onClick={() =>
                   updateSection(section.id, (current) => ({
                     ...current,
-                    questions: [...current.questions, createQuestion(current.questions.length + sectionIndex + 1)],
+                    questions: [
+                      ...current.questions,
+                      createQuestion(current.questions.length + sectionIndex + 1),
+                    ],
                   }))
                 }
               >

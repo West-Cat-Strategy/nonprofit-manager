@@ -597,6 +597,7 @@ test('e2e host ci report wrapper resolves default archived report paths in dry-r
   assert.equal(env.SLICE_DESKTOP_JSON, `${env.RUN_DIR}/desktop/test-results.json`);
   assert.equal(env.SLICE_MOBILE_HTML, `${env.RUN_DIR}/mobile/playwright-report`);
   assert.equal(env.SLICE_MOBILE_JSON, `${env.RUN_DIR}/mobile/test-results.json`);
+  assert.match(env.SLICE_MOBILE_COMMAND, /--project=Mobile Chrome tests\/ux-regression\.spec\.ts/);
 });
 
 test('e2e host ci report wrapper honors report root and run id overrides in dry-run mode', () => {

@@ -112,6 +112,103 @@ const handoffPacket: HandoffData = {
     notes_count: 4,
     documents_count: 5,
   },
+  field_packet: {
+    scope: {
+      summary: [
+        'Portable staff review packet assembled from existing case-detail records',
+        'Includes current service, form, appointment, visibility, reassessment, next-action, and assignment context',
+        'Does not create an offline sync bundle, service-site routing record, referral transfer, or persisted packet entity',
+      ],
+      offline_sync_included: false,
+      service_site_routing_included: false,
+      referral_transfer_included: false,
+      persisted_packet_included: false,
+    },
+    assignment_context: {
+      assigned_staff: {
+        first_name: 'Alex',
+        last_name: 'Rivera',
+        email: 'alex@example.com',
+      },
+      contact: {
+        first_name: 'Casey',
+        last_name: 'Client',
+        email: 'casey@example.com',
+      },
+      case_status: 'Open',
+      priority: 'high',
+      portal_visibility_status: 'Internal Only',
+    },
+    services: [
+      {
+        id: 'service-1',
+        name: 'Housing navigation',
+        type: 'housing',
+        provider: 'Community Housing Team',
+        service_site_snapshot: {
+          id: 'site-1',
+          name: 'Outreach Hub',
+          provider_name: 'Community Housing Team',
+          address_line1: '100 Main St',
+          address_line2: null,
+          city: 'Vancouver',
+          state_province: 'BC',
+          postal_code: 'V6B 1A1',
+          country: 'Canada',
+          phone: '555-0100',
+          email: null,
+          contact_name: 'Intake desk',
+          notes: null,
+        },
+        status: 'scheduled',
+        service_date: '2026-04-22',
+        outcome: 'Bring lease paperwork',
+      },
+    ],
+    forms: [
+      {
+        id: 'form-1',
+        title: 'Housing eligibility review',
+        status: 'sent',
+        due_at: '2026-04-23T16:00:00.000Z',
+        sent_at: '2026-04-20T16:00:00.000Z',
+        submitted_at: null,
+        reviewed_at: null,
+        recipient_email: 'casey@example.com',
+      },
+    ],
+    appointments: [
+      {
+        id: 'appointment-1',
+        title: 'Housing site visit',
+        status: 'confirmed',
+        start_time: '2026-04-24T18:00:00.000Z',
+        end_time: '2026-04-24T18:30:00.000Z',
+        location: 'Main office',
+        service_site_snapshot: {
+          id: 'appt-site-1',
+          name: 'Downtown Clinic',
+          provider_name: null,
+          address_line1: '200 Care Ave',
+          address_line2: null,
+          city: 'Vancouver',
+          state_province: 'BC',
+          postal_code: 'V6C 2B2',
+          country: 'Canada',
+          phone: '555-0200',
+          email: null,
+          contact_name: null,
+          notes: null,
+        },
+        request_type: 'slot_booking',
+        pointperson: {
+          first_name: 'Alex',
+          last_name: 'Rivera',
+          email: 'alex@example.com',
+        },
+      },
+    ],
+  },
   generated_at: '2026-04-28T10:15:00.000Z',
 };
 
@@ -131,10 +228,22 @@ describe('CaseHandoffPacket', () => {
     expect(screen.getByText('Call landlord')).toBeInTheDocument();
     expect(screen.getByText('Internal Only')).toBeInTheDocument();
     expect(screen.getByText(/keep this packet internal/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /field packet/i })).toBeInTheDocument();
+    expect(screen.getByText('No Offline Sync')).toBeInTheDocument();
+    expect(screen.getByText('No Site Routing')).toBeInTheDocument();
+    expect(screen.getByText('No Referral Transfer')).toBeInTheDocument();
+    expect(screen.getByText('Housing navigation')).toBeInTheDocument();
+    expect(screen.getByText('Outreach Hub (Community Housing Team)')).toBeInTheDocument();
+    expect(screen.getByText('100 Main St, Vancouver, BC, V6B 1A1')).toBeInTheDocument();
+    expect(screen.getByText('Housing eligibility review')).toBeInTheDocument();
+    expect(screen.getByText('Housing site visit')).toBeInTheDocument();
+    expect(screen.getByText('Downtown Clinic')).toBeInTheDocument();
+    expect(screen.getByText('200 Care Ave, Vancouver, BC, V6C 2B2')).toBeInTheDocument();
+    expect(screen.getByText(/Alex Rivera \| Open \| high \| Internal Only/i)).toBeInTheDocument();
     expect(screen.getByText('Casey Client')).toBeInTheDocument();
 
     expect(screen.getByText('2')).toBeInTheDocument();
-    expect(screen.getByText('Services')).toBeInTheDocument();
+    expect(screen.getAllByText('Services').length).toBeGreaterThan(0);
     expect(screen.getByText('5')).toBeInTheDocument();
     expect(screen.getByText('Documents')).toBeInTheDocument();
   });

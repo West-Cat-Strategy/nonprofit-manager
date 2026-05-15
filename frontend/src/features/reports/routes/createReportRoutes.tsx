@@ -5,6 +5,7 @@ import { Navigate, Route } from 'react-router-dom';
 import { useAppSelector } from '../../../store/hooks';
 import { getReportAccess } from '../../auth/state/reportAccess';
 import {
+  BoardPacketWorkspaceRoutePage,
   OutcomesReportRoutePage,
   ReportBuilderRoutePage,
   ReportsHomeRoutePage,
@@ -101,6 +102,16 @@ export function createReportRoutes(ProtectedRoute: React.ComponentType<RouteWrap
             <ReportManagementRoute>
               <ReportTemplatesRoutePage />
             </ReportManagementRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reports/board-packet"
+        element={
+          <ProtectedRoute>
+            <ReportViewRoute>
+              <BoardPacketWorkspaceRoutePage />
+            </ReportViewRoute>
           </ProtectedRoute>
         }
       />

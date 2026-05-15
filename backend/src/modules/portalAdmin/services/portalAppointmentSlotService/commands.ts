@@ -1,6 +1,6 @@
 import pool from '@config/database';
 import { resolvePortalCaseSelection } from '@services/portalPointpersonService';
-import type { AppointmentSlot, PortalAppointment } from '../portalAppointmentSlotService';
+import type { AppointmentSlot, PortalAppointment, ServiceSiteSnapshot } from '../portalAppointmentSlotService';
 import { getCaseContactId } from '../portalAppointmentStatusWorkflow';
 import { publishAppointmentUpdated, publishSlotUpdated } from './delivery';
 import { getAppointmentById, getSlotById } from './queries';
@@ -12,6 +12,7 @@ export const createAppointmentSlot = async (input: {
   title?: string | null;
   details?: string | null;
   location?: string | null;
+  serviceSiteSnapshot?: ServiceSiteSnapshot | null;
   startTime: string;
   endTime: string;
   capacity?: number;
@@ -25,12 +26,13 @@ export const createAppointmentSlot = async (input: {
       title,
       details,
       location,
+      service_site_snapshot,
       start_time,
       end_time,
       capacity,
       created_by,
       updated_by
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)
     RETURNING id`,
     [
       input.accountId,
@@ -39,6 +41,7 @@ export const createAppointmentSlot = async (input: {
       input.title?.trim() || null,
       input.details?.trim() || null,
       input.location?.trim() || null,
+      input.serviceSiteSnapshot || null,
       input.startTime,
       input.endTime,
       input.capacity || 1,
@@ -72,6 +75,7 @@ export const updateAppointmentSlot = async (input: {
   title?: string | null;
   details?: string | null;
   location?: string | null;
+  serviceSiteSnapshot?: ServiceSiteSnapshot | null;
   startTime?: string;
   endTime?: string;
   capacity?: number;
@@ -79,9 +83,9 @@ export const updateAppointmentSlot = async (input: {
   userId: string;
 }): Promise<AppointmentSlot | null> => {
   const fields: string[] = [];
-  const values: Array<string | number | null> = [];
+  const values: Array<string | number | ServiceSiteSnapshot | null> = [];
 
-  const pushField = (field: string, value: string | number | null) => {
+  const pushField = (field: string, value: string | number | ServiceSiteSnapshot | null) => {
     values.push(value);
     fields.push(`${field} = $${values.length}`);
   };
@@ -91,6 +95,7 @@ export const updateAppointmentSlot = async (input: {
   if (input.title !== undefined) pushField('title', input.title?.trim() || null);
   if (input.details !== undefined) pushField('details', input.details?.trim() || null);
   if (input.location !== undefined) pushField('location', input.location?.trim() || null);
+  if (input.serviceSiteSnapshot !== undefined) pushField('service_site_snapshot', input.serviceSiteSnapshot);
   if (input.startTime !== undefined) pushField('start_time', input.startTime);
   if (input.endTime !== undefined) pushField('end_time', input.endTime);
   if (input.capacity !== undefined) pushField('capacity', input.capacity);
@@ -207,6 +212,7 @@ export const createPortalManualAppointmentRequest = async (input: {
   endTime?: string | null;
   description?: string | null;
   location?: string | null;
+  serviceSiteSnapshot?: ServiceSiteSnapshot | null;
   caseId?: string | null;
 }): Promise<PortalAppointment> => {
   const selection = await resolvePortalCaseSelection(input.contactId, input.caseId);
@@ -226,11 +232,12 @@ export const createPortalManualAppointmentRequest = async (input: {
       end_time,
       status,
       location,
+      service_site_snapshot,
       requested_by_portal,
       case_id,
       pointperson_user_id,
       request_type
-    ) VALUES ($1, $2, $3, $4, $5, $6, 'requested', $7, $8, $9, $10, 'manual_request')
+    ) VALUES ($1, $2, $3, $4, $5, $6, 'requested', $7, $8, $9, $10, $11, 'manual_request')
     RETURNING id`,
     [
       input.contactId,
@@ -240,6 +247,7 @@ export const createPortalManualAppointmentRequest = async (input: {
       input.startTime,
       input.endTime || null,
       input.location?.trim() || null,
+      input.serviceSiteSnapshot || null,
       input.portalUserId,
       selectedCase.case_id,
       selectedCase.assigned_to,

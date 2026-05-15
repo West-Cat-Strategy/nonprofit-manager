@@ -58,6 +58,14 @@ describe('ReportService', () => {
       expect(result.entity).toBe('donations');
       expect(result.fields).toBeInstanceOf(Array);
       expect(result.fields.length).toBeGreaterThan(0);
+      expect(result.fields.map((field) => field.field)).toEqual(
+        expect.arrayContaining([
+          'appeal_campaign_id',
+          'appeal_campaign_name',
+          'appeal_campaign_code',
+          'campaign_name',
+        ])
+      );
     });
 
     it('should return available fields for events entity', async () => {
@@ -271,6 +279,22 @@ describe('ReportService', () => {
         expect(result.data[0]).toHaveProperty('payment_method');
         expect(result.data[0]).toHaveProperty('donation_date');
       }
+    });
+
+    it('selects typed appeal campaign donation fields while keeping the legacy campaign label available', async () => {
+      const definition: ReportDefinition = {
+        name: 'Appeal Campaign Donations',
+        entity: 'donations' as ReportEntity,
+        fields: ['appeal_campaign_name', 'appeal_campaign_code', 'campaign_name'],
+      };
+
+      await reportService.generateReport(definition);
+
+      const [sql] = query.mock.calls[0] as [string, unknown[]];
+      expect(sql).toContain('LEFT JOIN appeal_campaigns ac ON d.appeal_campaign_id = ac.id');
+      expect(sql).toContain('COALESCE(ac.name, d.campaign_name) AS appeal_campaign_name');
+      expect(sql).toContain('ac.code AS appeal_campaign_code');
+      expect(sql).toContain('d.campaign_name AS campaign_name');
     });
 
     it('should return total count even with limit', async () => {

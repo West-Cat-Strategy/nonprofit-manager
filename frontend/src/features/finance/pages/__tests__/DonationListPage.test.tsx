@@ -7,6 +7,7 @@ import { renderWithProviders } from '../../../../test/testUtils';
 
 const dispatchMock = vi.fn();
 const fundraiserWorkflowLinks = [
+  ['/donations/batches', /batch review/i],
   ['/reports', /reports workspace/i],
   [
     '/reports/templates?category=fundraising&tag=fundraising-cadence',

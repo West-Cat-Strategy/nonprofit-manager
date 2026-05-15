@@ -85,12 +85,13 @@ export const bookPortalAppointmentSlot = async (input: {
         end_time,
         status,
         location,
+        service_site_snapshot,
         requested_by_portal,
         case_id,
         pointperson_user_id,
         slot_id,
         request_type
-      ) VALUES ($1, $2, $3, $4, $5, $6, 'confirmed', $7, $8, $9, $10, $11, 'slot_booking')
+      ) VALUES ($1, $2, $3, $4, $5, $6, 'confirmed', $7, $8, $9, $10, $11, $12, 'slot_booking')
       RETURNING id`,
       [
         input.contactId,
@@ -100,6 +101,7 @@ export const bookPortalAppointmentSlot = async (input: {
         slot.start_time as string,
         slot.end_time as string,
         slot.location || null,
+        (slot.service_site_snapshot as Record<string, unknown> | null) || null,
         input.portalUserId,
         selectedCase.case_id,
         selectedCase.assigned_to,

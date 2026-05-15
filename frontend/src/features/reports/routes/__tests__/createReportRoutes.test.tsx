@@ -22,6 +22,7 @@ const buildAuthState = (permissions: string[]) => ({
 });
 
 vi.mock('../reportRouteComponents', () => ({
+  BoardPacketWorkspaceRoutePage: () => <div>board-packet-route</div>,
   ReportsHomeRoutePage: () => <div>reports-home-route</div>,
   ReportBuilderRoutePage: () => <div>builder-route</div>,
   ReportTemplatesRoutePage: () => <div>templates-route</div>,
@@ -92,6 +93,21 @@ describe('createReportRoutes', () => {
     );
 
     expect(screen.getByText('saved-route')).toBeInTheDocument();
+  });
+
+  it('renders the board packet workspace for read-only report viewers', () => {
+    renderWithProviders(
+      <Routes>
+        {createReportRoutes(ProtectedRoute)}
+        <Route path="/dashboard" element={<div>dashboard-route</div>} />
+      </Routes>,
+      {
+        route: '/reports/board-packet',
+        preloadedState: buildAuthState(['report:view', 'scheduled_report:view']),
+      }
+    );
+
+    expect(screen.getByText('board-packet-route')).toBeInTheDocument();
   });
 
   it('renders the reports home page when a user only has scheduled-report view access', () => {

@@ -10,6 +10,7 @@ import { authenticate } from '@middleware/domains/auth';
 import { loadDataScope } from '@middleware/domains/data';
 import {
   createDonationSchema,
+  createDonationBatchSchema,
   issueAnnualTaxReceiptSchema,
   issueTaxReceiptSchema,
   updateDonationSchema,
@@ -36,6 +37,8 @@ router.get(
     limit: z.coerce.number().int().min(1).max(100).optional(),
     payment_method: z.enum(['cash', 'check', 'credit_card', 'debit_card', 'bank_transfer', 'paypal', 'stock', 'in_kind', 'other']).optional(),
     payment_status: z.enum(['pending', 'completed', 'failed', 'refunded', 'cancelled']).optional(),
+    appeal_campaign_id: uuidSchema.optional(),
+    campaign_name: z.string().trim().min(1).max(255).optional(),
     is_recurring: z.boolean().optional(),
     min_amount: z.coerce.number().nonnegative().optional(),
     max_amount: z.coerce.number().nonnegative().optional(),
@@ -66,6 +69,31 @@ router.get(
   '/designations',
   validateQuery(z.object({ include_inactive: z.enum(['true', 'false']).optional() })),
   donationController.listDesignations
+);
+
+router.get('/batches', donationController.listDonationBatches);
+
+router.post(
+  '/batches',
+  validateBody(createDonationBatchSchema),
+  donationController.createDonationBatch
+);
+
+router.get(
+  '/batches/:batchId',
+  validateParams(z.object({ batchId: uuidSchema })),
+  donationController.getDonationBatch
+);
+
+router.post(
+  '/batches/:batchId/:action',
+  validateParams(
+    z.object({
+      batchId: uuidSchema,
+      action: z.enum(['close', 'reopen', 'approve', 'post']),
+    })
+  ),
+  donationController.transitionDonationBatch
 );
 
 /**

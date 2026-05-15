@@ -342,11 +342,30 @@ const createCaseRelationshipSchema = z.object({
   description: z.string().optional(),
 });
 
+const serviceSiteSnapshotSchema = z
+  .object({
+    id: z.string().trim().max(120).optional().nullable(),
+    name: z.string().trim().max(255).optional().nullable(),
+    provider_name: z.string().trim().max(255).optional().nullable(),
+    address_line1: z.string().trim().max(255).optional().nullable(),
+    address_line2: z.string().trim().max(255).optional().nullable(),
+    city: z.string().trim().max(120).optional().nullable(),
+    state_province: z.string().trim().max(120).optional().nullable(),
+    postal_code: z.string().trim().max(30).optional().nullable(),
+    country: z.string().trim().max(120).optional().nullable(),
+    phone: z.string().trim().max(50).optional().nullable(),
+    email: z.string().email().optional().nullable(),
+    contact_name: z.string().trim().max(255).optional().nullable(),
+    notes: z.string().trim().max(1000).optional().nullable(),
+  })
+  .strict();
+
 const createCaseServiceSchema = z.object({
   service_name: z.string().min(1),
   service_type: z.string().optional(),
   service_provider: z.string().optional(),
   external_service_provider_id: uuidSchema.optional(),
+  service_site_snapshot: serviceSiteSnapshotSchema.optional().nullable(),
   service_date: dateStringSchema,
   start_time: z.string().optional(),
   end_time: z.string().optional(),
