@@ -76,6 +76,17 @@ function BuilderHarness({
 }
 
 describe('CaseFormsBuilderCard', () => {
+  it('connects dense builder labels to their controls', () => {
+    render(<BuilderHarness />);
+
+    expect(screen.getByLabelText('Title')).toHaveAttribute('id', 'case-form-builder-title');
+    expect(screen.getByLabelText('Section Title')).toHaveValue('Section 1');
+    expect(screen.getByLabelText('Question Label')).toHaveValue('Question 1');
+    expect(screen.getByLabelText('Question Key')).toHaveValue('question_1');
+    expect(screen.getByLabelText('Type')).toHaveValue('text');
+    expect(screen.getByLabelText('Helper Text')).toBeInTheDocument();
+  });
+
   it('relabels and seeds single-checkbox placeholder text', () => {
     render(<BuilderHarness />);
 
@@ -228,6 +239,7 @@ describe('CaseFormsBuilderCard', () => {
     render(<BuilderHarness initialSchema={schemaWithMappingWarnings} />);
 
     expect(screen.getByText('2 warnings found before save.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Custom Case Key')).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Contact field for Applicant email'), {
       target: { value: 'email' },

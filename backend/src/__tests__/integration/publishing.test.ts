@@ -172,7 +172,9 @@ const buildPublishedContent = (templateId: string, templateName: string, formSuc
 
 describe('Publishing API Integration', () => {
   let authToken: string;
+  let staffAuthToken: string;
   let adminUserId: string;
+  let staffUserId: string;
   let accountId: string;
   let templateId: string;
   let activeSiteId: string;
@@ -200,6 +202,22 @@ describe('Publishing API Integration', () => {
       { expiresIn: '1h' }
     );
 
+    const staffResult = await pool.query<{ id: string }>(
+      `INSERT INTO users (email, password_hash, first_name, last_name, role, created_at, updated_at)
+       VALUES ($1, $2, 'Publishing', 'Staff', 'staff', NOW(), NOW())
+       RETURNING id`,
+      [
+        `publishing-staff-${suffix}@example.com`,
+        '$2a$10$012345678901234567890uI6TTMsnx6Vf7hYhVJrV2N4mcoX8f6mG',
+      ]
+    );
+    staffUserId = staffResult.rows[0].id;
+    staffAuthToken = jwt.sign(
+      { id: staffUserId, email: `publishing-staff-${suffix}@example.com`, role: 'staff' },
+      getJwtSecret(),
+      { expiresIn: '1h' }
+    );
+
     const accountResult = await pool.query<{ id: string }>(
       `INSERT INTO accounts (
          account_name,
@@ -222,6 +240,14 @@ describe('Publishing API Integration', () => {
        ON CONFLICT (user_id, account_id)
        DO UPDATE SET access_level = 'admin', is_active = TRUE`,
       [adminUserId, accountId]
+    );
+
+    await pool.query(
+      `INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active)
+       VALUES ($1, $2, 'staff', $3, TRUE)
+       ON CONFLICT (user_id, account_id)
+       DO UPDATE SET access_level = 'staff', is_active = TRUE`,
+      [staffUserId, accountId, adminUserId]
     );
 
     const templateResult = await pool.query<{ id: string }>(
@@ -410,8 +436,8 @@ describe('Publishing API Integration', () => {
     }
 
     if (adminUserId && accountId) {
-      await pool.query('DELETE FROM user_account_access WHERE user_id = $1 AND account_id = $2', [
-        adminUserId,
+      await pool.query('DELETE FROM user_account_access WHERE user_id = ANY($1::uuid[]) AND account_id = $2', [
+        [adminUserId, staffUserId].filter(Boolean),
         accountId,
       ]);
     }
@@ -422,6 +448,10 @@ describe('Publishing API Integration', () => {
 
     if (adminUserId) {
       await pool.query('DELETE FROM users WHERE id = $1', [adminUserId]);
+    }
+
+    if (staffUserId) {
+      await pool.query('DELETE FROM users WHERE id = $1', [staffUserId]);
     }
   });
 
@@ -434,6 +464,47 @@ describe('Publishing API Integration', () => {
       .post('/api/v2/sites')
       .send({ templateId: 'bad-uuid', name: '' })
       .expect(401);
+  });
+
+  it('requires admin settings permission and organization context for cache admin routes', async () => {
+    await request(app).get('/api/v2/sites/admin/cache/stats').expect(401);
+
+    await request(app)
+      .get('/api/v2/sites/admin/cache/profiles')
+      .set('Authorization', `Bearer ${authToken}`)
+      .expect(400);
+
+    await withSiteConsoleAuth(
+      request(app).get('/api/v2/sites/admin/cache/profiles'),
+      staffAuthToken,
+      accountId
+    ).expect(403);
+
+    await withSiteConsoleAuth(
+      request(app).get('/api/v2/sites/admin/cache/profiles'),
+      authToken,
+      accountId
+    ).expect(200);
+  });
+
+  it('protects clear-all cache behind the same admin settings policy', async () => {
+    await request(app).delete('/api/v2/sites/admin/cache').expect(401);
+
+    await withSiteConsoleAuth(
+      request(app).delete('/api/v2/sites/admin/cache'),
+      staffAuthToken,
+      accountId
+    ).expect(403);
+
+    const response = await withSiteConsoleAuth(
+      request(app).delete('/api/v2/sites/admin/cache'),
+      authToken,
+      accountId
+    ).expect(200);
+
+    expect(unwrap<{ message: string }>(response.body)).toMatchObject({
+      message: 'Cache cleared successfully',
+    });
   });
 
   it('lists sites for the console and includes blocked state', async () => {

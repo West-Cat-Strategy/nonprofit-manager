@@ -83,5 +83,5 @@ The final reference-review pass adds named future records without changing the a
 
 - Docs-only synthesis changes run `make check-links`.
 - Run `make lint-doc-api-versioning` only if future edits add or change `/api/v2` examples.
-- Future `P5-T3` implementation rows should add targeted Mailchimp, contact, tax receipt, reports, and frontend communications proof, plus `make db-verify` when migrations `103` or `107` change.
-- Future `P5-T5` implementation rows should add targeted public intake, portal auth, public event, queue definition, portal escalation, portal-admin, and focused Playwright portal proof, plus `make db-verify` when migrations `104` through `106` change.
+- Future `P5-T3` implementation rows should add targeted Mailchimp, contact, tax receipt, reports, and frontend communications proof, plus `make db-verify` when the owning communications or donor-profile migration files, manifest, or initdb parity change.
+- Future `P5-T5` implementation rows should add targeted public intake, portal auth, public event, queue definition, portal escalation, portal-admin, and focused Playwright portal proof, plus `make db-verify` when the owning public-intake, queue-definition, portal-escalation, or related database contract changes.

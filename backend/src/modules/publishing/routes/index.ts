@@ -7,14 +7,20 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
 import { publicSiteAnalyticsLimiterMiddleware } from '@middleware/domains/platform';
+import { requirePermission } from '@middleware/permissions';
 import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import * as publishingController from '../controllers';
 import { uuidSchema, optionalStrictBooleanSchema } from '@validations/shared';
 import { paymentProviderSchema } from '@validations/donation';
+import { Permission } from '@utils/permissions';
 
 const router = Router();
 const withOrganizationContext = [authenticate, requireActiveOrganizationContext] as const;
+const withPublishingAdminCacheAccess = [
+  ...withOrganizationContext,
+  requirePermission(Permission.ADMIN_SETTINGS),
+] as const;
 
 const publishingStatusSchema = z.enum(['draft', 'published', 'maintenance', 'suspended']);
 const sortOrderSchema = z.enum(['asc', 'desc']);
@@ -812,13 +818,17 @@ router.post(
 );
 
 // Get cache statistics (admin)
-router.get('/admin/cache/stats', ...withOrganizationContext, publishingController.getCacheStats);
+router.get('/admin/cache/stats', ...withPublishingAdminCacheAccess, publishingController.getCacheStats);
 
 // Clear all cache (admin only)
-router.delete('/admin/cache', authenticate, publishingController.clearAllCache);
+router.delete('/admin/cache', ...withPublishingAdminCacheAccess, publishingController.clearAllCache);
 
 // Get cache control profiles
-router.get('/admin/cache/profiles', publishingController.getPerformanceCacheControl);
+router.get(
+  '/admin/cache/profiles',
+  ...withPublishingAdminCacheAccess,
+  publishingController.getPerformanceCacheControl
+);
 
 // ==================== Public Routes (no auth required) ====================
 

@@ -100,6 +100,7 @@ describe('routeCatalog matching', () => {
   it('matches canonical and dynamic routes', () => {
     expect(matchRouteCatalogEntry('/reports')?.id).toBe('reports');
     expect(matchRouteCatalogEntry('/reports/builder')?.id).toBe('reports-builder');
+    expect(matchRouteCatalogEntry('/reports/board-packet')?.id).toBe('reports-board-packet');
     expect(matchRouteCatalogEntry('/reports/saved')?.id).toBe('reports-saved');
     expect(matchRouteCatalogEntry('/reports/scheduled')?.id).toBe('reports-scheduled');
   });

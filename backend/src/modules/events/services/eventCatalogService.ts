@@ -13,6 +13,7 @@ import {
 import type { DataScopeFilter } from '@app-types/dataScope';
 import { resolveSort } from '@utils/queryHelpers';
 import { cancelPendingAutomationsForEvent } from '@services/eventReminderAutomationService';
+import { triggerWebhooks } from '@modules/webhooks/services/webhookService';
 import { EventOccurrenceService } from './eventOccurrenceService';
 import { createEventHttpError } from '../eventHttpErrors';
 import { QueryValue } from './shared';
@@ -368,6 +369,12 @@ export class EventCatalogService {
       if (!created) {
         throw createEventHttpError('EVENT_NOT_FOUND', 404, 'Event not found');
       }
+
+      await triggerWebhooks({
+        organizationId,
+        eventType: 'event.created',
+        data: created as unknown as Record<string, unknown>,
+      });
 
       return created;
     } catch (error) {

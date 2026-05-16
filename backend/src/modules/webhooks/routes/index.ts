@@ -7,6 +7,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
 import { requirePermission } from '@middleware/permissions';
+import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import * as webhookController from '../controllers';
 import { isoDateTimeSchema, optionalStrictBooleanSchema, uuidSchema } from '@validations/shared';
@@ -74,6 +75,7 @@ const apiKeyUsageQuerySchema = z
 
 // All routes require authentication
 router.use(authenticate);
+router.use('/endpoints', requireActiveOrganizationContext);
 router.use('/endpoints', requirePermission(Permission.ADMIN_SETTINGS));
 router.use('/api-keys', requirePermission(Permission.ADMIN_SETTINGS));
 

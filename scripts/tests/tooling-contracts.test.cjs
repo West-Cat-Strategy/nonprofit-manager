@@ -21,6 +21,9 @@ const {
 const {
   analyzeOpenApiContract,
 } = require('../check-openapi-contract.ts');
+const {
+  analyzeV2RouteAuthPosture,
+} = require('../check-v2-route-auth-posture.ts');
 
 const repoRoot = path.resolve(__dirname, '../..');
 
@@ -56,6 +59,22 @@ function parseEnvironment(stdout) {
 
 function createTempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'nonprofit-manager-tooling-'));
+}
+
+function writeExecutable(file, text) {
+  fs.writeFileSync(file, text, 'utf8');
+  fs.chmodSync(file, 0o755);
+}
+
+function createFakeBin(commands) {
+  const fakeBin = path.join(createTempDir(), 'bin');
+  fs.mkdirSync(fakeBin, { recursive: true });
+
+  for (const [name, text] of Object.entries(commands)) {
+    writeExecutable(path.join(fakeBin, name), text);
+  }
+
+  return fakeBin;
 }
 
 test('check selector routes frontend bundle tooling to build and bundle-budget proof', () => {
@@ -208,6 +227,144 @@ services:
   assert.match(result.stderr, /redis:8-alpine/);
 });
 
+test('validation preflight fails before Docker-backed wrappers when Docker daemon is unavailable', () => {
+  const fakeBin = createFakeBin({
+    docker: `#!/usr/bin/env bash
+case "$1" in
+  info)
+    echo "Cannot connect to the Docker daemon" >&2
+    exit 1
+    ;;
+  context)
+    if [[ "$2" == "show" ]]; then
+      echo "desktop-linux"
+      exit 0
+    fi
+    ;;
+esac
+exit 0
+`,
+  });
+
+  const result = run(
+    'bash',
+    ['scripts/validation-preflight.sh', 'docker', '--context', 'make docker-validate-overlays'],
+    {
+      PATH: `${fakeBin}:${process.env.PATH}`,
+      DOCKER_HOST: 'unix:///tmp/missing-docker.sock',
+    }
+  );
+
+  assert.equal(result.status, 1);
+  const output = `${result.stdout}\n${result.stderr}`;
+  assert.match(output, /Nonprofit Manager validation preflight failed before make docker-validate-overlays/);
+  assert.match(output, /Docker daemon is not reachable/);
+  assert.match(output, /unix:\/\/\/tmp\/missing-docker\.sock/);
+  assert.match(output, /docker info/);
+});
+
+test('validation preflight fails clearly when skipped DB prep has no ready isolated database', () => {
+  const fakeBin = createFakeBin({
+    psql: `#!/usr/bin/env bash
+exit 1
+`,
+  });
+
+  const result = run(
+    'bash',
+    ['scripts/validation-preflight.sh', 'isolated-test-db', '--context', 'make test-backend'],
+    {
+      PATH: `${fakeBin}:${process.env.PATH}`,
+      SKIP_INTEGRATION_DB_PREP: '1',
+      DB_HOST: '127.0.0.1',
+      DB_PORT: '8012',
+      DB_NAME: 'nonprofit_manager_test',
+      DB_USER: 'postgres',
+      DB_PASSWORD: 'postgres',
+    }
+  );
+
+  assert.equal(result.status, 1);
+  const output = `${result.stdout}\n${result.stderr}`;
+  assert.match(output, /Nonprofit Manager validation preflight failed before make test-backend/);
+  assert.match(output, /SKIP_INTEGRATION_DB_PREP=1/);
+  assert.match(output, /127\.0\.0\.1:8012\/nonprofit_manager_test/);
+  assert.match(output, /make db-verify/);
+});
+
+test('validation preflight accepts Docker bootstrap path for an unavailable isolated database', () => {
+  const fakeBin = createFakeBin({
+    psql: `#!/usr/bin/env bash
+exit 1
+`,
+    docker: `#!/usr/bin/env bash
+case "$1" in
+  info)
+    exit 0
+    ;;
+  ps)
+    exit 0
+    ;;
+esac
+exit 0
+`,
+  });
+
+  const result = run(
+    'bash',
+    ['scripts/validation-preflight.sh', 'isolated-test-db', '--context', 'make test'],
+    {
+      PATH: `${fakeBin}:${process.env.PATH}`,
+      DB_HOST: '127.0.0.1',
+      DB_PORT: '8012',
+      DB_NAME: 'nonprofit_manager_test',
+    }
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Docker is reachable and can bootstrap the isolated test database/);
+  assert.match(result.stdout, /127\.0\.0\.1:8012\/nonprofit_manager_test/);
+});
+
+test('root wrappers call validation preflight before Docker and DB-backed work', () => {
+  const makefile = fs.readFileSync(path.join(repoRoot, 'Makefile'), 'utf8');
+  const overlayScript = fs.readFileSync(
+    path.join(repoRoot, 'scripts/docker-validate-overlays.sh'),
+    'utf8'
+  );
+  const backendWrapper = fs.readFileSync(
+    path.join(repoRoot, 'backend/scripts/run-full-tests.sh'),
+    'utf8'
+  );
+
+  const dockerValidateOverlaysTarget = makefile.slice(
+    makefile.indexOf('\ndocker-validate-overlays:\n'),
+    makefile.indexOf('\n#------------------------------------------------------------------------------\n# Quality Checks')
+  );
+  assert.match(
+    dockerValidateOverlaysTarget,
+    /validation-preflight\.sh docker --compose --context "make docker-validate-overlays"[\s\S]*scripts\/docker-validate-overlays\.sh/
+  );
+
+  const testTarget = makefile.slice(
+    makefile.indexOf('\ntest:\n'),
+    makefile.indexOf('\ntest-coverage:\n')
+  );
+  assert.match(
+    testTarget,
+    /validation-preflight\.sh isolated-test-db --context "make test"[\s\S]*Ensuring test infrastructure/
+  );
+
+  assert.match(
+    overlayScript,
+    /validation-preflight\.sh docker --compose --context "scripts\/docker-validate-overlays\.sh"[\s\S]*Checking Docker image pinning policy/
+  );
+  assert.match(
+    backendWrapper,
+    /validation-preflight\.sh" isolated-test-db --context "cd backend && npm test"/
+  );
+});
+
 test('route audit collects catalog entries across split files', () => {
   const catalogFileA = collectRouteCatalogTargetsFromSource(
     '/repo/frontend/src/routes/routeCatalog/staffPeople.ts',
@@ -303,6 +460,51 @@ test('route validation reports route files that define routes without any valida
   assert.equal(result.routeDefinitionCount, 2);
   assert.equal(result.issues.length, 1);
   assert.match(result.issues[0], /defines routes without any recognized validation middleware/);
+});
+
+test('v2 route auth posture requires explicit public or module-local mounts', () => {
+  const publicApiPolicyText = `
+    export const PUBLIC_API_V2_MOUNT_PATHS = [
+      '/auth',
+      '/public/forms',
+    ] as const;
+    export const PUBLIC_SITE_API_V2_MOUNT_PATHS = [
+      '/public/forms',
+    ] as const;
+  `;
+
+  const clean = analyzeV2RouteAuthPosture({
+    routeText: `
+      mountV2Routes('/auth', authV2Routes);
+      mountV2Routes('/public/forms', publicFormsV2Routes);
+      mountV2Routes('/users', usersV2Routes);
+      mountWorkspaceModuleRoutes('/cases', 'cases', casesV2Routes);
+    `,
+    publicApiPolicyText,
+    indexText: 'isPublicSiteApiPath(req.path);',
+    csrfText: 'isCsrfSkipPath(path, fullPath);',
+    routeFile: '/repo/backend/src/routes/v2/index.ts',
+  });
+
+  assert.deepEqual(clean.issues, []);
+
+  const drift = analyzeV2RouteAuthPosture({
+    routeText: `
+      mountV2Routes('/public/forms', publicFormsV2Routes);
+      mountV2Routes('/surprise', surpriseV2Routes);
+    `,
+    publicApiPolicyText,
+    indexText: 'isPublicSiteApiPath(req.path);',
+    csrfText: 'isCsrfSkipPath(path, fullPath);',
+    routeFile: '/repo/backend/src/routes/v2/index.ts',
+  });
+
+  assert(drift.issues.some((issue) => issue.includes('includes unmounted /auth')));
+  assert(
+    drift.issues.some((issue) =>
+      issue.includes('mounts /surprise without registrar auth or explicit module-local/public posture')
+    )
+  );
 });
 
 test('canonicalizeRoutePattern collapses params and template placeholders consistently', () => {
@@ -752,6 +954,26 @@ test('select-checks routes workspace package manifests through dependency checks
   ]);
 });
 
+test('select-checks routes root package manifests through lint and typecheck proof', () => {
+  const result = run('bash', [
+    'scripts/select-checks.sh',
+    '--files',
+    'package.json package-lock.json',
+    '--mode',
+    'fast',
+  ]);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(result.stdout.trim().split('\n'), [
+    'make test-tooling',
+    'npm run knip',
+    'make security-audit',
+    'make lint',
+    'make typecheck',
+    'make test-e2e-docker-smoke',
+  ]);
+});
+
 test('select-checks keeps contracts-only fast mode on type validation', () => {
   const result = run('bash', [
     'scripts/select-checks.sh',
@@ -884,6 +1106,76 @@ test('deploy staging fails closed when the staging env file is missing', () => {
 
   assert.notEqual(result.status, 0);
   assert.match(`${result.stdout}\n${result.stderr}`, /Env file not found/);
+});
+
+test('deploy production dry-run includes opt-in extra compose files after DB overlay', () => {
+  const tempDir = createTempDir();
+  const envFile = path.join(tempDir, '.env.production');
+  fs.writeFileSync(
+    envFile,
+    [
+      'DB_PASSWORD=postgres',
+      'REDIS_URL=redis://redis:6379',
+      'DB_HOST=postgres',
+      'DB_AT_REST_ENCRYPTION_MODE=self_hosted',
+      'DB_AT_REST_PROVIDER=self_hosted',
+      'POSTGRES_DATA_DIR=/var/lib/nonprofit-manager/postgres',
+      'BACKUP_DIR=/var/lib/nonprofit-manager/backups/database',
+      'SELF_HOSTED_DB_RISK_ACCEPTED=true',
+    ].join('\n'),
+    'utf8'
+  );
+
+  const result = run('bash', ['scripts/deploy.sh', 'production'], {
+    DEPLOY_PRODUCTION_ENV_FILE: envFile,
+    DEPLOY_EXECUTE: '0',
+    DEPLOY_USE_HOST_CADDY: '1',
+    DEPLOY_EXTRA_COMPOSE_FILES: 'docker-compose.postgres14-root.yml',
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  const composeFiles = result.stdout
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith('-f '))
+    .map((line) => path.relative(repoRoot, line.slice(3)));
+
+  assert.deepEqual(composeFiles, [
+    'docker-compose.yml',
+    'docker-compose.host-access.yml',
+    'docker-compose.db-self-hosted.yml',
+    'docker-compose.postgres14-root.yml',
+  ]);
+});
+
+test('deploy production fails closed when an extra compose file is missing', () => {
+  const tempDir = createTempDir();
+  const envFile = path.join(tempDir, '.env.production');
+  fs.writeFileSync(
+    envFile,
+    [
+      'DB_PASSWORD=postgres',
+      'REDIS_URL=redis://redis:6379',
+      'DB_HOST=postgres',
+      'DB_AT_REST_ENCRYPTION_MODE=self_hosted',
+      'DB_AT_REST_PROVIDER=self_hosted',
+      'POSTGRES_DATA_DIR=/var/lib/nonprofit-manager/postgres',
+      'BACKUP_DIR=/var/lib/nonprofit-manager/backups/database',
+      'SELF_HOSTED_DB_RISK_ACCEPTED=true',
+    ].join('\n'),
+    'utf8'
+  );
+
+  const result = run('bash', ['scripts/deploy.sh', 'production'], {
+    DEPLOY_PRODUCTION_ENV_FILE: envFile,
+    DEPLOY_EXECUTE: '0',
+    DEPLOY_USE_HOST_CADDY: '1',
+    DEPLOY_EXTRA_COMPOSE_FILES: 'docker-compose.postgres14-root.yml,missing-compose.yml',
+  });
+
+  assert.notEqual(result.status, 0);
+  assert.match(`${result.stdout}\n${result.stderr}`, /Extra compose file not found:/);
+  assert.match(`${result.stdout}\n${result.stderr}`, /missing-compose\.yml/);
 });
 
 test('archive restore requires explicit confirmation before destructive work', () => {

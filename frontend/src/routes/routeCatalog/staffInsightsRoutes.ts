@@ -56,6 +56,13 @@ export const staffInsightsRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     primaryAction: { label: 'Create custom report', href: '/reports/builder' },
   }),
   staffRoute({
+    id: 'reports-board-packet',
+    title: 'Board Packet',
+    section: 'Analytics',
+    path: '/reports/board-packet',
+    primaryAction: { label: 'Open board packet', href: '/reports/board-packet' },
+  }),
+  staffRoute({
     id: 'reports-saved',
     title: 'Saved Reports',
     section: 'Analytics',

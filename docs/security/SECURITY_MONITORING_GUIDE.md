@@ -65,6 +65,10 @@ The active blocker row and handoff are in [../phases/planning-and-progress.md](.
 - Treat HTTP `User-Agent` as operational metadata, not a secret.
 - Keep PII access evidence in the dedicated audit surfaces rather than generic application logs whenever possible.
 
+## Audit Context
+
+Request-scoped database work binds `app.current_user_id`, `app.request_id`, `app.client_ip`, `app.user_agent`, and `app.environment` so trigger-backed rows in `audit_log` can capture actor and request metadata. The separate `audit_logs` table is for explicit application security events such as login, lockout, and controller/service audit calls; do not rely on trigger-only coverage for those event-style records.
+
 ## Investigation Flow
 
 1. Identify the alert class and affected organization/actor/route.

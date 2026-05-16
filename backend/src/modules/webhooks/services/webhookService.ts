@@ -23,6 +23,7 @@ import type {
   UpdateWebhookEndpointRequest,
   WebhookEndpointWithStats,
   WebhookTestResponse,
+  TriggerWebhooksOptions,
 } from '@app-types/webhook';
 import {
   sendWebhookRequest,
@@ -44,6 +45,7 @@ interface ClaimedRetryDeliveryRow {
   attempts: number;
   next_retry_at: Date | null;
   created_at: Date | null;
+  organization_id: string;
   user_id: string;
   url: string;
   secret: string;
@@ -62,10 +64,7 @@ function generateWebhookSecret(): string {
 function signPayload(payload: string, secret: string): string {
   const timestamp = Math.floor(Date.now() / 1000);
   const signaturePayload = `${timestamp}.${payload}`;
-  const signature = crypto
-    .createHmac('sha256', secret)
-    .update(signaturePayload)
-    .digest('hex');
+  const signature = crypto.createHmac('sha256', secret).update(signaturePayload).digest('hex');
   return `t=${timestamp},v1=${signature}`;
 }
 
@@ -74,15 +73,23 @@ function signPayload(payload: string, secret: string): string {
  */
 export async function createWebhookEndpoint(
   userId: string,
+  organizationId: string,
   data: CreateWebhookEndpointRequest
 ): Promise<WebhookEndpoint> {
   const secret = generateWebhookSecret();
 
   const result = await pool.query(
-    `INSERT INTO webhook_endpoints (user_id, url, description, secret, events, is_active)
-     VALUES ($1, $2, $3, $4, $5, true)
+    `INSERT INTO webhook_endpoints (organization_id, user_id, url, description, secret, events, is_active)
+     VALUES ($1, $2, $3, $4, $5, $6, true)
      RETURNING ${WEBHOOK_ENDPOINT_COLUMNS}`,
-    [userId, data.url, data.description || null, secret, JSON.stringify(data.events)]
+    [
+      organizationId,
+      userId,
+      data.url,
+      data.description || null,
+      secret,
+      JSON.stringify(data.events),
+    ]
   );
 
   const row = result.rows[0];
@@ -90,9 +97,11 @@ export async function createWebhookEndpoint(
 }
 
 /**
- * Get all webhook endpoints for a user
+ * Get all webhook endpoints for an organization
  */
-export async function getWebhookEndpoints(userId: string): Promise<WebhookEndpointWithStats[]> {
+export async function getWebhookEndpoints(
+  organizationId: string
+): Promise<WebhookEndpointWithStats[]> {
   const result = await pool.query(
     `SELECT
        ${WEBHOOK_ENDPOINT_SELECT_COLUMNS},
@@ -101,10 +110,10 @@ export async function getWebhookEndpoints(userId: string): Promise<WebhookEndpoi
        COUNT(*) FILTER (WHERE wd.status IN ('failed', 'dead_letter'))::int AS failed_deliveries
      FROM webhook_endpoints we
      LEFT JOIN webhook_deliveries wd ON we.id = wd.webhook_endpoint_id
-     WHERE we.user_id = $1
+     WHERE we.organization_id = $1
      GROUP BY we.id
      ORDER BY we.created_at DESC`,
-    [userId]
+    [organizationId]
   );
 
   return result.rows.map((row) => ({
@@ -124,13 +133,13 @@ export async function getWebhookEndpoints(userId: string): Promise<WebhookEndpoi
  */
 export async function getWebhookEndpoint(
   endpointId: string,
-  userId: string
+  organizationId: string
 ): Promise<WebhookEndpointPublic | null> {
   const result = await pool.query(
     `SELECT ${WEBHOOK_ENDPOINT_SELECT_COLUMNS}
      FROM webhook_endpoints we
-     WHERE we.id = $1 AND we.user_id = $2`,
-    [endpointId, userId]
+     WHERE we.id = $1 AND we.organization_id = $2`,
+    [endpointId, organizationId]
   );
 
   if (result.rows.length === 0) {
@@ -145,7 +154,7 @@ export async function getWebhookEndpoint(
  */
 export async function updateWebhookEndpoint(
   endpointId: string,
-  userId: string,
+  organizationId: string,
   data: UpdateWebhookEndpointRequest
 ): Promise<WebhookEndpointPublic | null> {
   const updates: string[] = [];
@@ -170,16 +179,16 @@ export async function updateWebhookEndpoint(
   }
 
   if (updates.length === 0) {
-    return getWebhookEndpoint(endpointId, userId);
+    return getWebhookEndpoint(endpointId, organizationId);
   }
 
   updates.push(`updated_at = NOW()`);
-  values.push(endpointId, userId);
+  values.push(endpointId, organizationId);
 
   const result = await pool.query(
     `UPDATE webhook_endpoints we
      SET ${updates.join(', ')}
-     WHERE we.id = $${paramIndex++} AND we.user_id = $${paramIndex}
+     WHERE we.id = $${paramIndex++} AND we.organization_id = $${paramIndex}
      RETURNING ${WEBHOOK_ENDPOINT_SELECT_COLUMNS}`,
     values
   );
@@ -196,11 +205,11 @@ export async function updateWebhookEndpoint(
  */
 export async function deleteWebhookEndpoint(
   endpointId: string,
-  userId: string
+  organizationId: string
 ): Promise<boolean> {
   const result = await pool.query(
-    'DELETE FROM webhook_endpoints WHERE id = $1 AND user_id = $2',
-    [endpointId, userId]
+    'DELETE FROM webhook_endpoints WHERE id = $1 AND organization_id = $2',
+    [endpointId, organizationId]
   );
 
   return (result.rowCount ?? 0) > 0;
@@ -211,16 +220,16 @@ export async function deleteWebhookEndpoint(
  */
 export async function regenerateWebhookSecret(
   endpointId: string,
-  userId: string
+  organizationId: string
 ): Promise<string | null> {
   const secret = generateWebhookSecret();
 
   const result = await pool.query(
     `UPDATE webhook_endpoints
      SET secret = $1, updated_at = NOW()
-     WHERE id = $2 AND user_id = $3
+     WHERE id = $2 AND organization_id = $3
      RETURNING secret`,
-    [secret, endpointId, userId]
+    [secret, endpointId, organizationId]
   );
 
   if (result.rows.length === 0) {
@@ -235,11 +244,11 @@ export async function regenerateWebhookSecret(
  */
 export async function getWebhookDeliveries(
   endpointId: string,
-  userId: string,
+  organizationId: string,
   limit = 50
 ): Promise<WebhookDelivery[]> {
-  // First verify the endpoint belongs to the user
-  const endpoint = await getWebhookEndpoint(endpointId, userId);
+  // First verify the endpoint belongs to the active organization.
+  const endpoint = await getWebhookEndpoint(endpointId, organizationId);
   if (!endpoint) {
     return [];
   }
@@ -273,18 +282,19 @@ const updateEndpointDeliveryStatus = async (
  * This should be called when events occur in the system
  */
 export async function triggerWebhooks(
-  eventType: WebhookEventType,
-  data: Record<string, unknown>,
-  previousAttributes?: Record<string, unknown>
+  options: TriggerWebhooksOptions
 ): Promise<void> {
   try {
-    // Find all active endpoints subscribed to this event type
+    const { organizationId, eventType, data, previousAttributes } = options;
+
+    // Find active endpoints subscribed to this event type in the active organization.
     const result = await pool.query(
       `SELECT ${WEBHOOK_ENDPOINT_COLUMNS}
        FROM webhook_endpoints
        WHERE is_active = true
+       AND organization_id = $2
        AND events @> $1::jsonb`,
-      [JSON.stringify([eventType])]
+      [JSON.stringify([eventType]), organizationId]
     );
 
     const endpoints = result.rows.map((row) => mapRowToEndpoint(row));
@@ -304,7 +314,11 @@ export async function triggerWebhooks(
     const enqueuePromises = endpoints.map((endpoint) => createDeliveryRecord(endpoint.id, payload));
     await Promise.allSettled(enqueuePromises);
   } catch (error) {
-    logger.error('Error triggering webhooks', { eventType, error });
+    logger.error('Error triggering webhooks', {
+      organizationId: options.organizationId,
+      eventType: options.eventType,
+      error,
+    });
   }
 }
 
@@ -402,13 +416,7 @@ async function attemptDelivery({
     );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    await handleDeliveryFailure(
-      deliveryId,
-      endpoint.id,
-      existingAttempts,
-      undefined,
-      errorMessage
-    );
+    await handleDeliveryFailure(deliveryId, endpoint.id, existingAttempts, undefined, errorMessage);
   }
 }
 
@@ -501,6 +509,7 @@ const claimDueDeliveries = async (limit: number): Promise<ClaimedRetryDeliveryRo
          )
        )
          AND we.is_active = true
+         AND we.organization_id IS NOT NULL
        ORDER BY COALESCE(wd.next_retry_at, wd.created_at) ASC, wd.created_at ASC
        LIMIT $1
        FOR UPDATE OF wd SKIP LOCKED
@@ -515,6 +524,7 @@ const claimDueDeliveries = async (limit: number): Promise<ClaimedRetryDeliveryRo
      )
      SELECT
        ${WEBHOOK_DELIVERY_SELECT_COLUMNS},
+       we.organization_id,
        we.user_id,
        we.url,
        we.secret
@@ -538,6 +548,7 @@ export async function processRetries(limit = 100): Promise<number> {
   for (const row of rows) {
     const endpoint: WebhookEndpoint = {
       id: row.webhook_endpoint_id,
+      organizationId: row.organization_id,
       userId: row.user_id,
       url: row.url,
       secret: row.secret,
@@ -576,9 +587,9 @@ export async function processRetries(limit = 100): Promise<number> {
  */
 export async function testWebhookEndpoint(
   endpointId: string,
-  userId: string
+  organizationId: string
 ): Promise<WebhookTestResponse> {
-  const endpoint = await getWebhookEndpointWithSecret(endpointId, userId);
+  const endpoint = await getWebhookEndpointWithSecret(endpointId, organizationId);
 
   if (!endpoint) {
     return { success: false, error: 'Webhook endpoint not found' };
@@ -653,41 +664,147 @@ export async function testWebhookEndpoint(
  */
 export function getAvailableWebhookEvents() {
   return [
-    { type: 'contact.created', name: 'Contact Created', description: 'When a new contact is added', category: 'contact' },
-    { type: 'contact.updated', name: 'Contact Updated', description: 'When a contact is modified', category: 'contact' },
-    { type: 'contact.deleted', name: 'Contact Deleted', description: 'When a contact is removed', category: 'contact' },
-    { type: 'donation.created', name: 'Donation Created', description: 'When a new donation is recorded', category: 'donation' },
-    { type: 'donation.updated', name: 'Donation Updated', description: 'When a donation is modified', category: 'donation' },
-    { type: 'donation.deleted', name: 'Donation Deleted', description: 'When a donation is removed', category: 'donation' },
-    { type: 'event.created', name: 'Event Created', description: 'When a new event is created', category: 'event' },
-    { type: 'event.updated', name: 'Event Updated', description: 'When an event is modified', category: 'event' },
-    { type: 'event.deleted', name: 'Event Deleted', description: 'When an event is removed', category: 'event' },
-    { type: 'event.registration.created', name: 'Event Registration', description: 'When someone registers for an event', category: 'event' },
-    { type: 'event.registration.canceled', name: 'Registration Canceled', description: 'When a registration is canceled', category: 'event' },
-    { type: 'volunteer.created', name: 'Volunteer Created', description: 'When a new volunteer is added', category: 'volunteer' },
-    { type: 'volunteer.updated', name: 'Volunteer Updated', description: 'When a volunteer is modified', category: 'volunteer' },
-    { type: 'volunteer.hours_logged', name: 'Hours Logged', description: 'When volunteer hours are recorded', category: 'volunteer' },
-    { type: 'task.created', name: 'Task Created', description: 'When a new task is created', category: 'task' },
-    { type: 'task.completed', name: 'Task Completed', description: 'When a task is marked complete', category: 'task' },
-    { type: 'task.overdue', name: 'Task Overdue', description: 'When a task becomes overdue', category: 'task' },
-    { type: 'payment.succeeded', name: 'Payment Succeeded', description: 'When a payment is successful', category: 'payment' },
-    { type: 'payment.failed', name: 'Payment Failed', description: 'When a payment fails', category: 'payment' },
-    { type: 'payment.refunded', name: 'Payment Refunded', description: 'When a payment is refunded', category: 'payment' },
+    {
+      type: 'contact.created',
+      name: 'Contact Created',
+      description: 'When a new contact is added',
+      category: 'contact',
+    },
+    {
+      type: 'contact.updated',
+      name: 'Contact Updated',
+      description: 'When a contact is modified',
+      category: 'contact',
+    },
+    {
+      type: 'contact.deleted',
+      name: 'Contact Deleted',
+      description: 'When a contact is removed',
+      category: 'contact',
+    },
+    {
+      type: 'donation.created',
+      name: 'Donation Created',
+      description: 'When a new donation is recorded',
+      category: 'donation',
+    },
+    {
+      type: 'donation.updated',
+      name: 'Donation Updated',
+      description: 'When a donation is modified',
+      category: 'donation',
+    },
+    {
+      type: 'donation.deleted',
+      name: 'Donation Deleted',
+      description: 'When a donation is removed',
+      category: 'donation',
+    },
+    {
+      type: 'event.created',
+      name: 'Event Created',
+      description: 'When a new event is created',
+      category: 'event',
+    },
+    {
+      type: 'event.updated',
+      name: 'Event Updated',
+      description: 'When an event is modified',
+      category: 'event',
+    },
+    {
+      type: 'event.deleted',
+      name: 'Event Deleted',
+      description: 'When an event is removed',
+      category: 'event',
+    },
+    {
+      type: 'event.registration.created',
+      name: 'Event Registration',
+      description: 'When someone registers for an event',
+      category: 'event',
+    },
+    {
+      type: 'event.registration.canceled',
+      name: 'Registration Canceled',
+      description: 'When a registration is canceled',
+      category: 'event',
+    },
+    {
+      type: 'volunteer.created',
+      name: 'Volunteer Created',
+      description: 'When a new volunteer is added',
+      category: 'volunteer',
+    },
+    {
+      type: 'volunteer.updated',
+      name: 'Volunteer Updated',
+      description: 'When a volunteer is modified',
+      category: 'volunteer',
+    },
+    {
+      type: 'volunteer.hours_logged',
+      name: 'Hours Logged',
+      description: 'When volunteer hours are recorded',
+      category: 'volunteer',
+    },
+    {
+      type: 'task.created',
+      name: 'Task Created',
+      description: 'When a new task is created',
+      category: 'task',
+    },
+    {
+      type: 'task.completed',
+      name: 'Task Completed',
+      description: 'When a task is marked complete',
+      category: 'task',
+    },
+    {
+      type: 'task.overdue',
+      name: 'Task Overdue',
+      description: 'When a task becomes overdue',
+      category: 'task',
+    },
+    {
+      type: 'payment.succeeded',
+      name: 'Payment Succeeded',
+      description: 'When a payment is successful',
+      category: 'payment',
+    },
+    {
+      type: 'payment.failed',
+      name: 'Payment Failed',
+      description: 'When a payment fails',
+      category: 'payment',
+    },
+    {
+      type: 'payment.refunded',
+      name: 'Payment Refunded',
+      description: 'When a payment is refunded',
+      category: 'payment',
+    },
   ];
 }
 
 function mapRowToEndpoint(row: Record<string, unknown>, includeSecret: true): WebhookEndpoint;
-function mapRowToEndpoint(row: Record<string, unknown>, includeSecret?: false): WebhookEndpointPublic;
+function mapRowToEndpoint(
+  row: Record<string, unknown>,
+  includeSecret?: false
+): WebhookEndpointPublic;
 function mapRowToEndpoint(
   row: Record<string, unknown>,
   includeSecret = false
 ): WebhookEndpoint | WebhookEndpointPublic {
   const endpoint = {
     id: row.id as string,
+    organizationId: row.organization_id as string,
     userId: row.user_id as string,
     url: row.url as string,
     description: row.description as string | undefined,
-    events: (typeof row.events === 'string' ? JSON.parse(row.events) : row.events) as WebhookEventType[],
+    events: (typeof row.events === 'string'
+      ? JSON.parse(row.events)
+      : row.events) as WebhookEventType[],
     isActive: row.is_active as boolean,
     createdAt: new Date(row.created_at as string),
     updatedAt: new Date(row.updated_at as string),
@@ -707,13 +824,13 @@ function mapRowToEndpoint(
 
 async function getWebhookEndpointWithSecret(
   endpointId: string,
-  userId: string
+  organizationId: string
 ): Promise<WebhookEndpoint | null> {
   const result = await pool.query(
     `SELECT ${WEBHOOK_ENDPOINT_COLUMNS}
      FROM webhook_endpoints
-     WHERE id = $1 AND user_id = $2`,
-    [endpointId, userId]
+     WHERE id = $1 AND organization_id = $2`,
+    [endpointId, organizationId]
   );
 
   if (result.rows.length === 0) {

@@ -32,6 +32,7 @@ Reference notes here are planning evidence, not authorization to widen runtime s
 - [P5-T6 Reference Expansion Check Matrix](P5-T6-reference-expansion-2026-04/check-matrix.md)
 - [P5-T6 Reference Expansion Improvement Opportunities](P5-T6-reference-expansion-2026-04/improvement-opportunities.md)
 - [P5-T6 Reference Repo Consolidation](P5-T6-reference-repo-consolidation-2026-05-01.md)
+- [P5-T111 Comprehensive Strengthening Reference Synthesis](P5-T111-comprehensive-strengthening-reference-synthesis-2026-05-15.md)
 - [P5-T26 Newsletter Reference Refresh](P5-T26-newsletter-reference-refresh.md)
 - [P5-T35 Finance, Governance, and Evidence Reference Refresh](P5-T35-finance-governance-evidence-reference-refresh.md)
 - [P5-T41 Form Builder Reference Refresh](P5-T41-form-builder-reference-refresh.md)

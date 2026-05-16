@@ -175,6 +175,9 @@ describe('ReportBuilderPage', () => {
     vi.clearAllMocks();
     controllerState.showSaveDialog = false;
     controllerState.showChart = false;
+    controllerState.exportJobError = null;
+    controllerState.exportJobsLoading = false;
+    controllerState.loading = false;
     controllerState.manualExportJobs = [exportJob];
     controllerState.reportRows = [{ email: 'alex@example.org' }];
     controllerState.currentReport = {
@@ -277,5 +280,20 @@ describe('ReportBuilderPage', () => {
     expect(screen.queryByRole('button', { name: /export pdf/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /retry export/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /download/i })).not.toBeInTheDocument();
+  });
+
+  it('uses in-page states for report generation and export job loading/errors', () => {
+    controllerState.loading = true;
+    controllerState.exportJobsLoading = true;
+    controllerState.exportJobError = 'Export service unavailable';
+    controllerState.manualExportJobs = [];
+
+    renderWithProviders(<ReportBuilderPage />, {
+      preloadedState: buildAuthState(['report:view', 'report:create', 'report:export']),
+    });
+
+    expect(screen.getAllByRole('status')[0]).toHaveTextContent(/generating report preview/i);
+    expect(screen.getByText(/loading recent exports/i)).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent(/export service unavailable/i);
   });
 });

@@ -17,6 +17,12 @@ const readHeaderValue = (value: string | string[] | undefined): string | undefin
   return value;
 };
 
+const readClientIpAddress = (req: Request): string | undefined => {
+  const forwardedFor = readHeaderValue(req.headers['x-forwarded-for']);
+  const forwardedIp = forwardedFor?.split(',')[0]?.trim();
+  return forwardedIp || req.ip || req.socket.remoteAddress || undefined;
+};
+
 export const isValidCorrelationId = (value: string | undefined): boolean => {
   if (!value) return false;
   return VALID_CORRELATION_ID.test(value);
@@ -29,11 +35,7 @@ export const isValidCorrelationId = (value: string | undefined): boolean => {
  * - Adds correlation ID to response headers
  * - Attaches to request object for logging
  */
-export const correlationIdMiddleware = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
+export const correlationIdMiddleware = (req: Request, res: Response, next: NextFunction): void => {
   const inboundCorrelationId = readHeaderValue(req.headers[CORRELATION_ID_HEADER]);
   const correlationId = isValidCorrelationId(inboundCorrelationId)
     ? inboundCorrelationId!
@@ -47,7 +49,14 @@ export const correlationIdMiddleware = (
   // Add to response headers for client-side tracing
   res.setHeader(CORRELATION_ID_HEADER, correlationId);
 
-  runWithRequestContext({ correlationId }, () => next());
+  runWithRequestContext(
+    {
+      correlationId,
+      ipAddress: readClientIpAddress(req),
+      userAgent: readHeaderValue(req.headers['user-agent']),
+    },
+    () => next()
+  );
 };
 
 /**

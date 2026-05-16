@@ -102,21 +102,25 @@ jest.mock('@config/logger', () => ({
 const mockWebhookService = jest.requireMock('../../services/webhookService')
   .webhookService as MockWebhookService;
 
-const createResponse = (): Response => ({
-  status: jest.fn().mockReturnThis(),
-  json: jest.fn().mockReturnThis(),
-  send: jest.fn().mockReturnThis(),
-} as unknown as Response);
+const createResponse = (): Response =>
+  ({
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn().mockReturnThis(),
+    send: jest.fn().mockReturnThis(),
+  }) as unknown as Response;
 
 const createRequest = (overrides: Partial<AuthRequest> = {}): AuthRequest =>
   ({
     user: { id: 'user-1' },
+    organizationId: 'org-1',
+    accountId: 'org-1',
+    tenantId: 'org-1',
     params: { id: 'endpoint-1' },
     body: {},
     query: {},
     validatedQuery: {},
     ...overrides,
-  } as AuthRequest);
+  }) as AuthRequest;
 
 describe('webhookController', () => {
   const res = createResponse();
@@ -127,10 +131,14 @@ describe('webhookController', () => {
     mockWebhookService.validateWebhookUrl.mockResolvedValue({ ok: true });
     mockWebhookService.createWebhookEndpoint.mockResolvedValue({
       id: 'endpoint-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
       url: 'https://hooks.example.com/new',
     });
     mockWebhookService.updateWebhookEndpoint.mockResolvedValue({
       id: 'endpoint-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
       url: 'https://hooks.example.com/updated',
     });
     mockWebhookService.regenerateWebhookSecret.mockResolvedValue('secret-123');
@@ -175,6 +183,24 @@ describe('webhookController', () => {
     expect(mockWebhookService.createWebhookEndpoint).not.toHaveBeenCalled();
   });
 
+  it('requires organization context for webhook endpoint creation', async () => {
+    const req = createRequest({
+      organizationId: undefined,
+      accountId: undefined,
+      tenantId: undefined,
+      user: { id: 'user-1' },
+      body: {
+        url: 'https://hooks.example.com/new',
+        events: ['invoice.created'],
+      },
+    });
+
+    await createWebhookEndpoint(req, res);
+
+    expect(mockBadRequest).toHaveBeenCalledWith(res, 'Organization context required');
+    expect(mockWebhookService.createWebhookEndpoint).not.toHaveBeenCalled();
+  });
+
   it('creates a webhook endpoint after validation passes', async () => {
     const req = createRequest({
       body: {
@@ -186,8 +212,10 @@ describe('webhookController', () => {
 
     await createWebhookEndpoint(req, res);
 
-    expect(mockWebhookService.validateWebhookUrl).toHaveBeenCalledWith('https://hooks.example.com/new');
-    expect(mockWebhookService.createWebhookEndpoint).toHaveBeenCalledWith('user-1', {
+    expect(mockWebhookService.validateWebhookUrl).toHaveBeenCalledWith(
+      'https://hooks.example.com/new'
+    );
+    expect(mockWebhookService.createWebhookEndpoint).toHaveBeenCalledWith('user-1', 'org-1', {
       url: 'https://hooks.example.com/new',
       description: 'Accounting feed',
       events: ['invoice.created', 'invoice.updated'],
@@ -196,6 +224,8 @@ describe('webhookController', () => {
       res,
       {
         id: 'endpoint-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
         url: 'https://hooks.example.com/new',
       },
       201
@@ -217,17 +247,15 @@ describe('webhookController', () => {
     expect(mockWebhookService.validateWebhookUrl).toHaveBeenCalledWith(
       'https://hooks.example.com/updated'
     );
-    expect(mockWebhookService.updateWebhookEndpoint).toHaveBeenCalledWith(
-      'endpoint-2',
-      'user-1',
-      {
-        url: 'https://hooks.example.com/updated',
-        description: 'Updated description',
-        isActive: false,
-      }
-    );
+    expect(mockWebhookService.updateWebhookEndpoint).toHaveBeenCalledWith('endpoint-2', 'org-1', {
+      url: 'https://hooks.example.com/updated',
+      description: 'Updated description',
+      isActive: false,
+    });
     expect(mockSendSuccess).toHaveBeenCalledWith(res, {
       id: 'endpoint-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
       url: 'https://hooks.example.com/updated',
     });
   });
@@ -239,7 +267,7 @@ describe('webhookController', () => {
 
     await regenerateWebhookSecret(req, res);
 
-    expect(mockWebhookService.regenerateWebhookSecret).toHaveBeenCalledWith('endpoint-3', 'user-1');
+    expect(mockWebhookService.regenerateWebhookSecret).toHaveBeenCalledWith('endpoint-3', 'org-1');
     expect(mockSendSuccess).toHaveBeenCalledWith(res, { secret: 'secret-123' });
   });
 
@@ -252,10 +280,8 @@ describe('webhookController', () => {
 
     await getWebhookDeliveries(req, res);
 
-    expect(mockWebhookService.getWebhookDeliveries).toHaveBeenCalledWith('endpoint-4', 'user-1', 25);
-    expect(mockSendSuccess).toHaveBeenCalledWith(res, [
-      { id: 'delivery-1', status: 'delivered' },
-    ]);
+    expect(mockWebhookService.getWebhookDeliveries).toHaveBeenCalledWith('endpoint-4', 'org-1', 25);
+    expect(mockSendSuccess).toHaveBeenCalledWith(res, [{ id: 'delivery-1', status: 'delivered' }]);
   });
 
   it('maps a missing webhook endpoint to a not found response on regeneration', async () => {

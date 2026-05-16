@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import type { ReportEntity, ReportSort } from '../types/report';
 
 interface SortBuilderProps {
@@ -8,6 +9,9 @@ interface SortBuilderProps {
 }
 
 function SortBuilder({ selectedFields, sorts, onChange }: SortBuilderProps) {
+  const idPrefix = useId();
+  const sortControlId = (index: number, field: string) => `${idPrefix}-sort-${index}-${field}`;
+
   const handleAddSort = () => {
     if (selectedFields.length === 0) return;
 
@@ -57,9 +61,11 @@ function SortBuilder({ selectedFields, sorts, onChange }: SortBuilderProps) {
           <div key={index} className="flex gap-4 items-center bg-[var(--app-surface-muted)] p-4 border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)]">
             <div className="flex flex-col gap-1">
               <button
+                type="button"
                 onClick={() => handleMoveUp(index)}
                 disabled={index === 0}
                 data-testid={`move-up-${index}`}
+                aria-label={`Move sort ${index + 1} up`}
                 className="p-1 text-black hover:bg-[var(--loop-yellow)] disabled:opacity-30 border-2 border-transparent hover:border-black transition-all"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -67,9 +73,11 @@ function SortBuilder({ selectedFields, sorts, onChange }: SortBuilderProps) {
                 </svg>
               </button>
               <button
+                type="button"
                 onClick={() => handleMoveDown(index)}
                 disabled={index === sorts.length - 1}
                 data-testid={`move-down-${index}`}
+                aria-label={`Move sort ${index + 1} down`}
                 className="p-1 text-black hover:bg-[var(--loop-yellow)] disabled:opacity-30 border-2 border-transparent hover:border-black transition-all"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -82,7 +90,11 @@ function SortBuilder({ selectedFields, sorts, onChange }: SortBuilderProps) {
               {index + 1}
             </div>
 
+            <label htmlFor={sortControlId(index, 'field')} className="sr-only">
+              Sort {index + 1} field
+            </label>
             <select
+              id={sortControlId(index, 'field')}
               value={sort.field}
               onChange={(e) => handleUpdateSort(index, { field: e.target.value })}
               className="flex-1 px-4 py-3 bg-white border-2 border-black font-bold uppercase focus:ring-0"
@@ -94,7 +106,11 @@ function SortBuilder({ selectedFields, sorts, onChange }: SortBuilderProps) {
               ))}
             </select>
 
+            <label htmlFor={sortControlId(index, 'direction')} className="sr-only">
+              Sort {index + 1} direction
+            </label>
             <select
+              id={sortControlId(index, 'direction')}
               value={sort.direction}
               onChange={(e) =>
                 handleUpdateSort(index, { direction: e.target.value as 'asc' | 'desc' })
@@ -106,8 +122,10 @@ function SortBuilder({ selectedFields, sorts, onChange }: SortBuilderProps) {
             </select>
 
             <button
+              type="button"
               onClick={() => handleRemoveSort(index)}
               data-testid={`remove-sort-${index}`}
+              aria-label={`Remove sort ${index + 1}`}
               className="px-4 py-3 bg-[var(--loop-red)] text-white border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -119,6 +137,7 @@ function SortBuilder({ selectedFields, sorts, onChange }: SortBuilderProps) {
       </div>
 
       <button
+        type="button"
         onClick={handleAddSort}
         disabled={selectedFields.length === 0}
         className="px-6 py-3 bg-[var(--loop-blue)] text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] font-black uppercase hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all disabled:opacity-50"

@@ -20,11 +20,8 @@ describe('Webhooks API Integration', () => {
     }
   };
 
-  const authed = (
-    method: 'get' | 'post' | 'put' | 'delete',
-    path: string,
-    token = authToken
-  ) => request(app)[method](path).set('Authorization', `Bearer ${token}`);
+  const authed = (method: 'get' | 'post' | 'put' | 'delete', path: string, token = authToken) =>
+    request(app)[method](path).set('Authorization', `Bearer ${token}`);
 
   beforeAll(async () => {
     userId = randomUUID();
@@ -95,10 +92,10 @@ describe('Webhooks API Integration', () => {
     );
     await safeDelete('DELETE FROM api_keys WHERE organization_id = $1', [organizationId]);
     await safeDelete(
-      'DELETE FROM webhook_deliveries WHERE webhook_endpoint_id IN (SELECT id FROM webhook_endpoints WHERE user_id = $1)',
-      [userId]
+      'DELETE FROM webhook_deliveries WHERE webhook_endpoint_id IN (SELECT id FROM webhook_endpoints WHERE organization_id = $1)',
+      [organizationId]
     );
-    await safeDelete('DELETE FROM webhook_endpoints WHERE user_id = $1', [userId]);
+    await safeDelete('DELETE FROM webhook_endpoints WHERE organization_id = $1', [organizationId]);
     await safeDelete('DELETE FROM accounts WHERE id = $1', [organizationId]);
     await safeDelete('DELETE FROM users WHERE id = $1', [managerUserId]);
     await safeDelete('DELETE FROM users WHERE id = $1', [userId]);
@@ -137,6 +134,8 @@ describe('Webhooks API Integration', () => {
       expect.objectContaining({
         url: 'https://8.8.8.8/webhook',
         description: 'Initial endpoint',
+        organizationId,
+        userId,
         secret: expect.stringMatching(/^whsec_/),
       })
     );
@@ -151,6 +150,8 @@ describe('Webhooks API Integration', () => {
         id: endpointId,
         url: 'https://8.8.8.8/webhook',
         description: 'Initial endpoint',
+        organizationId,
+        userId,
       })
     );
     expect(fetched.body.data).not.toHaveProperty('secret');
@@ -169,6 +170,8 @@ describe('Webhooks API Integration', () => {
         id: endpointId,
         url: 'https://8.8.8.8/updated-webhook',
         description: 'Updated endpoint',
+        organizationId,
+        userId,
         isActive: false,
       })
     );
@@ -231,7 +234,9 @@ describe('Webhooks API Integration', () => {
     );
     expect(fetched.body.data).not.toHaveProperty('keyHash');
 
-    const usage = await authed('get', `/api/v2/webhooks/api-keys/${keyId}/usage?limit=25`).expect(200);
+    const usage = await authed('get', `/api/v2/webhooks/api-keys/${keyId}/usage?limit=25`).expect(
+      200
+    );
 
     expect(usage.body.success).toBe(true);
     expect(Array.isArray(usage.body.data)).toBe(true);
@@ -243,7 +248,9 @@ describe('Webhooks API Integration', () => {
     expect(revoked.body.success).toBe(true);
     expect(revoked.body.data).toEqual({ message: 'API key revoked' });
 
-    const fetchedAfterRevoke = await authed('get', `/api/v2/webhooks/api-keys/${keyId}`).expect(200);
+    const fetchedAfterRevoke = await authed('get', `/api/v2/webhooks/api-keys/${keyId}`).expect(
+      200
+    );
 
     expect(fetchedAfterRevoke.body.data).toEqual(
       expect.objectContaining({

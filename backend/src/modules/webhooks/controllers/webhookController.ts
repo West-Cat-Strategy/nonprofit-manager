@@ -15,7 +15,13 @@ import type {
   UpdateApiKeyRequest,
 } from '@app-types/webhook';
 import { PAGINATION } from '@config/constants';
-import { badRequest, noContent, notFoundMessage, serverError, unauthorized } from '@utils/responseHelpers';
+import {
+  badRequest,
+  noContent,
+  notFoundMessage,
+  serverError,
+  unauthorized,
+} from '@utils/responseHelpers';
 import { sendSuccess } from '@modules/shared/http/envelope';
 
 const stripApiKeyHash = <T extends { keyHash?: string }>(apiKey: T): Omit<T, 'keyHash'> => {
@@ -24,7 +30,7 @@ const stripApiKeyHash = <T extends { keyHash?: string }>(apiKey: T): Omit<T, 'ke
   return safeKey;
 };
 
-const resolveApiKeyContext = (
+const resolveActiveOrganizationContext = (
   req: AuthRequest,
   res: Response
 ): { organizationId: string; userId: string } | null => {
@@ -48,6 +54,8 @@ const resolveApiKeyContext = (
   return { organizationId, userId };
 };
 
+const resolveApiKeyContext = resolveActiveOrganizationContext;
+
 // ==================== Webhook Endpoints ====================
 
 /**
@@ -55,13 +63,12 @@ const resolveApiKeyContext = (
  */
 export const getWebhookEndpoints = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      unauthorized(res, 'User not authenticated');
+    const context = resolveActiveOrganizationContext(req, res);
+    if (!context) {
       return;
     }
 
-    const endpoints = await webhookService.getWebhookEndpoints(userId);
+    const endpoints = await webhookService.getWebhookEndpoints(context.organizationId);
     sendSuccess(res, endpoints);
   } catch (error) {
     logger.error('Error getting webhook endpoints', { error });
@@ -74,9 +81,8 @@ export const getWebhookEndpoints = async (req: AuthRequest, res: Response): Prom
  */
 export const createWebhookEndpoint = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      unauthorized(res, 'User not authenticated');
+    const context = resolveActiveOrganizationContext(req, res);
+    if (!context) {
       return;
     }
 
@@ -112,11 +118,15 @@ export const createWebhookEndpoint = async (req: AuthRequest, res: Response): Pr
       return;
     }
 
-    const endpoint = await webhookService.createWebhookEndpoint(userId, {
-      url,
-      description,
-      events,
-    });
+    const endpoint = await webhookService.createWebhookEndpoint(
+      context.userId,
+      context.organizationId,
+      {
+        url,
+        description,
+        events,
+      }
+    );
 
     sendSuccess(res, endpoint, 201);
   } catch (error) {
@@ -130,15 +140,14 @@ export const createWebhookEndpoint = async (req: AuthRequest, res: Response): Pr
  */
 export const getWebhookEndpoint = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      unauthorized(res, 'User not authenticated');
+    const context = resolveActiveOrganizationContext(req, res);
+    if (!context) {
       return;
     }
 
     const { id } = req.params;
 
-    const endpoint = await webhookService.getWebhookEndpoint(id, userId);
+    const endpoint = await webhookService.getWebhookEndpoint(id, context.organizationId);
 
     if (!endpoint) {
       notFoundMessage(res, 'Webhook endpoint not found');
@@ -157,9 +166,8 @@ export const getWebhookEndpoint = async (req: AuthRequest, res: Response): Promi
  */
 export const updateWebhookEndpoint = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      unauthorized(res, 'User not authenticated');
+    const context = resolveActiveOrganizationContext(req, res);
+    if (!context) {
       return;
     }
 
@@ -187,7 +195,7 @@ export const updateWebhookEndpoint = async (req: AuthRequest, res: Response): Pr
       }
     }
 
-    const endpoint = await webhookService.updateWebhookEndpoint(id, userId, data);
+    const endpoint = await webhookService.updateWebhookEndpoint(id, context.organizationId, data);
 
     if (!endpoint) {
       notFoundMessage(res, 'Webhook endpoint not found');
@@ -206,15 +214,14 @@ export const updateWebhookEndpoint = async (req: AuthRequest, res: Response): Pr
  */
 export const deleteWebhookEndpoint = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      unauthorized(res, 'User not authenticated');
+    const context = resolveActiveOrganizationContext(req, res);
+    if (!context) {
       return;
     }
 
     const { id } = req.params;
 
-    const deleted = await webhookService.deleteWebhookEndpoint(id, userId);
+    const deleted = await webhookService.deleteWebhookEndpoint(id, context.organizationId);
 
     if (!deleted) {
       notFoundMessage(res, 'Webhook endpoint not found');
@@ -233,15 +240,14 @@ export const deleteWebhookEndpoint = async (req: AuthRequest, res: Response): Pr
  */
 export const regenerateWebhookSecret = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      unauthorized(res, 'User not authenticated');
+    const context = resolveActiveOrganizationContext(req, res);
+    if (!context) {
       return;
     }
 
     const { id } = req.params;
 
-    const secret = await webhookService.regenerateWebhookSecret(id, userId);
+    const secret = await webhookService.regenerateWebhookSecret(id, context.organizationId);
 
     if (!secret) {
       notFoundMessage(res, 'Webhook endpoint not found');
@@ -260,9 +266,8 @@ export const regenerateWebhookSecret = async (req: AuthRequest, res: Response): 
  */
 export const getWebhookDeliveries = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      unauthorized(res, 'User not authenticated');
+    const context = resolveActiveOrganizationContext(req, res);
+    if (!context) {
       return;
     }
 
@@ -271,12 +276,10 @@ export const getWebhookDeliveries = async (req: AuthRequest, res: Response): Pro
       limit?: number | string;
     };
     const parsedLimit =
-      typeof query.limit === 'number'
-        ? query.limit
-        : parseInt(String(query.limit ?? ''), 10);
+      typeof query.limit === 'number' ? query.limit : parseInt(String(query.limit ?? ''), 10);
     const limit = Number.isFinite(parsedLimit) ? parsedLimit : PAGINATION.WEBHOOK_DEFAULT_LIMIT;
 
-    const deliveries = await webhookService.getWebhookDeliveries(id, userId, limit);
+    const deliveries = await webhookService.getWebhookDeliveries(id, context.organizationId, limit);
     sendSuccess(res, deliveries);
   } catch (error) {
     logger.error('Error getting webhook deliveries', { error });
@@ -289,15 +292,14 @@ export const getWebhookDeliveries = async (req: AuthRequest, res: Response): Pro
  */
 export const testWebhookEndpoint = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      unauthorized(res, 'User not authenticated');
+    const context = resolveActiveOrganizationContext(req, res);
+    if (!context) {
       return;
     }
 
     const { id } = req.params;
 
-    const result = await webhookService.testWebhookEndpoint(id, userId);
+    const result = await webhookService.testWebhookEndpoint(id, context.organizationId);
     sendSuccess(res, result);
   } catch (error) {
     logger.error('Error testing webhook endpoint', { error });
@@ -308,7 +310,10 @@ export const testWebhookEndpoint = async (req: AuthRequest, res: Response): Prom
 /**
  * Get available webhook events
  */
-export const getAvailableWebhookEvents = async (_req: AuthRequest, res: Response): Promise<void> => {
+export const getAvailableWebhookEvents = async (
+  _req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
     const events = webhookService.getAvailableWebhookEvents();
     sendSuccess(res, events);
@@ -493,11 +498,10 @@ export const getApiKeyUsage = async (req: AuthRequest, res: Response): Promise<v
       limit?: number | string;
     };
     const parsedLimit =
-      typeof query.limit === 'number'
-        ? query.limit
-        : parseInt(String(query.limit ?? ''), 10);
-    const limit =
-      Number.isFinite(parsedLimit) ? parsedLimit : PAGINATION.WEBHOOK_DELIVERY_DEFAULT_LIMIT;
+      typeof query.limit === 'number' ? query.limit : parseInt(String(query.limit ?? ''), 10);
+    const limit = Number.isFinite(parsedLimit)
+      ? parsedLimit
+      : PAGINATION.WEBHOOK_DELIVERY_DEFAULT_LIMIT;
 
     const usage = await apiKeyService.getApiKeyUsage(id, context.organizationId, limit);
     sendSuccess(res, usage);

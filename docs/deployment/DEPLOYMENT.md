@@ -104,6 +104,14 @@ Both release targets run the local release gate before delegating to `scripts/de
 
 The production Compose stack mounts the same `/app/uploads` volume into `backend`, `public-site`, and `worker` so files and worker-created report artifacts stay visible across the runtime processes.
 
+Optional production overlays can be added to the dry-run or execute path with `DEPLOY_EXTRA_COMPOSE_FILES`, a comma-separated list resolved relative to the project root. The deploy wrapper appends these files after the selected DB-at-rest overlay and fails before running Compose if any file is missing.
+
+```bash
+DEPLOY_EXTRA_COMPOSE_FILES=docker-compose.postgres14-root.yml make release-production
+```
+
+`docker-compose.postgres14-root.yml` is a compatibility-only overlay for an existing self-hosted PostgreSQL 14 data directory stored at the mount root layout. It only changes the `postgres` service image to a digest-pinned PostgreSQL 14 image and sets `PGDATA=/var/lib/postgresql`; it does not change volumes, ports, credentials, app services, or production data paths. Use it only for hosts that have not yet completed the PostgreSQL 18 migration/export-restore path in [DB_SETUP.md](DB_SETUP.md).
+
 ## Database Migration
 
 Use repo-owned migration commands instead of running individual migration files by hand.

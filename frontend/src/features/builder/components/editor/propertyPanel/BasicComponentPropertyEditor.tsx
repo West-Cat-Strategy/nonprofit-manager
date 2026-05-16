@@ -1,6 +1,7 @@
 import React from 'react';
 import { sanitizeBuilderUrl } from '../../../../../utils/validation';
 import { DraftInput } from './DraftPropertyFields';
+import { PropertyPanelCheckbox, PropertyPanelField } from './PropertyPanelField';
 import type {
   ButtonSize,
   ButtonVariant,
@@ -142,66 +143,70 @@ const BasicComponentPropertyEditor: React.FC<BasicComponentPropertyEditorProps> 
     case 'button':
       return (
         <>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-app-text-muted">Text</label>
-            <input
-              type="text"
-              value={selectedComponent.text}
-              onChange={(e) => update({ text: e.target.value })}
-              className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
-            />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium text-app-text-muted">Link URL</label>
-            <DraftInput
-              type="text"
-              value={selectedComponent.href || ''}
-              onCommit={(value) => update({ href: sanitizeBuilderUrl(value) })}
-              placeholder="https://..."
-              className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
-            />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium text-app-text-muted">Variant</label>
-            <select
-              value={selectedComponent.variant || 'primary'}
-              onChange={(e) => update({ variant: e.target.value as ButtonVariant })}
-              className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
-            >
-              <option value="primary">Primary</option>
-              <option value="secondary">Secondary</option>
-              <option value="outline">Outline</option>
-              <option value="ghost">Ghost</option>
-              <option value="link">Link</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium text-app-text-muted">Size</label>
-            <select
-              value={selectedComponent.size || 'md'}
-              onChange={(e) => update({ size: e.target.value as ButtonSize })}
-              className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
-            >
-              <option value="sm">Small</option>
-              <option value="md">Medium</option>
-              <option value="lg">Large</option>
-              <option value="xl">Extra Large</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="flex items-center gap-2 text-sm">
+          <PropertyPanelField label="Text">
+            {(fieldId) => (
               <input
-                type="checkbox"
-                checked={selectedComponent.fullWidth || false}
-                onChange={(e) => update({ fullWidth: e.target.checked })}
-                className="rounded border-app-input-border"
+                id={fieldId}
+                type="text"
+                value={selectedComponent.text}
+                onChange={(e) => update({ text: e.target.value })}
+                className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
               />
-              Full Width
-            </label>
+            )}
+          </PropertyPanelField>
+
+          <PropertyPanelField label="Link URL">
+            {(fieldId) => (
+              <DraftInput
+                id={fieldId}
+                type="text"
+                value={selectedComponent.href || ''}
+                onCommit={(value) => update({ href: sanitizeBuilderUrl(value) })}
+                placeholder="https://..."
+                className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
+              />
+            )}
+          </PropertyPanelField>
+
+          <PropertyPanelField label="Variant">
+            {(fieldId) => (
+              <select
+                id={fieldId}
+                value={selectedComponent.variant || 'primary'}
+                onChange={(e) => update({ variant: e.target.value as ButtonVariant })}
+                className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
+              >
+                <option value="primary">Primary</option>
+                <option value="secondary">Secondary</option>
+                <option value="outline">Outline</option>
+                <option value="ghost">Ghost</option>
+                <option value="link">Link</option>
+              </select>
+            )}
+          </PropertyPanelField>
+
+          <PropertyPanelField label="Size">
+            {(fieldId) => (
+              <select
+                id={fieldId}
+                value={selectedComponent.size || 'md'}
+                onChange={(e) => update({ size: e.target.value as ButtonSize })}
+                className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
+              >
+                <option value="sm">Small</option>
+                <option value="md">Medium</option>
+                <option value="lg">Large</option>
+                <option value="xl">Extra Large</option>
+              </select>
+            )}
+          </PropertyPanelField>
+
+          <div>
+            <PropertyPanelCheckbox
+              checked={selectedComponent.fullWidth || false}
+              label="Full Width"
+              onChange={(e) => update({ fullWidth: e.target.checked })}
+            />
           </div>
         </>
       );
@@ -209,82 +214,94 @@ const BasicComponentPropertyEditor: React.FC<BasicComponentPropertyEditorProps> 
     case 'image':
       return (
         <>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-app-text-muted">Image URL</label>
-            <DraftInput
-              type="text"
-              value={selectedComponent.src}
-              onCommit={(value) => update({ src: sanitizeBuilderUrl(value) })}
-              placeholder="https://..."
-              className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
-            />
-          </div>
+          <PropertyPanelField label="Image URL">
+            {(fieldId) => (
+              <DraftInput
+                id={fieldId}
+                type="text"
+                value={selectedComponent.src}
+                onCommit={(value) => update({ src: sanitizeBuilderUrl(value) })}
+                placeholder="https://..."
+                className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
+              />
+            )}
+          </PropertyPanelField>
 
-          <div>
-            <label className="mb-1 block text-sm font-medium text-app-text-muted">Alt Text</label>
-            <input
-              type="text"
-              value={selectedComponent.alt}
-              onChange={(e) => update({ alt: e.target.value })}
-              className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
-            />
-          </div>
+          <PropertyPanelField label="Alt Text">
+            {(fieldId) => (
+              <input
+                id={fieldId}
+                type="text"
+                value={selectedComponent.alt}
+                onChange={(e) => update({ alt: e.target.value })}
+                className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
+              />
+            )}
+          </PropertyPanelField>
 
           <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-app-text-muted">Width</label>
-              <input
-                type="text"
-                value={selectedComponent.width || ''}
-                onChange={(e) => update({ width: e.target.value })}
-                placeholder="100%"
-                className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-app-text-muted">Height</label>
-              <input
-                type="text"
-                value={selectedComponent.height || ''}
-                onChange={(e) => update({ height: e.target.value })}
-                placeholder="auto"
-                className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
-              />
-            </div>
+            <PropertyPanelField label="Width">
+              {(fieldId) => (
+                <input
+                  id={fieldId}
+                  type="text"
+                  value={selectedComponent.width || ''}
+                  onChange={(e) => update({ width: e.target.value })}
+                  placeholder="100%"
+                  className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
+                />
+              )}
+            </PropertyPanelField>
+            <PropertyPanelField label="Height">
+              {(fieldId) => (
+                <input
+                  id={fieldId}
+                  type="text"
+                  value={selectedComponent.height || ''}
+                  onChange={(e) => update({ height: e.target.value })}
+                  placeholder="auto"
+                  className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
+                />
+              )}
+            </PropertyPanelField>
           </div>
 
-          <div>
-            <label className="mb-1 block text-sm font-medium text-app-text-muted">Fit</label>
-            <select
-              value={selectedComponent.objectFit || 'cover'}
-              onChange={(e) =>
-                update({
-                  objectFit: e.target.value as 'cover' | 'contain' | 'fill' | 'none',
-                })
-              }
-              className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
-            >
-              <option value="cover">Cover</option>
-              <option value="contain">Contain</option>
-              <option value="fill">Fill</option>
-              <option value="none">None</option>
-            </select>
-          </div>
+          <PropertyPanelField label="Fit">
+            {(fieldId) => (
+              <select
+                id={fieldId}
+                value={selectedComponent.objectFit || 'cover'}
+                onChange={(e) =>
+                  update({
+                    objectFit: e.target.value as 'cover' | 'contain' | 'fill' | 'none',
+                  })
+                }
+                className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
+              >
+                <option value="cover">Cover</option>
+                <option value="contain">Contain</option>
+                <option value="fill">Fill</option>
+                <option value="none">None</option>
+              </select>
+            )}
+          </PropertyPanelField>
         </>
       );
 
     case 'spacer':
       return (
-        <div>
-          <label className="mb-1 block text-sm font-medium text-app-text-muted">Height</label>
-          <input
-            type="text"
-            value={selectedComponent.height}
-            onChange={(e) => update({ height: e.target.value })}
-            placeholder="2rem"
-            className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
-          />
-        </div>
+        <PropertyPanelField label="Height">
+          {(fieldId) => (
+            <input
+              id={fieldId}
+              type="text"
+              value={selectedComponent.height}
+              onChange={(e) => update({ height: e.target.value })}
+              placeholder="2rem"
+              className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
+            />
+          )}
+        </PropertyPanelField>
       );
 
     case 'divider':

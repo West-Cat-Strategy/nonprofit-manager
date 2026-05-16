@@ -61,6 +61,7 @@ describe('database config', () => {
   });
 
   const loadDatabaseModule = async () => import('@config/database');
+  const loadRequestContextModule = async () => import('@config/requestContext');
   const getMockedPoolCtor = (): jest.Mock => (jest.requireMock('pg') as { Pool: jest.Mock }).Pool;
 
   it('creates an ssl-enabled pool for managed production databases', async () => {
@@ -153,5 +154,90 @@ describe('database config', () => {
         connectionTimeoutMillis: 750,
       })
     );
+  });
+
+  it('binds full request context around pool queries when any request context exists', async () => {
+    process.env.NODE_ENV = 'test';
+    const client = {
+      query: jest.fn().mockResolvedValue({ rows: [] }),
+      release: jest.fn(),
+    };
+    mockPool.connect.mockResolvedValue(client);
+
+    const { default: pool } = await loadDatabaseModule();
+    const { runWithRequestContext } = await loadRequestContextModule();
+
+    await runWithRequestContext(
+      {
+        correlationId: 'corr-request-123',
+        ipAddress: '203.0.113.10',
+        userAgent: 'database-test/1.0',
+      },
+      () => pool.query('SELECT 1')
+    );
+
+    expect(client.query).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining("set_config('app.current_user_id'"),
+      ['', 'corr-request-123', '203.0.113.10', 'database-test/1.0', 'test']
+    );
+    expect(client.query).toHaveBeenNthCalledWith(2, 'SELECT 1');
+    expect(client.query).toHaveBeenNthCalledWith(
+      3,
+      expect.stringContaining('RESET app.request_id')
+    );
+    expect(client.release).toHaveBeenCalledTimes(1);
+    expect(mockPool.query).not.toHaveBeenCalled();
+  });
+
+  it('uses raw pool queries when no request context exists', async () => {
+    const { default: pool } = await loadDatabaseModule();
+    mockPool.query.mockResolvedValue({ rows: [{ value: 1 }] });
+
+    await expect(pool.query('SELECT 1')).resolves.toEqual({ rows: [{ value: 1 }] });
+
+    expect(mockPool.query).toHaveBeenCalledWith('SELECT 1');
+    expect(mockPool.connect).not.toHaveBeenCalled();
+  });
+
+  it('binds request context locally inside request-scoped transactions', async () => {
+    process.env.NODE_ENV = 'test';
+    const client = {
+      query: jest.fn().mockResolvedValue({ rows: [] }),
+      release: jest.fn(),
+    };
+    mockPool.connect.mockResolvedValue(client);
+
+    const { withRequestContextTransaction } = await loadDatabaseModule();
+    const { runWithRequestContext } = await loadRequestContextModule();
+
+    await runWithRequestContext(
+      {
+        correlationId: 'corr-transaction-123',
+        ipAddress: '198.51.100.15',
+        userAgent: 'transaction-test/1.0',
+        userId: '11111111-1111-4111-8111-111111111111',
+      },
+      () =>
+        withRequestContextTransaction(async (transactionClient) => {
+          await transactionClient.query('SELECT scoped');
+        })
+    );
+
+    expect(client.query).toHaveBeenNthCalledWith(1, 'BEGIN');
+    expect(client.query).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining("set_config('app.current_user_id'"),
+      [
+        '11111111-1111-4111-8111-111111111111',
+        'corr-transaction-123',
+        '198.51.100.15',
+        'transaction-test/1.0',
+        'test',
+      ]
+    );
+    expect(client.query).toHaveBeenNthCalledWith(3, 'SELECT scoped');
+    expect(client.query).toHaveBeenNthCalledWith(4, 'COMMIT');
+    expect(client.release).toHaveBeenCalledTimes(1);
   });
 });

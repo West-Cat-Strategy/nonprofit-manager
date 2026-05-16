@@ -15,15 +15,16 @@ Prefer the `make` targets when they exist. Call the scripts directly when you ne
 | [ci.sh](ci.sh) | Canonical root CI wrapper that backs the `make ci*` targets and coverage flows. | `make ci` / `make ci-fast` / `make ci-full` / `make ci-unit` / `make test-coverage` / `make test-coverage-full` |
 | [local-release.sh](local-release.sh) | Local-only release gate for CI, security scan, Docker validation, SBOM generation, and optional staging/production deploy handoff. | `make release-check` / `make release-staging` / `make release-production` |
 | [doctor.sh](doctor.sh) | Preflight local runtime prerequisites (Node, Docker, gitleaks, env files). | `make doctor` |
-| [check-changed.sh](check-changed.sh) | Identify and optionally run checks for files changed relative to `main`. | `make check-changed --run` |
+| [check-changed.sh](check-changed.sh) | Identify and optionally run checks for files changed relative to `main`. | `make check-changed ARGS=--run` |
 | [quality-baseline.sh](quality-baseline.sh) | Run the static quality baseline checks used by the repo's policy gates. | `make quality-baseline` |
 | [security-scan.sh](security-scan.sh) | Run dependency and secret scanning. | `make security-scan` |
+| [validation-preflight.sh](validation-preflight.sh) | Fail fast with repo-specific Docker socket and isolated test DB prerequisite messages before root wrappers reach late Docker/DB failures. | Called by Docker and DB-backed Make/script wrappers |
 | [db-migrate.sh](db-migrate.sh) | Bootstrap or start the local database contract and isolated test database. | `make db-migrate` |
 | [db-backup.sh](db-backup.sh) | Back up the Postgres data volume through the compose contract. | Manual ops / scheduled backups |
 | [db-export-archive.sh](db-export-archive.sh) | Export a Postgres custom-format archive through the compose or direct DB contract. | Manual ops / migration prep |
 | [db-restore-archive.sh](db-restore-archive.sh) | Restore a Postgres custom-format archive with `pg_restore --create`. | Manual ops / disaster recovery |
 | [docker-build-images.sh](docker-build-images.sh) | Centralize the direct Docker build, rebuild, and validation flow, including the shared workspace dependency stages used by clean image rebuilds. | `make docker-build` / `make docker-rebuild` / `make docker-validate` |
-| [docker-validate-overlays.sh](docker-validate-overlays.sh) | Validate Docker Compose overlays and Caddyfile wiring using tracked example env files where optional local env files are absent, including Plausible CE, OpenSearch, and legacy ELK overlays. | `make docker-validate-overlays` |
+| [docker-validate-overlays.sh](docker-validate-overlays.sh) | Validate Docker Compose overlays and Caddyfile wiring using tracked example env files where optional local env files are absent, including the opt-in Postgres 14 root-layout overlay, Plausible CE, OpenSearch, and legacy ELK overlays. | `make docker-validate-overlays` |
 | [verify-migrations.sh](verify-migrations.sh) | Verify the isolated `_test` database contract and manifest parity. | `make db-verify` |
 | [deploy.sh](deploy.sh) | Run the local, staging, or production deployment wrapper. | `make deploy-local` / `make deploy-staging` / `make deploy` |
 | [install-git-hooks.sh](install-git-hooks.sh) | Install the repo-managed hooks into Git's resolved hooks path and preserve differing existing hooks unless you pass `--force`. | `make hooks` / `./scripts/install-git-hooks.sh --dry-run` |
@@ -39,7 +40,7 @@ Prefer the `make` targets when they exist. Call the scripts directly when you ne
 
 The `check-*.ts` scripts are the repo policy gates that back `make lint`, `make quality-baseline`, and the static UI/security reports:
 
-- Backend policy gates: `check-rate-limit-key-policy.ts`, `check-success-envelope-policy.ts`, `check-route-validation-policy.ts`, `check-query-contract-policy.ts`, `check-express-validator-policy.ts`, `check-controller-sql-policy.ts`, `check-auth-guard-policy.ts`, `check-migration-manifest-policy.ts`, `check-duplicate-test-tree.ts`, `check-openapi-contract.ts`, `check-v2-module-ownership-policy.ts`, `check-module-boundary-policy.ts`, `check-module-route-proxy-policy.ts`, `check-canonical-module-import-policy.ts`, `check-implementation-size-policy.ts`, and the deleted-path guard `check-backend-legacy-controller-wrapper-policy.ts`.
+- Backend policy gates: `check-rate-limit-key-policy.ts`, `check-success-envelope-policy.ts`, `check-route-validation-policy.ts`, `check-query-contract-policy.ts`, `check-express-validator-policy.ts`, `check-controller-sql-policy.ts`, `check-auth-guard-policy.ts`, `check-v2-route-auth-posture.ts`, `check-migration-manifest-policy.ts`, `check-duplicate-test-tree.ts`, `check-openapi-contract.ts`, `check-v2-module-ownership-policy.ts`, `check-module-boundary-policy.ts`, `check-module-route-proxy-policy.ts`, `check-canonical-module-import-policy.ts`, `check-implementation-size-policy.ts`, and the deleted-path guard `check-backend-legacy-controller-wrapper-policy.ts`.
 - Frontend policy gates: `check-frontend-feature-boundary-policy.ts` plus the deleted-path guards `check-frontend-legacy-slice-import-policy.ts` and `check-frontend-legacy-page-path-policy.ts`.
 - Route and UI policy gates: `check-route-integrity.ts`, `check-route-catalog-drift.ts`, and `ui-audit.ts`.
 - Implementation-size ratchet data lives in `baselines/implementation-size.json`.
@@ -63,6 +64,16 @@ The three legacy deleted-path guards fail if `frontend/src/pages`, `frontend/src
 - The archive restore helper requires `DB_RESTORE_CONFIRM=1`, uses `DB_RESTORE_RISK_CONFIRM=restore:<host>:<port>/<db>` for risky restore targets, and defaults `DB_RESTORE_TARGET_DB=postgres` so the archive can recreate `nonprofit_manager`.
 - Compose-backed helpers reuse the existing `DB_COMPOSE_PROJECT`, `DB_COMPOSE_FILE`, and `DB_SERVICE` contract, and also accept `DB_COMPOSE_FILES="..."` when the target stack needs multiple compose manifests plus `DB_COMPOSE_ENV_FILE=.env.production` when the stack depends on a non-default env file.
 
+## Deployment Overlay Helpers
+
+`scripts/deploy.sh` accepts `DEPLOY_EXTRA_COMPOSE_FILES` for opt-in production or staging Compose overlays that are intentionally outside the default stack. Provide a comma-separated list of file paths relative to the project root, for example:
+
+```bash
+DEPLOY_EXTRA_COMPOSE_FILES=docker-compose.postgres14-root.yml DEPLOY_EXECUTE=0 scripts/deploy.sh production
+```
+
+The wrapper appends these files after the DB-at-rest overlay and fails closed if any listed file is missing.
+
 ## Common Validation Flow
 
 If you just need a quick repo check, start with:
@@ -78,6 +89,7 @@ make test
 `make test-coverage` is the coverage-focused companion to `make test`: it runs backend and frontend coverage, host Playwright smoke, and the same isolated Docker-backed smoke gate.
 `make test-coverage-full` is the higher-confidence coverage lane: it runs backend and frontend coverage, the host Playwright CI matrix, and the isolated Docker-backed smoke gate.
 The coverage lanes now self-supply the CI Redis URL and backend coverage heap in the wrapper layer. Run them from a clean shell and do not export the full `.env.development` contract into those lanes, because it can override the isolated test DB contract.
+Docker-backed wrappers now run `scripts/validation-preflight.sh` before expensive work starts. `make docker-build`, `make docker-validate`, `make docker-validate-overlays`, Docker stack targets, `make db-verify`, `make test`, `make test-backend`, `make test-e2e`, and the coverage/smoke variants fail up front when Docker Desktop/the active Docker socket, Docker Compose, `psql`, or the reusable isolated test DB contract is unavailable. `make lint` remains a static policy/package gate and does not require Docker unless a future policy script explicitly adds a Docker-backed check.
 `make test-tooling` runs the targeted tooling-contract regression suite for selector, OpenAPI contract lint, route-audit, helper-script, and wrapper changes.
 For a durable archived host Playwright CI report, use `cd e2e && npm run test:ci:report`; it preserves the run under `tmp/e2e-reports/` instead of reusing `e2e/playwright-report`.
 The full Playwright CI matrix stays gated to the default browser projects; `Mobile Safari` and `Tablet` remain manual/ad hoc projects that you can run explicitly when needed.

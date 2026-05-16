@@ -5,6 +5,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
+./scripts/validation-preflight.sh docker --compose --context "scripts/docker-validate-overlays.sh"
+
 CADDY_DOCKER_IMAGE="${CADDY_DOCKER_IMAGE:-caddy:2-alpine@sha256:834468128c7696cec0ceea6172f7d692daf645ae51983ca76e39da54a97c570d}"
 
 echo "Checking Docker image pinning policy..."
@@ -64,6 +66,10 @@ run_with_env "production host-access compose config" \
 run_with_env "self-hosted database compose config" \
   "${db_self_hosted_env[@]}" \
   "${compose_cmd[@]}" --env-file .env.production.example -p nonprofit-prod -f docker-compose.yml -f docker-compose.db-self-hosted.yml config --quiet
+
+run_with_env "host-access self-hosted Postgres 14 root-layout compose config" \
+  "${db_self_hosted_env[@]}" \
+  "${compose_cmd[@]}" --env-file .env.production.example -p nonprofit-prod -f docker-compose.yml -f docker-compose.host-access.yml -f docker-compose.db-self-hosted.yml -f docker-compose.postgres14-root.yml config --quiet
 
 run_with_env "encrypted database compose config" \
   "${db_encrypted_env[@]}" \

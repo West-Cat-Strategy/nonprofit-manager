@@ -2,6 +2,8 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 
 export interface RequestContext {
   correlationId?: string;
+  ipAddress?: string;
+  userAgent?: string;
   userId?: string;
   portalUserId?: string;
   portalContactId?: string | null;
@@ -12,13 +14,10 @@ export interface RequestContext {
 
 const requestContextStorage = new AsyncLocalStorage<RequestContext>();
 
-export const runWithRequestContext = <T>(
-  context: RequestContext,
-  callback: () => T
-): T => requestContextStorage.run({ ...context }, callback);
+export const runWithRequestContext = <T>(context: RequestContext, callback: () => T): T =>
+  requestContextStorage.run({ ...context }, callback);
 
-export const getRequestContext = (): RequestContext | undefined =>
-  requestContextStorage.getStore();
+export const getRequestContext = (): RequestContext | undefined => requestContextStorage.getStore();
 
 export const setRequestContext = (updates: Partial<RequestContext>): void => {
   const current = requestContextStorage.getStore();

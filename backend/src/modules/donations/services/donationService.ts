@@ -20,6 +20,7 @@ import { resolveSort } from '@utils/queryHelpers';
 import type { DataScopeFilter } from '@app-types/dataScope';
 import { activityEventService } from '@services/activityEventService';
 import appealCampaignService from '@modules/appealCampaigns/services/appealCampaignService';
+import { triggerWebhooks } from '@modules/webhooks/services/webhookService';
 import { DonationDesignationService } from './donationDesignationService';
 
 type QueryValue = string | number | boolean | Date | null | string[];
@@ -447,7 +448,7 @@ export class DonationService {
 
         try {
           await activityEventService.recordEvent({
-            organizationId: account_id || null,
+            organizationId: resolvedOrganizationId,
             type: 'donation_received',
             title: 'Donation received',
             description: `Donation of $${Number(amount).toFixed(2)}`,
@@ -471,6 +472,14 @@ export class DonationService {
           logger.warn('Failed to record donation activity event', {
             activityError,
             donationId: donation.donation_id,
+          });
+        }
+
+        if (resolvedOrganizationId) {
+          await triggerWebhooks({
+            organizationId: resolvedOrganizationId,
+            eventType: 'donation.created',
+            data: donation,
           });
         }
 

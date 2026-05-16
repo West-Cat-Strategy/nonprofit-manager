@@ -40,9 +40,20 @@ describe('FilterBuilder', () => {
 
     render(<FilterBuilder availableFields={mockFields} filters={filters} onChange={onChange} />);
 
-    await user.click(screen.getAllByTitle(/remove filter/i)[0]);
+    await user.click(screen.getByRole('button', { name: /remove filter 1/i }));
 
     expect(onChange).toHaveBeenCalledWith([{ field: 'age', operator: 'gt', value: '18' }]);
+  });
+
+  it('labels dense filter row controls', () => {
+    const filters: ReportFilter[] = [{ field: 'name', operator: 'like', value: 'John' }];
+
+    render(<FilterBuilder availableFields={mockFields} filters={filters} onChange={vi.fn()} />);
+
+    expect(screen.getByLabelText('Filter 1 field')).toHaveValue('name');
+    expect(screen.getByLabelText('Filter 1 operator')).toHaveValue('like');
+    expect(screen.getByLabelText('Filter 1 value')).toHaveValue('John');
+    expect(screen.getByRole('button', { name: /remove filter 1/i })).toBeInTheDocument();
   });
 
   it('renders the tip and range inputs for supported operators', () => {

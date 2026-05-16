@@ -35,7 +35,7 @@ Docs-only changes normally stay on `make check-links`. Add `make lint-doc-api-ve
 
 | Layer | Primary Command | Notes |
 |------|------------------|-------|
-| DB contract verification | `make db-verify` | Rebuilds the isolated `_test` database and checks manifest/initdb parity, starter bootstrap seeds, the disposable app-role/RLS probe, known superseded indexes, and the audit-log future partition window. Required when migrations `103` through `108` or their manifest/initdb parity change. |
+| DB contract verification | `make db-verify` | Rebuilds the isolated `_test` database and checks manifest/initdb parity, starter bootstrap seeds, the disposable app-role/RLS probe, known superseded indexes, and the audit-log future partition window. Required when migrations, `database/migrations/manifest.tsv`, or `database/initdb/000_init.sql` change. |
 | Contracts export smoke | `make typecheck` | Verifies the type-only `contracts` workspace through its export/type smoke check; this is part of repo-wide type validation, not a runtime test or coverage lane |
 | Repo-wide validation | `make test` | Runs backend/frontend tests, the host Playwright CI matrix, and the isolated Docker-backed smoke gate |
 | Coverage variant (fast local lane) | `make test-coverage` | Runs backend/frontend coverage, host Playwright smoke, and the isolated Docker-backed smoke gate |
@@ -45,6 +45,12 @@ Docs-only changes normally stay on `make check-links`. Add `make lint-doc-api-ve
 | E2E | `cd e2e && npm test` | Host wrappers use Playwright-managed `5173/3001`; Docker wrappers default to externally managed `8005/8004/8006`; the root smoke gate provisions isolated `18005/18004/18006`. See [../../e2e/README.md](../../e2e/README.md) for wrapper flags, preserved reports, Docker review env, MFA proof, and manual mobile projects. |
 | Docs validation | `make check-links` | Use for any docs change; add `make lint-doc-api-versioning` when API wording/examples or versioned API docs changed; add `make lint-openapi` when `docs/api/openapi.yaml` changed |
 | Tooling regression coverage | `make test-tooling` | Targeted contract suite for route-audit, OpenAPI contract lint, selector, helper-script, and wrapper changes |
+
+## Runtime Preflight
+
+Root Docker and DB-backed wrappers fail fast through `scripts/validation-preflight.sh` before they start expensive validation work. Docker stack targets, Docker image/overlay validation, `make db-verify`, `make test`, `make test-backend`, `make test-e2e`, the coverage lanes, and `make test-e2e-docker-smoke` check the active Docker daemon/socket and, where relevant, Docker Compose, `psql`, and the isolated test DB contract at `127.0.0.1:8012/nonprofit_manager_test`.
+
+When `SKIP_INTEGRATION_DB_PREP=1` is set, the preflight requires the isolated DB to answer before Jest starts. Otherwise it accepts a reachable Docker daemon as sufficient because the wrapper can bootstrap or rebuild the disposable test DB. `make lint` stays a static policy/package gate and is intentionally outside the Docker/DB preflight path.
 
 ## Local Release Gates
 
@@ -214,7 +220,7 @@ This slice proves the current local-first communications contract without wideni
 - `src/features/builder/pages/__tests__/TemplatePreviewPage.test.tsx`: shared sandboxed preview-frame behavior
 
 Pair that command set with `make check-links` when the same task updates email-wave or testing docs.
-Add `make lint-doc-api-versioning` when the same task changes `/api/v2` route wording, include `src/__tests__/services/taxReceiptService.test.ts` when donor-profile receipt defaults change with the email wave, and keep `make db-verify` in the slice when migrations `103_mailchimp_saved_audiences_and_campaign_runs.sql`, `107_donor_profiles.sql`, `110_communication_suppression_governance.sql`, or `111_local_first_communications.sql` change.
+Add `make lint-doc-api-versioning` when the same task changes `/api/v2` route wording, include `src/__tests__/services/taxReceiptService.test.ts` when donor-profile receipt defaults change with the email wave, and keep `make db-verify` in the slice when the owning communications, donor, suppression, or local-campaign migration files, manifest, or initdb parity change.
 
 ## Targeted Portal Hardening Proof
 
@@ -233,7 +239,7 @@ This slice proves the current portal hardening contract without widening into th
 - `src/__tests__/services/portalAuthService.test.ts`: portal signup resolution and best-effort public-intake audit behavior
 - `src/__tests__/services/queueViewDefinitionService.test.ts`: queue view create, update, archive ownership, and surface limits
 - `src/features/portal/pages/__tests__/PortalWorkflowPages.test.tsx`: portal workflow shells, including appointments continuity
-- `make db-verify`: manifest/initdb parity for migrations `104_public_intake_resolutions.sql`, `105_queue_view_definitions.sql`, and `106_portal_escalations.sql`
+- `make db-verify`: manifest/initdb parity when the public-intake, queue-definition, portal-escalation, or related database contract changes
 
 Add the focused Playwright portal suites from the persona lane when the UI route contract changes. Keep actor attribution checks with the backend service or route tests when portal escalation creation changes.
 
@@ -288,7 +294,7 @@ make lint-doc-api-versioning
 ```
 
 - Add `make lint-doc-api-versioning` when API wording, API examples, or versioned API docs changed.
-- Add `make db-verify` when migration docs or database contract expectations changed, including the Phase 5 hardening and reassessment migrations `103` through `108`.
+- Add `make db-verify` when migration docs, manifest/initdb parity, or database contract expectations changed.
 - Use `./scripts/select-checks.sh --base HEAD~1 --mode strict` for runtime-facing docs when command meanings, ports, wrappers, Docker modes, or orchestration expectations changed.
 
 ## Choosing A Smaller Check Set

@@ -17,6 +17,45 @@ deploy_local() {
   compose_with_project_files "${COMPOSE_PROJECT_DEV:-nonprofit-dev}" "$PROJECT_ROOT/docker-compose.dev.yml" -- up -d --build --remove-orphans
 }
 
+trim_whitespace() {
+  local value="${1:-}"
+  value="${value#"${value%%[![:space:]]*}"}"
+  value="${value%"${value##*[![:space:]]}"}"
+  printf '%s' "$value"
+}
+
+append_extra_compose_files() {
+  local extra_files="${DEPLOY_EXTRA_COMPOSE_FILES:-}"
+  local entry
+  local resolved_file
+  local -a extra_compose_entries=()
+
+  if [[ -z "$extra_files" ]]; then
+    return 0
+  fi
+
+  IFS=',' read -r -a extra_compose_entries <<< "$extra_files"
+  for entry in "${extra_compose_entries[@]}"; do
+    entry="$(trim_whitespace "$entry")"
+    if [[ -z "$entry" ]]; then
+      continue
+    fi
+
+    if [[ "${entry:0:1}" == "/" ]]; then
+      resolved_file="$entry"
+    else
+      resolved_file="$PROJECT_ROOT/$entry"
+    fi
+
+    if [[ ! -f "$resolved_file" ]]; then
+      echo "Extra compose file not found: $resolved_file" >&2
+      return 1
+    fi
+
+    compose_files+=("$resolved_file")
+  done
+}
+
 deploy_production_like() {
   local env_file=""
   local compose_project=""
@@ -61,6 +100,8 @@ deploy_production_like() {
       compose_files+=("$PROJECT_ROOT/docker-compose.db-self-hosted.yml")
       ;;
   esac
+
+  append_extra_compose_files
 
   if [[ "$MODE" == "production" ]]; then
     caddy_domain="${CADDY_DOMAIN:-app.example.org}"

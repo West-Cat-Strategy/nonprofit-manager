@@ -113,7 +113,7 @@ help:
 	@echo "  make test-tooling   Run the targeted tooling-contract regression tests"
 	@echo "  make quality-baseline Generate code quality baseline report"
 	@echo "  make check-links    Validate markdown links"
-	@echo "  make check-changed  Identify and optionally run checks for changed files (--run)"
+	@echo "  make check-changed  Identify checks for changed files (ARGS=--run to execute)"
 	@echo "  make test-e2e-docker-smoke Run the Docker-backed Playwright smoke gate against the isolated smoke stack"
 	@echo ""
 	@echo "$(GREEN)CI Pipelines:$(RESET)"
@@ -184,6 +184,7 @@ dev-lite: docker-up-dev-lite
 	@echo ""
 
 docker-up:
+	@./scripts/validation-preflight.sh docker --compose --context "make docker-up"
 	@missing=0; \
 	for file in docker-compose.yml; do \
 	  if [ ! -f "$$file" ]; then \
@@ -198,6 +199,7 @@ docker-up:
 	$(DOCKER_COMPOSE) $(COMPOSE_PROD_ARGS) up -d
 
 docker-up-dev:
+	@./scripts/validation-preflight.sh docker --compose --context "make docker-up-dev"
 	@missing=0; \
 	for file in docker-compose.dev.yml; do \
 	  if [ ! -f "$$file" ]; then \
@@ -216,6 +218,7 @@ docker-up-dev:
 	  "http://127.0.0.1:$(DEV_PUBLIC_SITE_PORT)/health/ready"
 
 docker-up-dev-lite:
+	@./scripts/validation-preflight.sh docker --compose --context "make docker-up-dev-lite"
 	@missing=0; \
 	for file in docker-compose.dev.yml; do \
 	  if [ ! -f "$$file" ]; then \
@@ -241,6 +244,7 @@ docker-up-dev-lite:
 	  "http://127.0.0.1:$(DEV_FRONTEND_PORT)"
 
 docker-up-caddy:
+	@./scripts/validation-preflight.sh docker --compose --context "make docker-up-caddy"
 	@missing=0; \
 	for file in docker-compose.dev.yml docker-compose.caddy.yml Caddyfile; do \
 	  if [ ! -f "$$file" ]; then \
@@ -260,6 +264,7 @@ docker-up-caddy:
 	$(DOCKER_COMPOSE) $(COMPOSE_DEV_CADDY_ARGS) up -d
 
 docker-down:
+	@./scripts/validation-preflight.sh docker --compose --context "make docker-down"
 	@missing=0; \
 	for file in docker-compose.dev.yml; do \
 	  if [ ! -f "$$file" ]; then \
@@ -275,6 +280,7 @@ docker-down:
 	@echo "$(YELLOW)Only the compose dev stack can be stopped from this checkout.$(RESET)"
 
 docker-logs:
+	@./scripts/validation-preflight.sh docker --compose --context "make docker-logs"
 	@missing=0; \
 	for file in docker-compose.dev.yml; do \
 	  if [ ! -f "$$file" ]; then \
@@ -289,18 +295,22 @@ docker-logs:
 	$(DOCKER_COMPOSE) $(COMPOSE_DEV_ARGS) logs -f
 
 docker-build:
+	@./scripts/validation-preflight.sh docker --context "make docker-build"
 	$(DOCKER_DIRECT_BUILD_HELPER) build
 	@echo "$(GREEN)Docker images built!$(RESET)"
 
 docker-rebuild:
+	@./scripts/validation-preflight.sh docker --context "make docker-rebuild"
 	$(DOCKER_DIRECT_BUILD_HELPER) rebuild
 	@echo "$(GREEN)Docker images rebuilt without cache!$(RESET)"
 
 docker-validate:
+	@./scripts/validation-preflight.sh docker --context "make docker-validate"
 	$(DOCKER_DIRECT_BUILD_HELPER) validate
 	@echo "$(GREEN)Dockerfile validation complete!$(RESET)"
 
 docker-validate-overlays:
+	@./scripts/validation-preflight.sh docker --compose --context "make docker-validate-overlays"
 	./scripts/docker-validate-overlays.sh
 	@echo "$(GREEN)Docker Compose overlay validation complete!$(RESET)"
 
@@ -446,6 +456,7 @@ typecheck:
 	@echo "$(GREEN)Type checking complete!$(RESET)"
 
 test:
+	@./scripts/validation-preflight.sh isolated-test-db --context "make test"
 	@echo "$(BLUE)Ensuring test infrastructure is running (Redis)...$(RESET)"
 	$(CI_INFRA_ENV) $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
 	@echo "$(BLUE)Preparing isolated test database...$(RESET)"
@@ -460,6 +471,7 @@ test:
 	@echo "$(GREEN)Tests complete!$(RESET)"
 
 test-coverage:
+	@./scripts/validation-preflight.sh isolated-test-db --context "make test-coverage"
 	@echo "$(BLUE)Ensuring test infrastructure is running (Redis)...$(RESET)"
 	$(CI_INFRA_ENV) $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
 	@echo "$(BLUE)Preparing isolated test database...$(RESET)"
@@ -476,6 +488,7 @@ test-coverage:
 	@echo "$(GREEN)Coverage reports and smoke gates complete!$(RESET)"
 
 test-coverage-full:
+	@./scripts/validation-preflight.sh isolated-test-db --context "make test-coverage-full"
 	@echo "$(BLUE)Ensuring test infrastructure is running (Redis)...$(RESET)"
 	$(CI_INFRA_ENV) $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
 	@echo "$(BLUE)Preparing isolated test database...$(RESET)"
@@ -495,6 +508,7 @@ test-tooling:
 	node --test scripts/tests/tooling-contracts.test.cjs
 
 test-backend:
+	@./scripts/validation-preflight.sh isolated-test-db --context "make test-backend"
 	$(CI_INFRA_ENV) $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
 	@$(CI_TEST_DB_ENV) ./scripts/db-migrate.sh
 	@echo "$(BLUE)Waiting for database to complete post-init restart...$(RESET)"
@@ -505,11 +519,13 @@ test-frontend:
 	cd frontend && npm test -- --run
 
 test-e2e:
+	@./scripts/validation-preflight.sh isolated-test-db --context "make test-e2e"
 	$(CI_INFRA_ENV) $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
 	@$(CI_TEST_DB_ENV) ./scripts/db-migrate.sh
 	$(E2E_NPM_RUN) test:ci
 
 test-e2e-docker-smoke:
+	@./scripts/validation-preflight.sh docker --compose --context "make test-e2e-docker-smoke"
 	@set -eu; \
 	purge_smoke_stack() { \
 	  $(SMOKE_STACK_ENV) $(DOCKER_COMPOSE) $(COMPOSE_DEV_SMOKE_ARGS) down --remove-orphans --volumes >/dev/null 2>&1 || true; \
@@ -670,10 +686,12 @@ release-production:
 # Database
 #------------------------------------------------------------------------------
 db-migrate:
+	@./scripts/validation-preflight.sh docker --compose --context "make db-migrate"
 	@echo "$(BLUE)Running database migrations...$(RESET)"
 	@./scripts/db-migrate.sh
 
 db-verify:
+	@./scripts/validation-preflight.sh isolated-test-db --context "make db-verify"
 	@echo "$(BLUE)Verifying the manifest/initdb contract and isolated test database...$(RESET)"
 	@./scripts/verify-migrations.sh
 

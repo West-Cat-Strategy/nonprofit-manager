@@ -1,4 +1,4 @@
-import { fireEvent, render } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import BasicComponentPropertyEditor from '../BasicComponentPropertyEditor';
 
@@ -20,6 +20,7 @@ describe('BasicComponentPropertyEditor URL handling', () => {
 
     const inputs = container.querySelectorAll('input[type="text"]');
     const hrefInput = inputs[1] as HTMLInputElement;
+    expect(screen.getByLabelText('Link URL')).toBe(hrefInput);
 
     fireEvent.change(hrefInput, {
       target: { value: 'javascript:alert(1)' },
@@ -48,6 +49,7 @@ describe('BasicComponentPropertyEditor URL handling', () => {
     );
 
     const srcInput = container.querySelector('input[type="text"]') as HTMLInputElement;
+    expect(screen.getByLabelText('Image URL')).toBe(srcInput);
 
     fireEvent.change(srcInput, {
       target: { value: 'data:text/html,<svg onload=alert(1)>' },

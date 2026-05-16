@@ -63,11 +63,6 @@
     "winston": "^3.19.0",
     "zod": "^4.4.3"
   },
-  "overrides": {
-    "exceljs@4.4.0": {
-      "uuid": "^14.0.0"
-    }
-  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@jest/globals": "^30.4.1",

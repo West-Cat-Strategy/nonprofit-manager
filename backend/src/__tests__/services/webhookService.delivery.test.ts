@@ -29,6 +29,7 @@ describe('webhookService delivery behavior', () => {
   it('enqueues delivery records and does not perform network delivery during trigger', async () => {
     const endpointRow = {
       id: 'endpoint-1',
+      organization_id: 'org-1',
       user_id: 'user-1',
       url: 'HTTP://localhost/webhook',
       secret: 'whsec_test',
@@ -42,7 +43,11 @@ describe('webhookService delivery behavior', () => {
       .mockResolvedValueOnce({ rows: [endpointRow] }) // SELECT endpoints
       .mockResolvedValueOnce({ rows: [{ id: 'delivery-1' }] }); // INSERT delivery
 
-    await webhookService.triggerWebhooks('contact.created' as WebhookEventType, { id: 'contact-1' });
+    await webhookService.triggerWebhooks({
+      organizationId: 'org-1',
+      eventType: 'contact.created' as WebhookEventType,
+      data: { id: 'contact-1' },
+    });
 
     const insertDeliveryCall = mockQuery.mock.calls.find((call) =>
       String(call[0]).includes('INSERT INTO webhook_deliveries')
@@ -52,6 +57,7 @@ describe('webhookService delivery behavior', () => {
     );
     expect(insertDeliveryCall).toBeTruthy();
     expect(String(insertDeliveryCall?.[0])).toContain('queued');
+    expect(mockQuery.mock.calls[0][1]).toEqual([JSON.stringify(['contact.created']), 'org-1']);
     expect(updateDeliveryCall).toBeUndefined();
     expect((global as any).fetch).not.toHaveBeenCalled();
   });
@@ -69,6 +75,7 @@ describe('webhookService delivery behavior', () => {
       },
       attempts: 1,
       next_retry_at: new Date().toISOString(),
+      organization_id: 'org-1',
       user_id: 'user-1',
       url: 'HTTP://localhost/retry',
       secret: 'whsec_test',
@@ -108,6 +115,7 @@ describe('webhookService delivery behavior', () => {
       },
       attempts: 0,
       next_retry_at: new Date().toISOString(),
+      organization_id: 'org-1',
       user_id: 'user-1',
       url: 'https://8.8.8.8/webhook',
       secret: 'whsec_test',
@@ -152,6 +160,7 @@ describe('webhookService delivery behavior', () => {
       },
       attempts: 1,
       next_retry_at: new Date().toISOString(),
+      organization_id: 'org-1',
       user_id: 'user-1',
       url: 'https://8.8.8.8/webhook',
       secret: 'whsec_test',
@@ -191,6 +200,7 @@ describe('webhookService delivery behavior', () => {
       },
       attempts: 4,
       next_retry_at: new Date().toISOString(),
+      organization_id: 'org-1',
       user_id: 'user-1',
       url: 'https://8.8.8.8/webhook',
       secret: 'whsec_test',
@@ -226,6 +236,7 @@ describe('webhookService delivery behavior', () => {
   it('blocks redirect responses during test webhook sends', async () => {
     const endpointRow = {
       id: 'endpoint-test-1',
+      organization_id: 'org-1',
       user_id: 'user-1',
       url: 'https://8.8.8.8/webhook',
       secret: 'whsec_test',
@@ -243,7 +254,7 @@ describe('webhookService delivery behavior', () => {
       text: jest.fn().mockResolvedValue('redirecting to private target'),
     });
 
-    const result = await webhookService.testWebhookEndpoint('endpoint-test-1', 'user-1');
+    const result = await webhookService.testWebhookEndpoint('endpoint-test-1', 'org-1');
 
     expect(result.success).toBe(false);
     expect(result.statusCode).toBe(302);
@@ -267,6 +278,7 @@ describe('webhookService delivery behavior', () => {
       },
       attempts: 4,
       next_retry_at: new Date().toISOString(),
+      organization_id: 'org-1',
       user_id: 'user-1',
       url: 'https://8.8.8.8/webhook',
       secret: 'whsec_test',
@@ -307,6 +319,7 @@ describe('webhookService delivery behavior', () => {
 
     const claimCall = mockQuery.mock.calls[0];
     expect(String(claimCall[0])).toContain("wd.status = 'running'");
+    expect(String(claimCall[0])).toContain('we.organization_id IS NOT NULL');
     expect(String(claimCall[0])).toContain('processing_started_at < NOW()');
     expect(claimCall[1][1]).toBe(10); // stale timeout minutes
   });

@@ -113,6 +113,7 @@ has_tooling_contracts=0
 has_frontend_bundle_tooling=0
 has_openapi_contract=0
 has_dependency_tooling=0
+has_root_dependency_manifest=0
 has_knip_config=0
 has_contracts=0
 
@@ -174,6 +175,7 @@ for file in "${changed_files[@]}"; do
   case "$file" in
     package.json|package-lock.json)
       has_dependency_tooling=1
+      has_root_dependency_manifest=1
       has_runtime_orchestration=1
       has_tooling_contracts=1
       ;;
@@ -365,6 +367,11 @@ fi
 if [[ $has_dependency_tooling -eq 1 ]]; then
   add_command "npm run knip"
   add_command "make security-audit"
+fi
+
+if [[ $has_root_dependency_manifest -eq 1 ]]; then
+  add_command "make lint"
+  add_command "make typecheck"
 fi
 
 if [[ $has_hook_tooling -eq 1 ]]; then

@@ -148,6 +148,8 @@ CREATE INDEX IF NOT EXISTS idx_schema_migrations_canonical_filename
 \i /migrations/130_typed_appeal_campaign_spine.sql
 \i /migrations/131_donation_batch_review_controls.sql
 \i /migrations/132_service_site_snapshots.sql
+\i /migrations/133_webhook_endpoint_organization_scope.sql
+\i /migrations/134_audit_request_context_metadata.sql
 
 UPDATE schema_migrations
 SET migration_id = '032',
@@ -301,7 +303,9 @@ VALUES
     ('129_cbis_import_duplicate_guards.sql', '129', '129_cbis_import_duplicate_guards.sql'),
     ('130_typed_appeal_campaign_spine.sql', '130', '130_typed_appeal_campaign_spine.sql'),
     ('131_donation_batch_review_controls.sql', '131', '131_donation_batch_review_controls.sql'),
-    ('132_service_site_snapshots.sql', '132', '132_service_site_snapshots.sql')
+    ('132_service_site_snapshots.sql', '132', '132_service_site_snapshots.sql'),
+    ('133_webhook_endpoint_organization_scope.sql', '133', '133_webhook_endpoint_organization_scope.sql'),
+    ('134_audit_request_context_metadata.sql', '134', '134_audit_request_context_metadata.sql')
 ON CONFLICT (filename) DO UPDATE
 SET migration_id = EXCLUDED.migration_id,
     canonical_filename = EXCLUDED.canonical_filename;

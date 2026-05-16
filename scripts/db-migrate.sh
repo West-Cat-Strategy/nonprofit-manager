@@ -254,10 +254,12 @@ main() {
   fi
 
   if is_test_db; then
+    "$PROJECT_ROOT/scripts/validation-preflight.sh" isolated-test-db --context "scripts/db-migrate.sh"
     ensure_test_database
     return $?
   fi
 
+  "$PROJECT_ROOT/scripts/validation-preflight.sh" docker --compose --context "scripts/db-migrate.sh"
   ensure_dev_database
 }
 

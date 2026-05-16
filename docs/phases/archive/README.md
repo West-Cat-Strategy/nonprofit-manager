@@ -1,6 +1,6 @@
 # Phase Documentation Archive
 
-**Last Updated:** 2026-05-11
+**Last Updated:** 2026-05-15
 
 Use this directory for historical phase notes, closeout artifacts, and earlier workboard material.
 
@@ -34,6 +34,7 @@ Do not use the files in this archive as the source of truth for current status.
 - [P5_MAINTENANCE_CLEANUP_CLOSEOUT_2026-05-04.md](P5_MAINTENANCE_CLEANUP_CLOSEOUT_2026-05-04.md)
 - [P5_LOCAL_CAMPAIGN_BROWSER_VIEW_CLOSEOUT_2026-05-05.md](P5_LOCAL_CAMPAIGN_BROWSER_VIEW_CLOSEOUT_2026-05-05.md)
 - [P5_REVIEW_SUBAGENT_WAVE_CLOSEOUT_2026-05-09.md](P5_REVIEW_SUBAGENT_WAVE_CLOSEOUT_2026-05-09.md) - May 9 review-wave closeout, May 10 remaining-blocker removals, and May 11 main-merge reconciliation for `P5-T93` through `P5-T97`.
+- [P5_REVIEW_QUEUE_RECONCILIATION_CLOSEOUT_2026-05-15.md](P5_REVIEW_QUEUE_RECONCILIATION_CLOSEOUT_2026-05-15.md) - May 15 review-queue reconciliation that removed proof-complete `P5-T98` through `P5-T110`, `P5-T112`, `P5-T113`, `P5-T116` through `P5-T118`, and `P5-T120` through `P5-T123` from the live board while keeping caveat rows visible.
 
 ### Phase 4 Transition And Closeout
 

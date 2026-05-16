@@ -80,6 +80,7 @@ export type ApiKeyScope = ApiKeyManagedScope | ApiKeyPrivilegedScope;
  */
 export interface WebhookEndpoint {
   id: string;
+  organizationId: string;
   userId: string;
   url: string;
   description?: string;
@@ -146,6 +147,13 @@ export interface WebhookPayload {
     object: Record<string, unknown>;
     previousAttributes?: Record<string, unknown>; // For update events
   };
+}
+
+export interface TriggerWebhooksOptions {
+  organizationId: string;
+  eventType: WebhookEventType;
+  data: Record<string, unknown>;
+  previousAttributes?: Record<string, unknown>;
 }
 
 /**

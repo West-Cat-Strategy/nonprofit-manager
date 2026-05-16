@@ -19,6 +19,15 @@
 | `git diff --check -- docs/phases/planning-and-progress.md docs/validation/README.md frontend/src/features/cases/caseForms/CaseFormsBuilderCard.tsx frontend/src/features/cases/caseForms/caseFormsPanelUtils.ts frontend/src/features/cases/caseForms/__tests__/CaseFormsBuilderCard.test.tsx frontend/src/features/cases/caseForms/__tests__/caseFormsPanelUtils.test.ts` | Passed |
 | `cd frontend && npm run type-check` | Blocked by unrelated existing `src/features/reports/pages/BoardPacketWorkspacePage.tsx(335,32)` `Button` `as` prop type error from the active `P5-T116` lane |
 
+## 2026-05-15 Caveat Rerun
+
+The comprehensive strengthening batch reran the inherited caveat checks after the board-packet lane landed:
+
+| Command | Result |
+|---|---|
+| `cd frontend && npm test -- --run src/features/cases/components/__tests__/CaseHandoffPacket.test.tsx src/features/cases/caseForms/__tests__/CaseFormsBuilderCard.test.tsx src/features/cases/caseForms/__tests__/caseFormsPanelUtils.test.ts` | Passed: 3 files, 10 tests |
+| `cd frontend && npm run type-check` | Passed |
+
 ## Contract Notes
 
 - `visible_when` remains `CaseFormLogicRule[]` with the existing operators.

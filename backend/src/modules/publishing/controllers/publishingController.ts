@@ -15,7 +15,6 @@ import type {
   PublishTarget,
 } from '@app-types/publishing';
 import { badRequest, conflict, noContent, notFoundMessage } from '@utils/responseHelpers';
-import { guardWithRole } from '@services/authGuardService';
 import { extractPagination } from '@utils/queryHelpers';
 import { sendSuccess } from '@modules/shared/http/envelope';
 import { getCacheControlHeader, siteCacheService } from '@services/siteCacheService';
@@ -678,13 +677,10 @@ export const invalidateSiteCache = async (
  * Clear all cache (admin only)
  */
 export const clearAllCache = async (
-  req: AuthRequest,
+  _req: AuthRequest,
   res: Response,
   _next: NextFunction
 ): Promise<void> => {
-  // Check for admin role
-  if (!guardWithRole(req, res, 'admin')) return;
-
   await siteCacheService.clear();
   sendSuccess(res, { message: 'Cache cleared successfully' });
 };

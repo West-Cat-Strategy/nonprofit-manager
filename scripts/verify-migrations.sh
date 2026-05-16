@@ -71,6 +71,8 @@ check_isolated_target() {
   return 1
 }
 
+"$PROJECT_ROOT/scripts/validation-preflight.sh" isolated-test-db --context "scripts/verify-migrations.sh"
+
 if [[ "$DB_AUTO_START" != "0" ]]; then
   env \
     COMPOSE_MODE="${COMPOSE_MODE:-ci}" \

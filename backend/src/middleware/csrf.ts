@@ -1,6 +1,7 @@
 import { doubleCsrf } from 'csrf-csrf';
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '@config/logger';
+import { isCsrfSkipPath } from '@config/publicApiPolicy';
 import { AUTH_COOKIE_NAME, PORTAL_AUTH_COOKIE_NAME } from '@utils/cookieHelper';
 
 const isProduction = process.env.NODE_ENV === 'production';
@@ -105,36 +106,6 @@ const {
   },
 });
 
-// Paths that should skip CSRF protection
-const CSRF_SKIP_PATHS = [
-  '/api/auth/login',
-  '/api/auth/register',
-  '/api/auth/setup',
-  '/api/auth/setup-status',
-  '/api/auth/passkeys/login/options',
-  '/api/auth/passkeys/login/verify',
-  '/api/portal/auth/login',
-  '/api/portal/auth/signup',
-  '/api/portal/auth/register',
-  '/api/payments/webhook',
-  '/api/v2/auth/login',
-  '/api/v2/auth/register',
-  '/api/v2/auth/setup',
-  '/api/v2/auth/setup-status',
-  '/api/v2/auth/passkeys/login/options',
-  '/api/v2/auth/passkeys/login/verify',
-  '/api/v2/portal/auth/login',
-  '/api/v2/portal/auth/signup',
-  '/api/v2/portal/auth/register',
-  '/api/v2/payments/webhook',
-  '/api/v2/public/communications/unsubscribe',
-  '/api/v2/public/events',
-  '/api/v2/public/forms',
-  '/api/v2/public/newsletters/confirm',
-  '/health',
-  '/metrics',
-];
-
 // Methods that don't need CSRF protection
 const CSRF_SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS'];
 
@@ -156,10 +127,8 @@ export const csrfMiddleware = (req: Request, res: Response, next: NextFunction):
   const path = req.path;
   const fullPath = req.originalUrl?.split('?')[0] || path;
 
-  for (const skipPath of CSRF_SKIP_PATHS) {
-    if (path.startsWith(skipPath) || fullPath.startsWith(skipPath)) {
-      return next();
-    }
+  if (isCsrfSkipPath(path, fullPath)) {
+    return next();
   }
 
   // Apply CSRF protection

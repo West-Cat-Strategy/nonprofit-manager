@@ -59,3 +59,4 @@ No central clone cache was hydrated, no compatibility symlinks were added, and n
 - This pass intentionally preserved the dirty runtime checkout and changed only tracking/proof docs.
 - No new reference clone cache was hydrated. The sync dry-run proves the seven additions are re-cloneable candidates without changing `/Users/bryan/projects/reference-repos/repos`.
 - The first implementation follow-up should pick one Ready row, update the workboard owner/status before runtime edits, and use focused tests for that row's seam.
+- Follow-up synthesis for the comprehensive strengthening batch is recorded in [../development/reference-patterns/P5-T111-comprehensive-strengthening-reference-synthesis-2026-05-15.md](../development/reference-patterns/P5-T111-comprehensive-strengthening-reference-synthesis-2026-05-15.md). It records the broader central-corpus groups and candidate metadata rows without authorizing source copying or product expansion beyond signed-out rows.

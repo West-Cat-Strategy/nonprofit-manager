@@ -99,6 +99,6 @@ The strongest current landing zones are:
 
 - Docs-only synthesis changes: run `make check-links`.
 - Run `make lint-doc-api-versioning` only if a future edit adds or changes `/api/v2` examples.
-- Future `P5-T3` implementation rows should add targeted Mailchimp, contact, tax receipt, reports, and frontend communications proof, plus `make db-verify` when migrations `103` or `107` change.
-- Future `P5-T5` implementation rows should add targeted public intake, portal auth, public event, queue definition, portal escalation, portal-admin, and focused Playwright portal proof, plus `make db-verify` when migrations `104` through `106` change.
+- Future `P5-T3` implementation rows should add targeted Mailchimp, contact, tax receipt, reports, and frontend communications proof, plus `make db-verify` when the owning communications or donor-profile migration files, manifest, or initdb parity change.
+- Future `P5-T5` implementation rows should add targeted public intake, portal auth, public event, queue definition, portal escalation, portal-admin, and focused Playwright portal proof, plus `make db-verify` when the owning public-intake, queue-definition, portal-escalation, or related database contract changes.
 - Future finance, events, and reporting rows should add migration verification, backend state-transition tests, and frontend queue/detail tests before board-packet, public-ledger, or dashboard claims expand.

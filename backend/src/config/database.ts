@@ -2,7 +2,7 @@ import { Pool, PoolConfig, PoolClient } from 'pg';
 import dotenv from 'dotenv';
 import { logger } from './logger';
 import { DATABASE } from './constants';
-import { getRequestContext } from './requestContext';
+import { getRequestContext, type RequestContext } from './requestContext';
 
 export const TEST_DATABASE_DEFAULTS = {
   DB_HOST: '127.0.0.1',
@@ -48,9 +48,7 @@ const parsePositiveIntEnv = (rawValue: string | undefined, fallback: number): nu
   return Number.isNaN(parsed) || parsed <= 0 ? fallback : parsed;
 };
 
-export function resolveDatabaseSslConfig(
-  env: NodeJS.ProcessEnv = process.env
-): PoolConfig['ssl'] {
+export function resolveDatabaseSslConfig(env: NodeJS.ProcessEnv = process.env): PoolConfig['ssl'] {
   if (env.NODE_ENV !== 'production') {
     return false;
   }
@@ -74,27 +72,26 @@ export function resolveDatabaseSslConfig(
 
 const config: PoolConfig = {
   host: process.env.DB_HOST || (isTestEnvironment ? TEST_DATABASE_DEFAULTS.DB_HOST : 'localhost'),
-  port: parseInt(process.env.DB_PORT || (isTestEnvironment ? TEST_DATABASE_DEFAULTS.DB_PORT : '5432')),
+  port: parseInt(
+    process.env.DB_PORT || (isTestEnvironment ? TEST_DATABASE_DEFAULTS.DB_PORT : '5432')
+  ),
   database:
-    process.env.DB_NAME || (isTestEnvironment ? TEST_DATABASE_DEFAULTS.DB_NAME : 'nonprofit_manager'),
+    process.env.DB_NAME ||
+    (isTestEnvironment ? TEST_DATABASE_DEFAULTS.DB_NAME : 'nonprofit_manager'),
   user:
     process.env.DB_USER ||
-    (
-      isTestEnvironment
-        ? TEST_DATABASE_DEFAULTS.DB_USER
-        : process.env.NODE_ENV === 'production'
-          ? 'nonprofit_app_user_prod'
-          : 'nonprofit_app_user'
-    ),
+    (isTestEnvironment
+      ? TEST_DATABASE_DEFAULTS.DB_USER
+      : process.env.NODE_ENV === 'production'
+        ? 'nonprofit_app_user_prod'
+        : 'nonprofit_app_user'),
   password:
     process.env.DB_PASSWORD ??
-    (
-      isTestEnvironment
-        ? TEST_DATABASE_DEFAULTS.DB_PASSWORD
-        : process.env.NODE_ENV === 'production'
-          ? undefined
-          : 'nonprofit_app_password'
-    ),
+    (isTestEnvironment
+      ? TEST_DATABASE_DEFAULTS.DB_PASSWORD
+      : process.env.NODE_ENV === 'production'
+        ? undefined
+        : 'nonprofit_app_password'),
   max: parsePositiveIntEnv(
     process.env.DB_POOL_MAX_CONNECTIONS,
     isTestEnvironment ? 10 : DATABASE.POOL_MAX_CONNECTIONS
@@ -143,6 +140,48 @@ export const resetCurrentUserId = async (client: Pick<PoolClient, 'query'>): Pro
   await client.query('RESET app.current_user_id');
 };
 
+type DatabaseRequestContext = Pick<
+  RequestContext,
+  'correlationId' | 'ipAddress' | 'userAgent' | 'userId'
+>;
+
+const resolveDatabaseEnvironment = (): string => process.env.NODE_ENV || 'development';
+
+export const setDatabaseRequestContext = async (
+  client: Pick<PoolClient, 'query'>,
+  context: DatabaseRequestContext,
+  options: { local?: boolean } = {}
+): Promise<void> => {
+  const local = options.local ? 'true' : 'false';
+  await client.query(
+    `SELECT
+       set_config('app.current_user_id', $1, ${local}),
+       set_config('app.request_id', $2, ${local}),
+       set_config('app.client_ip', $3, ${local}),
+       set_config('app.user_agent', $4, ${local}),
+       set_config('app.environment', $5, ${local})`,
+    [
+      context.userId || '',
+      context.correlationId || '',
+      context.ipAddress || '',
+      context.userAgent || '',
+      resolveDatabaseEnvironment(),
+    ]
+  );
+};
+
+export const resetDatabaseRequestContext = async (
+  client: Pick<PoolClient, 'query'>
+): Promise<void> => {
+  await client.query(`
+    RESET app.current_user_id;
+    RESET app.request_id;
+    RESET app.client_ip;
+    RESET app.user_agent;
+    RESET app.environment
+  `);
+};
+
 /**
  * Execute multiple queries within a single transaction and optionally bind
  * the authenticated user once for every statement in that transaction.
@@ -152,9 +191,19 @@ export async function withDatabaseTransaction<T>(
   options: { userId?: string | null } = {}
 ): Promise<T> {
   const client = await rawPool.connect();
+  const context = getRequestContext();
   try {
     await client.query('BEGIN');
-    if (options.userId) {
+    if (context) {
+      await setDatabaseRequestContext(
+        client,
+        {
+          ...context,
+          userId: options.userId ?? context.userId,
+        },
+        { local: true }
+      );
+    } else if (options.userId) {
       await setCurrentUserId(client, options.userId, { local: true });
     }
     const result = await fn(client);
@@ -188,19 +237,19 @@ export async function withRequestContextTransaction<T>(
 
 export const requestContextQuery: DatabaseQuery = (async (...args: any[]) => {
   const context = getRequestContext();
-  if (!context?.userId) {
+  if (!context) {
     return (rawPool.query as any)(...args);
   }
 
   const client = await rawPool.connect();
   try {
-    await setCurrentUserId(client, context.userId);
+    await setDatabaseRequestContext(client, context);
     return await (client.query as any)(...args);
   } finally {
     try {
-      await resetCurrentUserId(client);
+      await resetDatabaseRequestContext(client);
     } catch (error) {
-      logger.warn('Failed to reset app.current_user_id after request-scoped query', {
+      logger.warn('Failed to reset database request context after request-scoped query', {
         error: error instanceof Error ? error.message : String(error),
       });
     }

@@ -396,6 +396,14 @@ psql -U postgres -d nonprofit_manager < backup_20260201.sql
 
 For a major Postgres upgrade, use the archive helpers instead of reusing the old data directory with the new image. Export from the old major with `scripts/db-export-archive.sh`, bring up Postgres 18 with a fresh data volume or host directory mounted at `/var/lib/postgresql`, restore with `scripts/db-restore-archive.sh`, and verify before cutover. Managed production databases should use the provider's snapshot and major-upgrade workflow instead of these local helpers.
 
+If an existing self-hosted production host still has a PostgreSQL 14 data directory stored directly at the mounted root path, use the opt-in compatibility overlay during deployment:
+
+```bash
+DEPLOY_EXTRA_COMPOSE_FILES=docker-compose.postgres14-root.yml scripts/deploy.sh production
+```
+
+The overlay is intentionally narrow: it only pins the `postgres` service back to PostgreSQL 14 and sets `PGDATA=/var/lib/postgresql`. The selected DB-at-rest overlay remains responsible for volumes, ports, credentials, data paths, and application service wiring. Remove the compatibility overlay after a verified export/restore or provider-managed major-version upgrade to PostgreSQL 18.
+
 ### Scenario 5: Connect from Backend Application
 
 **Update `backend/.env`:**

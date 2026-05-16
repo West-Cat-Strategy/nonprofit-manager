@@ -41,6 +41,8 @@ assert_test_db_contract() {
 }
 
 if [[ "${SKIP_INTEGRATION_DB_PREP:-0}" != "1" ]]; then
+  "$REPO_ROOT/scripts/validation-preflight.sh" isolated-test-db --context "cd backend && npm test"
+
   resolve_test_db_contract
   export COMPOSE_MODE="${COMPOSE_MODE:-ci}"
   export COMPOSE_ENV_FILE="${COMPOSE_ENV_FILE:-.env.development}"
@@ -86,6 +88,7 @@ if [[ "${SKIP_INTEGRATION_DB_PREP:-0}" != "1" ]]; then
 fi
 
 resolve_test_db_contract
+"$REPO_ROOT/scripts/validation-preflight.sh" isolated-test-db --context "cd backend && npm test"
 assert_test_db_contract
 
 export __NONPROFIT_MANAGER_DB_COMPAT_SETUP_DONE__="true"

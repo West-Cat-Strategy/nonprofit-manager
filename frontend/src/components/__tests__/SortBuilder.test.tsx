@@ -89,7 +89,7 @@ describe('SortBuilder', () => {
     );
 
     // SVG remove button has the correct testid now
-    const removeButton = screen.getByTestId('remove-sort-0');
+    const removeButton = screen.getByRole('button', { name: /remove sort 1/i });
     fireEvent.click(removeButton);
 
     expect(mockOnChange).toHaveBeenCalledWith([]);
@@ -162,5 +162,22 @@ describe('SortBuilder', () => {
     fireEvent.change(selects[1], { target: { value: 'desc' } });
 
     expect(mockOnChange).toHaveBeenCalledWith([{ field: 'name', direction: 'desc' }]);
+  });
+
+  it('labels sort fields, directions, and move controls', () => {
+    const sorts: ReportSort[] = [{ field: 'name', direction: 'asc' }];
+    renderWithProviders(
+      <SortBuilder
+        entity="contacts"
+        selectedFields={['name', 'email']}
+        sorts={sorts}
+        onChange={mockOnChange}
+      />
+    );
+
+    expect(screen.getByLabelText('Sort 1 field')).toHaveValue('name');
+    expect(screen.getByLabelText('Sort 1 direction')).toHaveValue('asc');
+    expect(screen.getByRole('button', { name: /move sort 1 up/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /remove sort 1/i })).toBeInTheDocument();
   });
 });

@@ -1,5 +1,6 @@
 export const WEBHOOK_ENDPOINT_COLUMNS = `
   id,
+  organization_id,
   user_id,
   url,
   description,
@@ -14,6 +15,7 @@ export const WEBHOOK_ENDPOINT_COLUMNS = `
 
 export const WEBHOOK_ENDPOINT_SELECT_COLUMNS = `
   we.id,
+  we.organization_id,
   we.user_id,
   we.url,
   we.description,

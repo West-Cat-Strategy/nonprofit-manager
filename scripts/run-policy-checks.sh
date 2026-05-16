@@ -14,6 +14,7 @@ POLICY_COMMANDS=(
   "node scripts/check-express-validator-policy.ts"
   "node scripts/check-controller-sql-policy.ts"
   "node scripts/check-auth-guard-policy.ts"
+  "node scripts/check-v2-route-auth-posture.ts"
   "node scripts/check-migration-manifest-policy.ts"
   "node scripts/check-duplicate-test-tree.ts"
   "node scripts/check-doc-api-versioning.ts"

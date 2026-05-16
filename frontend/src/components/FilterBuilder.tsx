@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import type { ReportField, ReportFilter, FilterOperator } from '../types/report';
 
 interface FilterBuilderProps {
@@ -19,6 +20,7 @@ const OPERATORS: { value: FilterOperator; label: string; types: string[] }[] = [
 ];
 
 function FilterBuilder({ availableFields, filters, onChange }: FilterBuilderProps) {
+  const idPrefix = useId();
   const currentFields = availableFields;
 
   const handleAddFilter = () => {
@@ -49,8 +51,12 @@ function FilterBuilder({ availableFields, filters, onChange }: FilterBuilderProp
     return OPERATORS.filter((op) => op.types.includes(fieldType));
   };
 
+  const fieldControlId = (index: number, field: string) =>
+    `${idPrefix}-filter-${index}-${field}`;
+
   const renderValueInput = (filter: ReportFilter, index: number) => {
     const fieldType = getFieldType(filter.field);
+    const valueId = fieldControlId(index, 'value');
 
     if (filter.operator === 'between') {
       const parsedValues = Array.isArray(filter.value)
@@ -66,7 +72,11 @@ function FilterBuilder({ availableFields, filters, onChange }: FilterBuilderProp
 
       return (
         <div className="flex flex-1 items-center gap-2">
+          <label htmlFor={`${valueId}-from`} className="sr-only">
+            Filter {index + 1} from value
+          </label>
           <input
+            id={`${valueId}-from`}
             type={inputType}
             value={firstValue}
             onChange={(event) =>
@@ -77,7 +87,11 @@ function FilterBuilder({ availableFields, filters, onChange }: FilterBuilderProp
             className="w-1/2 px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
           />
           <span className="text-app-text-muted text-sm font-medium">to</span>
+          <label htmlFor={`${valueId}-to`} className="sr-only">
+            Filter {index + 1} to value
+          </label>
           <input
+            id={`${valueId}-to`}
             type={inputType}
             value={secondValue}
             onChange={(event) =>
@@ -93,62 +107,92 @@ function FilterBuilder({ availableFields, filters, onChange }: FilterBuilderProp
 
     if (filter.operator === 'in') {
       return (
-        <input
-          type="text"
-          value={String(filter.value)}
-          onChange={(e) => handleUpdateFilter(index, { value: e.target.value })}
-          placeholder="value1,value2,value3"
-          className="flex-1 px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
-        />
+        <>
+          <label htmlFor={valueId} className="sr-only">
+            Filter {index + 1} values
+          </label>
+          <input
+            id={valueId}
+            type="text"
+            value={String(filter.value)}
+            onChange={(e) => handleUpdateFilter(index, { value: e.target.value })}
+            placeholder="value1,value2,value3"
+            className="flex-1 px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
+          />
+        </>
       );
     }
 
     if (fieldType === 'boolean') {
       return (
-        <select
-          value={String(filter.value)}
-          onChange={(e) => handleUpdateFilter(index, { value: e.target.value })}
-          className="flex-1 px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
-        >
-          <option value="">Select...</option>
-          <option value="true">True</option>
-          <option value="false">False</option>
-        </select>
+        <>
+          <label htmlFor={valueId} className="sr-only">
+            Filter {index + 1} value
+          </label>
+          <select
+            id={valueId}
+            value={String(filter.value)}
+            onChange={(e) => handleUpdateFilter(index, { value: e.target.value })}
+            className="flex-1 px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
+          >
+            <option value="">Select...</option>
+            <option value="true">True</option>
+            <option value="false">False</option>
+          </select>
+        </>
       );
     }
 
     if (fieldType === 'date') {
       return (
-        <input
-          type="date"
-          value={String(filter.value)}
-          onChange={(e) => handleUpdateFilter(index, { value: e.target.value })}
-          className="flex-1 px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
-        />
+        <>
+          <label htmlFor={valueId} className="sr-only">
+            Filter {index + 1} value
+          </label>
+          <input
+            id={valueId}
+            type="date"
+            value={String(filter.value)}
+            onChange={(e) => handleUpdateFilter(index, { value: e.target.value })}
+            className="flex-1 px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
+          />
+        </>
       );
     }
 
     if (fieldType === 'number' || fieldType === 'currency') {
       return (
-        <input
-          type="number"
-          value={String(filter.value)}
-          onChange={(e) => handleUpdateFilter(index, { value: e.target.value })}
-          placeholder="Enter value"
-          step={fieldType === 'currency' ? '0.01' : '1'}
-          className="flex-1 px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
-        />
+        <>
+          <label htmlFor={valueId} className="sr-only">
+            Filter {index + 1} value
+          </label>
+          <input
+            id={valueId}
+            type="number"
+            value={String(filter.value)}
+            onChange={(e) => handleUpdateFilter(index, { value: e.target.value })}
+            placeholder="Enter value"
+            step={fieldType === 'currency' ? '0.01' : '1'}
+            className="flex-1 px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
+          />
+        </>
       );
     }
 
     return (
-      <input
-        type="text"
-        value={String(filter.value)}
-        onChange={(e) => handleUpdateFilter(index, { value: e.target.value })}
-        placeholder="Enter value"
-        className="flex-1 px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
-      />
+      <>
+        <label htmlFor={valueId} className="sr-only">
+          Filter {index + 1} value
+        </label>
+        <input
+          id={valueId}
+          type="text"
+          value={String(filter.value)}
+          onChange={(e) => handleUpdateFilter(index, { value: e.target.value })}
+          placeholder="Enter value"
+          className="flex-1 px-3 py-2 border border-app-input-border rounded-lg focus:ring-app-accent focus:border-app-accent"
+        />
+      </>
     );
   };
 
@@ -170,7 +214,11 @@ function FilterBuilder({ availableFields, filters, onChange }: FilterBuilderProp
           return (
             <div key={index} className="flex gap-3 items-start">
               {/* Field Selector */}
+              <label htmlFor={fieldControlId(index, 'field')} className="sr-only">
+                Filter {index + 1} field
+              </label>
               <select
+                id={fieldControlId(index, 'field')}
                 value={filter.field}
                 onChange={(e) => {
                   const newFieldType = getFieldType(e.target.value);
@@ -192,7 +240,11 @@ function FilterBuilder({ availableFields, filters, onChange }: FilterBuilderProp
               </select>
 
               {/* Operator Selector */}
+              <label htmlFor={fieldControlId(index, 'operator')} className="sr-only">
+                Filter {index + 1} operator
+              </label>
               <select
+                id={fieldControlId(index, 'operator')}
                 value={filter.operator}
                 onChange={(e) => {
                   const operator = e.target.value as FilterOperator;
@@ -215,7 +267,9 @@ function FilterBuilder({ availableFields, filters, onChange }: FilterBuilderProp
 
               {/* Remove Button */}
               <button
+                type="button"
                 onClick={() => handleRemoveFilter(index)}
+                aria-label={`Remove filter ${index + 1}`}
                 className="px-3 py-2 text-app-accent hover:bg-app-accent-soft rounded-lg transition-colors"
                 title="Remove filter"
               >
@@ -239,6 +293,7 @@ function FilterBuilder({ availableFields, filters, onChange }: FilterBuilderProp
       </div>
 
       <button
+        type="button"
         onClick={handleAddFilter}
         className="mt-4 px-4 py-2 text-sm bg-app-surface-muted text-app-text-muted rounded-lg hover:bg-app-surface-muted font-medium"
       >

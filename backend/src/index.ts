@@ -26,6 +26,7 @@ import {
   resolveTrustProxy,
   shouldEnableUpgradeInsecureRequests,
 } from './config/requestSecurity';
+import { isPublicSiteApiPath } from './config/publicApiPolicy';
 import { validateProductionSecurityConfig } from './config/productionSecurityConfig';
 
 if (process.env.JEST_WORKER_ID && !process.env.NODE_ENV) {
@@ -184,11 +185,9 @@ const publicSiteCorsOptions = createCorsOptionsDelegate({
 });
 const apiCorsMiddleware = cors(corsOptions);
 const publicSiteCorsMiddleware = cors(publicSiteCorsOptions);
-const isPublicSiteCorsPath = (path: string): boolean =>
-  path.startsWith('/api/v2/public/') || /^\/api\/v2\/sites\/[^/]+\/track$/.test(path);
 
 app.use((req, res, next) => {
-  if (isPublicSiteCorsPath(req.path)) {
+  if (isPublicSiteApiPath(req.path)) {
     publicSiteCorsMiddleware(req, res, next);
     return;
   }

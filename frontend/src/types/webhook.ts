@@ -62,6 +62,8 @@ export type ApiKeyScope =
  */
 export interface WebhookEndpoint {
   id: string;
+  organizationId: string;
+  userId: string;
   url: string;
   description?: string;
   secret: string;

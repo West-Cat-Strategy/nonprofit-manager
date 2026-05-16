@@ -20,6 +20,7 @@ import * as webhookService from '@modules/webhooks/services/webhookService';
 
 const baseEndpointRow = {
   id: 'endpoint-1',
+  organization_id: 'org-1',
   user_id: 'user-1',
   url: 'https://example.org/webhook',
   description: 'Example',
@@ -47,7 +48,7 @@ describe('webhookService secret exposure', () => {
       ],
     });
 
-    const endpoint = await webhookService.createWebhookEndpoint('user-1', {
+    const endpoint = await webhookService.createWebhookEndpoint('user-1', 'org-1', {
       url: baseEndpointRow.url,
       events: ['contact.created'],
       description: 'Example',
@@ -68,12 +69,13 @@ describe('webhookService secret exposure', () => {
       ],
     });
 
-    const endpoints = await webhookService.getWebhookEndpoints('user-1');
+    const endpoints = await webhookService.getWebhookEndpoints('org-1');
 
     expect(endpoints).toHaveLength(1);
     expect(endpoints[0]).toEqual(
       expect.objectContaining({
         id: 'endpoint-1',
+        organizationId: 'org-1',
         totalDeliveries: 3,
         successfulDeliveries: 2,
         failedDeliveries: 1,
@@ -87,14 +89,17 @@ describe('webhookService secret exposure', () => {
       rows: [baseEndpointRow],
     });
 
-    const endpoint = await webhookService.getWebhookEndpoint('endpoint-1', 'user-1');
+    const endpoint = await webhookService.getWebhookEndpoint('endpoint-1', 'org-1');
 
     expect(String(mockQuery.mock.calls[0][0])).toContain('FROM webhook_endpoints we');
-    expect(String(mockQuery.mock.calls[0][0])).toContain('WHERE we.id = $1 AND we.user_id = $2');
+    expect(String(mockQuery.mock.calls[0][0])).toContain(
+      'WHERE we.id = $1 AND we.organization_id = $2'
+    );
 
     expect(endpoint).toEqual(
       expect.objectContaining({
         id: 'endpoint-1',
+        organizationId: 'org-1',
         userId: 'user-1',
       })
     );
@@ -111,13 +116,13 @@ describe('webhookService secret exposure', () => {
       ],
     });
 
-    const endpoint = await webhookService.updateWebhookEndpoint('endpoint-1', 'user-1', {
+    const endpoint = await webhookService.updateWebhookEndpoint('endpoint-1', 'org-1', {
       url: 'https://example.org/new-webhook',
     });
 
     expect(String(mockQuery.mock.calls[0][0])).toContain('UPDATE webhook_endpoints we');
     expect(String(mockQuery.mock.calls[0][0])).toContain(
-      'WHERE we.id = $2 AND we.user_id = $3'
+      'WHERE we.id = $2 AND we.organization_id = $3'
     );
 
     expect(endpoint).toEqual(

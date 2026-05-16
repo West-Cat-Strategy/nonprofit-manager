@@ -25,12 +25,20 @@ jest.mock('@modules/appealCampaigns/services/appealCampaignService', () => ({
   },
 }));
 
+jest.mock('@modules/webhooks/services/webhookService', () => ({
+  triggerWebhooks: jest.fn().mockResolvedValue(undefined),
+}));
+
 const appealCampaignModule = jest.requireMock(
   '@modules/appealCampaigns/services/appealCampaignService'
 ) as {
   default: {
     requireCampaignForScope: jest.Mock;
   };
+};
+
+const webhookServiceModule = jest.requireMock('@modules/webhooks/services/webhookService') as {
+  triggerWebhooks: jest.Mock;
 };
 
 // Create mock pool
@@ -189,6 +197,11 @@ describe('DonationService', () => {
 
       expect(result).toEqual(mockCreatedDonation);
       expect(mockQuery).toHaveBeenCalledTimes(1);
+      expect(webhookServiceModule.triggerWebhooks).toHaveBeenCalledWith({
+        organizationId: 'acc-123',
+        eventType: 'donation.created',
+        data: mockCreatedDonation,
+      });
     });
 
     it('should create donation with contact_id', async () => {
@@ -213,6 +226,11 @@ describe('DonationService', () => {
 
       expect(result).toEqual(mockCreatedDonation);
       expect(mockQuery).toHaveBeenCalledTimes(2);
+      expect(webhookServiceModule.triggerWebhooks).toHaveBeenCalledWith({
+        organizationId: 'acc-123',
+        eventType: 'donation.created',
+        data: mockCreatedDonation,
+      });
     });
 
     it('should throw error if neither account_id nor contact_id provided', async () => {

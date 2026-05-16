@@ -14,7 +14,9 @@ import ReportChart from '../../../components/ReportChart';
 import SortBuilder from '../../../components/SortBuilder';
 import {
   EmptyState,
+  ErrorState,
   FormField,
+  LoadingState,
   PageHeader,
   PrimaryButton,
   SecondaryButton,
@@ -144,6 +146,7 @@ function ReportBuilder() {
                 key={entry.value}
                 type="button"
                 onClick={() => handleEntityChange(entry.value)}
+                aria-pressed={entity === entry.value}
                 className={`rounded-[var(--ui-radius-sm)] border px-3 py-2 text-sm font-semibold transition duration-150 hover:-translate-y-0.5 ${
                   entity === entry.value
                     ? 'border-app-accent bg-app-accent-soft text-app-accent-text'
@@ -182,6 +185,7 @@ function ReportBuilder() {
                         setGroupBy([...groupBy, field.field]);
                       }
                     }}
+                    aria-pressed={isActive}
                     className={`rounded-[var(--ui-radius-sm)] border px-3 py-2 text-xs font-semibold uppercase tracking-wide transition duration-150 hover:-translate-y-0.5 ${
                       isActive
                         ? 'border-app-accent bg-app-accent-soft text-app-accent-text'
@@ -227,6 +231,7 @@ function ReportBuilder() {
                               ]);
                             }
                           }}
+                          aria-pressed={isActive}
                           className={`rounded-[var(--ui-radius-sm)] border px-3 py-1 text-xs font-semibold uppercase transition duration-150 hover:-translate-y-0.5 ${
                             isActive
                               ? 'border-app-accent bg-app-accent-soft text-app-accent-text'
@@ -312,12 +317,19 @@ function ReportBuilder() {
                 <SecondaryButton
                   leadingIcon={<ChartBarIcon className="h-4 w-4" aria-hidden="true" />}
                   onClick={() => setShowChart((value) => !value)}
+                  aria-pressed={showChart}
                 >
                   {showChart ? 'Hide Chart' : 'Show Chart'}
                 </SecondaryButton>
               </>
             )}
           </div>
+          {loading && (
+            <LoadingState
+              className="mt-4"
+              label="Generating report preview..."
+            />
+          )}
         </SectionCard>
 
         <SectionCard
@@ -325,15 +337,15 @@ function ReportBuilder() {
           subtitle="Manual CSV and Excel exports now run through shared export jobs so they can be retried and downloaded later."
         >
           {exportJobError && (
-            <div className="rounded-[var(--ui-radius-sm)] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-              {exportJobError}
-            </div>
+            <ErrorState className="mb-4" message={exportJobError} />
           )}
 
           {manualExportJobs.length === 0 ? (
-            <div className="rounded-[var(--ui-radius-sm)] border border-dashed border-app-border px-4 py-6 text-sm text-app-text-muted">
-              {exportJobsLoading ? 'Loading recent exports...' : 'No manual export jobs yet.'}
-            </div>
+            exportJobsLoading ? (
+              <LoadingState label="Loading recent exports..." />
+            ) : (
+              <EmptyState title="No manual export jobs yet." />
+            )
           ) : (
             <div className="space-y-3">
               {manualExportJobs.map((job) => (
