@@ -959,7 +959,7 @@ describe('MailchimpService', () => {
       const finalizeRunCall = (mockPool.query as jest.Mock).mock.calls.find(
         ([sql]) => typeof sql === 'string' && sql.includes('UPDATE campaign_runs')
       );
-      expect(JSON.parse(finalizeRunCall?.[1][11])).toEqual(
+      expect(JSON.parse(finalizeRunCall?.[1][12])).toEqual(
         expect.objectContaining({
           requestedContactCount: 2,
           targetContactCount: 2,
@@ -967,7 +967,7 @@ describe('MailchimpService', () => {
           providerSegmentMemberCount: 2,
         })
       );
-      expect(JSON.parse(finalizeRunCall?.[1][8])).toEqual(
+      expect(JSON.parse(finalizeRunCall?.[1][9])).toEqual(
         expect.objectContaining({
           targetContactIds: [contactOneId, contactTwoId],
         })
@@ -1129,12 +1129,12 @@ describe('MailchimpService', () => {
                 list_id: 'list-123',
                 include_audience_id: 'audience-1',
                 exclusion_audience_ids: [],
-                suppression_snapshot: JSON.parse(params[6] as string),
+                suppression_snapshot: JSON.parse(params[7] as string),
                 test_recipients: [],
-                audience_snapshot: JSON.parse(params[8] as string),
+                audience_snapshot: JSON.parse(params[9] as string),
                 requested_send_time: null,
                 status: 'draft',
-                counts: JSON.parse(params[11] as string),
+                counts: JSON.parse(params[12] as string),
                 scope_account_ids: [accountId],
                 failure_message: null,
                 requested_by: null,
@@ -1171,20 +1171,20 @@ describe('MailchimpService', () => {
       const finalizeRunCall = (mockPool.query as jest.Mock).mock.calls.find(
         ([sql]) => typeof sql === 'string' && sql.includes('UPDATE campaign_runs')
       );
-      expect(JSON.parse(finalizeRunCall?.[1][6])).toEqual([
+      expect(JSON.parse(finalizeRunCall?.[1][7])).toEqual([
         expect.objectContaining({
           type: 'prior_campaign_run',
           id: priorRunId,
           targetContactCount: 2,
         }),
       ]);
-      expect(JSON.parse(finalizeRunCall?.[1][8])).toEqual(
+      expect(JSON.parse(finalizeRunCall?.[1][9])).toEqual(
         expect.objectContaining({
           targetContactIds: [targetId],
           priorRunSuppressionIds: [priorRunId],
         })
       );
-      expect(JSON.parse(finalizeRunCall?.[1][11])).toEqual(
+      expect(JSON.parse(finalizeRunCall?.[1][12])).toEqual(
         expect.objectContaining({
           suppressionSourceCount: 2,
           priorRunSuppressionCount: 1,

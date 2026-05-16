@@ -11,7 +11,7 @@ import { requireActiveOrganizationContext } from '@middleware/requireActiveOrgan
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import * as webhookController from '../controllers';
 import { isoDateTimeSchema, optionalStrictBooleanSchema, uuidSchema } from '@validations/shared';
-import { API_KEY_MANAGED_SCOPES } from '@app-types/webhook';
+import { API_KEY_MANAGED_SCOPES, WEBHOOK_EVENT_TYPES } from '@app-types/webhook';
 import { Permission } from '@utils/permissions';
 
 const router = Router();
@@ -37,13 +37,13 @@ const idParamsSchema = z.object({
 const createWebhookEndpointSchema = z.object({
   url: webhookUrlSchema,
   description: z.string().max(500).optional(),
-  events: z.array(z.string()).min(1, 'At least one event type is required'),
+  events: z.array(z.enum(WEBHOOK_EVENT_TYPES)).min(1, 'At least one event type is required'),
 });
 
 const updateWebhookEndpointSchema = z.object({
   url: webhookUrlSchema.optional(),
   description: z.string().max(500).optional(),
-  events: z.array(z.string()).min(1).optional(),
+  events: z.array(z.enum(WEBHOOK_EVENT_TYPES)).min(1).optional(),
   isActive: optionalStrictBooleanSchema,
 });
 
@@ -77,6 +77,7 @@ const apiKeyUsageQuerySchema = z
 router.use(authenticate);
 router.use('/endpoints', requireActiveOrganizationContext);
 router.use('/endpoints', requirePermission(Permission.ADMIN_SETTINGS));
+router.use('/api-keys', requireActiveOrganizationContext);
 router.use('/api-keys', requirePermission(Permission.ADMIN_SETTINGS));
 
 // ==================== Webhook Event Info ====================

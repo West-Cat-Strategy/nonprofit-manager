@@ -156,7 +156,13 @@ export const previewAudience = async (req: AuthRequest, res: Response): Promise<
 export const bulkSyncContacts = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const body = req.body as CommunicationBulkSyncRequest;
-    sendSuccess(res, await communicationsService.bulkSyncContacts(body));
+    sendSuccess(
+      res,
+      await communicationsService.bulkSyncContacts({
+        ...body,
+        scopeAccountIds: getRequesterScopeAccountIds(req),
+      })
+    );
   } catch (error) {
     if (isValidationStatusError(error)) {
       badRequest(res, error instanceof Error ? error.message : 'Invalid provider sync request');

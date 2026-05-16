@@ -17,6 +17,7 @@
         "scripts/check-migration-manifest-policy.ts",
         "scripts/check-duplicate-test-tree.ts",
         "scripts/check-doc-api-versioning.ts",
+        "scripts/check-docker-image-policy.mjs",
         "scripts/check-openapi-contract.ts",
         "scripts/check-v2-module-ownership-policy.ts",
         "scripts/check-module-boundary-policy.ts",
@@ -32,7 +33,7 @@
         "scripts/check-backend-legacy-controller-wrapper-policy.ts",
         "scripts/tests/tooling-contracts.test.cjs"
       ],
-      "project": ["scripts/**/*.{js,ts,cjs}"]
+      "project": ["scripts/**/*.{js,ts,cjs,mjs}"]
     },
     "contracts": {
       "project": ["*.d.ts"],

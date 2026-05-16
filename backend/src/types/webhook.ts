@@ -6,33 +6,30 @@
 /**
  * Supported webhook event types
  */
-export type WebhookEventType =
-  // Contact events
-  | 'contact.created'
-  | 'contact.updated'
-  | 'contact.deleted'
-  // Donation events
-  | 'donation.created'
-  | 'donation.updated'
-  | 'donation.deleted'
-  // Event events
-  | 'event.created'
-  | 'event.updated'
-  | 'event.deleted'
-  | 'event.registration.created'
-  | 'event.registration.canceled'
-  // Volunteer events
-  | 'volunteer.created'
-  | 'volunteer.updated'
-  | 'volunteer.hours_logged'
-  // Task events
-  | 'task.created'
-  | 'task.completed'
-  | 'task.overdue'
-  // Payment events
-  | 'payment.succeeded'
-  | 'payment.failed'
-  | 'payment.refunded';
+export const WEBHOOK_EVENT_TYPES = [
+  'contact.created',
+  'contact.updated',
+  'contact.deleted',
+  'donation.created',
+  'donation.updated',
+  'donation.deleted',
+  'event.created',
+  'event.updated',
+  'event.deleted',
+  'event.registration.created',
+  'event.registration.canceled',
+  'volunteer.created',
+  'volunteer.updated',
+  'volunteer.hours_logged',
+  'task.created',
+  'task.completed',
+  'task.overdue',
+  'payment.succeeded',
+  'payment.failed',
+  'payment.refunded',
+] as const;
+
+export type WebhookEventType = (typeof WEBHOOK_EVENT_TYPES)[number];
 
 /**
  * Webhook delivery status

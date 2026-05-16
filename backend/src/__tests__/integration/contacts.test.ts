@@ -32,6 +32,19 @@ describe('Contact API Integration Tests', () => {
     const value = body as { account_id?: string; data?: { account_id?: string } };
     return value.account_id || value.data?.account_id;
   };
+  const createAccountFixture = async (accountName: string): Promise<string> => {
+    const result = await pool.query<{ id: string }>(
+      `INSERT INTO accounts (account_name, account_type, is_active, created_by, modified_by, created_at, updated_at)
+       VALUES ($1, 'organization', TRUE, $2, $2, NOW(), NOW())
+       RETURNING id`,
+      [accountName, creatorUserId]
+    );
+    const accountId = result.rows[0]?.id;
+    if (!accountId) {
+      throw new Error('Failed to create account fixture');
+    }
+    return accountId;
+  };
   const payloadFromResponse = <T>(body: unknown): T => {
     if (typeof body === 'object' && body !== null && 'data' in body) {
       const value = body as { data?: T };
@@ -452,20 +465,7 @@ describe('Contact API Integration Tests', () => {
     });
 
     it('returns a validation error for out-of-scope account_id values', async () => {
-      const secondaryAccountResponse = await request(app)
-        .post('/api/v2/accounts')
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
-          account_name: `Scoped Contact Create ${unique()}`,
-          account_type: 'organization',
-        })
-        .expect(201);
-      const secondaryAccountId = accountIdFromResponse(secondaryAccountResponse.body);
-      expect(secondaryAccountId).toBeTruthy();
-
-      if (!secondaryAccountId) {
-        throw new Error('Failed to create scoped secondary account');
-      }
+      const secondaryAccountId = await createAccountFixture(`Scoped Contact Create ${unique()}`);
 
       try {
         const response = await withStaffAuth(request(app)
@@ -1727,21 +1727,7 @@ describe('Contact API Integration Tests', () => {
 
       const contactId = payloadFromResponse<{ contact_id: string }>(contactCreateResponse.body).contact_id;
 
-      const secondaryAccountResponse = await request(app)
-        .post('/api/v2/accounts')
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
-          account_name: `Timeline Scope ${suffix}`,
-          account_type: 'organization',
-        })
-        .expect(201);
-
-      const secondaryAccountId = accountIdFromResponse(secondaryAccountResponse.body);
-      expect(secondaryAccountId).toBeTruthy();
-
-      if (!secondaryAccountId) {
-        throw new Error('Failed to create secondary account');
-      }
+      const secondaryAccountId = await createAccountFixture(`Timeline Scope ${suffix}`);
 
       const caseTypeResult = await pool.query<{ id: string }>(
         `SELECT id
@@ -2847,20 +2833,7 @@ describe('Contact API Integration Tests', () => {
     });
 
     it('rejects cross-organization merges with a validation error', async () => {
-      const secondaryAccountResponse = await request(app)
-        .post('/api/v2/accounts')
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
-          account_name: `Merge Cross Org ${unique()}`,
-          account_type: 'organization',
-        })
-        .expect(201);
-      const secondaryAccountId = accountIdFromResponse(secondaryAccountResponse.body);
-      expect(secondaryAccountId).toBeTruthy();
-
-      if (!secondaryAccountId) {
-        throw new Error('Failed to create secondary account');
-      }
+      const secondaryAccountId = await createAccountFixture(`Merge Cross Org ${unique()}`);
 
       await pool.query(
         `INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active)

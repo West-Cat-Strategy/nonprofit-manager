@@ -71,18 +71,35 @@ expected_manifest_migration_count() {
   awk -F '\t' '/^[0-9]/ { count += 1 } END { print count + 0 }' "$PROJECT_ROOT/database/migrations/manifest.tsv"
 }
 
+expected_manifest_migration_filenames() {
+  awk -F '\t' '/^[0-9]/ { print $2 }' "$PROJECT_ROOT/database/migrations/manifest.tsv"
+}
+
+schema_migration_filenames_query() {
+  cat <<'SQL'
+SELECT canonical_filename
+  FROM schema_migrations
+ WHERE canonical_filename IS NOT NULL
+ ORDER BY canonical_filename;
+SQL
+}
+
 wait_for_schema_migrations() {
   local container="$1"
   local attempt=1
   local max_attempts=60
   local expected_count
+  local expected_filenames
   local observed_count
+  local observed_filenames
 
   expected_count="$(expected_manifest_migration_count)"
+  expected_filenames="$(expected_manifest_migration_filenames)"
 
   while true; do
     observed_count="$(docker exec "$container" psql -U "$DB_ADMIN_USER" -d "$DB_NAME" -Atqc 'SELECT COUNT(*) FROM schema_migrations WHERE canonical_filename IS NOT NULL;' 2>/dev/null || true)"
-    if [[ "$observed_count" =~ ^[0-9]+$ ]] && [[ "$observed_count" -ge "$expected_count" ]]; then
+    observed_filenames="$(docker exec "$container" psql -U "$DB_ADMIN_USER" -d "$DB_NAME" -Atqc "$(schema_migration_filenames_query)" 2>/dev/null || true)"
+    if [[ "$observed_count" =~ ^[0-9]+$ ]] && [[ "$observed_count" -eq "$expected_count" ]] && [[ "$observed_filenames" == "$expected_filenames" ]]; then
       return 0
     fi
 
@@ -127,9 +144,16 @@ host_schema_migration_count() {
     'SELECT COUNT(*) FROM schema_migrations WHERE canonical_filename IS NOT NULL;' 2>/dev/null || true
 }
 
+host_schema_migration_filenames() {
+  PGPASSWORD="$DB_ADMIN_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_ADMIN_USER" -d "$DB_NAME" -Atqc \
+    "$(schema_migration_filenames_query)" 2>/dev/null || true
+}
+
 reuse_ready_test_database() {
   local expected_count
+  local expected_filenames
   local observed_count
+  local observed_filenames
 
   if [[ "$DB_REUSE_IF_READY" != "1" ]]; then
     return 1
@@ -140,14 +164,16 @@ reuse_ready_test_database() {
   fi
 
   expected_count="$(expected_manifest_migration_count)"
+  expected_filenames="$(expected_manifest_migration_filenames)"
   observed_count="$(host_schema_migration_count)"
+  observed_filenames="$(host_schema_migration_filenames)"
 
-  if [[ "$observed_count" =~ ^[0-9]+$ ]] && [[ "$observed_count" -ge "$expected_count" ]]; then
-    log_info "Reusing existing isolated test database on ${DB_HOST}:${DB_PORT}/${DB_NAME} (${observed_count}/${expected_count} manifest migrations detected)."
+  if [[ "$observed_count" =~ ^[0-9]+$ ]] && [[ "$observed_count" -eq "$expected_count" ]] && [[ "$observed_filenames" == "$expected_filenames" ]]; then
+    log_info "Reusing existing isolated test database on ${DB_HOST}:${DB_PORT}/${DB_NAME} (${observed_count}/${expected_count} exact manifest migrations detected)."
     return 0
   fi
 
-  log_warn "Existing isolated test database on ${DB_HOST}:${DB_PORT}/${DB_NAME} is missing manifest migrations (${observed_count:-0}/${expected_count}); rebuilding."
+  log_warn "Existing isolated test database on ${DB_HOST}:${DB_PORT}/${DB_NAME} does not exactly match the manifest migrations (${observed_count:-0}/${expected_count}); rebuilding."
   return 1
 }
 

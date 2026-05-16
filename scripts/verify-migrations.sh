@@ -63,13 +63,17 @@ check_isolated_target() {
     return 0
   fi
 
-  if [[ "$DB_NAME" == *_test || "$DB_PORT" == "8012" ]]; then
+  if [[ "$DB_NAME" == *_test && "$DB_PORT" == "8012" && ( "$DB_HOST" == "127.0.0.1" || "$DB_HOST" == "localhost" || "$DB_HOST" == "::1" ) ]]; then
     return 0
   fi
 
-  echo "Migration verification failed: refusing to run destructive verification checks against non-test database ${DB_HOST}:${DB_PORT}/${DB_NAME}. Set VERIFY_ALLOW_NON_TEST_DB=1 to override." >&2
+  echo "Migration verification failed: refusing to run destructive verification checks unless DB_HOST is loopback, DB_PORT is 8012, and DB_NAME ends in _test (got ${DB_HOST}:${DB_PORT}/${DB_NAME}). Set VERIFY_ALLOW_NON_TEST_DB=1 to override." >&2
   return 1
 }
+
+if ! check_isolated_target; then
+  exit 1
+fi
 
 "$PROJECT_ROOT/scripts/validation-preflight.sh" isolated-test-db --context "scripts/verify-migrations.sh"
 

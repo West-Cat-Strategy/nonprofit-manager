@@ -81,12 +81,16 @@ describe('rateLimitKeys', () => {
     );
   });
 
-  it('builds public event registration and case-form token keys without raw tokens', () => {
+  it('builds public event registration, report, and case-form token keys without raw tokens', () => {
     const eventReq = buildRequest({ params: { id: 'event-1' } });
     const caseReq = buildRequest({ params: { token: 'case-token' } });
+    const reportReq = buildRequest({ params: { token: 'report-token' } });
 
     expect(rateLimitKeys.publicEventRegistration(eventReq)).toBe(
       'rate-limit:global:public-event-registration:event-1%3A203.0.113.10'
+    );
+    expect(rateLimitKeys.publicReportToken(reportReq)).toBe(
+      'rate-limit:global:public-report-token:3afe7a1d932838be03fe2208%3A203.0.113.10'
     );
     expect(rateLimitKeys.publicCaseFormDraft(caseReq)).toBe(
       'rate-limit:global:public-case-form-draft:68422947e634bbe26eeacdfc%3A203.0.113.10'

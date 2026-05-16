@@ -94,7 +94,7 @@ describe('rateLimiter defaults', () => {
   it('configures the higher shared-IP ceilings in production defaults', async () => {
     await loadRateLimiterModule();
 
-    expect(mockRateLimit).toHaveBeenCalledTimes(14);
+    expect(mockRateLimit).toHaveBeenCalledTimes(15);
 
     const [
       apiOptions,
@@ -111,6 +111,7 @@ describe('rateLimiter defaults', () => {
       publicCaseFormDraftOptions,
       publicCaseFormSubmitOptions,
       publicCaseFormAssetOptions,
+      publicReportTokenOptions,
     ] =
       mockRateLimit.mock.calls.map(([options]) => options as Record<string, unknown>);
 
@@ -184,6 +185,11 @@ describe('rateLimiter defaults', () => {
       windowMs: 15 * 60 * 1000,
       max: 20,
     });
+
+    expect(publicReportTokenOptions).toMatchObject({
+      windowMs: 10 * 60 * 1000,
+      max: 120,
+    });
   });
 
   it('honors explicit env overrides for the production ceilings', async () => {
@@ -215,9 +221,11 @@ describe('rateLimiter defaults', () => {
       PUBLIC_CASE_FORM_SUBMIT_RATE_LIMIT_MAX_REQUESTS: '36',
       PUBLIC_CASE_FORM_ASSET_RATE_LIMIT_WINDOW_MS: '186000',
       PUBLIC_CASE_FORM_ASSET_RATE_LIMIT_MAX_REQUESTS: '37',
+      PUBLIC_REPORT_TOKEN_RATE_LIMIT_WINDOW_MS: '187000',
+      PUBLIC_REPORT_TOKEN_RATE_LIMIT_MAX_REQUESTS: '38',
     });
 
-    expect(mockRateLimit).toHaveBeenCalledTimes(14);
+    expect(mockRateLimit).toHaveBeenCalledTimes(15);
 
     const [
       apiOptions,
@@ -234,6 +242,7 @@ describe('rateLimiter defaults', () => {
       publicCaseFormDraftOptions,
       publicCaseFormSubmitOptions,
       publicCaseFormAssetOptions,
+      publicReportTokenOptions,
     ] =
       mockRateLimit.mock.calls.map(([options]) => options as Record<string, unknown>);
 
@@ -305,6 +314,11 @@ describe('rateLimiter defaults', () => {
     expect(publicCaseFormAssetOptions).toMatchObject({
       windowMs: 186000,
       max: 37,
+    });
+
+    expect(publicReportTokenOptions).toMatchObject({
+      windowMs: 187000,
+      max: 38,
     });
   });
 
@@ -399,8 +413,9 @@ describe('rateLimiter defaults', () => {
     module.publicCaseFormDraftLimiterMiddleware({} as Request, {} as Response, next);
     module.publicCaseFormSubmitLimiterMiddleware({} as Request, {} as Response, next);
     module.publicCaseFormAssetLimiterMiddleware({} as Request, {} as Response, next);
+    module.publicReportTokenLimiterMiddleware({} as Request, {} as Response, next);
 
-    expect(next).toHaveBeenCalledTimes(9);
+    expect(next).toHaveBeenCalledTimes(10);
     expect(module.publicWebsiteFormLimiterMiddleware).not.toBe(module.publicWebsiteFormLimiter);
     expect(module.publicWebsiteActionLimiterMiddleware).not.toBe(module.publicWebsiteActionLimiter);
     expect(module.publicNewsletterConfirmationLimiterMiddleware).not.toBe(
@@ -414,6 +429,7 @@ describe('rateLimiter defaults', () => {
     expect(module.publicCaseFormDraftLimiterMiddleware).not.toBe(module.publicCaseFormDraftLimiter);
     expect(module.publicCaseFormSubmitLimiterMiddleware).not.toBe(module.publicCaseFormSubmitLimiter);
     expect(module.publicCaseFormAssetLimiterMiddleware).not.toBe(module.publicCaseFormAssetLimiter);
+    expect(module.publicReportTokenLimiterMiddleware).not.toBe(module.publicReportTokenLimiter);
   });
 
   it('skips startup auth and CSRF read-only checks in the shared API limiter', async () => {

@@ -128,7 +128,7 @@ router.post(
 router.post(
   '/customers',
   authenticate,
-  requireRole('admin', 'manager', 'staff'),
+  requirePermission(Permission.PAYMENT_PROCESS),
   validateBody(createCustomerSchema),
   paymentController.createCustomer
 );
@@ -140,7 +140,7 @@ router.post(
 router.get(
   '/customers/:id',
   authenticate,
-  requireRole('admin', 'manager', 'staff'),
+  requirePermission(Permission.PAYMENT_PROCESS),
   validateParams(customerIdParamsSchema),
   paymentController.getCustomer
 );
@@ -152,7 +152,7 @@ router.get(
 router.get(
   '/customers/:customerId/payment-methods',
   authenticate,
-  requireRole('admin', 'manager', 'staff'),
+  requirePermission(Permission.PAYMENT_PROCESS),
   validateParams(paymentMethodsParamsSchema),
   paymentController.listPaymentMethods
 );

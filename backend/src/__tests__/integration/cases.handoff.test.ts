@@ -264,7 +264,7 @@ describe('Case Handoff Packet Integration Tests', () => {
     expect(packet.field_packet.scope.service_site_routing_included).toBe(false);
     expect(packet.field_packet.scope.referral_transfer_included).toBe(false);
     expect(packet.field_packet.scope.persisted_packet_included).toBe(false);
-    expect(packet.field_packet.assignment_context.case_status).toBe('Open');
+    expect(packet.field_packet.assignment_context.case_status).toBe('Intake');
     expect(packet.field_packet.assignment_context.portal_visibility_status).toBe('Internal Only');
     expect(packet.field_packet.services).toEqual(
       expect.arrayContaining([

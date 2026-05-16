@@ -170,6 +170,15 @@ export const rateLimitKeys = {
       undefined
     );
   },
+
+  publicReportToken(req: Request): string {
+    const token = getParamValue(req, 'token', 'unknown-token');
+    return buildScopedRateLimitKey(
+      'public-report-token',
+      `${hashIdentifier(token)}:${getIp(req)}`,
+      undefined
+    );
+  },
 };
 
 export default rateLimitKeys;

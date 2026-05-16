@@ -930,6 +930,7 @@ describe('communicationsService', () => {
   });
 
   it('syncs selected contacts to Mautic segments through the neutral communications facade', async () => {
+    mockPoolBySql();
     mockMauticService.bulkSyncContacts.mockResolvedValue({
       total: 1,
       added: 1,
@@ -958,6 +959,29 @@ describe('communicationsService', () => {
       listId: '42',
       tags: undefined,
     });
+  });
+
+  it('rejects provider sync when selected contacts are outside requester scope', async () => {
+    mockPool.query.mockImplementation((query: unknown) => {
+      const sql = String(query);
+      if (sql.includes("to_regclass('public.contact_suppression_evidence')")) {
+        return Promise.resolve({ rows: [{ exists: true }], rowCount: 1 });
+      }
+      if (sql.includes('FROM contacts c')) {
+        return Promise.resolve({ rows: [], rowCount: 0 });
+      }
+      return Promise.resolve({ rows: [], rowCount: 0 });
+    });
+
+    await expect(
+      communicationsService.bulkSyncContacts({
+        provider: 'mautic',
+        contactIds: [contactIds.deliverable],
+        listId: 'mautic:42',
+        scopeAccountIds: ['99999999-9999-4999-8999-999999999999'],
+      })
+    ).rejects.toThrow('One or more contacts were not found in the current organization scope');
+    expect(mockMauticService.bulkSyncContacts).not.toHaveBeenCalled();
   });
 
   it('rejects Mautic campaign send parity until that backend contract exists', async () => {

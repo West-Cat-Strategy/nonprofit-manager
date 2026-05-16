@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { validateParams, validateQuery } from '@middleware/zodValidation';
+import { publicReportTokenLimiterMiddleware } from '@middleware/domains/platform';
 import {
   downloadPublicReportByToken,
   getReportByPublicToken,
@@ -16,9 +17,15 @@ const publicDownloadQuerySchema = z.object({
   format: z.enum(['csv', 'xlsx']),
 }).strict();
 
-router.get('/:token', validateParams(publicTokenParamsSchema), getReportByPublicToken);
+router.get(
+  '/:token',
+  publicReportTokenLimiterMiddleware,
+  validateParams(publicTokenParamsSchema),
+  getReportByPublicToken
+);
 router.get(
   '/:token/download',
+  publicReportTokenLimiterMiddleware,
   validateParams(publicTokenParamsSchema),
   validateQuery(publicDownloadQuerySchema),
   downloadPublicReportByToken

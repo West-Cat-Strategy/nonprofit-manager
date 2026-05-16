@@ -147,7 +147,7 @@ case "$mode" in
     export E2E_DB_NAME="${E2E_DB_NAME:-nonprofit_manager}"
     export E2E_DB_USER="${E2E_DB_USER:-nonprofit_app_user}"
     export E2E_DB_PASSWORD="${E2E_DB_PASSWORD:-nonprofit_app_password}"
-    export E2E_RUNNER_ACTION="${E2E_RUNNER_ACTION:-kill}"
+    export E2E_RUNNER_ACTION="${E2E_RUNNER_ACTION:-fail}"
     export E2E_PORT_ACTION="${E2E_PORT_ACTION:-warn}"
     export PW_REUSE_EXISTING_SERVER="${PW_REUSE_EXISTING_SERVER:-1}"
     export E2E_REQUIRED_PORTS="${E2E_REQUIRED_PORTS:-${E2E_BACKEND_PORT} ${E2E_FRONTEND_PORT} ${E2E_PUBLIC_SITE_PORT}}"

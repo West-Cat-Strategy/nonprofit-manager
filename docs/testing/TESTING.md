@@ -1,6 +1,6 @@
 # Testing Guide
 
-**Last Updated:** 2026-05-09
+**Last Updated:** 2026-05-15
 
 This file is the active test command map for nonprofit-manager. Use [../../CONTRIBUTING.md](../../CONTRIBUTING.md) for contributor workflow and [../development/GETTING_STARTED.md](../development/GETTING_STARTED.md) for runtime setup and ports; use this file when you need to choose the right validation command.
 
@@ -29,7 +29,7 @@ Choose the smallest lane that proves the changed behavior. Broaden only when the
 | Coverage/full gate | Coverage, CI-parity, runtime-doc strict-mode, or high-confidence review proof is needed | `make test-coverage-full`, or `make ci-full` when lint/typecheck/build/security-audit should run with it |
 | Release/review follow-ons | Release candidates, broad browser/runtime review, Docker-only risk, dark-mode route audit, MFA/setup/session risk, or explicit reviewer/workboard follow-up | `make release-check`, `cd e2e && npm run test:docker:ci`, `cd e2e && npm run test:docker:audit`, or the fresh starter-only MFA command in [../../e2e/README.md](../../e2e/README.md) |
 
-Docs-only changes normally stay on `make check-links`. Add `make lint-doc-api-versioning` only when API route wording, API examples, or versioned API docs changed; add `make lint-openapi` only when `docs/api/openapi.yaml` changed. Runtime-facing docs such as this file, [../development/AGENT_INSTRUCTIONS.md](../development/AGENT_INSTRUCTIONS.md), [../../e2e/README.md](../../e2e/README.md), and [../../scripts/README.md](../../scripts/README.md) should use selector strict-mode when the wording changes command semantics, ports, wrappers, or orchestration expectations.
+Docs-only changes normally stay on `make check-links`. Add `make lint-doc-api-versioning` only when API route wording, API examples, or versioned API docs changed; add `make lint-openapi` only when `docs/api/openapi.yaml` changed. Runtime-facing docs such as this file, [../development/AGENT_INSTRUCTIONS.md](../development/AGENT_INSTRUCTIONS.md), [../../e2e/README.md](../../e2e/README.md), and [../../scripts/README.md](../../scripts/README.md) should use selector strict-mode when the wording changes command semantics, ports, wrappers, or orchestration expectations; that strict lane includes tooling-contract proof before broader runtime proof.
 
 ## Test Layers
 
@@ -295,7 +295,7 @@ make lint-doc-api-versioning
 
 - Add `make lint-doc-api-versioning` when API wording, API examples, or versioned API docs changed.
 - Add `make db-verify` when migration docs, manifest/initdb parity, or database contract expectations changed.
-- Use `./scripts/select-checks.sh --base HEAD~1 --mode strict` for runtime-facing docs when command meanings, ports, wrappers, Docker modes, or orchestration expectations changed.
+- Use `./scripts/select-checks.sh --base HEAD~1 --mode strict` for runtime-facing docs when command meanings, ports, wrappers, Docker modes, or orchestration expectations changed; run the emitted `make test-tooling` before the broader runtime gate so selector and wrapper assumptions are proved cheaply.
 
 ## Choosing A Smaller Check Set
 
@@ -305,7 +305,7 @@ When the change set does not justify the full suite, use the repo selector:
 ./scripts/select-checks.sh --base HEAD~1 --mode fast
 ```
 
-Use `--mode strict` when the change touches shared runtime orchestration, Docker/test wrappers, hooks, or runtime-facing docs and you want the selector to broaden into higher-confidence root checks.
+Use `--mode strict` when the change touches shared runtime orchestration, Docker/test wrappers, hooks, or runtime-facing docs and you want the selector to broaden into higher-confidence root checks. Runtime-facing docs in strict mode include `make test-tooling` before the broader coverage gate.
 The selector includes committed changes, staged changes, dirty tracked files, and untracked files by default. Pass `--files "<file list>"` when you need to test a planned or synthetic file set instead of the current worktree.
 Run the emitted commands in order.
 Code and runtime changes should include at least one behavior-test command; docs-only changes stay on `make check-links` unless API wording/examples changed.

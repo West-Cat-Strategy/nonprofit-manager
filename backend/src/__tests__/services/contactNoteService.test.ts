@@ -76,14 +76,14 @@ describe('getContactNotes', () => {
     expect(result.total).toBe(2);
   });
 
-  it('passes the contactId as the query parameter', async () => {
+  it('passes the contactId and nullable organization scope as query parameters', async () => {
     mockQuery
       .mockResolvedValueOnce({ rows: [{ total: '0' }] })
       .mockResolvedValueOnce({ rows: [] });
 
     await getContactNotes('contact-abc');
 
-    expect(mockQuery.mock.calls[0][1]).toEqual(['contact-abc']);
+    expect(mockQuery.mock.calls[0][1]).toEqual(['contact-abc', null]);
   });
 
   it('returns an empty array when there are no notes', async () => {

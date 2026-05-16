@@ -1,6 +1,14 @@
 import express from 'express';
 import request from 'supertest';
-import { cancelPaymentIntent, createPaymentIntent, getPaymentIntent, setPaymentPool } from '../../modules/payments/controllers/paymentController';
+import {
+  cancelPaymentIntent,
+  createCustomer,
+  createPaymentIntent,
+  getCustomer,
+  getPaymentIntent,
+  listPaymentMethods,
+  setPaymentPool,
+} from '../../modules/payments/controllers/paymentController';
 import paymentProviderService from '@services/paymentProviderService';
 import { requireActiveOrganizationSafe } from '@services/authGuardService';
 
@@ -11,6 +19,9 @@ jest.mock('@services/paymentProviderService', () => ({
     getPaymentIntent: jest.fn(),
     cancelPaymentIntent: jest.fn(),
     createPaymentIntent: jest.fn(),
+    createCustomer: jest.fn(),
+    getCustomer: jest.fn(),
+    listPaymentMethods: jest.fn(),
   },
 }));
 
@@ -46,6 +57,9 @@ describe('payments intent ownership enforcement', () => {
     app.get('/api/v2/payments/intents/:id', getPaymentIntent);
     app.post('/api/v2/payments/intents/:id/cancel', cancelPaymentIntent);
     app.post('/api/v2/payments/intents', createPaymentIntent);
+    app.post('/api/v2/payments/customers', createCustomer);
+    app.get('/api/v2/payments/customers/:id', getCustomer);
+    app.get('/api/v2/payments/customers/:customerId/payment-methods', listPaymentMethods);
     return app;
   };
 
@@ -175,6 +189,111 @@ describe('payments intent ownership enforcement', () => {
         expect.stringContaining('WHERE id = $1 AND contact_id = $2'),
         ['donation-1', 'contact-1']
       );
+    });
+
+    it('blocks organization-scoped intent creation without payment processing permission', async () => {
+      mockRequireActiveOrganizationSafe.mockResolvedValue({
+        ok: true,
+        data: {
+          user: { id: 'user-1' },
+          organizationId: 'org-a',
+        },
+      } as any);
+
+      const app = buildApp({ id: 'user-1', role: 'manager' }, null, 'org-a');
+
+      await request(app)
+        .post('/api/v2/payments/intents')
+        .send({ amount: 1000 })
+        .expect(403);
+
+      expect(mockPaymentProviderService.createPaymentIntent).not.toHaveBeenCalled();
+    });
+
+    it('allows organization-scoped intent creation with payment processing permission', async () => {
+      mockRequireActiveOrganizationSafe.mockResolvedValue({
+        ok: true,
+        data: {
+          user: { id: 'user-1' },
+          organizationId: 'org-a',
+        },
+      } as any);
+      mockPaymentProviderService.createPaymentIntent.mockResolvedValueOnce({
+        id: 'pi_org_123',
+        status: 'requires_payment_method',
+      } as any);
+
+      const app = buildApp({ id: 'user-1', role: 'admin' }, null, 'org-a');
+
+      await request(app)
+        .post('/api/v2/payments/intents')
+        .send({ amount: 1000 })
+        .expect(201);
+
+      expect(mockPaymentProviderService.createPaymentIntent).toHaveBeenCalled();
+    });
+  });
+
+  describe('customer ownership', () => {
+    it('blocks contact-linked customer creation for contacts outside the organization', async () => {
+      mockRequireActiveOrganizationSafe.mockResolvedValue({
+        ok: true,
+        data: {
+          user: { id: 'user-1' },
+          organizationId: 'org-a',
+        },
+      } as any);
+      paymentPool.query.mockResolvedValueOnce({ rowCount: 0, rows: [] });
+
+      const app = buildApp({ id: 'user-1', role: 'admin' }, null, 'org-a');
+
+      await request(app)
+        .post('/api/v2/payments/customers')
+        .send({
+          email: 'donor@example.org',
+          contactId: 'contact-other',
+          provider: 'stripe',
+        })
+        .expect(403);
+
+      expect(mockPaymentProviderService.createCustomer).not.toHaveBeenCalled();
+    });
+
+    it('blocks provider customer reads when the customer is not linked to the organization', async () => {
+      mockRequireActiveOrganizationSafe.mockResolvedValue({
+        ok: true,
+        data: {
+          user: { id: 'user-1' },
+          organizationId: 'org-a',
+        },
+      } as any);
+      paymentPool.query.mockResolvedValueOnce({ rowCount: 0, rows: [] });
+
+      const app = buildApp({ id: 'user-1', role: 'admin' }, null, 'org-a');
+
+      await request(app).get('/api/v2/payments/customers/cus_other').expect(404);
+
+      expect(mockPaymentProviderService.getCustomer).not.toHaveBeenCalled();
+    });
+
+    it('lists payment methods after customer ownership is verified', async () => {
+      mockRequireActiveOrganizationSafe.mockResolvedValue({
+        ok: true,
+        data: {
+          user: { id: 'user-1' },
+          organizationId: 'org-a',
+        },
+      } as any);
+      paymentPool.query.mockResolvedValueOnce({ rowCount: 1, rows: [{ '?column?': 1 }] });
+      mockPaymentProviderService.listPaymentMethods.mockResolvedValueOnce([]);
+
+      const app = buildApp({ id: 'user-1', role: 'admin' }, null, 'org-a');
+
+      await request(app)
+        .get('/api/v2/payments/customers/cus_org/payment-methods')
+        .expect(200);
+
+      expect(mockPaymentProviderService.listPaymentMethods).toHaveBeenCalledWith('cus_org', 'stripe');
     });
   });
 });

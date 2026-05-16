@@ -12,6 +12,7 @@ import { appendAuditLog } from '@services/auditService';
 import { requireActiveOrganizationSafe } from '@services/authGuardService';
 import paymentProviderService from '@services/paymentProviderService';
 import { badRequest, forbidden, notFoundMessage, serverError } from '@utils/responseHelpers';
+import { hasPermission, Permission } from '@utils/permissions';
 import type { AuthRequest } from '@middleware/auth';
 import type {
   CreatePaymentIntentRequest,
@@ -102,6 +103,42 @@ const hasContactDonationOwnership = async (
   const result = await pool.query(
     `SELECT 1 FROM donations WHERE id = $1 AND contact_id = $2 LIMIT 1`,
     [donationId, contactId]
+  );
+  return (result.rowCount ?? 0) > 0;
+};
+
+const hasPaymentProcessPermission = (req: AuthRequest): boolean =>
+  Boolean(req.user?.role && hasPermission(req.user.role, Permission.PAYMENT_PROCESS));
+
+const hasContactOwnership = async (organizationId: string, contactId: string): Promise<boolean> => {
+  if (!pool) return false;
+  const result = await pool.query(
+    `SELECT 1 FROM contacts WHERE id = $1 AND account_id = $2 LIMIT 1`,
+    [contactId, organizationId]
+  );
+  return (result.rowCount ?? 0) > 0;
+};
+
+const hasPaymentCustomerOwnership = async (
+  organizationId: string,
+  provider: string,
+  customerId: string
+): Promise<boolean> => {
+  if (!pool) return false;
+  const result = await pool.query(
+    `SELECT 1
+       FROM contacts c
+      WHERE c.account_id = $1
+        AND c.stripe_customer_id = $3
+        AND $2 = 'stripe'
+      UNION
+     SELECT 1
+       FROM donations d
+      WHERE d.account_id = $1
+        AND d.payment_provider = $2
+        AND d.provider_customer_id = $3
+      LIMIT 1`,
+    [organizationId, provider, customerId]
   );
   return (result.rowCount ?? 0) > 0;
 };
@@ -255,6 +292,23 @@ export const createPaymentIntent = async (req: AuthRequest, res: Response): Prom
 
       if (!hasAccess) {
         forbidden(res, 'You do not have access to this donation');
+        return;
+      }
+    } else {
+      const organizationResult = await requireActiveOrganizationSafe(req);
+      if (!organizationResult.ok) {
+        sendError(
+          res,
+          organizationResult.error.code.toUpperCase(),
+          organizationResult.error.message,
+          organizationResult.error.statusCode,
+          undefined,
+          req.correlationId
+        );
+        return;
+      }
+      if (!hasPaymentProcessPermission(req)) {
+        forbidden(res, 'Payment processing permission is required');
         return;
       }
     }
@@ -425,12 +479,33 @@ export const createRefund = async (req: AuthRequest, res: Response): Promise<voi
 /**
  * Create a customer
  */
-export const createCustomer = async (req: Request, res: Response): Promise<void> => {
+export const createCustomer = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { email, name, phone, contactId, provider } = req.body as CreateCustomerRequest;
 
     if (!email) {
       badRequest(res, 'Email is required');
+      return;
+    }
+
+    const organizationResult = await requireActiveOrganizationSafe(req);
+    if (!organizationResult.ok) {
+      sendError(
+        res,
+        organizationResult.error.code.toUpperCase(),
+        organizationResult.error.message,
+        organizationResult.error.statusCode,
+        undefined,
+        req.correlationId
+      );
+      return;
+    }
+    if (!hasPaymentProcessPermission(req)) {
+      forbidden(res, 'Payment processing permission is required');
+      return;
+    }
+    if (contactId && !(await hasContactOwnership(organizationResult.data.organizationId, contactId))) {
+      forbidden(res, 'Selected contact must belong to this organization');
       return;
     }
 
@@ -461,7 +536,7 @@ export const createCustomer = async (req: Request, res: Response): Promise<void>
 /**
  * Get customer
  */
-export const getCustomer = async (req: Request<{ id: string }>, res: Response): Promise<void> => {
+export const getCustomer = async (req: AuthRequest & Request<{ id: string }>, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const provider =
@@ -471,6 +546,23 @@ export const getCustomer = async (req: Request<{ id: string }>, res: Response): 
 
     if (!id) {
       badRequest(res, 'Customer ID is required');
+      return;
+    }
+
+    const organizationResult = await requireActiveOrganizationSafe(req);
+    if (!organizationResult.ok) {
+      sendError(
+        res,
+        organizationResult.error.code.toUpperCase(),
+        organizationResult.error.message,
+        organizationResult.error.statusCode,
+        undefined,
+        req.correlationId
+      );
+      return;
+    }
+    if (!(await hasPaymentCustomerOwnership(organizationResult.data.organizationId, provider, id))) {
+      notFoundMessage(res, 'Customer not found');
       return;
     }
 
@@ -490,7 +582,7 @@ export const getCustomer = async (req: Request<{ id: string }>, res: Response): 
  * List customer payment methods
  */
 export const listPaymentMethods = async (
-  req: Request<{ customerId: string }>,
+  req: AuthRequest & Request<{ customerId: string }>,
   res: Response
 ): Promise<void> => {
   try {
@@ -502,6 +594,23 @@ export const listPaymentMethods = async (
 
     if (!customerId) {
       badRequest(res, 'Customer ID is required');
+      return;
+    }
+
+    const organizationResult = await requireActiveOrganizationSafe(req);
+    if (!organizationResult.ok) {
+      sendError(
+        res,
+        organizationResult.error.code.toUpperCase(),
+        organizationResult.error.message,
+        organizationResult.error.statusCode,
+        undefined,
+        req.correlationId
+      );
+      return;
+    }
+    if (!(await hasPaymentCustomerOwnership(organizationResult.data.organizationId, provider, customerId))) {
+      notFoundMessage(res, 'Customer payment methods not found');
       return;
     }
 

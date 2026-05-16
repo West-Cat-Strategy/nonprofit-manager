@@ -750,11 +750,47 @@ test('e2e playwright docker wrapper carries ports and readiness URLs through the
   assert.equal(env.DB_PORT, '9102');
   assert.equal(env.E2E_DB_PORT, '9102');
   assert.equal(env.E2E_REQUIRED_PORTS, '8104 8105 8106');
+  assert.equal(env.E2E_RUNNER_ACTION, 'fail');
   assert.equal(
     env.E2E_READY_URLS,
     'http://127.0.0.1:8104/health/ready http://127.0.0.1:8105 http://127.0.0.1:8106/health/ready'
   );
   assert.equal(env.SKIP_WEBSERVER, '1');
+});
+
+test('e2e playwright docker wrapper keeps explicit lock kill opt-in', () => {
+  const result = run(
+    'bash',
+    ['scripts/e2e-playwright.sh', 'docker', '--direct', 'env'],
+    {
+      E2E_RUNNER_ACTION: 'kill',
+    }
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+
+  const env = parseEnvironment(result.stdout);
+  assert.equal(env.E2E_RUNNER_ACTION, 'kill');
+});
+
+test('e2e shared runner fails lock contention by default', () => {
+  const tempDir = createTempDir();
+  const lockDir = path.join(tempDir, 'e2e.lock');
+  fs.mkdirSync(lockDir);
+  fs.writeFileSync(path.join(lockDir, 'owner'), `${process.pid}:${process.pid}\n`, 'utf8');
+
+  const result = run(
+    'bash',
+    ['scripts/e2e-run-with-lock.sh', 'bash', '-c', 'exit 0'],
+    {
+      E2E_LOCK_FILE: lockDir,
+      E2E_RUNNER_MAX_ATTEMPTS: '1',
+    }
+  );
+
+  assert.equal(result.status, 1);
+  assert.match(`${result.stdout}\n${result.stderr}`, /Another E2E run is active/);
+  assert.match(`${result.stdout}\n${result.stderr}`, /E2E_RUNNER_ACTION=kill/);
 });
 
 test('e2e playwright usage documents the Docker public-site port', () => {
@@ -797,8 +833,10 @@ test('e2e host ci report wrapper resolves default archived report paths in dry-r
   assert.equal(env.PLAYWRIGHT_JSON_OUTPUT_FILE, `${env.RUN_DIR}/test-results.json`);
   assert.equal(env.SLICE_DESKTOP_HTML, `${env.RUN_DIR}/desktop/playwright-report`);
   assert.equal(env.SLICE_DESKTOP_JSON, `${env.RUN_DIR}/desktop/test-results.json`);
+  assert.equal(env.SLICE_DESKTOP_RUNNER_LOG_DIR, `${env.RUN_DIR}/desktop/runner-logs`);
   assert.equal(env.SLICE_MOBILE_HTML, `${env.RUN_DIR}/mobile/playwright-report`);
   assert.equal(env.SLICE_MOBILE_JSON, `${env.RUN_DIR}/mobile/test-results.json`);
+  assert.equal(env.SLICE_MOBILE_RUNNER_LOG_DIR, `${env.RUN_DIR}/mobile/runner-logs`);
   assert.match(env.SLICE_MOBILE_COMMAND, /--project=Mobile Chrome tests\/ux-regression\.spec\.ts/);
 });
 
@@ -827,6 +865,58 @@ test('e2e host ci report wrapper honors report root and run id overrides in dry-
     env.OPEN_REPORT_COMMAND,
     `${repoRoot}/node_modules/.bin/playwright show-report ${reportRoot}/${runId}/playwright-report`
   );
+});
+
+test('e2e docker ci report wrapper resolves per-slice archived report paths in dry-run mode', () => {
+  const result = run('bash', ['scripts/e2e-docker-ci-report.sh', 'ci', '--dry-run']);
+
+  assert.equal(result.status, 0, result.stderr);
+
+  const env = parseEnvironment(result.stdout);
+  assert.equal(env.LANE, 'ci');
+  assert.match(env.RUN_ID, /^docker-ci-\d{8}T\d{6}Z-\d+$/);
+  assert.equal(env.RUN_DIR, `${env.REPORT_ROOT}/${env.RUN_ID}`);
+  assert.equal(env.PLAYWRIGHT_HTML_OUTPUT_DIR, `${env.RUN_DIR}/playwright-report`);
+  assert.equal(env.PLAYWRIGHT_JSON_OUTPUT_FILE, `${env.RUN_DIR}/test-results.json`);
+  assert.equal(env.SLICE_DESKTOP_HTML, `${env.RUN_DIR}/desktop/playwright-report`);
+  assert.equal(env.SLICE_DESKTOP_JSON, `${env.RUN_DIR}/desktop/test-results.json`);
+  assert.equal(env.SLICE_DESKTOP_RUNNER_LOG_DIR, `${env.RUN_DIR}/desktop/runner-logs`);
+  assert.equal(env.SLICE_MOBILE_HTML, `${env.RUN_DIR}/mobile/playwright-report`);
+  assert.equal(env.SLICE_MOBILE_JSON, `${env.RUN_DIR}/mobile/test-results.json`);
+  assert.equal(env.SLICE_MOBILE_RUNNER_LOG_DIR, `${env.RUN_DIR}/mobile/runner-logs`);
+  assert.match(env.SLICE_DESKTOP_COMMAND, /e2e-playwright\.sh docker/);
+  assert.match(env.SLICE_MOBILE_COMMAND, /--project=Mobile Chrome tests\/ux-regression\.spec\.ts/);
+});
+
+test('e2e docker audit report wrapper resolves audit archived report paths in dry-run mode', () => {
+  const result = run('bash', ['scripts/e2e-docker-ci-report.sh', 'audit', '--dry-run']);
+
+  assert.equal(result.status, 0, result.stderr);
+
+  const env = parseEnvironment(result.stdout);
+  assert.equal(env.LANE, 'audit');
+  assert.match(env.RUN_ID, /^docker-audit-\d{8}T\d{6}Z-\d+$/);
+  assert.equal(env.RUN_DIR, `${env.REPORT_ROOT}/${env.RUN_ID}`);
+  assert.equal(env.SLICE_AUDIT_HTML, `${env.RUN_DIR}/audit/playwright-report`);
+  assert.equal(env.SLICE_AUDIT_JSON, `${env.RUN_DIR}/audit/test-results.json`);
+  assert.equal(env.SLICE_AUDIT_RUNNER_LOG_DIR, `${env.RUN_DIR}/audit/runner-logs`);
+  assert.match(env.SLICE_AUDIT_COMMAND, /tests\/dark-mode-accessibility-audit\.spec\.ts/);
+});
+
+test('playwright config honors report artifact environment overrides', () => {
+  const configText = fs.readFileSync(path.join(repoRoot, 'e2e/playwright.config.ts'), 'utf8');
+
+  assert.match(configText, /PLAYWRIGHT_HTML_OUTPUT_DIR \|\| 'playwright-report'/);
+  assert.match(configText, /PLAYWRIGHT_JSON_OUTPUT_FILE \|\| 'test-results\.json'/);
+});
+
+test('e2e package routes Docker CI and audit lanes through preserving report wrapper', () => {
+  const packageJson = JSON.parse(fs.readFileSync(path.join(repoRoot, 'e2e/package.json'), 'utf8'));
+
+  assert.equal(packageJson.scripts['test:docker:ci'], 'npm run test:docker:ci:report');
+  assert.equal(packageJson.scripts['test:docker:ci:report'], 'bash ../scripts/e2e-docker-ci-report.sh ci');
+  assert.equal(packageJson.scripts['test:docker:audit'], 'npm run test:docker:audit:report');
+  assert.equal(packageJson.scripts['test:docker:audit:report'], 'bash ../scripts/e2e-docker-ci-report.sh audit');
 });
 
 test('e2e port preflight fails clearly when lsof is unavailable', () => {
@@ -889,6 +979,7 @@ test('select-checks broadens docs-only strict mode into the coverage gate', () =
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(result.stdout.trim().split('\n'), [
     'make check-links',
+    'make test-tooling',
     'make test-coverage-full',
   ]);
 });
@@ -904,8 +995,29 @@ test('select-checks recommends tooling regression coverage for orchestration cha
 
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(result.stdout.trim().split('\n'), [
+    'make lint',
     'make test-tooling',
     './scripts/install-git-hooks.sh --dry-run',
+    'make docker-validate-overlays',
+    'make test-e2e-docker-smoke',
+    'make db-verify',
+  ]);
+});
+
+test('select-checks routes Docker policy scripts and compose files through overlay proof', () => {
+  const result = run('bash', [
+    'scripts/select-checks.sh',
+    '--files',
+    'docker-compose.dev.yml scripts/check-docker-image-policy.mjs',
+    '--mode',
+    'fast',
+  ]);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(result.stdout.trim().split('\n'), [
+    'make lint',
+    'make test-tooling',
+    'make docker-validate-overlays',
     'make test-e2e-docker-smoke',
     'make db-verify',
   ]);

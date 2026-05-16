@@ -108,8 +108,8 @@ export default defineConfig({
 
   // Reporter configuration
   reporter: [
-    ['html', { outputFolder: 'playwright-report' }],
-    ['json', { outputFile: 'test-results.json' }],
+    ['html', { outputFolder: process.env.PLAYWRIGHT_HTML_OUTPUT_DIR || 'playwright-report' }],
+    ['json', { outputFile: process.env.PLAYWRIGHT_JSON_OUTPUT_FILE || 'test-results.json' }],
     ['list'],
   ],
 

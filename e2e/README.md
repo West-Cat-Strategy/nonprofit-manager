@@ -1,6 +1,6 @@
 # E2E Tests
 
-**Last Updated:** 2026-05-09
+**Last Updated:** 2026-05-15
 
 Playwright tests live here. For the overall testing strategy, see [../docs/testing/TESTING.md](../docs/testing/TESTING.md).
 
@@ -71,8 +71,10 @@ npm run test:ci:report
 npm run test:docker
 npm run test:docker:smoke
 npm run test:docker:ci
+npm run test:docker:ci:report
 npm run test:docker:ci:mobile
 npm run test:docker:audit
+npm run test:docker:audit:report
 npm run test:report
 ```
 
@@ -86,22 +88,28 @@ npm run test:report
 - `npm run test:ci:report`: same host CI lane as `npm run test:ci`, but archives the desktop and mobile slice reports under `tmp/e2e-reports/host-ci-*`, exposes a top-level `playwright-report` and `test-results.json` pointer for the report that matches the final lane outcome, and opens that report in the background
 - `npm run test:docker`: run against an already running Docker app stack, defaulting to `8005/8004/8006`
 - `npm run test:docker:smoke`: Chromium smoke slice against Docker-hosted services, defaulting to `8005/8004/8006`
-- `npm run test:docker:ci`: cross-browser functional slice against Docker-hosted services, defaulting to `8005/8004/8006`, excluding the separate fresh starter-only MFA proof, then `npm run test:docker:ci:mobile`
+- `npm run test:docker:ci`: cross-browser functional slice against Docker-hosted services, defaulting to `8005/8004/8006`, excluding the separate fresh starter-only MFA proof, then the mobile slice, with preserved per-slice artifacts under `tmp/e2e-reports/docker-ci-*`
+- `npm run test:docker:ci:report`: the preserving Docker CI wrapper used by `npm run test:docker:ci`
 - `npm run test:docker:ci:mobile`: Mobile Chrome regression slice against Docker-hosted services, defaulting to `8005/8004/8006`
-- `npm run test:docker:audit`: dedicated Chromium dark-mode route audit against Docker-hosted services, defaulting to `8005/8004/8006`
+- `npm run test:docker:audit`: dedicated Chromium dark-mode route audit against Docker-hosted services, defaulting to `8005/8004/8006`, with preserved artifacts under `tmp/e2e-reports/docker-audit-*`
+- `npm run test:docker:audit:report`: the preserving Docker audit wrapper used by `npm run test:docker:audit`
 - `npm run test:report`: open the HTML report
 
 `Mobile Safari` and `Tablet` are defined in `playwright.config.ts` for manual/ad hoc `--project` runs. They are intentionally excluded from the CI wrappers above.
 `npm run test:report` still opens the default last-run report in `e2e/playwright-report`; use `npm run test:ci:report` when you need a preserved archived report for the full host CI lane.
 For E2E docs-only edits, run `make check-links` from the repo root; add `make lint-doc-api-versioning` only when API route wording or examples changed. Use `./scripts/select-checks.sh --base HEAD~1 --mode strict` from the repo root when this file changes runtime semantics, wrapper behavior, ports, or Docker mode expectations.
 
-## Preserved Host CI Reports
+## Preserved CI Reports
 
-Use the preserved-report wrapper when you want the host CI lane to leave a durable local artifact instead of reusing the default last-run report folder:
+Use the preserved-report wrappers when you want CI/review lanes to leave durable local artifacts instead of reusing the default last-run report folder:
 
 ```bash
 cd e2e
 npm run test:ci:report
+npm run test:docker:ci
+npm run test:docker:ci:report
+npm run test:docker:audit
+npm run test:docker:audit:report
 ```
 
 If `127.0.0.1:5173` is already occupied on your machine, the host wrapper auto-selects an alternate frontend port (starting with `5317`). You can still pin one explicitly with `E2E_FRONTEND_PORT=5317 npm run test:ci:report`.
@@ -110,8 +118,11 @@ This wrapper:
 
 - archives each run under `tmp/e2e-reports/host-ci-*`
 - preserves separate `desktop/` and `mobile/` slice artifacts inside the run directory
+- sets `E2E_RUNNER_LOG_DIR`, `PLAYWRIGHT_HTML_OUTPUT_DIR`, and `PLAYWRIGHT_JSON_OUTPUT_FILE` per slice
 - creates top-level `playwright-report` and `test-results.json` pointers to the report that matches the final lane outcome
 - launches `playwright show-report` for that preserved report in the background and writes its server log to `show-report.log`
+
+The Docker wrappers follow the same artifact shape under `tmp/e2e-reports/docker-ci-*` and `tmp/e2e-reports/docker-audit-*`. The CI lane keeps separate `desktop/` and `mobile/` outputs; the audit lane keeps an `audit/` output. That keeps the full Docker CI and audit runs from overwriting the default `e2e/test-results.json` between slices. The `:report` script names are available when a validation handoff wants to call the preserving wrappers explicitly; the shorter Docker CI/audit commands route through the same wrappers.
 
 Optional overrides:
 
@@ -320,7 +331,7 @@ npx playwright test --debug
 
 If you want to reuse already running services on the Playwright-managed host runtime, set `PW_REUSE_EXISTING_SERVER=1`; the wrapper will switch its port preflight into reuse mode instead of killing the occupied listeners. If you want to target an externally managed runtime, use `npm run test:docker*` with explicit `E2E_*_PORT`, `BASE_URL`, or `API_URL` overrides, or run `npx playwright test ...` directly when you need a fully custom hybrid contract.
 
-If the shared Playwright lock is held by another active host run and you intentionally want a targeted rerun to take ownership of it, prepend `E2E_RUNNER_ACTION=kill` to that command. Keep the default behavior for normal `npm test` runs so they fail fast instead of terminating another valid suite unexpectedly.
+If the shared Playwright lock is held by another active host or Docker run and you intentionally want a targeted rerun to take ownership of it, prepend `E2E_RUNNER_ACTION=kill` to that command. Keep the default behavior for normal runs so they fail fast instead of terminating another valid suite unexpectedly. When a run fails during startup, the shared runner prints diagnostics from the per-slice `E2E_RUNNER_LOG_DIR`, including port-conflict, readiness, and likely backend-startup hints.
 
 ## Related References
 

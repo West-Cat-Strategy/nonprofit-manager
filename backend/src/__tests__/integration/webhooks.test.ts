@@ -178,6 +178,16 @@ describe('Webhooks API Integration', () => {
     expect(updated.body.data).not.toHaveProperty('secret');
   });
 
+  it('rejects unsupported webhook event subscriptions', async () => {
+    await authed('post', '/api/v2/webhooks/endpoints')
+      .send({
+        url: 'https://8.8.8.8/webhook-invalid',
+        description: 'Invalid endpoint',
+        events: ['invoice.created'],
+      })
+      .expect(400);
+  });
+
   it('supports organization-scoped API key lifecycle routes', async () => {
     const created = await authed('post', '/api/v2/webhooks/api-keys')
       .send({

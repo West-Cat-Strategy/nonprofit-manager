@@ -1031,7 +1031,7 @@ export async function createWebhookEndpoint(page: Page, token: string): Promise<
   const response = await postJSON(page, token, '/api/v2/webhooks/endpoints', {
     // Use a public IP literal to avoid DNS resolution flakes in restricted environments.
     url: 'https://8.8.8.8/webhook',
-    events: ['account.created'],
+    events: ['contact.created'],
     description: 'E2E endpoint',
   });
   if (!response.ok()) {

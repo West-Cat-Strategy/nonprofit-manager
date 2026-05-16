@@ -238,7 +238,7 @@ for file in "${changed_files[@]}"; do
       has_frontend_bundle_tooling=1
       has_tooling_contracts=1
       ;;
-    scripts/check-*.ts|scripts/ui-audit.ts)
+    scripts/check-*.ts|scripts/check-*.mjs|scripts/ui-audit.ts)
       has_policy_tooling=1
       has_tooling_contracts=1
       ;;
@@ -265,6 +265,7 @@ for file in "${changed_files[@]}"; do
       case "$file" in
         docker-compose*.yml|docker-compose*.yaml)
           has_database=1
+          has_policy_tooling=1
           ;;
       esac
       ;;
@@ -383,6 +384,7 @@ if [[ $has_hook_tooling -eq 1 ]]; then
 fi
 
 if [[ $has_runtime_docs -eq 1 && $surface_count -eq 0 && "$mode" == "strict" ]]; then
+  add_command "make test-tooling"
   add_command "make test-coverage-full"
 fi
 
@@ -434,6 +436,9 @@ else
   fi
 
   if [[ $has_runtime_orchestration -eq 1 ]]; then
+    if [[ $has_policy_tooling -eq 1 && $has_database -eq 1 ]]; then
+      add_command "make docker-validate-overlays"
+    fi
     add_command "make test-e2e-docker-smoke"
   fi
 

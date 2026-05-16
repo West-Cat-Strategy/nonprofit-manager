@@ -156,6 +156,20 @@ describe('database config', () => {
     );
   });
 
+  it('attaches error logging to active database clients', async () => {
+    const client = {
+      on: jest.fn(),
+    };
+    await loadDatabaseModule();
+
+    const connectHandler = mockPool.on.mock.calls.find(([event]) => event === 'connect')?.[1];
+    expect(connectHandler).toEqual(expect.any(Function));
+
+    connectHandler(client);
+
+    expect(client.on).toHaveBeenCalledWith('error', expect.any(Function));
+  });
+
   it('binds full request context around pool queries when any request context exists', async () => {
     process.env.NODE_ENV = 'test';
     const client = {

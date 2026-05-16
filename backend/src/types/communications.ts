@@ -232,5 +232,6 @@ export type CommunicationCampaignPreview = MailchimpCampaignPreview;
 export type MailchimpCompatibleCampaignRequest = MailchimpCreateCampaignRequest;
 export type CommunicationBulkSyncRequest = BulkSyncRequest & {
   provider: Exclude<CommunicationProvider, 'local_email'>;
+  scopeAccountIds?: string[];
 };
 export type CommunicationBulkSyncResponse = BulkSyncResponse;

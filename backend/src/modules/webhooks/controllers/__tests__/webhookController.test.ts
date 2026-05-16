@@ -152,7 +152,7 @@ describe('webhookController', () => {
       user: undefined,
       body: {
         url: 'https://hooks.example.com/new',
-        events: ['invoice.created'],
+        events: ['contact.created'],
       },
     });
 
@@ -173,7 +173,7 @@ describe('webhookController', () => {
       body: {
         url: 'https://blocked.example.com/hooks',
         description: 'Blocked endpoint',
-        events: ['invoice.created'],
+        events: ['contact.created'],
       },
     });
 
@@ -191,7 +191,7 @@ describe('webhookController', () => {
       user: { id: 'user-1' },
       body: {
         url: 'https://hooks.example.com/new',
-        events: ['invoice.created'],
+        events: ['contact.created'],
       },
     });
 
@@ -206,7 +206,7 @@ describe('webhookController', () => {
       body: {
         url: 'https://hooks.example.com/new',
         description: 'Accounting feed',
-        events: ['invoice.created', 'invoice.updated'],
+        events: ['contact.created', 'donation.created'],
       },
     });
 
@@ -218,7 +218,7 @@ describe('webhookController', () => {
     expect(mockWebhookService.createWebhookEndpoint).toHaveBeenCalledWith('user-1', 'org-1', {
       url: 'https://hooks.example.com/new',
       description: 'Accounting feed',
-      events: ['invoice.created', 'invoice.updated'],
+      events: ['contact.created', 'donation.created'],
     });
     expect(mockSendSuccess).toHaveBeenCalledWith(
       res,

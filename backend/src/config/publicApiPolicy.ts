@@ -49,9 +49,14 @@ const csrfAuthSkipPaths = [
   '/api/v2/payments/webhook',
 ] as const;
 
+const csrfPublicTokenSkipPaths = [
+  '/api/v2/public/communications/unsubscribe',
+  '/api/v2/public/newsletters/confirm',
+] as const;
+
 export const CSRF_SKIP_PATH_PREFIXES = [
   ...csrfAuthSkipPaths,
-  ...PUBLIC_SITE_API_PATH_PREFIXES,
+  ...csrfPublicTokenSkipPaths,
   '/health',
   '/metrics',
 ] as const;
@@ -62,9 +67,10 @@ export const isPublicSiteApiPath = (path: string): boolean =>
   PUBLIC_SITE_API_PATH_PREFIXES.some((prefix) => path.startsWith(prefix)) ||
   PUBLIC_SITE_TRACK_PATH_PATTERN.test(path);
 
+const matchesPathPrefix = (path: string, prefix: string): boolean =>
+  path === prefix || path.startsWith(`${prefix}/`);
+
 export const isCsrfSkipPath = (path: string, fullPath = path): boolean =>
   CSRF_SKIP_PATH_PREFIXES.some(
-    (skipPath) => path.startsWith(skipPath) || fullPath.startsWith(skipPath)
-  ) ||
-  PUBLIC_SITE_TRACK_PATH_PATTERN.test(path) ||
-  PUBLIC_SITE_TRACK_PATH_PATTERN.test(fullPath);
+    (skipPath) => matchesPathPrefix(path, skipPath) || matchesPathPrefix(fullPath, skipPath)
+  );

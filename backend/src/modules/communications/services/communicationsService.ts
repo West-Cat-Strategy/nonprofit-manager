@@ -51,6 +51,7 @@ import {
   getLocalAudience,
   isLocalAudienceId,
   listAudiences,
+  loadEligibleContacts,
   previewAudience,
 } from './savedAudienceService';
 
@@ -356,9 +357,18 @@ export const sendCampaignTest = async (
 export const bulkSyncContacts = async (
   request: CommunicationBulkSyncRequest
 ): Promise<CommunicationBulkSyncResponse> => {
+  const requestedContactIds = uniqueStrings(request.contactIds);
+  const requestedContactIdSet = new Set(requestedContactIds);
+  const scopedContactIds = (await loadEligibleContacts(requestedContactIds, request.scopeAccountIds))
+    .map((contact) => contact.id)
+    .filter((contactId) => requestedContactIdSet.has(contactId));
+  if (scopedContactIds.length !== requestedContactIds.length) {
+    throw new CommunicationsValidationError('One or more contacts were not found in the current organization scope');
+  }
+
   if (request.provider === 'mailchimp') {
     return mailchimpService.bulkSyncContacts({
-      contactIds: request.contactIds,
+      contactIds: scopedContactIds,
       listId: request.listId,
       tags: request.tags,
     });
@@ -366,7 +376,7 @@ export const bulkSyncContacts = async (
 
   if (request.provider === 'mautic') {
     return mauticService.bulkSyncContacts({
-      contactIds: request.contactIds,
+      contactIds: scopedContactIds,
       listId: toMauticSegmentId(request.listId),
       tags: request.tags,
     });

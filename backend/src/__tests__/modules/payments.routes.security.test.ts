@@ -70,8 +70,8 @@ describe('payments routes authorization', () => {
     expect(paymentControllerMocks.createCustomer).not.toHaveBeenCalled();
   });
 
-  it('allows customer management for staff roles', async () => {
-    const app = buildApp('manager');
+  it('allows customer management for payment processing roles', async () => {
+    const app = buildApp('admin');
 
     await request(app)
       .post('/api/v2/payments/customers')

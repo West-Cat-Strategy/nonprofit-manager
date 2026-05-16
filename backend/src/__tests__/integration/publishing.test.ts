@@ -466,13 +466,13 @@ describe('Publishing API Integration', () => {
       .expect(401);
   });
 
-  it('requires admin settings permission and organization context for cache admin routes', async () => {
+  it('requires admin settings permission and accepts resolved organization context for cache admin routes', async () => {
     await request(app).get('/api/v2/sites/admin/cache/stats').expect(401);
 
     await request(app)
       .get('/api/v2/sites/admin/cache/profiles')
       .set('Authorization', `Bearer ${authToken}`)
-      .expect(400);
+      .expect(200);
 
     await withSiteConsoleAuth(
       request(app).get('/api/v2/sites/admin/cache/profiles'),

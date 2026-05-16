@@ -8,16 +8,41 @@ DRY_RUN=0
 
 usage() {
   cat <<'EOF'
-Usage: scripts/e2e-host-ci-report.sh [--dry-run]
+Usage: scripts/e2e-docker-ci-report.sh <ci|audit> [--dry-run]
 
-Run the host Playwright CI lane while preserving report artifacts under a unique
-archive directory in tmp/e2e-reports/, then open the matching HTML report in the
-background.
+Run Docker-backed Playwright review lanes while preserving report artifacts under
+a unique archive directory in tmp/e2e-reports/.
+
+Modes:
+  ci      Run the Docker desktop/browser matrix, then the mobile slice.
+  audit   Run the Docker dark-mode route audit slice.
 
 Options:
   --dry-run   Print the resolved report paths and commands without running tests.
 EOF
 }
+
+if [[ $# -lt 1 ]]; then
+  usage >&2
+  exit 2
+fi
+
+LANE="$1"
+shift
+
+case "$LANE" in
+  ci|audit)
+    ;;
+  -h|--help)
+    usage
+    exit 0
+    ;;
+  *)
+    echo "Unknown Docker E2E report lane: $LANE" >&2
+    usage >&2
+    exit 2
+    ;;
+esac
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -97,16 +122,15 @@ run_slice() {
 }
 
 REPORT_ROOT="$(resolve_report_root)"
-RUN_ID="${E2E_REPORT_RUN_ID:-host-ci-$(timestamp)-$$}"
+RUN_ID="${E2E_REPORT_RUN_ID:-docker-${LANE}-$(timestamp)-$$}"
 RUN_DIR="$REPORT_ROOT/$RUN_ID"
-SHOW_REPORT_LOG="$RUN_DIR/show-report.log"
-OPENED_REPORT_SLICE=""
 PLAYWRIGHT_BIN="${PLAYWRIGHT_BIN:-$PROJECT_ROOT/node_modules/.bin/playwright}"
+OPENED_REPORT_SLICE=""
 
 DESKTOP_COMMAND=(
   env
   CI=1
-  bash ../scripts/e2e-playwright.sh host
+  bash ../scripts/e2e-playwright.sh docker
   "$PLAYWRIGHT_BIN" test
   --project=chromium
   --project=firefox
@@ -116,52 +140,74 @@ DESKTOP_COMMAND=(
 MOBILE_COMMAND=(
   env
   CI=1
-  bash ../scripts/e2e-playwright.sh host
+  bash ../scripts/e2e-playwright.sh docker
   "$PLAYWRIGHT_BIN" test
   "--project=Mobile Chrome"
   tests/ux-regression.spec.ts
   --grep "mobile navigation drawer keeps the compact section layout|mobile auth entry routes keep forms above the fold|mobile staff routes use compact cards and avoid horizontal overflow"
 )
+AUDIT_COMMAND=(
+  env
+  CI=1
+  bash ../scripts/e2e-playwright.sh docker
+  "$PLAYWRIGHT_BIN" test
+  --project=chromium
+  tests/dark-mode-accessibility-audit.spec.ts
+)
 
 if [[ "$DRY_RUN" == "1" ]]; then
+  printf 'LANE=%s\n' "$LANE"
   printf 'REPORT_ROOT=%s\n' "$REPORT_ROOT"
   printf 'RUN_ID=%s\n' "$RUN_ID"
   printf 'RUN_DIR=%s\n' "$RUN_DIR"
   printf 'PLAYWRIGHT_HTML_OUTPUT_DIR=%s\n' "$RUN_DIR/playwright-report"
   printf 'PLAYWRIGHT_JSON_OUTPUT_FILE=%s\n' "$RUN_DIR/test-results.json"
-  printf 'SHOW_REPORT_LOG=%s\n' "$SHOW_REPORT_LOG"
-  printf 'OPEN_REPORT_COMMAND=%s\n' "$PLAYWRIGHT_BIN show-report $RUN_DIR/playwright-report"
 fi
 
 desktop_status=0
 mobile_status=0
+audit_status=0
 overall_status=0
 
-set +e
-run_slice desktop "${DESKTOP_COMMAND[@]}"
-desktop_status=$?
-set -e
+case "$LANE" in
+  ci)
+    set +e
+    run_slice desktop "${DESKTOP_COMMAND[@]}"
+    desktop_status=$?
+    set -e
 
-if [[ "$desktop_status" -eq 0 ]]; then
-  set +e
-  run_slice mobile "${MOBILE_COMMAND[@]}"
-  mobile_status=$?
-  set -e
-fi
+    if [[ "$desktop_status" -eq 0 ]]; then
+      set +e
+      run_slice mobile "${MOBILE_COMMAND[@]}"
+      mobile_status=$?
+      set -e
+    fi
 
-if [[ "$desktop_status" -ne 0 ]]; then
-  overall_status="$desktop_status"
-  OPENED_REPORT_SLICE="desktop"
-elif [[ "$mobile_status" -ne 0 ]]; then
-  overall_status="$mobile_status"
-  OPENED_REPORT_SLICE="mobile"
-else
-  OPENED_REPORT_SLICE="mobile"
-fi
+    if [[ "$desktop_status" -ne 0 ]]; then
+      overall_status="$desktop_status"
+      OPENED_REPORT_SLICE="desktop"
+    elif [[ "$mobile_status" -ne 0 ]]; then
+      overall_status="$mobile_status"
+      OPENED_REPORT_SLICE="mobile"
+    else
+      OPENED_REPORT_SLICE="mobile"
+    fi
+    ;;
+  audit)
+    set +e
+    run_slice audit "${AUDIT_COMMAND[@]}"
+    audit_status=$?
+    set -e
+
+    overall_status="$audit_status"
+    OPENED_REPORT_SLICE="audit"
+    ;;
+esac
 
 if [[ "$DRY_RUN" == "1" ]]; then
   printf 'DESKTOP_STATUS=%s\n' "$desktop_status"
   printf 'MOBILE_STATUS=%s\n' "$mobile_status"
+  printf 'AUDIT_STATUS=%s\n' "$audit_status"
   printf 'OVERALL_STATUS=%s\n' "$overall_status"
   printf 'OPENED_REPORT_SLICE=%s\n' "$OPENED_REPORT_SLICE"
   exit 0
@@ -170,18 +216,12 @@ fi
 mkdir -p "$RUN_DIR"
 create_compat_links "$RUN_DIR/$OPENED_REPORT_SLICE" "$RUN_DIR"
 
-if [[ -f "$RUN_DIR/playwright-report/index.html" ]]; then
-  (
-    cd "$PROJECT_ROOT/e2e"
-    nohup "$PLAYWRIGHT_BIN" show-report "$RUN_DIR/playwright-report" >"$SHOW_REPORT_LOG" 2>&1 &
-    printf '%s\n' "$!" > "$RUN_DIR/show-report.pid"
-  )
-  log_info "Preserved host Playwright CI report under $RUN_DIR"
-  log_info "Opened $OPENED_REPORT_SLICE report in the background; log: $SHOW_REPORT_LOG"
+if [[ -f "$RUN_DIR/playwright-report/index.html" || -f "$RUN_DIR/test-results.json" ]]; then
+  log_info "Preserved Docker Playwright ${LANE} artifacts under $RUN_DIR"
+  log_info "Top-level pointers target the $OPENED_REPORT_SLICE slice."
 else
-  log_warn "No HTML report was produced for the host Playwright CI run."
-  log_warn "Expected report path: $RUN_DIR/playwright-report/index.html"
-  log_warn "Archived artifacts directory: $RUN_DIR"
+  log_warn "No Playwright report artifacts were produced for the Docker ${LANE} run."
+  log_warn "Expected artifact directory: $RUN_DIR/$OPENED_REPORT_SLICE"
 fi
 
 exit "$overall_status"

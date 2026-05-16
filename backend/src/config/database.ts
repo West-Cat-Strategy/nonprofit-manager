@@ -114,6 +114,16 @@ const config: PoolConfig = {
 
 const rawPool = new Pool(config);
 
+rawPool.on('connect', (client: PoolClient) => {
+  client.on('error', (err: Error) => {
+    logger.error('Unexpected error on active database client', {
+      error: err.message,
+      stack: err.stack,
+      name: err.name,
+    });
+  });
+});
+
 const originalQuery = rawPool.query.bind(rawPool);
 type DatabaseQuery = typeof rawPool.query;
 

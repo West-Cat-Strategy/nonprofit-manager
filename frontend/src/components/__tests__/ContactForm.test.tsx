@@ -146,6 +146,30 @@ describe('ContactForm', () => {
       expect(emailInput.value).toBe('john.doe@example.com');
     });
 
+    it('saves a valid new contact, shows success feedback, and opens the created contact', async () => {
+      await renderContactForm(<ContactForm mode="create" />);
+
+      fireEvent.change(screen.getByLabelText(/first name \*/i), { target: { value: 'Jamie' } });
+      fireEvent.change(screen.getByLabelText(/last name \*/i), { target: { value: 'Saved' } });
+      fireEvent.change(screen.getByLabelText(/^email$/i), {
+        target: { value: 'jamie.saved@example.com' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /create contact/i }));
+
+      await waitFor(() => {
+        expect(mockApi.post).toHaveBeenCalledWith(
+          '/v2/contacts',
+          expect.objectContaining({
+            first_name: 'Jamie',
+            last_name: 'Saved',
+            email: 'jamie.saved@example.com',
+          })
+        );
+      });
+      expect(showSuccessMock).toHaveBeenCalledWith('Contact created successfully');
+      expect(mockNavigate).toHaveBeenCalledWith('/contacts/contact-1');
+    });
+
     it('validates email input type', async () => {
       await renderContactForm(<ContactForm mode="create" />);
 
@@ -265,6 +289,30 @@ describe('ContactForm', () => {
       const firstNameInput = screen.getByLabelText(/first name \*/i) as HTMLInputElement;
       fireEvent.change(firstNameInput, { target: { value: 'Janet' } });
       expect(firstNameInput.value).toBe('Janet');
+    });
+
+    it('saves edits, shows success feedback, and returns to the contact detail', async () => {
+      await renderContactForm(<ContactForm mode="edit" contact={mockContact} />);
+
+      fireEvent.change(screen.getByLabelText(/first name \*/i), { target: { value: 'Janet' } });
+      fireEvent.change(screen.getByLabelText(/^email$/i), {
+        target: { value: 'janet.smith@example.com' },
+      });
+      fireEvent.change(screen.getByLabelText(/^phone$/i), { target: { value: '555-020-1234' } });
+      fireEvent.change(screen.getByLabelText(/^mobile phone$/i), { target: { value: '555-020-5678' } });
+      fireEvent.click(screen.getByRole('button', { name: /update contact/i }));
+
+      await waitFor(() => {
+        expect(mockApi.put).toHaveBeenCalledWith(
+          '/v2/contacts/456',
+          expect.objectContaining({
+            first_name: 'Janet',
+            email: 'janet.smith@example.com',
+          })
+        );
+      });
+      expect(showSuccessMock).toHaveBeenCalledWith('Contact updated successfully');
+      expect(mockNavigate).toHaveBeenCalledWith('/contacts/456');
     });
 
     it('normalizes birth date values for the date input in edit mode', async () => {

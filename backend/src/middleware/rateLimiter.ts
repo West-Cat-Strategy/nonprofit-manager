@@ -474,3 +474,28 @@ export const publicCaseFormAssetLimiter = rateLimit({
 export const publicCaseFormAssetLimiterMiddleware = isTestEnv
   ? noopLimiter
   : publicCaseFormAssetLimiter;
+
+export const publicReportTokenLimiter = rateLimit({
+  windowMs: parseInt(process.env.PUBLIC_REPORT_TOKEN_RATE_LIMIT_WINDOW_MS || String(10 * 60 * 1000)),
+  max: isTestEnv ? 10000 : parseInt(process.env.PUBLIC_REPORT_TOKEN_RATE_LIMIT_MAX_REQUESTS || '120'),
+  keyGenerator: (req) => rateLimitKeys.publicReportToken(req),
+  skipSuccessfulRequests: false,
+  skip: shouldSkipRateLimit,
+  message: ERROR_MESSAGES.TOO_MANY_REQUESTS,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: buildStore('rl:public-report-token:'),
+  handler: (req, res) => {
+    sendError(
+      res,
+      'rate_limit_exceeded',
+      ERROR_MESSAGES.TOO_MANY_REQUESTS,
+      HTTP_STATUS.TOO_MANY_REQUESTS,
+      buildRetryDetails(req, 'public_report_token'),
+      req.correlationId
+    );
+  },
+});
+export const publicReportTokenLimiterMiddleware = isTestEnv
+  ? noopLimiter
+  : publicReportTokenLimiter;

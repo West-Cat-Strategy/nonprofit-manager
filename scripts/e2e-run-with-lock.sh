@@ -10,7 +10,8 @@ MAX_ATTEMPTS="${E2E_RUNNER_MAX_ATTEMPTS:-2}"
 HEARTBEAT_SECONDS="${E2E_RUNNER_HEARTBEAT_SECONDS:-20}"
 BACKEND_PORT="${E2E_BACKEND_PORT:-3001}"
 FRONTEND_PORT="${E2E_FRONTEND_PORT:-5173}"
-RUNNER_LOG_DIR="${E2E_RUNNER_LOG_DIR:-$PROJECT_ROOT/tmp/e2e-runner}"
+RUNNER_RUN_ID="${E2E_RUNNER_RUN_ID:-$(date -u +"%Y%m%dT%H%M%SZ")-$$}"
+RUNNER_LOG_DIR="${E2E_RUNNER_LOG_DIR:-$PROJECT_ROOT/tmp/e2e-runner/$RUNNER_RUN_ID}"
 
 if [[ "$RUNNER_ACTION" != "fail" && "$RUNNER_ACTION" != "kill" ]]; then
   echo "Invalid E2E_RUNNER_ACTION='$RUNNER_ACTION'. Expected 'fail' or 'kill'." >&2
@@ -107,6 +108,7 @@ e2e_fail_fast_for_background_webkit() {
 export E2E_LOCK_FILE="$LOCK_FILE"
 export E2E_RUNNER_ACTION="$RUNNER_ACTION"
 export E2E_PORT_ACTION="$PORT_ACTION"
+export E2E_RUNNER_RUN_ID="$RUNNER_RUN_ID"
 command_pid=""
 heartbeat_pid=""
 
@@ -146,9 +148,62 @@ is_port_conflict_failure() {
   grep -Eq "Port ${FRONTEND_PORT} is already in use|Port ${BACKEND_PORT} is already in use|EADDRINUSE|Process from config\\.webServer was not able to start" "$log_file"
 }
 
+write_runner_metadata() {
+  local metadata_file="$RUNNER_LOG_DIR/metadata.env"
+
+  mkdir -p "$RUNNER_LOG_DIR"
+  {
+    printf 'E2E_RUNNER_RUN_ID=%q\n' "$RUNNER_RUN_ID"
+    printf 'E2E_LOCK_FILE=%q\n' "$LOCK_FILE"
+    printf 'E2E_RUNNER_ACTION=%q\n' "$RUNNER_ACTION"
+    printf 'E2E_PORT_ACTION=%q\n' "$PORT_ACTION"
+    printf 'E2E_REQUIRED_PORTS=%q\n' "${E2E_REQUIRED_PORTS:-}"
+    printf 'E2E_READY_URLS=%q\n' "${E2E_READY_URLS:-}"
+    printf 'BASE_URL=%q\n' "${BASE_URL:-}"
+    printf 'API_URL=%q\n' "${API_URL:-}"
+    printf 'PLAYWRIGHT_HTML_OUTPUT_DIR=%q\n' "${PLAYWRIGHT_HTML_OUTPUT_DIR:-}"
+    printf 'PLAYWRIGHT_JSON_OUTPUT_FILE=%q\n' "${PLAYWRIGHT_JSON_OUTPUT_FILE:-}"
+    printf 'COMMAND=%q\n' "$*"
+  } > "$metadata_file"
+}
+
+print_failure_diagnostics() {
+  local log_file="$1"
+  local status="$2"
+  local diagnostics_file="$RUNNER_LOG_DIR/failure-diagnostics.txt"
+
+  if [[ ! -f "$log_file" ]]; then
+    return 0
+  fi
+
+  {
+    echo "[e2e-runner] command failed with status ${status}; diagnostics from ${log_file}:"
+
+    if grep -Eiq "EADDRINUSE|Port ${FRONTEND_PORT} is already in use|Port ${BACKEND_PORT} is already in use" "$log_file"; then
+      echo "[e2e-runner] port conflict suspected on backend/frontend ports (${BACKEND_PORT}/${FRONTEND_PORT})."
+      e2e_log_port_usage "${E2E_REQUIRED_PORTS:-$BACKEND_PORT $FRONTEND_PORT}" || true
+    fi
+
+    if grep -Eiq "Timed out waiting|health/(live|ready)|ECONNREFUSED|ERR_CONNECTION_REFUSED|Process from config\\.webServer was not able to start" "$log_file"; then
+      echo "[e2e-runner] readiness failure suspected. Check backend/frontend startup output above and the readiness URLs: ${E2E_READY_URLS:-Playwright webServer URLs}."
+    fi
+
+    if grep -Eiq "backend|dist/index\\.js|ts-node|db-migrate|database|migration|JWT_SECRET|Cannot find module|failed to start" "$log_file"; then
+      echo "[e2e-runner] backend startup crash may have occurred. Last matching backend/startup lines:"
+      grep -Ei "backend|dist/index\\.js|ts-node|db-migrate|database|migration|JWT_SECRET|Cannot find module|failed to start" "$log_file" | tail -n 20 || true
+    fi
+
+    echo "[e2e-runner] last 40 log lines:"
+    tail -n 40 "$log_file" || true
+  } | tee "$diagnostics_file" >&2
+
+  echo "[e2e-runner] wrote failure diagnostics to ${diagnostics_file}" >&2
+}
+
 run_with_retry() {
   local attempt=1
   mkdir -p "$RUNNER_LOG_DIR"
+  write_runner_metadata "$@"
 
   while [[ "$attempt" -le "$MAX_ATTEMPTS" ]]; do
     local attempt_log
@@ -202,6 +257,7 @@ run_with_retry() {
       continue
     fi
 
+    print_failure_diagnostics "$attempt_log" "$command_status"
     return "$command_status"
   done
 

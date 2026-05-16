@@ -182,7 +182,10 @@ e2e_acquire_lock() {
       continue
     fi
 
-    echo "Another E2E run is active (PID $lock_pid). Set E2E_RUNNER_ACTION=kill to terminate it." >&2
+    echo "Another E2E run is active (PID $lock_pid, PGID ${lock_pgid:-unknown})." >&2
+    echo "Lock metadata: $(e2e_lock_metadata_file)" >&2
+    echo "Inspect with: test -e '$(e2e_lock_file)' && find '$(e2e_lock_file)' -maxdepth 2 -type f -print -exec sed -n '1,20p' {} \\;" >&2
+    echo "Set E2E_RUNNER_ACTION=kill to terminate the active run intentionally." >&2
     return 1
   done
 
