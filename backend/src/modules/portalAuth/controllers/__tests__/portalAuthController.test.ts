@@ -93,6 +93,8 @@ const createBaseRequest = (overrides: Partial<Request> = {}) =>
     portalUser?: PortalAuthUser;
   };
 
+const createFutureInvitationExpiry = () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
 describe('portalAuthController', () => {
   let mockResponse: Response;
   let mockNext: NextFunction;
@@ -635,7 +637,7 @@ describe('portalAuthController', () => {
           contact_id: 'contact-1',
           account_id: 'account-1',
           created_by: 'staff-1',
-          expires_at: new Date('2026-06-01T00:00:00.000Z'),
+          expires_at: createFutureInvitationExpiry(),
           accepted_at: new Date('2026-04-02T00:00:00.000Z'),
         },
         message: 'Invitation already accepted',
@@ -709,13 +711,14 @@ describe('portalAuthController', () => {
 
     it('returns the invitation payload when validation succeeds', async () => {
       const req = createBaseRequest({ params: { token: 'valid-token' } });
+      const expiresAt = createFutureInvitationExpiry();
       mockPortalAuthService.getPortalInvitationByToken.mockResolvedValueOnce({
         id: 'invitation-1',
         email: 'member@example.com',
         contact_id: 'contact-1',
         account_id: 'account-1',
         created_by: 'staff-1',
-        expires_at: new Date('2026-06-01T00:00:00.000Z'),
+        expires_at: expiresAt,
         accepted_at: null,
       });
 
@@ -730,7 +733,7 @@ describe('portalAuthController', () => {
             invitation: expect.objectContaining({
               email: 'member@example.com',
               contactId: 'contact-1',
-              expiresAt: new Date('2026-06-01T00:00:00.000Z'),
+              expiresAt,
             }),
           }),
         })
@@ -746,6 +749,7 @@ describe('portalAuthController', () => {
           password: 'Secret123!',
         },
       });
+      const expiresAt = createFutureInvitationExpiry();
       mockShouldExposeAuthTokensInResponse.mockReturnValueOnce(true);
       mockPortalAuthService.getPortalInvitationByToken.mockResolvedValueOnce({
         id: 'invitation-1',
@@ -753,7 +757,7 @@ describe('portalAuthController', () => {
         contact_id: null,
         account_id: 'account-1',
         created_by: 'staff-1',
-        expires_at: new Date('2026-06-01T00:00:00.000Z'),
+        expires_at: expiresAt,
         accepted_at: null,
       });
       mockPortalAuthService.findPortalUserIdByEmail.mockResolvedValueOnce(null);
@@ -817,13 +821,14 @@ describe('portalAuthController', () => {
           password: 'Secret123!',
         },
       });
+      const expiresAt = createFutureInvitationExpiry();
       mockPortalAuthService.getPortalInvitationByToken.mockResolvedValueOnce({
         id: 'invitation-1',
         email: 'Invitee@Example.com',
         contact_id: 'contact-1',
         account_id: 'account-1',
         created_by: 'staff-1',
-        expires_at: new Date('2026-06-01T00:00:00.000Z'),
+        expires_at: expiresAt,
         accepted_at: null,
       });
       mockPortalAuthService.findPortalUserIdByEmail.mockResolvedValueOnce('portal-user-1');
@@ -851,13 +856,14 @@ describe('portalAuthController', () => {
           password: 'Secret123!',
         },
       });
+      const expiresAt = createFutureInvitationExpiry();
       mockPortalAuthService.getPortalInvitationByToken.mockResolvedValueOnce({
         id: 'invitation-1',
         email: 'Invitee@Example.com',
         contact_id: null,
         account_id: 'account-1',
         created_by: 'staff-1',
-        expires_at: new Date('2026-06-01T00:00:00.000Z'),
+        expires_at: expiresAt,
         accepted_at: null,
       });
       mockPortalAuthService.findPortalUserIdByEmail.mockResolvedValueOnce(null);
