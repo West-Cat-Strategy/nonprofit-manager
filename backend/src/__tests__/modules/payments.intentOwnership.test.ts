@@ -4,6 +4,7 @@ import {
   cancelPaymentIntent,
   createCustomer,
   createPaymentIntent,
+  createRefund,
   getCustomer,
   getPaymentIntent,
   listPaymentMethods,
@@ -22,6 +23,7 @@ jest.mock('@services/paymentProviderService', () => ({
     createCustomer: jest.fn(),
     getCustomer: jest.fn(),
     listPaymentMethods: jest.fn(),
+    createRefund: jest.fn(),
   },
 }));
 
@@ -29,7 +31,9 @@ jest.mock('@services/authGuardService', () => ({
   requireActiveOrganizationSafe: jest.fn(),
 }));
 
-const mockPaymentProviderService = paymentProviderService as jest.Mocked<typeof paymentProviderService>;
+const mockPaymentProviderService = paymentProviderService as jest.Mocked<
+  typeof paymentProviderService
+>;
 const mockRequireActiveOrganizationSafe = requireActiveOrganizationSafe as jest.MockedFunction<
   typeof requireActiveOrganizationSafe
 >;
@@ -57,6 +61,7 @@ describe('payments intent ownership enforcement', () => {
     app.get('/api/v2/payments/intents/:id', getPaymentIntent);
     app.post('/api/v2/payments/intents/:id/cancel', cancelPaymentIntent);
     app.post('/api/v2/payments/intents', createPaymentIntent);
+    app.post('/api/v2/payments/refunds', createRefund);
     app.post('/api/v2/payments/customers', createCustomer);
     app.get('/api/v2/payments/customers/:id', getCustomer);
     app.get('/api/v2/payments/customers/:customerId/payment-methods', listPaymentMethods);
@@ -109,10 +114,15 @@ describe('payments intent ownership enforcement', () => {
 
     const app = buildApp({ id: 'user-1' }, null, 'org-a');
 
-    const response = await request(app).post('/api/v2/payments/intents/pi_test_123/cancel').expect(200);
+    const response = await request(app)
+      .post('/api/v2/payments/intents/pi_test_123/cancel')
+      .expect(200);
 
     expect(response.body.success).toBe(true);
-    expect(mockPaymentProviderService.cancelPaymentIntent).toHaveBeenCalledWith('pi_test_123', 'stripe');
+    expect(mockPaymentProviderService.cancelPaymentIntent).toHaveBeenCalledWith(
+      'pi_test_123',
+      'stripe'
+    );
   });
 
   describe('createPaymentIntent ownership', () => {
@@ -147,7 +157,7 @@ describe('payments intent ownership enforcement', () => {
       } as any);
       // First query for donation ownership
       paymentPool.query.mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 'donation-1' }] });
-      
+
       mockPaymentProviderService.createPaymentIntent.mockResolvedValueOnce({
         id: 'pi_new_123',
         status: 'requires_payment_method',
@@ -167,12 +177,12 @@ describe('payments intent ownership enforcement', () => {
       // Mock organization resolution to fail to trigger portal check
       mockRequireActiveOrganizationSafe.mockResolvedValue({
         ok: false,
-        error: { code: 'bad_request', message: 'No org' }
+        error: { code: 'bad_request', message: 'No org' },
       } as any);
 
       // First query for donation ownership (contact check)
       paymentPool.query.mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 'donation-1' }] });
-      
+
       mockPaymentProviderService.createPaymentIntent.mockResolvedValueOnce({
         id: 'pi_portal_123',
         status: 'requires_payment_method',
@@ -202,10 +212,7 @@ describe('payments intent ownership enforcement', () => {
 
       const app = buildApp({ id: 'user-1', role: 'manager' }, null, 'org-a');
 
-      await request(app)
-        .post('/api/v2/payments/intents')
-        .send({ amount: 1000 })
-        .expect(403);
+      await request(app).post('/api/v2/payments/intents').send({ amount: 1000 }).expect(403);
 
       expect(mockPaymentProviderService.createPaymentIntent).not.toHaveBeenCalled();
     });
@@ -225,10 +232,7 @@ describe('payments intent ownership enforcement', () => {
 
       const app = buildApp({ id: 'user-1', role: 'admin' }, null, 'org-a');
 
-      await request(app)
-        .post('/api/v2/payments/intents')
-        .send({ amount: 1000 })
-        .expect(201);
+      await request(app).post('/api/v2/payments/intents').send({ amount: 1000 }).expect(201);
 
       expect(mockPaymentProviderService.createPaymentIntent).toHaveBeenCalled();
     });
@@ -289,11 +293,68 @@ describe('payments intent ownership enforcement', () => {
 
       const app = buildApp({ id: 'user-1', role: 'admin' }, null, 'org-a');
 
-      await request(app)
-        .get('/api/v2/payments/customers/cus_org/payment-methods')
-        .expect(200);
+      await request(app).get('/api/v2/payments/customers/cus_org/payment-methods').expect(200);
 
-      expect(mockPaymentProviderService.listPaymentMethods).toHaveBeenCalledWith('cus_org', 'stripe');
+      expect(mockPaymentProviderService.listPaymentMethods).toHaveBeenCalledWith(
+        'cus_org',
+        'stripe'
+      );
+    });
+  });
+
+  describe('refund ownership', () => {
+    it('blocks refunds for payment intents outside the active organization', async () => {
+      mockRequireActiveOrganizationSafe.mockResolvedValue({
+        ok: true,
+        data: {
+          user: { id: 'user-1' },
+          organizationId: 'org-a',
+        },
+      } as any);
+      paymentPool.query.mockResolvedValueOnce({ rowCount: 0, rows: [] });
+
+      const app = buildApp({ id: 'user-1', role: 'admin' }, null, 'org-a');
+
+      await request(app)
+        .post('/api/v2/payments/refunds')
+        .send({ paymentIntentId: 'pi_foreign_123', provider: 'stripe' })
+        .expect(404);
+
+      expect(mockPaymentProviderService.createRefund).not.toHaveBeenCalled();
+    });
+
+    it('creates refunds only after payment intent ownership is verified', async () => {
+      mockRequireActiveOrganizationSafe.mockResolvedValue({
+        ok: true,
+        data: {
+          user: { id: 'user-1' },
+          organizationId: 'org-a',
+        },
+      } as any);
+      paymentPool.query.mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{ donation_id: 'donation-1' }],
+      });
+      mockPaymentProviderService.createRefund.mockResolvedValueOnce({
+        id: 're_123',
+        amount: 500,
+        currency: 'usd',
+        status: 'succeeded',
+      } as any);
+
+      const app = buildApp({ id: 'user-1', role: 'admin' }, null, 'org-a');
+
+      await request(app)
+        .post('/api/v2/payments/refunds')
+        .send({ paymentIntentId: 'pi_org_123', amount: 500, provider: 'stripe' })
+        .expect(201);
+
+      expect(mockPaymentProviderService.createRefund).toHaveBeenCalledWith({
+        paymentIntentId: 'pi_org_123',
+        amount: 500,
+        reason: undefined,
+        provider: 'stripe',
+      });
     });
   });
 });

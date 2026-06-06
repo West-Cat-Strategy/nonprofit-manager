@@ -1,7 +1,7 @@
 import type { Response } from 'express';
 import { logger } from '@config/logger';
 import type { AuthRequest } from '@middleware/auth';
-import { badRequest, serverError } from '@utils/responseHelpers';
+import { badRequest, serverError, unauthorized } from '@utils/responseHelpers';
 import { sendSuccess } from '@modules/shared/http/envelope';
 import type { BrandingConfig } from '../lib/brandingStore';
 import * as adminBrandingUseCase from '../usecases/adminBrandingUseCase';
@@ -39,9 +39,19 @@ const parseBrandingConfig = (input: unknown): BrandingConfig | null => {
   };
 };
 
-export const getBranding = async (_req: AuthRequest, res: Response) => {
+const requireOrganizationId = (req: AuthRequest, res: Response): string | null => {
+  if (!req.organizationId) {
+    unauthorized(res, 'Organization context required');
+    return null;
+  }
+  return req.organizationId;
+};
+
+export const getBranding = async (req: AuthRequest, res: Response) => {
   try {
-    return sendSuccess(res, await adminBrandingUseCase.getBranding());
+    const organizationId = requireOrganizationId(req, res);
+    if (!organizationId) return;
+    return sendSuccess(res, await adminBrandingUseCase.getBranding(organizationId));
   } catch (error) {
     logger.error('Failed to fetch organization branding', { error });
     return serverError(res, 'Failed to fetch branding');
@@ -58,8 +68,13 @@ export const putBranding = async (req: AuthRequest, res: Response) => {
   }
 
   try {
-    logger.info('Organization branding updated', { userId: req.user?.id });
-    return sendSuccess(res, await adminBrandingUseCase.updateBranding(brandingConfig));
+    const organizationId = requireOrganizationId(req, res);
+    if (!organizationId) return;
+    logger.info('Organization branding updated', { userId: req.user?.id, organizationId });
+    return sendSuccess(
+      res,
+      await adminBrandingUseCase.updateBranding(organizationId, brandingConfig)
+    );
   } catch (error) {
     logger.error('Failed to update organization branding', { error, userId: req.user?.id });
     return serverError(res, 'Failed to update branding');

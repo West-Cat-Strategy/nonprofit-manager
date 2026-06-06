@@ -1,10 +1,7 @@
 import fs from 'fs';
 import { NextFunction, Request, Response } from 'express';
 import fileStorage from '@services/fileStorageService';
-import type {
-  SaveCaseFormDraftDTO,
-  SubmitCaseFormDTO,
-} from '@app-types/caseForms';
+import type { SaveCaseFormDraftDTO, SubmitCaseFormDTO } from '@app-types/caseForms';
 import { sendSuccess } from '../../shared/http/envelope';
 import { CaseFormsUseCase } from '../usecases/caseForms.usecase';
 
@@ -22,7 +19,10 @@ const streamDownload = async (
 
   const fullPath = fileStorage.getFullPath(payload.filePath);
   res.setHeader('Content-Type', payload.mimeType || 'application/octet-stream');
-  res.setHeader('Content-Disposition', `attachment; filename="${encodeFileName(payload.fileName)}"`);
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="${encodeFileName(payload.fileName)}"`
+  );
 
   const stream = fs.createReadStream(fullPath);
   stream.on('error', (error) => next(error));
@@ -31,8 +31,21 @@ const streamDownload = async (
 
 export const createPublicCaseFormsController = (useCase: CaseFormsUseCase) => {
   const getToken = (req: Request): string => {
+    const authorization =
+      (typeof req.get === 'function' ? req.get('authorization') : undefined) ||
+      (typeof req.headers?.authorization === 'string' ? req.headers.authorization : '');
+    const match = authorization.match(/^Bearer\s+(.+)$/i);
+    if (match?.[1]?.trim()) {
+      return match[1].trim();
+    }
+
+    const body = req.body as Record<string, unknown> | undefined;
+    if (typeof body?.public_token === 'string' && body.public_token.trim()) {
+      return body.public_token.trim();
+    }
+
     const value = req.params.token;
-    return Array.isArray(value) ? value[0] || '' : value;
+    return Array.isArray(value) ? value[0] || '' : value || '';
   };
 
   const getForm = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -47,7 +60,10 @@ export const createPublicCaseFormsController = (useCase: CaseFormsUseCase) => {
   const uploadAsset = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       if (!req.file) {
-        throw Object.assign(new Error('No file uploaded'), { statusCode: 400, code: 'validation_error' });
+        throw Object.assign(new Error('No file uploaded'), {
+          statusCode: 400,
+          code: 'validation_error',
+        });
       }
 
       const asset = await useCase.uploadAssetByToken(
@@ -75,10 +91,7 @@ export const createPublicCaseFormsController = (useCase: CaseFormsUseCase) => {
 
   const submit = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const detail = await useCase.submitByToken(
-        getToken(req),
-        req.body as SubmitCaseFormDTO
-      );
+      const detail = await useCase.submitByToken(getToken(req), req.body as SubmitCaseFormDTO);
       sendSuccess(res, detail, 201);
     } catch (error) {
       next(error);

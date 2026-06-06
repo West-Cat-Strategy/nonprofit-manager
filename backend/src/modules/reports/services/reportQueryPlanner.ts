@@ -18,10 +18,7 @@ const sanitizeAlias = (alias: string): string => {
   return alias;
 };
 
-export const getReportFieldSpecs = (entity: ReportEntity): Record<
-  string,
-  ReportFieldSpec
-> => {
+export const getReportFieldSpecs = (entity: ReportEntity): Record<string, ReportFieldSpec> => {
   switch (entity) {
     case 'cases':
       return {
@@ -42,24 +39,25 @@ export const getReportFieldSpecs = (entity: ReportEntity): Record<
           label: 'Case Type',
           type: 'string',
           column:
-            "COALESCE(ct.name, case_type_summary.primary_case_type_name, c.case_type_id::text)",
+            'COALESCE(ct.name, case_type_summary.primary_case_type_name, c.case_type_id::text)',
         },
         case_type_names: {
           label: 'Case Types',
           type: 'string',
           column:
-            "COALESCE(case_type_summary.case_type_names, COALESCE(ct.name, case_type_summary.primary_case_type_name, c.case_type_id::text))",
+            'COALESCE(case_type_summary.case_type_names, COALESCE(ct.name, case_type_summary.primary_case_type_name, c.case_type_id::text))',
         },
         case_outcome_values: {
           label: 'Case Outcomes',
           type: 'string',
           column:
-            "COALESCE(case_outcome_summary.case_outcome_values, COALESCE(c.outcome, case_outcome_summary.primary_case_outcome_value))",
+            'COALESCE(case_outcome_summary.case_outcome_values, COALESCE(c.outcome, case_outcome_summary.primary_case_outcome_value))',
         },
         assigned_to_name: {
           label: 'Assigned To',
           type: 'string',
-          column: "TRIM(CONCAT(COALESCE(assignee.first_name, ''), ' ', COALESCE(assignee.last_name, '')))",
+          column:
+            "TRIM(CONCAT(COALESCE(assignee.first_name, ''), ' ', COALESCE(assignee.last_name, '')))",
         },
         account_name: { label: 'Account', type: 'string', column: 'acc.account_name' },
         contact_name: {
@@ -71,7 +69,8 @@ export const getReportFieldSpecs = (entity: ReportEntity): Record<
         open_flag: {
           label: 'Open',
           type: 'boolean',
-          column: "CASE WHEN cs.status_type IN ('intake', 'active', 'review') THEN true ELSE false END",
+          column:
+            "CASE WHEN cs.status_type IN ('intake', 'active', 'review') THEN true ELSE false END",
         },
         overdue_flag: {
           label: 'Overdue',
@@ -105,7 +104,9 @@ export const getReportFieldSpecs = (entity: ReportEntity): Record<
               WHEN EXTRACT(EPOCH FROM (COALESCE(c.closed_date::timestamp, NOW()) - COALESCE(c.opened_date::timestamp, c.intake_date::timestamp, c.created_at))) / 86400 < 31 THEN '15-30'
               ELSE '31+'
             END
-          `.trim().replace(/\s+/g, ' '),
+          `
+            .trim()
+            .replace(/\s+/g, ' '),
         },
         service_outcome: { label: 'Service/Event Outcome', type: 'string', column: 'svc.outcome' },
       };
@@ -132,7 +133,11 @@ export const getReportFieldSpecs = (entity: ReportEntity): Record<
         mobile_phone: { label: 'Mobile Phone', type: 'string', column: 'c.mobile_phone' },
         job_title: { label: 'Job Title', type: 'string', column: 'c.job_title' },
         department: { label: 'Department', type: 'string', column: 'c.department' },
-        preferred_contact_method: { label: 'Preferred Contact Method', type: 'string', column: 'c.preferred_contact_method' },
+        preferred_contact_method: {
+          label: 'Preferred Contact Method',
+          type: 'string',
+          column: 'c.preferred_contact_method',
+        },
         account_name: { label: 'Account', type: 'string', column: 'a.account_name' },
         is_active: { label: 'Active', type: 'boolean', column: 'c.is_active' },
         created_at: { label: 'Created Date', type: 'date', column: 'c.created_at' },
@@ -152,11 +157,23 @@ export const getReportFieldSpecs = (entity: ReportEntity): Record<
         currency: { label: 'Currency', type: 'string', column: 'd.currency' },
         payment_method: { label: 'Payment Method', type: 'string', column: 'd.payment_method' },
         payment_status: { label: 'Payment Status', type: 'string', column: 'd.payment_status' },
-        appeal_campaign_id: { label: 'Appeal/Campaign ID', type: 'string', column: 'd.appeal_campaign_id' },
-        appeal_campaign_name: { label: 'Appeal/Campaign', type: 'string', column: 'COALESCE(ac.name, d.campaign_name)' },
+        appeal_campaign_id: {
+          label: 'Appeal/Campaign ID',
+          type: 'string',
+          column: 'd.appeal_campaign_id',
+        },
+        appeal_campaign_name: {
+          label: 'Appeal/Campaign',
+          type: 'string',
+          column: 'COALESCE(ac.name, d.campaign_name)',
+        },
         appeal_campaign_code: { label: 'Appeal/Campaign Code', type: 'string', column: 'ac.code' },
         appeal_campaign_kind: { label: 'Appeal/Campaign Type', type: 'string', column: 'ac.kind' },
-        appeal_campaign_status: { label: 'Appeal/Campaign Status', type: 'string', column: 'ac.status' },
+        appeal_campaign_status: {
+          label: 'Appeal/Campaign Status',
+          type: 'string',
+          column: 'ac.status',
+        },
         campaign_name: { label: 'Campaign', type: 'string', column: 'd.campaign_name' },
         designation: { label: 'Designation', type: 'string', column: 'd.designation' },
         is_recurring: { label: 'Recurring', type: 'boolean', column: 'd.is_recurring' },
@@ -191,7 +208,9 @@ export const getReportFieldSpecs = (entity: ReportEntity): Record<
               WHEN a.status = 'cancelled' THEN 'cancelled'
               ELSE 'pending'
             END
-          `.trim().replace(/\s+/g, ' '),
+          `
+            .trim()
+            .replace(/\s+/g, ' '),
         },
         case_number: { label: 'Case Number', type: 'string', column: 'c.case_number' },
         case_title: { label: 'Case Title', type: 'string', column: 'c.title' },
@@ -211,7 +230,8 @@ export const getReportFieldSpecs = (entity: ReportEntity): Record<
         reminder_offered: {
           label: 'Reminder Offered',
           type: 'boolean',
-          column: 'EXISTS (SELECT 1 FROM appointment_reminder_jobs arj WHERE arj.appointment_id = a.id)',
+          column:
+            'EXISTS (SELECT 1 FROM appointment_reminder_jobs arj WHERE arj.appointment_id = a.id)',
         },
         created_at: { label: 'Created Date', type: 'date', column: 'a.created_at' },
         updated_at: { label: 'Updated Date', type: 'date', column: 'a.updated_at' },
@@ -233,7 +253,9 @@ export const getReportFieldSpecs = (entity: ReportEntity): Record<
               NULLIF(TRIM(CONCAT(COALESCE(direct_con.first_name, ''), ' ', COALESCE(direct_con.last_name, ''))), ''),
               NULLIF(TRIM(CONCAT(COALESCE(case_con.first_name, ''), ' ', COALESCE(case_con.last_name, ''))), '')
             )
-          `.trim().replace(/\s+/g, ' '),
+          `
+            .trim()
+            .replace(/\s+/g, ' '),
         },
         assigned_to_name: {
           label: 'Assigned To',
@@ -255,13 +277,13 @@ export const getReportFieldSpecs = (entity: ReportEntity): Record<
         },
         created_at: { label: 'Created Date', type: 'date', column: 'fu.created_at' },
       };
-      case 'attendance':
-        return {
-          registration_id: { label: 'Attendance ID', type: 'string', column: 'er.id' },
-          event_id: { label: 'Event ID', type: 'string', column: 'er.event_id' },
-          event_name: { label: 'Event Name', type: 'string', column: 'e.name' },
-          case_id: { label: 'Case ID', type: 'string', column: 'er.case_id' },
-          case_number: { label: 'Case Number', type: 'string', column: 'c.case_number' },
+    case 'attendance':
+      return {
+        registration_id: { label: 'Attendance ID', type: 'string', column: 'er.id' },
+        event_id: { label: 'Event ID', type: 'string', column: 'er.event_id' },
+        event_name: { label: 'Event Name', type: 'string', column: 'e.name' },
+        case_id: { label: 'Case ID', type: 'string', column: 'er.case_id' },
+        case_number: { label: 'Case Number', type: 'string', column: 'c.case_number' },
         contact_name: {
           label: 'Contact',
           type: 'string',
@@ -290,7 +312,11 @@ export const getReportFieldSpecs = (entity: ReportEntity): Record<
         skills: { label: 'Skills', type: 'string', column: 'v.skills' },
         availability: { label: 'Availability', type: 'string', column: 'v.availability' },
         total_hours: { label: 'Total Hours', type: 'number', column: 'v.hours_contributed' },
-        hours_contributed: { label: 'Hours Contributed', type: 'number', column: 'v.hours_contributed' },
+        hours_contributed: {
+          label: 'Hours Contributed',
+          type: 'number',
+          column: 'v.hours_contributed',
+        },
         created_at: { label: 'Created Date', type: 'date', column: 'v.created_at' },
       };
     case 'tasks':
@@ -314,18 +340,31 @@ export const getReportFieldSpecs = (entity: ReportEntity): Record<
         currency: { label: 'Currency', type: 'string', column: 'o.currency' },
         stage_name: { label: 'Stage', type: 'string', column: 'st.name' },
         stage_order: { label: 'Stage Order', type: 'number', column: 'st.stage_order' },
-        probability: { label: 'Probability', type: 'number', column: 'COALESCE(st.probability, 0)' },
+        probability: {
+          label: 'Probability',
+          type: 'number',
+          column: 'COALESCE(st.probability, 0)',
+        },
         weighted_amount: {
           label: 'Weighted Amount',
           type: 'currency',
           column: '(COALESCE(o.amount, 0) * COALESCE(st.probability, 0)) / 100.0',
         },
-        won_flag: { label: 'Won', type: 'boolean', column: "CASE WHEN o.status = 'won' THEN true ELSE false END" },
-        lost_flag: { label: 'Lost', type: 'boolean', column: "CASE WHEN o.status = 'lost' THEN true ELSE false END" },
+        won_flag: {
+          label: 'Won',
+          type: 'boolean',
+          column: "CASE WHEN o.status = 'won' THEN true ELSE false END",
+        },
+        lost_flag: {
+          label: 'Lost',
+          type: 'boolean',
+          column: "CASE WHEN o.status = 'lost' THEN true ELSE false END",
+        },
         closed_flag: {
           label: 'Closed',
           type: 'boolean',
-          column: "CASE WHEN o.status IN ('won', 'lost') OR COALESCE(st.is_closed, false) THEN true ELSE false END",
+          column:
+            "CASE WHEN o.status IN ('won', 'lost') OR COALESCE(st.is_closed, false) THEN true ELSE false END",
         },
         open_flag: {
           label: 'Open',
@@ -341,7 +380,8 @@ export const getReportFieldSpecs = (entity: ReportEntity): Record<
         assigned_to_name: {
           label: 'Assigned To',
           type: 'string',
-          column: "TRIM(CONCAT(COALESCE(assignee.first_name, ''), ' ', COALESCE(assignee.last_name, '')))",
+          column:
+            "TRIM(CONCAT(COALESCE(assignee.first_name, ''), ' ', COALESCE(assignee.last_name, '')))",
         },
         account_name: { label: 'Account', type: 'string', column: 'acc.account_name' },
         contact_name: {
@@ -349,8 +389,16 @@ export const getReportFieldSpecs = (entity: ReportEntity): Record<
           type: 'string',
           column: "TRIM(CONCAT(COALESCE(con.first_name, ''), ' ', COALESCE(con.last_name, '')))",
         },
-        expected_close_date: { label: 'Expected Close Date', type: 'date', column: 'o.expected_close_date' },
-        actual_close_date: { label: 'Actual Close Date', type: 'date', column: 'o.actual_close_date' },
+        expected_close_date: {
+          label: 'Expected Close Date',
+          type: 'date',
+          column: 'o.expected_close_date',
+        },
+        actual_close_date: {
+          label: 'Actual Close Date',
+          type: 'date',
+          column: 'o.actual_close_date',
+        },
         created_at: { label: 'Created Date', type: 'date', column: 'o.created_at' },
       };
     case 'expenses':
@@ -388,8 +436,16 @@ export const getReportFieldSpecs = (entity: ReportEntity): Record<
         },
         application_status: { label: 'Application Status', type: 'string', column: 'ga.status' },
         amount: { label: 'Amount', type: 'currency', column: 'g.amount' },
-        committed_amount: { label: 'Committed Amount', type: 'currency', column: 'g.committed_amount' },
-        disbursed_amount: { label: 'Disbursed Amount', type: 'currency', column: 'g.disbursed_amount' },
+        committed_amount: {
+          label: 'Committed Amount',
+          type: 'currency',
+          column: 'g.committed_amount',
+        },
+        disbursed_amount: {
+          label: 'Disbursed Amount',
+          type: 'currency',
+          column: 'g.disbursed_amount',
+        },
         outstanding_amount: {
           label: 'Outstanding Amount',
           type: 'currency',
@@ -515,7 +571,10 @@ export const buildReportWhereClause = (
           values.push(...value);
           paramIndex += value.length;
         } else if (typeof value === 'string') {
-          const list = value.split(',').map((v) => v.trim()).filter(Boolean);
+          const list = value
+            .split(',')
+            .map((v) => v.trim())
+            .filter(Boolean);
           if (list.length > 0) {
             const placeholders = list.map((_, i) => `$${paramIndex + i}`).join(', ');
             conditions.push(`${column} IN (${placeholders})`);
@@ -530,7 +589,10 @@ export const buildReportWhereClause = (
           values.push(value[0], value[1]);
           paramIndex += 2;
         } else if (typeof value === 'string') {
-          const parts = value.split(',').map((v) => v.trim()).filter(Boolean);
+          const parts = value
+            .split(',')
+            .map((v) => v.trim())
+            .filter(Boolean);
           if (parts.length === 2) {
             conditions.push(`${column} BETWEEN $${paramIndex} AND $${paramIndex + 1}`);
             values.push(parts[0], parts[1]);
@@ -548,67 +610,83 @@ export const getReportScopeClause = (
   entity: ReportEntity,
   scope: ReportGenerationScope | undefined
 ): { condition: string | null; values: unknown[] } => {
+  const organizationId = scope?.organizationId;
+  if (!organizationId) {
+    throw new Error(`Organization scope is required for ${entity} reports`);
+  }
+
   if (entity === 'opportunities') {
-    if (!scope?.organizationId) {
-      throw new Error('Organization scope is required for opportunities reports');
-    }
     return {
       condition: 'o.organization_id = $1',
-      values: [scope.organizationId],
+      values: [organizationId],
     };
   }
 
   if (entity === 'cases') {
-    if (!scope?.organizationId) {
-      throw new Error('Organization scope is required for cases reports');
-    }
     return {
       condition: 'COALESCE(c.account_id, con.account_id) = $1',
-      values: [scope.organizationId],
+      values: [organizationId],
     };
   }
 
   if (entity === 'appointments') {
-    if (!scope?.organizationId) {
-      throw new Error('Organization scope is required for appointments reports');
-    }
     return {
-      condition: 'COALESCE(c.account_id, con.account_id) = $1',
-      values: [scope.organizationId],
+      condition: 'COALESCE(a.account_id, c.account_id, con.account_id) = $1',
+      values: [organizationId],
     };
   }
 
   if (entity === 'follow_ups') {
-    if (!scope?.organizationId) {
-      throw new Error('Organization scope is required for follow-up reports');
-    }
     return {
       condition: 'fu.organization_id = $1',
-      values: [scope.organizationId],
+      values: [organizationId],
     };
   }
 
   if (entity === 'grants') {
-    if (!scope?.organizationId) {
-      throw new Error('Organization scope is required for grants reports');
-    }
     return {
       condition: 'g.organization_id = $1',
-      values: [scope.organizationId],
+      values: [organizationId],
     };
   }
 
   if (entity === 'attendance') {
-    if (!scope?.organizationId) {
-      throw new Error('Organization scope is required for attendance reports');
-    }
     return {
       condition: 'COALESCE(c.account_id, con.account_id) = $1',
-      values: [scope.organizationId],
+      values: [organizationId],
     };
   }
 
-  return { condition: null, values: [] };
+  if (entity === 'contacts') {
+    return { condition: 'c.account_id = $1', values: [organizationId] };
+  }
+
+  if (entity === 'donations') {
+    return { condition: 'd.account_id = $1', values: [organizationId] };
+  }
+
+  if (entity === 'events') {
+    return { condition: 'e.organization_id = $1', values: [organizationId] };
+  }
+
+  if (entity === 'volunteers') {
+    return { condition: 'c.account_id = $1', values: [organizationId] };
+  }
+
+  if (entity === 'tasks') {
+    return {
+      condition:
+        "COALESCE(CASE WHEN t.related_to_type = 'account' THEN ta.id END, tc.account_id, te.organization_id) = $1",
+      values: [organizationId],
+    };
+  }
+
+  if (entity === 'accounts' || entity === 'expenses' || entity === 'programs') {
+    throw new Error(`Organization scope is not safely available for ${entity} reports`);
+  }
+
+  const exhaustive: never = entity;
+  throw new Error(`Unsupported report entity: ${exhaustive}`);
 };
 
 export const buildReportOrderByClause = (
@@ -643,7 +721,7 @@ export const buildReportOrderByClause = (
 export const getReportTableName = (entity: ReportEntity): string => {
   const tableMap: Record<ReportEntity, string> = {
     cases:
-      'cases c LEFT JOIN contacts con ON c.contact_id = con.id LEFT JOIN accounts acc ON acc.id = COALESCE(c.account_id, con.account_id) LEFT JOIN users assignee ON assignee.id = c.assigned_to LEFT JOIN case_statuses cs ON c.status_id = cs.id LEFT JOIN case_types ct ON c.case_type_id = ct.id LEFT JOIN LATERAL (SELECT STRING_AGG(ct_lookup.name, \' | \' ORDER BY cta.is_primary DESC, cta.sort_order ASC, cta.created_at ASC, cta.id ASC) AS case_type_names, (ARRAY_AGG(ct_lookup.name ORDER BY cta.is_primary DESC, cta.sort_order ASC, cta.created_at ASC, cta.id ASC))[1] AS primary_case_type_name FROM case_type_assignments cta INNER JOIN case_types ct_lookup ON ct_lookup.id = cta.case_type_id WHERE cta.case_id = c.id) case_type_summary ON true LEFT JOIN LATERAL (SELECT STRING_AGG(coa.outcome_value, \' | \' ORDER BY coa.is_primary DESC, coa.sort_order ASC, coa.created_at ASC, coa.id ASC) AS case_outcome_values, (ARRAY_AGG(coa.outcome_value ORDER BY coa.is_primary DESC, coa.sort_order ASC, coa.created_at ASC, coa.id ASC))[1] AS primary_case_outcome_value FROM case_outcome_assignments coa WHERE coa.case_id = c.id) case_outcome_summary ON true LEFT JOIN LATERAL (SELECT s.outcome FROM case_services s WHERE s.case_id = c.id ORDER BY s.service_date DESC NULLS LAST, s.created_at DESC LIMIT 1) svc ON true',
+      "cases c LEFT JOIN contacts con ON c.contact_id = con.id LEFT JOIN accounts acc ON acc.id = COALESCE(c.account_id, con.account_id) LEFT JOIN users assignee ON assignee.id = c.assigned_to LEFT JOIN case_statuses cs ON c.status_id = cs.id LEFT JOIN case_types ct ON c.case_type_id = ct.id LEFT JOIN LATERAL (SELECT STRING_AGG(ct_lookup.name, ' | ' ORDER BY cta.is_primary DESC, cta.sort_order ASC, cta.created_at ASC, cta.id ASC) AS case_type_names, (ARRAY_AGG(ct_lookup.name ORDER BY cta.is_primary DESC, cta.sort_order ASC, cta.created_at ASC, cta.id ASC))[1] AS primary_case_type_name FROM case_type_assignments cta INNER JOIN case_types ct_lookup ON ct_lookup.id = cta.case_type_id WHERE cta.case_id = c.id) case_type_summary ON true LEFT JOIN LATERAL (SELECT STRING_AGG(coa.outcome_value, ' | ' ORDER BY coa.is_primary DESC, coa.sort_order ASC, coa.created_at ASC, coa.id ASC) AS case_outcome_values, (ARRAY_AGG(coa.outcome_value ORDER BY coa.is_primary DESC, coa.sort_order ASC, coa.created_at ASC, coa.id ASC))[1] AS primary_case_outcome_value FROM case_outcome_assignments coa WHERE coa.case_id = c.id) case_outcome_summary ON true LEFT JOIN LATERAL (SELECT s.outcome FROM case_services s WHERE s.case_id = c.id ORDER BY s.service_date DESC NULLS LAST, s.created_at DESC LIMIT 1) svc ON true",
     accounts: 'accounts a',
     contacts: 'contacts c LEFT JOIN accounts a ON c.account_id = a.id',
     donations:
@@ -656,9 +734,10 @@ export const getReportTableName = (entity: ReportEntity): string => {
     attendance:
       'event_registrations er INNER JOIN events e ON e.id = er.event_id LEFT JOIN cases c ON c.id = er.case_id LEFT JOIN contacts con ON con.id = er.contact_id',
     volunteers: 'volunteers v INNER JOIN contacts c ON v.contact_id = c.id',
-    tasks: 'tasks t',
+    tasks:
+      "tasks t LEFT JOIN contacts tc ON t.related_to_type = 'contact' AND tc.id = t.related_to_id LEFT JOIN events te ON t.related_to_type = 'event' AND te.id = t.related_to_id LEFT JOIN accounts ta ON t.related_to_type = 'account' AND ta.id = t.related_to_id",
     opportunities:
-      "opportunities o INNER JOIN opportunity_stages st ON st.id = o.stage_id LEFT JOIN accounts acc ON acc.id = o.account_id LEFT JOIN contacts con ON con.id = o.contact_id LEFT JOIN users assignee ON assignee.id = o.assigned_to",
+      'opportunities o INNER JOIN opportunity_stages st ON st.id = o.stage_id LEFT JOIN accounts acc ON acc.id = o.account_id LEFT JOIN contacts con ON con.id = o.contact_id LEFT JOIN users assignee ON assignee.id = o.assigned_to',
     expenses: 'expenses ex',
     grants:
       'grants g LEFT JOIN grant_funders f ON f.id = g.funder_id LEFT JOIN grant_programs gp ON gp.id = g.program_id LEFT JOIN recipient_organizations ro ON ro.id = g.recipient_organization_id LEFT JOIN funded_programs fp ON fp.id = g.funded_program_id LEFT JOIN grant_applications ga ON ga.grant_id = g.id',
@@ -706,7 +785,9 @@ export const buildReportQueryPlan = (
       }
       const alias = sanitizeAlias(agg.alias || `${agg.function}_${agg.field}`);
       aggregationAliases.add(alias);
-      selectParts.push(`${agg.function.toUpperCase()}(${fieldSpecs[agg.field].column}) AS "${alias}"`);
+      selectParts.push(
+        `${agg.function.toUpperCase()}(${fieldSpecs[agg.field].column}) AS "${alias}"`
+      );
     }
   }
 

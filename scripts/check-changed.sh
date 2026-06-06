@@ -9,14 +9,16 @@ GREEN='\033[32m'
 YELLOW='\033[33m'
 RESET='\033[0m'
 
-BASE="main"
+BASE=""
 MODE="fast"
 RUN=0
+BASE_PROVIDED=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --base)
       BASE="$2"
+      BASE_PROVIDED=1
       shift 2
       ;;
     --mode)
@@ -33,6 +35,16 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+if [[ $BASE_PROVIDED -eq 0 ]]; then
+  if git rev-parse --verify --quiet main@{upstream} >/dev/null; then
+    BASE="main@{upstream}"
+  elif git rev-parse --verify --quiet origin/main >/dev/null; then
+    BASE="origin/main"
+  else
+    BASE="main"
+  fi
+fi
 
 echo -e "${BLUE}Identifying checks for changes relative to $BASE (mode: $MODE)...${RESET}"
 

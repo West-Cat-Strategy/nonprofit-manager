@@ -141,11 +141,14 @@ const validateResolvedOrganization = async (
     const shouldValidateAccess = input.validateAccess === true;
     if (shouldValidateAccess) {
       const accessResult = await pool.query(
-        `SELECT id
-         FROM user_account_access
-         WHERE user_id = $1
-           AND account_id = $2
-           AND is_active = true
+        `SELECT uaa.id
+         FROM user_account_access uaa
+         INNER JOIN accounts a ON a.id = uaa.account_id
+         WHERE uaa.user_id = $1
+           AND uaa.account_id = $2
+           AND uaa.is_active = true
+           AND a.account_type = 'organization'
+           AND COALESCE(a.is_active, true) = true
          LIMIT 1`,
         [input.userId, input.organizationId]
       );
@@ -154,6 +157,7 @@ const validateResolvedOrganization = async (
         logger.warn('User lacks access to requested organization context', {
           orgId: input.organizationId,
           userId: input.userId,
+          role: input.userRole,
           source: input.source,
         });
         forbidden(res, 'You do not have access to this organization');
@@ -288,6 +292,9 @@ const resolveAuthenticatedOrganizationContext = async (
   if (!fallbackOrganizationId) {
     logger.warn('Authenticated user has no active organization access', {
       userId: sessionUser.id,
+      userRole: normalizedRole,
+      source: 'token',
+      validateAccess: true,
     });
     forbidden(res, 'No active organization access');
     return ORGANIZATION_RESOLUTION_FAILED;

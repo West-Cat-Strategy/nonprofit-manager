@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useState } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { portalFetchMe } from '../features/portalAuth/state';
 import PortalLayout from './PortalLayout';
@@ -12,18 +12,14 @@ export default function PortalShellRoute() {
   const dispatch = useAppDispatch();
   const { user, loading } = useAppSelector((state) => state.portalAuth);
   const [authChecked, setAuthChecked] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
-    if (user) {
-      setAuthChecked(true);
-      return;
-    }
-
     let isMounted = true;
     setAuthChecked(false);
     const verifyPortalSession = async () => {
       try {
-        await dispatch(portalFetchMe()).unwrap();
+        await dispatch(portalFetchMe({ forceRefresh: true })).unwrap();
       } catch {
         // Unauthenticated portal sessions are redirected below.
       } finally {
@@ -38,7 +34,7 @@ export default function PortalShellRoute() {
     return () => {
       isMounted = false;
     };
-  }, [user, dispatch]);
+  }, [dispatch, location.pathname]);
 
   if (!authChecked || loading) {
     return (

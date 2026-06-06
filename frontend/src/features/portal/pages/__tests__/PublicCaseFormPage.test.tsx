@@ -36,6 +36,7 @@ vi.mock('../../../cases/components/CaseFormRenderer', () => ({
 const renderPage = (route = '/public/case-forms/token-1') =>
   renderWithProviders(
     <Routes>
+      <Route path="/public/case-forms" element={<PublicCaseFormPage />} />
       <Route path="/public/case-forms/:token" element={<PublicCaseFormPage />} />
     </Routes>,
     { route }
@@ -94,7 +95,7 @@ const buildSubmittedDetail = () => ({
       signature_refs: [],
       submitted_by_actor_type: 'public',
       created_at: '2026-04-16T12:30:00.000Z',
-      response_packet_download_url: '/api/v2/public/case-forms/token-1/response-packet',
+      response_packet_download_url: '/api/v2/public/case-forms/response-packet',
     },
     submitted_at: '2026-04-16T12:30:00.000Z',
     updated_at: '2026-04-16T12:30:00.000Z',
@@ -105,8 +106,8 @@ const buildSubmittedDetail = () => ({
 describe('PublicCaseFormPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.history.replaceState(null, '', '/');
     getFormMock.mockImplementation(async () => buildSentDetail());
-    downloadResponsePacketMock.mockResolvedValue(new Blob(['packet'], { type: 'application/pdf' }));
   });
 
   it('submits the secure-link form and shows the receipt state afterward', async () => {
@@ -134,12 +135,27 @@ describe('PublicCaseFormPage', () => {
       expect(screen.getByText(/submission received/i)).toBeInTheDocument();
     });
     expect(screen.getByRole('button', { name: /download submission packet/i })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /download submission packet/i })).not.toBeInTheDocument();
     expect(
-      screen.getByText(/you can still update this secure form and resubmit it until staff finish reviewing the submission/i)
+      screen.queryByRole('link', { name: /download submission packet/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /you can still update this secure form and resubmit it until staff finish reviewing the submission/i
+      )
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /resubmit form/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /save draft/i })).toBeInTheDocument();
+  });
+
+  it('loads fragment-token links and scrubs the browser URL', async () => {
+    window.history.replaceState(null, '', '/public/case-forms#fragment-token');
+
+    renderPage('/public/case-forms#fragment-token');
+
+    await waitFor(() => {
+      expect(getFormMock).toHaveBeenCalledWith('fragment-token');
+    });
+    expect(window.location.hash).toBe('');
   });
 
   it('offers retry recovery when the secure form fails to load', async () => {

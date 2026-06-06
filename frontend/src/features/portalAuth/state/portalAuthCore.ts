@@ -65,19 +65,30 @@ export const portalLogin = createAsyncThunk(
 
 export const portalSignup = createAsyncThunk(
   'portalAuth/signup',
-  async (payload: { email: string; password: string; firstName: string; lastName: string; phone?: string }) => {
+  async (payload: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    phone?: string;
+  }) => {
     const response = await portalApi.post('/portal/auth/signup', payload);
     return response.data;
   }
 );
 
-export const portalFetchMe = createAsyncThunk('portalAuth/me', async () => {
-  const snapshot = await getPortalBootstrapSnapshot();
-  if (!snapshot.user) {
-    throw new Error('Unauthenticated portal session');
+export const portalFetchMe = createAsyncThunk(
+  'portalAuth/me',
+  async (options?: { forceRefresh?: boolean }) => {
+    const snapshot = await getPortalBootstrapSnapshot({
+      forceRefresh: options?.forceRefresh === true,
+    });
+    if (!snapshot.user) {
+      throw new Error('Unauthenticated portal session');
+    }
+    return snapshot.user;
   }
-  return snapshot.user;
-});
+);
 
 export const portalLogoutAsync = createAsyncThunk('portalAuth/logout', async (_, { dispatch }) => {
   try {

@@ -1,4 +1,5 @@
 import api from '../../../services/api';
+import publicApi from '../../../services/publicApi';
 import type {
   CreateSavedReportRequest,
   PublicReportSnapshotMeta,
@@ -27,13 +28,19 @@ interface ShareRequestPayload {
   share_settings?: ShareSettings;
 }
 
+const publicTokenHeaders = (token: string) => ({
+  Authorization: `Bearer ${token}`,
+});
+
 export class SavedReportsApiClient {
-  async fetchSavedReports(options: {
-    entity?: ReportEntity;
-    page?: number;
-    limit?: number;
-    summary?: boolean;
-  } = {}): Promise<SavedReportsListPage> {
+  async fetchSavedReports(
+    options: {
+      entity?: ReportEntity;
+      page?: number;
+      limit?: number;
+      summary?: boolean;
+    } = {}
+  ): Promise<SavedReportsListPage> {
     const response = await api.get<SavedReportsListPage>('/v2/saved-reports', {
       params: {
         ...(options.entity ? { entity: options.entity } : {}),
@@ -99,13 +106,16 @@ export class SavedReportsApiClient {
   }
 
   async fetchPublicReportMetadata(token: string): Promise<PublicReportSnapshotMeta> {
-    const response = await api.get<PublicReportSnapshotMeta>(`/public/reports/${token}`);
+    const response = await publicApi.get<PublicReportSnapshotMeta>('/v2/public/reports', {
+      headers: publicTokenHeaders(token),
+    });
     return response.data;
   }
 
   async downloadPublicReportSnapshot(token: string, format: 'csv' | 'xlsx'): Promise<BlobPart> {
-    const response = await api.get<BlobPart>(`/public/reports/${token}/download`, {
+    const response = await publicApi.get<BlobPart>('/v2/public/reports/download', {
       params: { format },
+      headers: publicTokenHeaders(token),
       responseType: 'blob',
     });
     return response.data;

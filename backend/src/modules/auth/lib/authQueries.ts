@@ -182,7 +182,9 @@ export const createInitialAdminUser = async (input: {
   firstName: string;
   lastName: string;
 }): Promise<Pick<UserRow, 'id' | 'email' | 'first_name' | 'last_name' | 'role' | 'created_at'>> => {
-  const result = await pool.query<Pick<UserRow, 'id' | 'email' | 'first_name' | 'last_name' | 'role' | 'created_at'>>(
+  const result = await pool.query<
+    Pick<UserRow, 'id' | 'email' | 'first_name' | 'last_name' | 'role' | 'created_at'>
+  >(
     `INSERT INTO users (email, password_hash, first_name, last_name, role)
      VALUES ($1, $2, $3, $4, $5)
      RETURNING id, email, first_name, last_name, role, created_at`,
@@ -294,7 +296,10 @@ export const findExistingUserByEmailExcludingId = async (
   email: string,
   userId: string
 ): Promise<string | null> => {
-  const result = await pool.query('SELECT id FROM users WHERE email = $1 AND id != $2', [email, userId]);
+  const result = await pool.query('SELECT id FROM users WHERE email = $1 AND id != $2', [
+    email,
+    userId,
+  ]);
   return result.rows[0]?.id || null;
 };
 

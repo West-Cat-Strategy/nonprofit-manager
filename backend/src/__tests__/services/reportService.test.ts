@@ -12,6 +12,7 @@ import type { ReportDefinition, ReportEntity } from '../../../src/types/report';
 
 describe('ReportService', () => {
   const query = jest.fn();
+  const testScope = { organizationId: 'org-1' };
   let pool: { query: typeof query };
   let reportService: ReportService;
 
@@ -98,7 +99,13 @@ describe('ReportService', () => {
       expect(result.entity).toBe('opportunities');
       expect(result.fields).toBeInstanceOf(Array);
       expect(result.fields.map((field) => field.field)).toEqual(
-        expect.arrayContaining(['stage_name', 'probability', 'weighted_amount', 'won_flag', 'open_flag'])
+        expect.arrayContaining([
+          'stage_name',
+          'probability',
+          'weighted_amount',
+          'won_flag',
+          'open_flag',
+        ])
       );
     });
 
@@ -125,7 +132,7 @@ describe('ReportService', () => {
         fields: ['first_name', 'last_name', 'email'],
       };
 
-      const result = await reportService.generateReport(definition);
+      const result = await reportService.generateReport(definition, testScope);
 
       expect(result.definition).toEqual(definition);
       expect(result.data).toBeInstanceOf(Array);
@@ -153,7 +160,7 @@ describe('ReportService', () => {
         ],
       };
 
-      const result = await reportService.generateReport(definition);
+      const result = await reportService.generateReport(definition, testScope);
 
       expect(result.data).toBeInstanceOf(Array);
 
@@ -179,7 +186,7 @@ describe('ReportService', () => {
         limit: 10,
       };
 
-      const result = await reportService.generateReport(definition);
+      const result = await reportService.generateReport(definition, testScope);
 
       expect(result.data).toBeInstanceOf(Array);
 
@@ -201,7 +208,7 @@ describe('ReportService', () => {
         limit: 5,
       };
 
-      const result = await reportService.generateReport(definition);
+      const result = await reportService.generateReport(definition, testScope);
 
       expect(result.data.length).toBeLessThanOrEqual(5);
     });
@@ -225,7 +232,7 @@ describe('ReportService', () => {
         ],
       };
 
-      const result = await reportService.generateReport(definition);
+      const result = await reportService.generateReport(definition, testScope);
 
       expect(result.data).toBeInstanceOf(Array);
 
@@ -246,7 +253,7 @@ describe('ReportService', () => {
         limit: 10,
       };
 
-      const result = await reportService.generateReport(definition);
+      const result = await reportService.generateReport(definition, testScope);
 
       expect(result.data).toBeInstanceOf(Array);
 
@@ -269,7 +276,7 @@ describe('ReportService', () => {
         limit: 10,
       };
 
-      const result = await reportService.generateReport(definition);
+      const result = await reportService.generateReport(definition, testScope);
 
       expect(result.data).toBeInstanceOf(Array);
 
@@ -288,7 +295,7 @@ describe('ReportService', () => {
         fields: ['appeal_campaign_name', 'appeal_campaign_code', 'campaign_name'],
       };
 
-      await reportService.generateReport(definition);
+      await reportService.generateReport(definition, testScope);
 
       const [sql] = query.mock.calls[0] as [string, unknown[]];
       expect(sql).toContain('LEFT JOIN appeal_campaigns ac ON d.appeal_campaign_id = ac.id');
@@ -305,7 +312,7 @@ describe('ReportService', () => {
         limit: 2,
       };
 
-      const result = await reportService.generateReport(definition);
+      const result = await reportService.generateReport(definition, testScope);
 
       // Total count should be >= returned data length
       expect(result.total_count).toBeGreaterThanOrEqual(result.data.length);
@@ -318,12 +325,12 @@ describe('ReportService', () => {
         fields: [],
       };
 
-      await expect(reportService.generateReport(definition)).rejects.toThrow(
+      await expect(reportService.generateReport(definition, testScope)).rejects.toThrow(
         'At least one field or aggregation must be selected'
       );
     });
 
-    it('should handle eq operator correctly', async () => {
+    it('fails closed for account reports until a safe organization predicate is available', async () => {
       const definition: ReportDefinition = {
         name: 'Equality Filter Report',
         entity: 'accounts' as ReportEntity,
@@ -337,11 +344,9 @@ describe('ReportService', () => {
         ],
       };
 
-      const result = await reportService.generateReport(definition);
-
-      result.data.forEach((row) => {
-        expect(row.account_type).toBe('nonprofit');
-      });
+      await expect(reportService.generateReport(definition, testScope)).rejects.toThrow(
+        'Organization scope is not safely available for accounts reports'
+      );
     });
 
     it('should handle in operator with array values', async () => {
@@ -359,7 +364,7 @@ describe('ReportService', () => {
         limit: 10,
       };
 
-      const result = await reportService.generateReport(definition);
+      const result = await reportService.generateReport(definition, testScope);
 
       result.data.forEach((row) => {
         expect(['credit_card', 'debit_card', 'paypal']).toContain(row.payment_method);
@@ -384,7 +389,7 @@ describe('ReportService', () => {
         limit: 10,
       };
 
-      const result = await reportService.generateReport(definition);
+      const result = await reportService.generateReport(definition, testScope);
 
       expect(result.data).toBeInstanceOf(Array);
       // Multi-field sorting is applied
@@ -478,7 +483,7 @@ describe('ReportService', () => {
         sort: [{ field: 'total_donated', direction: 'desc' }],
       };
 
-      await reportService.generateReport(definition);
+      await reportService.generateReport(definition, testScope);
 
       const [sql] = query.mock.calls[0] as [string, unknown[]];
       expect(sql).toContain('AS "total_donated"');
@@ -496,9 +501,9 @@ describe('ReportService', () => {
         fields: ['first_name', 'last_name'],
       };
 
-      await expect(reportService.assertDirectExportSupported(definition)).rejects.toBeInstanceOf(
-        DirectReportExportTooLargeError
-      );
+      await expect(
+        reportService.assertDirectExportSupported(definition, testScope)
+      ).rejects.toBeInstanceOf(DirectReportExportTooLargeError);
 
       expect(query).toHaveBeenCalledTimes(1);
       expect(query.mock.calls[0]?.[0]).toContain('COUNT(*) as count');
@@ -514,7 +519,9 @@ describe('ReportService', () => {
         limit: 100,
       };
 
-      await expect(reportService.assertDirectExportSupported(definition)).resolves.toBeUndefined();
+      await expect(
+        reportService.assertDirectExportSupported(definition, testScope)
+      ).resolves.toBeUndefined();
 
       expect(query).toHaveBeenCalledTimes(1);
       expect(query.mock.calls[0]?.[0]).toContain('COUNT(*) as count');
@@ -535,9 +542,9 @@ describe('ReportService', () => {
         aggregations: [{ field: 'amount', function: 'sum', alias: 'total_donated' }],
       };
 
-      await expect(reportService.assertDirectExportSupported(definition)).rejects.toBeInstanceOf(
-        DirectReportExportTooLargeError
-      );
+      await expect(
+        reportService.assertDirectExportSupported(definition, testScope)
+      ).rejects.toBeInstanceOf(DirectReportExportTooLargeError);
 
       expect(query).toHaveBeenCalledTimes(1);
       expect(query.mock.calls[0]?.[0]).toContain('GROUP BY d.campaign_name');
@@ -553,7 +560,9 @@ describe('ReportService', () => {
         limit: MAX_DIRECT_EXPORT_ROWS,
       };
 
-      await expect(reportService.assertDirectExportSupported(definition)).resolves.toBeUndefined();
+      await expect(
+        reportService.assertDirectExportSupported(definition, testScope)
+      ).resolves.toBeUndefined();
       expect(query).not.toHaveBeenCalled();
     });
 
@@ -566,9 +575,9 @@ describe('ReportService', () => {
         limit: MAX_DIRECT_EXPORT_ROWS + 1,
       };
 
-      await expect(reportService.assertDirectExportSupported(definition)).rejects.toBeInstanceOf(
-        DirectReportExportTooLargeError
-      );
+      await expect(
+        reportService.assertDirectExportSupported(definition, testScope)
+      ).rejects.toBeInstanceOf(DirectReportExportTooLargeError);
       expect(query).not.toHaveBeenCalled();
     });
   });

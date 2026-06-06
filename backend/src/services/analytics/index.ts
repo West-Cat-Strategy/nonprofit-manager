@@ -57,7 +57,10 @@ export class AnalyticsService {
   }
 
   // Delegation methods for donation analytics
-  async getDonationMetrics(entityType: 'account' | 'contact', entityId: string): Promise<DonationMetrics> {
+  async getDonationMetrics(
+    entityType: 'account' | 'contact',
+    entityId: string
+  ): Promise<DonationMetrics> {
     return this.donationAnalytics.getDonationMetrics(entityType, entityId);
   }
 
@@ -66,7 +69,10 @@ export class AnalyticsService {
   }
 
   // Delegation methods for event analytics
-  async getEventMetrics(entityType: 'account' | 'contact', entityId: string): Promise<EventMetrics> {
+  async getEventMetrics(
+    entityType: 'account' | 'contact',
+    entityId: string
+  ): Promise<EventMetrics> {
     return this.eventAnalytics.getEventMetrics(entityType, entityId);
   }
 
@@ -89,15 +95,24 @@ export class AnalyticsService {
   }
 
   // Delegation methods for trend analytics
-  async getTrendAnalysis(metricType: 'donations' | 'volunteer_hours' | 'event_attendance', months?: number): Promise<TrendAnalysis> {
+  async getTrendAnalysis(
+    metricType: 'donations' | 'volunteer_hours' | 'event_attendance',
+    months?: number
+  ): Promise<TrendAnalysis> {
     return this.trendAnalytics.getTrendAnalysis(metricType, months);
   }
 
-  async detectAnomalies(metricType: 'donations' | 'volunteer_hours' | 'event_attendance', months?: number, sensitivityStdDev?: number): Promise<AnomalyDetectionResult> {
+  async detectAnomalies(
+    metricType: 'donations' | 'volunteer_hours' | 'event_attendance',
+    months?: number,
+    sensitivityStdDev?: number
+  ): Promise<AnomalyDetectionResult> {
     return this.trendAnalytics.detectAnomalies(metricType, months, sensitivityStdDev);
   }
 
-  async getComparativeAnalytics(periodType?: 'month' | 'quarter' | 'year'): Promise<ComparativeAnalytics> {
+  async getComparativeAnalytics(
+    periodType?: 'month' | 'quarter' | 'year'
+  ): Promise<ComparativeAnalytics> {
     return this.trendAnalytics.getComparativeAnalytics(periodType);
   }
 
@@ -263,11 +278,17 @@ export class AnalyticsService {
    */
   async getAnalyticsSummary(filters?: AnalyticsFilters): Promise<AnalyticsSummary> {
     try {
-      const startDate = filters?.start_date || new Date(new Date().getFullYear(), 0, 1).toISOString();
+      if (!filters?.organizationId) {
+        throw new Error('Organization scope is required for analytics summary');
+      }
+
+      const organizationId = filters.organizationId;
+      const startDate =
+        filters?.start_date || new Date(new Date().getFullYear(), 0, 1).toISOString();
       const endDate = filters?.end_date || new Date().toISOString();
 
       // Try to get from cache
-      const cacheKey = `analytics:summary:${startDate}:${endDate}`;
+      const cacheKey = `analytics:summary:${organizationId}:${startDate}:${endDate}`;
       const cached = await getCached<AnalyticsSummary>(cacheKey);
       if (cached) {
         logger.debug('Analytics summary cache hit', { cacheKey });
@@ -280,6 +301,7 @@ export class AnalyticsService {
           COUNT(*) as total_accounts,
           COUNT(*) FILTER (WHERE is_active = true) as active_accounts
         FROM accounts
+        WHERE id = $1
       `;
 
       // Get contact stats
@@ -288,6 +310,7 @@ export class AnalyticsService {
           COUNT(*) as total_contacts,
           COUNT(*) FILTER (WHERE is_active = true) as active_contacts
         FROM contacts
+        WHERE account_id = $1
       `;
 
       // Get donation stats for period
@@ -298,14 +321,16 @@ export class AnalyticsService {
           COALESCE(AVG(amount), 0) as average_donation
         FROM donations
         WHERE payment_status = 'completed'
-          AND donation_date >= $1 AND donation_date <= $2
+          AND account_id = $1
+          AND donation_date >= $2 AND donation_date <= $3
       `;
 
       // Get event stats for period
       const eventQuery = `
         SELECT COUNT(*) as total_events
         FROM events
-        WHERE start_date >= $1 AND start_date <= $2
+        WHERE organization_id = $1
+          AND start_date >= $2 AND start_date <= $3
       `;
 
       // Get volunteer stats
@@ -314,18 +339,20 @@ export class AnalyticsService {
           COUNT(DISTINCT v.id) as total_volunteers,
           COALESCE(SUM(vh.hours_logged), 0) as total_hours
         FROM volunteers v
+        INNER JOIN contacts c ON c.id = v.contact_id
         LEFT JOIN volunteer_hours vh ON v.id = vh.volunteer_id
-          AND vh.activity_date >= $1 AND vh.activity_date <= $2
+          AND vh.activity_date >= $2 AND vh.activity_date <= $3
         WHERE v.volunteer_status = 'active'
+          AND c.account_id = $1
       `;
 
       const [accountResult, contactResult, donationResult, eventResult, volunteerResult] =
         await Promise.all([
-          this.pool.query(accountQuery),
-          this.pool.query(contactQuery),
-          this.pool.query(donationQuery, [startDate, endDate]),
-          this.pool.query(eventQuery, [startDate, endDate]),
-          this.pool.query(volunteerQuery, [startDate, endDate]),
+          this.pool.query(accountQuery, [organizationId]),
+          this.pool.query(contactQuery, [organizationId]),
+          this.pool.query(donationQuery, [organizationId, startDate, endDate]),
+          this.pool.query(eventQuery, [organizationId, startDate, endDate]),
+          this.pool.query(volunteerQuery, [organizationId, startDate, endDate]),
         ]);
 
       const accounts = accountResult.rows[0];
@@ -350,16 +377,17 @@ export class AnalyticsService {
             COUNT(d.id) as donation_count,
             COALESCE(SUM(vh.hours_logged), 0) as hours_logged
           FROM contacts c
-          LEFT JOIN donations d ON c.id = d.contact_id AND d.payment_status = 'completed'
+          LEFT JOIN donations d ON c.id = d.contact_id AND d.payment_status = 'completed' AND d.account_id = $1
           LEFT JOIN volunteers v ON c.id = v.contact_id
           LEFT JOIN volunteer_hours vh ON v.id = vh.volunteer_id
           WHERE c.is_active = true
+            AND c.account_id = $1
           GROUP BY c.id
         ) engagement_data
         GROUP BY engagement_level
       `;
 
-      const engagementResult = await this.pool.query(engagementQuery);
+      const engagementResult = await this.pool.query(engagementQuery, [organizationId]);
       const engagementDistribution = {
         high: 0,
         medium: 0,
@@ -391,6 +419,9 @@ export class AnalyticsService {
 
       return summary;
     } catch (error) {
+      if ((error as Error).message?.includes('Organization scope')) {
+        throw error;
+      }
       logger.error('Error getting analytics summary', { error });
       throw Object.assign(new Error('Failed to retrieve analytics summary'), { cause: error });
     }

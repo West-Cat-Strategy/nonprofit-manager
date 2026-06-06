@@ -32,6 +32,24 @@ const handleOwnershipOrLookupError = (res: Response, error: unknown): void => {
   badRequest(res, message);
 };
 
+const getBearerToken = (req: Request): string => {
+  const authorization =
+    (typeof req.get === 'function' ? req.get('authorization') : undefined) ||
+    (typeof req.headers?.authorization === 'string' ? req.headers.authorization : '');
+  const match = authorization.match(/^Bearer\s+(.+)$/i);
+  return match?.[1]?.trim() || '';
+};
+
+const getPublicReportToken = (req: Request): string => {
+  const headerToken = getBearerToken(req);
+  if (headerToken) {
+    return headerToken;
+  }
+
+  const value = req.params.token;
+  return Array.isArray(value) ? value[0] || '' : String(value || '');
+};
+
 export const getSharePrincipals = async (
   req: AuthRequest,
   res: Response,
@@ -45,20 +63,14 @@ export const getSharePrincipals = async (
       limit?: number;
     };
 
-    const principals = await savedReportService.getSharePrincipals(
-      query.search,
-      query.limit
-    );
+    const principals = await savedReportService.getSharePrincipals(query.search, query.limit);
     sendSuccess(res, principals);
   } catch (error) {
     next(error);
   }
 };
 
-export const shareReport = async (
-  req: AuthRequest,
-  res: Response
-): Promise<void> => {
+export const shareReport = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (!ensurePermission(req, res, Permission.REPORT_VIEW)) return;
 
@@ -87,10 +99,7 @@ export const shareReport = async (
   }
 };
 
-export const removeShare = async (
-  req: AuthRequest,
-  res: Response
-): Promise<void> => {
+export const removeShare = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (!ensurePermission(req, res, Permission.REPORT_VIEW)) return;
 
@@ -118,10 +127,7 @@ export const removeShare = async (
   }
 };
 
-export const generatePublicLink = async (
-  req: AuthRequest,
-  res: Response
-): Promise<void> => {
+export const generatePublicLink = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (!ensurePermission(req, res, Permission.REPORT_VIEW)) return;
 
@@ -150,10 +156,7 @@ export const generatePublicLink = async (
   }
 };
 
-export const revokePublicLink = async (
-  req: AuthRequest,
-  res: Response
-): Promise<void> => {
+export const revokePublicLink = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (!ensurePermission(req, res, Permission.REPORT_VIEW)) return;
 
@@ -183,7 +186,7 @@ export const getReportByPublicToken = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const token = String(req.params.token || '');
+    const token = getPublicReportToken(req);
     if (!token) {
       badRequest(res, 'Public report token is required');
       return;
@@ -208,7 +211,7 @@ export const downloadPublicReportByToken = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const token = String(req.params.token || '');
+    const token = getPublicReportToken(req);
     const query = (req.validatedQuery ?? req.query) as {
       format?: 'csv' | 'xlsx';
     };

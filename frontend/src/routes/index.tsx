@@ -102,9 +102,7 @@ const AppRoutes = () => {
         {createPortalPublicRoutes()}
       </Route>
 
-      <Route element={<PortalShellRoute />}>
-        {createPortalProtectedRoutes()}
-      </Route>
+      <Route element={<PortalShellRoute />}>{createPortalProtectedRoutes()}</Route>
 
       <Route element={<AuthenticatedShellRoute />}>
         {/* Neo-Brutalist Dashboard (Primary) */}

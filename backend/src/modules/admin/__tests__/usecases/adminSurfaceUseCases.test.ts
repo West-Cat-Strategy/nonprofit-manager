@@ -39,16 +39,18 @@ describe('admin surface usecases', () => {
       organizationSettingsRepository.getOrganizationSettings as jest.MockedFunction<
         typeof organizationSettingsRepository.getOrganizationSettings
       >
-    ).mockResolvedValue(settings as Awaited<
-      ReturnType<typeof organizationSettingsRepository.getOrganizationSettings>
-    >);
+    ).mockResolvedValue(
+      settings as Awaited<ReturnType<typeof organizationSettingsRepository.getOrganizationSettings>>
+    );
     (
       organizationSettingsRepository.upsertOrganizationSettings as jest.MockedFunction<
         typeof organizationSettingsRepository.upsertOrganizationSettings
       >
-    ).mockResolvedValue(settings as Awaited<
-      ReturnType<typeof organizationSettingsRepository.upsertOrganizationSettings>
-    >);
+    ).mockResolvedValue(
+      settings as Awaited<
+        ReturnType<typeof organizationSettingsRepository.upsertOrganizationSettings>
+      >
+    );
 
     await expect(
       organizationSettingsUseCase.getOrganizationSettings('org-1', 'user-1')
@@ -82,8 +84,10 @@ describe('admin surface usecases', () => {
       >
     ).mockResolvedValue(branding);
 
-    await expect(adminBrandingUseCase.getBranding()).resolves.toEqual(branding);
-    await expect(adminBrandingUseCase.updateBranding(branding)).resolves.toEqual(branding);
+    await expect(adminBrandingUseCase.getBranding('org-1')).resolves.toEqual(branding);
+    await expect(adminBrandingUseCase.updateBranding('org-1', branding)).resolves.toEqual(branding);
+    expect(adminBrandingRepository.getBranding).toHaveBeenCalledWith('org-1');
+    expect(adminBrandingRepository.updateBranding).toHaveBeenCalledWith('org-1', branding);
   });
 
   it('delegates dashboard stats reads to the repository', async () => {
@@ -92,7 +96,9 @@ describe('admin surface usecases', () => {
       activeUsers: 8,
       totalContacts: 140,
       recentDonations: 3200,
-      recentSignups: [{ id: 'user-1', email: 'admin@example.com', created_at: '2026-04-16T00:00:00.000Z' }],
+      recentSignups: [
+        { id: 'user-1', email: 'admin@example.com', created_at: '2026-04-16T00:00:00.000Z' },
+      ],
     };
 
     (

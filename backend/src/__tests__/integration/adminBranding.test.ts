@@ -7,27 +7,40 @@ describe('Admin Branding API', () => {
   let userToken = '';
   let adminEmail = '';
   let userEmail = '';
-  let originalConfig: unknown = null;
+  let adminOrgId = '';
+  let userOrgId = '';
+  const originalConfigs = new Map<string, unknown>();
 
   const password = 'Test123!Strong';
+
+  const resolveOrganizationIdForEmail = async (email: string): Promise<string> => {
+    const result = await pool.query<{ account_id: string }>(
+      `SELECT uaa.account_id::text
+       FROM user_account_access uaa
+       INNER JOIN users u ON u.id = uaa.user_id
+       WHERE u.email = $1
+         AND uaa.is_active = true
+       ORDER BY uaa.granted_at ASC
+       LIMIT 1`,
+      [email]
+    );
+    const organizationId = result.rows[0]?.account_id;
+    if (!organizationId) {
+      throw new Error(`No active organization access for ${email}`);
+    }
+    return organizationId;
+  };
 
   beforeAll(async () => {
     // Ensure table exists (keeps the test self-contained even if migrations haven't been applied locally).
     await pool.query(`
       CREATE TABLE IF NOT EXISTS organization_branding (
-        id INTEGER PRIMARY KEY CHECK (id = 1),
+        organization_id UUID PRIMARY KEY REFERENCES accounts(id) ON DELETE CASCADE,
         config JSONB NOT NULL DEFAULT '{}'::jsonb,
         created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
       )
     `);
-    await pool.query(
-      "INSERT INTO organization_branding (id, config) VALUES (1, '{}'::jsonb) ON CONFLICT (id) DO NOTHING"
-    );
-
-    // Snapshot current branding so we can restore it after the test.
-    const snapshot = await pool.query('SELECT config FROM organization_branding WHERE id = 1');
-    originalConfig = snapshot.rows[0]?.config ?? {};
 
     // Create admin user (register -> promote -> login to get admin role in JWT)
     adminEmail = `branding-admin-${Date.now()}@example.com`;
@@ -46,6 +59,8 @@ describe('Admin Branding API', () => {
       password,
     });
     adminToken = adminLogin.body?.token;
+    adminOrgId =
+      adminLogin.body?.organizationId || (await resolveOrganizationIdForEmail(adminEmail));
 
     // Create regular user
     userEmail = `branding-user-${Date.now()}@example.com`;
@@ -61,18 +76,35 @@ describe('Admin Branding API', () => {
       password,
     });
     userToken = userLogin.body?.token;
+    userOrgId = userLogin.body?.organizationId || (await resolveOrganizationIdForEmail(userEmail));
+
+    for (const organizationId of Array.from(new Set([adminOrgId, userOrgId]))) {
+      const snapshot = await pool.query(
+        'SELECT config FROM organization_branding WHERE organization_id = $1',
+        [organizationId]
+      );
+      originalConfigs.set(organizationId, snapshot.rows[0]?.config ?? {});
+      await pool.query(
+        `INSERT INTO organization_branding (organization_id, config)
+         VALUES ($1, '{}'::jsonb)
+         ON CONFLICT (organization_id) DO NOTHING`,
+        [organizationId]
+      );
+    }
   });
 
   afterAll(async () => {
     // Restore branding row to avoid bleeding state into other test files/environments.
     try {
-      await pool.query(
-        `INSERT INTO organization_branding (id, config, created_at, updated_at)
-         VALUES (1, $1::jsonb, NOW(), NOW())
-         ON CONFLICT (id)
-         DO UPDATE SET config = EXCLUDED.config, updated_at = NOW()`,
-        [JSON.stringify(originalConfig ?? {})]
-      );
+      for (const [organizationId, config] of originalConfigs.entries()) {
+        await pool.query(
+          `INSERT INTO organization_branding (organization_id, config, created_at, updated_at)
+           VALUES ($1, $2::jsonb, NOW(), NOW())
+           ON CONFLICT (organization_id)
+           DO UPDATE SET config = EXCLUDED.config, updated_at = NOW()`,
+          [organizationId, JSON.stringify(config ?? {})]
+        );
+      }
     } catch {
       // ignore
     }

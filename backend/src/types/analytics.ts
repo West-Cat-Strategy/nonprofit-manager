@@ -116,6 +116,7 @@ export interface AnalyticsFilters {
   end_date?: string;
   account_type?: string;
   category?: string;
+  organizationId?: string;
 }
 
 export interface EventTrendPoint {

@@ -14,31 +14,29 @@ describe('publicCaseFormsApiClient', () => {
     vi.clearAllMocks();
   });
 
-  it('uses token-scoped public form endpoints through the header-free public client', async () => {
-    vi.mocked(publicApi.get)
-      .mockResolvedValueOnce({
+  it('uses tokenless public form endpoints with bearer-token headers', async () => {
+    vi.mocked(publicApi.get).mockResolvedValueOnce({
+      data: {
+        success: true,
         data: {
-          success: true,
-          data: {
-            assignment: {
-              id: 'assignment-1',
-              case_id: 'case-1',
-              contact_id: 'contact-1',
+          assignment: {
+            id: 'assignment-1',
+            case_id: 'case-1',
+            contact_id: 'contact-1',
+            title: 'Secure Intake Form',
+            status: 'sent',
+            schema: {
+              version: 1,
               title: 'Secure Intake Form',
-              status: 'sent',
-              schema: {
-                version: 1,
-                title: 'Secure Intake Form',
-                sections: [],
-              },
-              created_at: '2026-04-16T12:00:00.000Z',
-              updated_at: '2026-04-16T12:00:00.000Z',
+              sections: [],
             },
-            submissions: [],
+            created_at: '2026-04-16T12:00:00.000Z',
+            updated_at: '2026-04-16T12:00:00.000Z',
           },
+          submissions: [],
         },
-      } as never)
-      .mockResolvedValueOnce({ data: new Blob(['packet'], { type: 'application/pdf' }) } as never);
+      },
+    } as never);
 
     vi.mocked(publicApi.post)
       .mockResolvedValueOnce({
@@ -90,29 +88,36 @@ describe('publicCaseFormsApiClient', () => {
     });
     await publicCaseFormsApiClient.saveDraft('token-1', { answers: { consent: true } });
     await publicCaseFormsApiClient.submit('token-1', { answers: { consent: true } });
-    await publicCaseFormsApiClient.downloadResponsePacket('token-1');
 
-    expect(publicApi.get).toHaveBeenNthCalledWith(1, '/v2/public/case-forms/token-1');
-    expect(publicApi.get).toHaveBeenNthCalledWith(
-      2,
-      '/v2/public/case-forms/token-1/response-packet',
+    expect(publicApi.get).toHaveBeenNthCalledWith(1, '/v2/public/case-forms', {
+      headers: { Authorization: 'Bearer token-1' },
+    });
+    expect(publicApi.post).toHaveBeenNthCalledWith(
+      1,
+      '/v2/public/case-forms/assets',
+      expect.any(FormData),
       {
-        responseType: 'blob',
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: 'Bearer token-1',
+        },
       }
     );
     expect(publicApi.post).toHaveBeenNthCalledWith(
-      1,
-      '/v2/public/case-forms/token-1/assets',
-      expect.any(FormData),
+      2,
+      '/v2/public/case-forms/draft',
       {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      }
+        answers: { consent: true },
+      },
+      { headers: { Authorization: 'Bearer token-1' } }
     );
-    expect(publicApi.post).toHaveBeenNthCalledWith(2, '/v2/public/case-forms/token-1/draft', {
-      answers: { consent: true },
-    });
-    expect(publicApi.post).toHaveBeenNthCalledWith(3, '/v2/public/case-forms/token-1/submit', {
-      answers: { consent: true },
-    });
+    expect(publicApi.post).toHaveBeenNthCalledWith(
+      3,
+      '/v2/public/case-forms/submit',
+      {
+        answers: { consent: true },
+      },
+      { headers: { Authorization: 'Bearer token-1' } }
+    );
   });
 });

@@ -40,6 +40,23 @@ const getParamValue = (req: Request, key: string, fallback: string): string => {
   return typeof value === 'string' && value.trim().length > 0 ? value : fallback;
 };
 
+const getBearerToken = (req: Request): string | undefined => {
+  const authorization =
+    (typeof req.get === 'function' ? req.get('authorization') : undefined) ||
+    (typeof req.headers?.authorization === 'string' ? req.headers.authorization : '');
+  const match = authorization.match(/^Bearer\s+(.+)$/i);
+  return match?.[1]?.trim() || undefined;
+};
+
+const getPublicTokenValue = (req: Request, fallback: string): string => {
+  return (
+    getParamValue(req, 'token', '') ||
+    getBearerToken(req) ||
+    getBodyValue(req, 'public_token') ||
+    fallback
+  );
+};
+
 const normalizeIdentifier = (value: string): string => value.trim().toLowerCase();
 
 export const hashIdentifier = (value: string): string =>
@@ -99,11 +116,7 @@ export const rateLimitKeys = {
 
   publicEventCheckIn(req: Request): string {
     const eventId = getParamValue(req, 'id', 'unknown-event');
-    return buildScopedRateLimitKey(
-      'public-event-checkin',
-      `${eventId}:${getIp(req)}`,
-      undefined
-    );
+    return buildScopedRateLimitKey('public-event-checkin', `${eventId}:${getIp(req)}`, undefined);
   },
 
   publicWebsiteForm(req: Request): string {
@@ -137,15 +150,11 @@ export const rateLimitKeys = {
 
   publicSiteAnalytics(req: Request): string {
     const siteId = getParamValue(req, 'siteId', 'unknown-site');
-    return buildScopedRateLimitKey(
-      'public-site-analytics',
-      `${siteId}:${getIp(req)}`,
-      undefined
-    );
+    return buildScopedRateLimitKey('public-site-analytics', `${siteId}:${getIp(req)}`, undefined);
   },
 
   publicCaseFormDraft(req: Request): string {
-    const token = getParamValue(req, 'token', 'unknown-token');
+    const token = getPublicTokenValue(req, 'unknown-token');
     return buildScopedRateLimitKey(
       'public-case-form-draft',
       `${hashIdentifier(token)}:${getIp(req)}`,
@@ -154,7 +163,7 @@ export const rateLimitKeys = {
   },
 
   publicCaseFormSubmit(req: Request): string {
-    const token = getParamValue(req, 'token', 'unknown-token');
+    const token = getPublicTokenValue(req, 'unknown-token');
     return buildScopedRateLimitKey(
       'public-case-form-submit',
       `${hashIdentifier(token)}:${getIp(req)}`,
@@ -163,7 +172,7 @@ export const rateLimitKeys = {
   },
 
   publicCaseFormAsset(req: Request): string {
-    const token = getParamValue(req, 'token', 'unknown-token');
+    const token = getPublicTokenValue(req, 'unknown-token');
     return buildScopedRateLimitKey(
       'public-case-form-asset',
       `${hashIdentifier(token)}:${getIp(req)}`,
@@ -172,7 +181,7 @@ export const rateLimitKeys = {
   },
 
   publicReportToken(req: Request): string {
-    const token = getParamValue(req, 'token', 'unknown-token');
+    const token = getPublicTokenValue(req, 'unknown-token');
     return buildScopedRateLimitKey(
       'public-report-token',
       `${hashIdentifier(token)}:${getIp(req)}`,

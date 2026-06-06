@@ -367,6 +367,7 @@ fi
 
 if [[ $has_dependency_tooling -eq 1 ]]; then
   add_command "npm run knip"
+  add_command "npm run audit"
   add_command "make security-audit"
 fi
 
