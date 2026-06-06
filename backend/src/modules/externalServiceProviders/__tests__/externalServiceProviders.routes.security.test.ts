@@ -55,10 +55,8 @@ describe('external service provider route security', () => {
     ['put', '/api/v2/external-service-providers/00000000-0000-4000-8000-000000000099'],
     ['delete', '/api/v2/external-service-providers/00000000-0000-4000-8000-000000000099'],
   ] as const)('rejects manager %s %s writes', async (method, path) => {
-    const response = await request(buildApp('manager'))
-      [method](path)
-      .send({ provider_name: 'Referral Partner' })
-      .expect(403);
+    const agent = request(buildApp('manager'));
+    const response = await agent[method](path).send({ provider_name: 'Referral Partner' }).expect(403);
 
     expect(response.body.error?.message).toMatch(/admin:settings/);
     expect(controllerMocks.createExternalServiceProvider).not.toHaveBeenCalled();

@@ -1050,6 +1050,7 @@ test('select-checks covers the confidence-per-change lane examples', () => {
       commands: [
         'make test-tooling',
         'npm run knip',
+        'npm run audit',
         'make security-audit',
         'make lint',
         'make typecheck',

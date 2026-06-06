@@ -38,6 +38,14 @@ export const publicRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     primaryAction: { label: 'Create account', href: '/accept-invitation/:token' },
   }),
   publicRoute({
+    id: 'admin-registration-review-fragment',
+    title: 'Registration Review',
+    section: 'Auth',
+    path: '/admin-registration-review',
+    auditFixtureKey: 'admin-registration-review',
+    primaryAction: { label: 'Open approvals', href: '/settings/admin/approvals' },
+  }),
+  publicRoute({
     id: 'admin-registration-review',
     title: 'Registration Review',
     section: 'Auth',
@@ -124,6 +132,13 @@ export const publicRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     title: 'Portal Forgot Password',
     path: '/portal/forgot-password',
     primaryAction: { label: 'Send reset link', href: '/portal/forgot-password' },
+  }),
+  portalPublicRoute({
+    id: 'portal-reset-password-fragment',
+    title: 'Portal Reset Password',
+    path: '/portal/reset-password',
+    auditFixtureKey: 'portal-password-reset',
+    primaryAction: { label: 'Reset password', href: '/portal/reset-password' },
   }),
   portalPublicRoute({
     id: 'portal-reset-password',
