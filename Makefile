@@ -4,7 +4,7 @@
 # Local make targets are the canonical CI/security/release command surface.
 # GitHub hosts the repo, but tracked workflows do not execute CI/CD.
 
-.PHONY: help install install-dev lint lint-rate-limit-keys lint-success-envelope lint-route-validation lint-express-validator lint-controller-sql lint-query-contract lint-auth-guards lint-migration-manifest lint-duplicate-tests lint-doc-api-versioning lint-openapi lint-v2-module-ownership lint-module-boundary lint-module-route-proxy lint-canonical-module-imports lint-implementation-size lint-frontend-feature-boundary lint-frontend-legacy-slice-imports lint-frontend-legacy-page-paths lint-backend-legacy-controller-wrappers lint-route-integrity lint-route-catalog-drift typecheck test test-backend test-frontend test-e2e test-e2e-docker-smoke test-coverage test-coverage-full test-tooling quality-baseline check-links build build-backend build-frontend clean clean-local clean-all \
+.PHONY: help install install-dev lint lint-rate-limit-keys lint-success-envelope lint-route-validation lint-express-validator lint-controller-sql lint-query-contract lint-auth-guards lint-migration-manifest lint-duplicate-tests lint-doc-api-versioning lint-openapi lint-v2-module-ownership lint-module-boundary lint-module-route-proxy lint-canonical-module-imports lint-implementation-size lint-modularization-boundaries lint-frontend-feature-boundary lint-frontend-legacy-slice-imports lint-frontend-legacy-page-paths lint-backend-legacy-controller-wrappers lint-route-integrity lint-route-catalog-drift typecheck test test-backend test-frontend test-e2e test-e2e-docker-smoke test-coverage test-coverage-full test-tooling quality-baseline check-links build build-backend build-frontend clean clean-local clean-all \
 	security-audit security-scan ci ci-fast ci-full ci-unit \
         release-check release-staging release-production deploy deploy-staging deploy-local \
         dev-lite docker-build docker-up docker-up-dev docker-up-dev-lite docker-up-caddy docker-down docker-logs docker-rebuild docker-validate docker-validate-overlays \
@@ -97,6 +97,7 @@ help:
 	@echo "  make lint-module-route-proxy Enforce migrated module routes do not proxy @routes/*"
 	@echo "  make lint-canonical-module-imports Enforce canonical module paths over legacy controller/service shims"
 	@echo "  make lint-implementation-size Enforce implementation file size ratchet against baseline"
+	@echo "  make lint-modularization-boundaries Enforce modularization debt does not grow"
 	@echo "  make lint-migration-manifest Enforce migration manifest policy"
 	@echo "  make lint-frontend-feature-boundary Enforce feature-page boundary ratchet"
 	@echo "  make lint-frontend-legacy-slice-imports Enforce deleted legacy store slice path stays removed"
@@ -405,6 +406,11 @@ lint-implementation-size:
 	@echo "$(BLUE)Checking implementation size policy...$(RESET)"
 	node scripts/check-implementation-size-policy.ts
 	@echo "$(GREEN)Implementation size policy check complete!$(RESET)"
+
+lint-modularization-boundaries:
+	@echo "$(BLUE)Checking modularization boundary ratchet...$(RESET)"
+	node scripts/check-modularization-boundary-ratchet.ts
+	@echo "$(GREEN)Modularization boundary ratchet check complete!$(RESET)"
 
 lint-route-integrity:
 	@echo "$(BLUE)Checking route integrity...$(RESET)"

@@ -14,6 +14,9 @@
     "./messaging": {
       "types": "./messaging.d.ts"
     },
+    "./alerts": {
+      "types": "./alerts.d.ts"
+    },
     "./websiteBuilder": {
       "types": "./websiteBuilder.d.ts"
     }

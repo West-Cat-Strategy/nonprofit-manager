@@ -1,67 +1,37 @@
-export type AlertMetricType =
-  | 'donations'
-  | 'donation_amount'
-  | 'volunteer_hours'
-  | 'event_attendance'
-  | 'case_volume'
-  | 'engagement_score';
+import type {
+  AlertConfigContract,
+  AlertCreateConfigRequest,
+  AlertFilters,
+  AlertInstanceContract,
+  AlertInstanceFiltersContract,
+  AlertStatsContract,
+  AlertTestResultContract,
+} from '@nonprofit-manager/contracts/alerts';
 
-export type AlertCondition =
-  | 'exceeds'
-  | 'drops_below'
-  | 'changes_by'
-  | 'anomaly_detected'
-  | 'trend_reversal';
+export type {
+  AlertChannel,
+  AlertCondition,
+  AlertFrequency,
+  AlertMetricType,
+  AlertSeverity,
+  AlertStatus,
+} from '@nonprofit-manager/contracts/alerts';
 
-export type AlertFrequency = 'real_time' | 'daily' | 'weekly' | 'monthly';
+type AlertConfigFilters = Pick<AlertFilters, 'account_type' | 'category' | 'date_range'>;
 
-export type AlertChannel = 'email' | 'in_app' | 'slack' | 'webhook';
-
-export type AlertSeverity = 'low' | 'medium' | 'high' | 'critical';
-
-export type AlertStatus = 'active' | 'paused' | 'triggered' | 'resolved';
-
-export interface AlertConfig {
-  id?: string;
-  name: string;
-  description?: string | null;
-  metric_type: AlertMetricType;
-  condition: AlertCondition;
+export interface AlertConfig
+  extends Omit<
+    AlertConfigContract,
+    'filters' | 'percentage_change' | 'sensitivity' | 'threshold'
+  > {
   threshold?: number;
   percentage_change?: number;
   sensitivity?: number;
-  frequency: AlertFrequency;
-  channels: AlertChannel[];
-  severity: AlertSeverity;
-  enabled: boolean;
-  recipients?: string[];
-  filters?: {
-    account_type?: string;
-    category?: string;
-    date_range?: string;
-  };
-  created_by?: string;
-  created_at?: string;
-  updated_at?: string;
-  last_triggered?: string | null;
+  filters?: AlertConfigFilters;
 }
 
-export interface AlertInstance {
-  id: string;
-  alert_config_id: string;
-  alert_name: string;
-  metric_type: AlertMetricType;
-  condition: AlertCondition;
-  severity: AlertSeverity;
-  status: AlertStatus;
-  triggered_at: string;
-  resolved_at?: string | null;
-  current_value: number;
+export interface AlertInstance extends Omit<AlertInstanceContract, 'threshold_value'> {
   threshold_value?: number;
-  message: string;
-  details?: Record<string, unknown>;
-  acknowledged_by?: string | null;
-  acknowledged_at?: string | null;
 }
 
 export interface AlertHistory {
@@ -73,35 +43,15 @@ export interface AlertHistory {
   instances: AlertInstance[];
 }
 
-export interface AlertStats {
-  total_alerts: number;
-  active_alerts: number;
-  triggered_today: number;
-  triggered_this_week: number;
-  triggered_this_month: number;
-  by_severity: {
-    low: number;
-    medium: number;
-    high: number;
-    critical: number;
-  };
-  by_metric: Partial<Record<AlertMetricType, number>>;
-}
+export type AlertStats = AlertStatsContract;
 
-export type CreateAlertDTO = Omit<AlertConfig, 'id' | 'created_at' | 'updated_at' | 'last_triggered'>;
+export interface CreateAlertDTO extends Omit<AlertCreateConfigRequest, 'filters'> {
+  created_by?: string;
+  filters?: AlertConfigFilters;
+}
 
 export type UpdateAlertDTO = Partial<CreateAlertDTO>;
 
-export interface AlertTestResult {
-  would_trigger: boolean;
-  current_value: number;
-  threshold_value?: number;
-  message: string;
-  details?: Record<string, unknown>;
-}
+export type AlertTestResult = AlertTestResultContract;
 
-export interface AlertInstanceFilters {
-  status?: string;
-  severity?: string;
-  limit?: number;
-}
+export type AlertInstanceFilters = AlertInstanceFiltersContract;

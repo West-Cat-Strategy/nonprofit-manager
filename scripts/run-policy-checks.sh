@@ -24,6 +24,7 @@ POLICY_COMMANDS=(
   "node scripts/check-module-route-proxy-policy.ts"
   "node scripts/check-canonical-module-import-policy.ts"
   "node scripts/check-implementation-size-policy.ts"
+  "node scripts/check-modularization-boundary-ratchet.ts"
   "node scripts/check-frontend-feature-boundary-policy.ts"
   "node scripts/check-frontend-legacy-slice-import-policy.ts"
   "node scripts/check-frontend-legacy-page-path-policy.ts"

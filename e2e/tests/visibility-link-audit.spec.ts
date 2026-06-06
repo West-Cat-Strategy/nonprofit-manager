@@ -13,7 +13,7 @@ import {
   getRouteCatalogEntryById,
   matchRouteCatalogEntry,
   normalizeRouteLocation,
-} from '../../frontend/src/routes/routeCatalog';
+} from '../helpers/testSupport/frontendRoutes';
 import {
   hasVisibleAppErrorBoundary,
   hasVisibleRouteContent as hasMountedRouteContent,

@@ -11,7 +11,7 @@ import {
   resolveAuthenticatedFixtureScope,
 } from '../helpers/database';
 import { unwrapSuccess } from '../helpers/apiEnvelope';
-import { personaWorkflowMatrix } from '../../frontend/src/test/ux/personaWorkflowMatrix';
+import { personaWorkflowMatrix } from '../helpers/testSupport/personaWorkflows';
 
 const API_URL = process.env.API_URL || 'http://127.0.0.1:3001';
 const MFA_BYPASS_ENABLED = process.env.BYPASS_MFA_FOR_TESTS?.trim().toLowerCase() === 'true';
