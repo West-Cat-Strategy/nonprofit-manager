@@ -31,7 +31,7 @@
     "flatted": "^3.4.2",
     "handlebars": "^4.7.9",
     "path-to-regexp": "^8.4.0",
-    "postcss": "^8.5.14",
+    "postcss": "^8.5.15",
     "rollup": "^4.59.0",
     "express-rate-limit": {
       "ip-address": "10.1.1"
@@ -49,10 +49,10 @@
       "minimatch": "10.2.5"
     },
     "undici": "^8.2.0",
-    "vite": "^8.0.12"
+    "vite": "^8.0.16"
   },
   "devDependencies": {
-    "knip": "^6.14.0",
+    "knip": "^6.15.0",
     "yaml": "^2.9.0"
   }
 }
