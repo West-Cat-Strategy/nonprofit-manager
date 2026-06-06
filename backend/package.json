@@ -35,7 +35,7 @@
   "dependencies": {
     "@mailchimp/mailchimp_marketing": "^3.0.80",
     "@sentry/node": "^10.56.0",
-    "@simplewebauthn/server": "^13.3.0",
+    "@simplewebauthn/server": "^13.3.1",
     "bcryptjs": "^3.0.3",
     "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",
@@ -57,7 +57,7 @@
     "qrcode": "^1.5.4",
     "redis": "^5.12.1",
     "speakeasy": "^2.0.0",
-    "stripe": "^22.1.1",
+    "stripe": "^22.2.0",
     "twilio": "^6.0.2",
     "undici": "^8.3.0",
     "winston": "^3.19.0",
