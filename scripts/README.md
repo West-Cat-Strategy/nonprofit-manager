@@ -1,6 +1,6 @@
 # Script Index
 
-**Last Updated:** 2026-05-15
+**Last Updated:** 2026-06-05
 
 This directory contains the repo-local helpers used by the Makefile, deployment scripts, and docs workflow.
 Prefer the `make` targets when they exist. Call the scripts directly when you need the narrower entrypoint.
@@ -111,9 +111,9 @@ If you need a narrower sequence, ask the selector helper for a recommendation:
 ./scripts/select-checks.sh --base HEAD~1 --mode fast
 ```
 
-Use `--mode strict` when the change touches shared runtime orchestration, hooks, or runtime-facing docs and you want the selector to broaden into higher-confidence root checks.
+Use `--mode fast` for scoped changes where one owned package or tool surface changed. Use `--mode strict` when the change touches shared runtime orchestration, Docker/test wrappers, hooks, E2E config, runtime-facing docs, or review work that needs higher-confidence root checks.
 Runtime-facing docs in strict mode emit `make test-tooling` before the broader coverage gate.
-The selector includes committed, dirty, staged, and untracked files unless you pass an explicit `--files` list. Package and lockfile changes route to `npm run knip` plus `make security-audit`; `knip.json` routes to `npm run knip`; OpenAPI changes route to `make lint-openapi`.
+The selector includes committed, dirty, staged, and untracked files unless you pass an explicit `--files` list. Package and lockfile changes route to `npm run knip` plus `make security-audit`; `knip.json` routes to `npm run knip`; OpenAPI changes route to `make lint-openapi`; Docker/public-site runtime files route through Docker overlay or smoke proof when the file set requires it.
 Code and runtime changes should emit at least one behavior-test command. Docs-only changes stay on docs validation.
 
 The legacy `verify.sh` and `verify-pr.sh` scripts are retained only for
