@@ -398,7 +398,7 @@ export const buildReviewFollowUpResolutionNote = (
 };
 
 export const buildAccessLinkUrl = (rawToken: string): string =>
-  `${FRONTEND_URL}/public/case-forms/${rawToken}`;
+  `${FRONTEND_URL}/public/case-forms#${encodeURIComponent(rawToken)}`;
 
 export const resolveDraftStatus = (
   currentStatus: CaseFormAssignmentStatus,

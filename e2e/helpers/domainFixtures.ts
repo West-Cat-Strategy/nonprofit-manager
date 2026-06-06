@@ -630,7 +630,7 @@ export async function createAdminRegistrationReviewLink(input: {
     return {
       pendingRegistrationId,
       reviewToken,
-      reviewUrl: `${frontendURL()}/admin-registration-review/${reviewToken}`,
+      reviewUrl: `${frontendURL()}/admin-registration-review#${encodeURIComponent(reviewToken)}`,
     };
   } finally {
     await client.end().catch(() => undefined);

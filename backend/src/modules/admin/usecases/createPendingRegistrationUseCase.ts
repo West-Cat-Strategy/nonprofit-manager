@@ -90,10 +90,8 @@ async function notifyAdminsOfPendingRegistration(
           adminUserId: recipient.id,
           action: 'reject',
         });
-        const approveUrl = `${frontendUrl}/admin-registration-review/${approveToken}`;
-        const rejectUrl = `${frontendUrl}/admin-registration-review/${rejectToken}`;
-        const approveAutoUrl = `${approveUrl}?mode=complete`;
-        const rejectAutoUrl = `${rejectUrl}?mode=complete`;
+        const approveUrl = `${frontendUrl}/admin-registration-review#${encodeURIComponent(approveToken)}`;
+        const rejectUrl = `${frontendUrl}/admin-registration-review#${encodeURIComponent(rejectToken)}`;
         const reviewerName =
           [recipient.first_name, recipient.last_name].filter(Boolean).join(' ') || recipient.email;
 
@@ -129,17 +127,17 @@ async function notifyAdminsOfPendingRegistration(
                 </tr>
               </table>
               <p style="margin:0 0 16px;color:#4b5563">
-                Use the secure review buttons below to approve or reject this request in one click.
+                Use the secure review buttons below to open the review screen before approving or rejecting this request.
               </p>
               <div style="display:flex;flex-wrap:wrap;gap:12px;margin:0 0 16px">
                 <a
-                  href="${escapeHtml(approveAutoUrl)}"
+                  href="${escapeHtml(approveUrl)}"
                   style="display:inline-block;padding:12px 18px;border-radius:10px;background:#1d4ed8;color:#ffffff;text-decoration:none;font-weight:600"
                 >
                   Approve request
                 </a>
                 <a
-                  href="${escapeHtml(rejectAutoUrl)}"
+                  href="${escapeHtml(rejectUrl)}"
                   style="display:inline-block;padding:12px 18px;border-radius:10px;background:#ffffff;color:#111827;text-decoration:none;font-weight:600;border:1px solid #d1d5db"
                 >
                   Reject request

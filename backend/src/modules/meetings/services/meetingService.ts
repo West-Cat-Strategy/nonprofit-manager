@@ -2,25 +2,68 @@ import pool from '@config/database';
 import { logger } from '@config/logger';
 import type { Committee, Meeting, MeetingAgendaItem, MeetingMotion, MeetingActionItem, MeetingDetail } from '@app-types/meeting';
 
-export const listCommittees = async (): Promise<Committee[]> => {
+const MEETING_COLUMNS = `id, organization_id, committee_id, meeting_type, title, starts_at, ends_at, location, status,
+        presiding_contact_id, secretary_contact_id, minutes_notes, created_at, updated_at`;
+
+const COMMITTEE_COLUMNS = `id, organization_id, name, description, is_system, created_at, updated_at`;
+
+const ensureCommitteeVisible = async (
+  committeeId: string | null | undefined,
+  organizationId: string
+): Promise<boolean> => {
+  if (!committeeId) {
+    return true;
+  }
+
   const result = await pool.query(
-    `SELECT id, name, description, is_system, created_at, updated_at
+    `SELECT id
      FROM committees
-     ORDER BY is_system DESC, name ASC`
+     WHERE id = $1
+       AND (organization_id = $2 OR organization_id IS NULL)
+     LIMIT 1`,
+    [committeeId, organizationId]
+  );
+  return result.rows.length > 0;
+};
+
+const meetingExistsForOrganization = async (
+  meetingId: string,
+  organizationId: string
+): Promise<boolean> => {
+  const result = await pool.query(
+    `SELECT id
+     FROM meetings
+     WHERE id = $1
+       AND organization_id = $2
+     LIMIT 1`,
+    [meetingId, organizationId]
+  );
+  return result.rows.length > 0;
+};
+
+export const listCommittees = async (organizationId: string): Promise<Committee[]> => {
+  const result = await pool.query(
+    `SELECT ${COMMITTEE_COLUMNS}
+     FROM committees
+     WHERE organization_id = $1
+        OR organization_id IS NULL
+     ORDER BY is_system DESC, name ASC`,
+    [organizationId]
   );
   return result.rows;
 };
 
 export const listMeetings = async (filters: {
+  organizationId: string;
   committee_id?: string;
   status?: string;
   from?: string;
   to?: string;
   limit?: number;
 }): Promise<Meeting[]> => {
-  const conditions: string[] = [];
-  const params: unknown[] = [];
-  let idx = 1;
+  const conditions: string[] = ['organization_id = $1'];
+  const params: unknown[] = [filters.organizationId];
+  let idx = 2;
 
   if (filters.committee_id) {
     conditions.push(`committee_id = $${idx++}`);
@@ -39,14 +82,12 @@ export const listMeetings = async (filters: {
     params.push(filters.to);
   }
 
-  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const limit = Math.min(Math.max(filters.limit || 50, 1), 200);
 
   const result = await pool.query(
-    `SELECT id, committee_id, meeting_type, title, starts_at, ends_at, location, status,
-            presiding_contact_id, secretary_contact_id, minutes_notes, created_at, updated_at
+    `SELECT ${MEETING_COLUMNS}
      FROM meetings
-     ${where}
+     WHERE ${conditions.join(' AND ')}
      ORDER BY starts_at DESC
      LIMIT $${idx}`,
     [...params, limit]
@@ -54,13 +95,16 @@ export const listMeetings = async (filters: {
   return result.rows;
 };
 
-export const getMeetingDetail = async (meetingId: string): Promise<MeetingDetail | null> => {
+export const getMeetingDetail = async (
+  meetingId: string,
+  organizationId: string
+): Promise<MeetingDetail | null> => {
   const meetingResult = await pool.query(
-    `SELECT id, committee_id, meeting_type, title, starts_at, ends_at, location, status,
-            presiding_contact_id, secretary_contact_id, minutes_notes, created_at, updated_at
+    `SELECT ${MEETING_COLUMNS}
      FROM meetings
-     WHERE id = $1`,
-    [meetingId]
+     WHERE id = $1
+       AND organization_id = $2`,
+    [meetingId, organizationId]
   );
   if (meetingResult.rows.length === 0) return null;
 
@@ -68,10 +112,11 @@ export const getMeetingDetail = async (meetingId: string): Promise<MeetingDetail
 
   const committee = meeting.committee_id
     ? (await pool.query(
-        `SELECT id, name, description, is_system, created_at, updated_at
+        `SELECT ${COMMITTEE_COLUMNS}
          FROM committees
-         WHERE id = $1`,
-        [meeting.committee_id]
+         WHERE id = $1
+           AND (organization_id = $2 OR organization_id IS NULL)`,
+        [meeting.committee_id, organizationId]
       )).rows[0] || null
     : null;
 
@@ -121,15 +166,21 @@ export const createMeeting = async (input: {
   location?: string | null;
   presiding_contact_id?: string | null;
   secretary_contact_id?: string | null;
-}, userId: string): Promise<Meeting> => {
+},
+userId: string,
+organizationId: string): Promise<Meeting | null> => {
+  if (!(await ensureCommitteeVisible(input.committee_id, organizationId))) {
+    return null;
+  }
+
   const result = await pool.query(
     `INSERT INTO meetings (
-      committee_id, meeting_type, title, starts_at, ends_at, location,
+      organization_id, committee_id, meeting_type, title, starts_at, ends_at, location,
       presiding_contact_id, secretary_contact_id, created_by, modified_by
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$9)
-    RETURNING id, committee_id, meeting_type, title, starts_at, ends_at, location, status,
-              presiding_contact_id, secretary_contact_id, minutes_notes, created_at, updated_at`,
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$10)
+    RETURNING ${MEETING_COLUMNS}`,
     [
+      organizationId,
       input.committee_id || null,
       input.meeting_type,
       input.title,
@@ -155,7 +206,13 @@ export const updateMeeting = async (meetingId: string, input: Partial<{
   presiding_contact_id: string | null;
   secretary_contact_id: string | null;
   minutes_notes: string | null;
-}>, userId: string): Promise<Meeting | null> => {
+}>,
+userId: string,
+organizationId: string): Promise<Meeting | null> => {
+  if (input.committee_id !== undefined && !(await ensureCommitteeVisible(input.committee_id, organizationId))) {
+    return null;
+  }
+
   const fields: string[] = [];
   const params: unknown[] = [];
   let idx = 1;
@@ -176,19 +233,21 @@ export const updateMeeting = async (meetingId: string, input: Partial<{
   if (input.secretary_contact_id !== undefined) setField('secretary_contact_id', input.secretary_contact_id);
   if (input.minutes_notes !== undefined) setField('minutes_notes', input.minutes_notes);
 
-  if (fields.length === 0) return await getMeetingDetail(meetingId).then((d) => d?.meeting || null);
+  if (fields.length === 0) {
+    return await getMeetingDetail(meetingId, organizationId).then((d) => d?.meeting || null);
+  }
 
   setField('modified_by', userId);
   fields.push('updated_at = NOW()');
 
-  params.push(meetingId);
+  params.push(meetingId, organizationId);
 
   const result = await pool.query(
     `UPDATE meetings
      SET ${fields.join(', ')}
      WHERE id = $${idx}
-     RETURNING id, committee_id, meeting_type, title, starts_at, ends_at, location, status,
-               presiding_contact_id, secretary_contact_id, minutes_notes, created_at, updated_at`,
+       AND organization_id = $${idx + 1}
+     RETURNING ${MEETING_COLUMNS}`,
     params
   );
   return result.rows[0] || null;
@@ -200,10 +259,20 @@ export const addAgendaItem = async (meetingId: string, input: {
   item_type?: MeetingAgendaItem['item_type'];
   duration_minutes?: number | null;
   presenter_contact_id?: string | null;
-}, userId: string): Promise<MeetingAgendaItem> => {
+},
+userId: string,
+organizationId: string): Promise<MeetingAgendaItem | null> => {
+  if (!(await meetingExistsForOrganization(meetingId, organizationId))) {
+    return null;
+  }
+
   const positionResult = await pool.query(
-    'SELECT COALESCE(MAX(position), 0) as max_pos FROM meeting_agenda_items WHERE meeting_id = $1',
-    [meetingId]
+    `SELECT COALESCE(MAX(items.position), 0) as max_pos
+     FROM meeting_agenda_items items
+     INNER JOIN meetings meeting ON meeting.id = items.meeting_id
+     WHERE items.meeting_id = $1
+       AND meeting.organization_id = $2`,
+    [meetingId, organizationId]
   );
   const nextPos = Number(positionResult.rows[0].max_pos) + 1;
 
@@ -226,10 +295,28 @@ export const addAgendaItem = async (meetingId: string, input: {
   return result.rows[0];
 };
 
-export const reorderAgendaItems = async (meetingId: string, orderedIds: string[], userId: string): Promise<void> => {
+export const reorderAgendaItems = async (
+  meetingId: string,
+  orderedIds: string[],
+  userId: string,
+  organizationId: string
+): Promise<boolean> => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    const meetingResult = await client.query(
+      `SELECT id
+       FROM meetings
+       WHERE id = $1
+         AND organization_id = $2
+       FOR UPDATE`,
+      [meetingId, organizationId]
+    );
+    if (meetingResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return false;
+    }
+
     await client.query(
       `UPDATE meeting_agenda_items AS items
        SET position = ordered.position,
@@ -244,6 +331,7 @@ export const reorderAgendaItems = async (meetingId: string, orderedIds: string[]
       [meetingId, userId, orderedIds]
     );
     await client.query('COMMIT');
+    return true;
   } catch (error) {
     await client.query('ROLLBACK');
     logger.error('Failed to reorder agenda items', { error, meetingId });
@@ -259,7 +347,13 @@ export const addMotion = async (meetingId: string, input: {
   text: string;
   moved_by_contact_id?: string | null;
   seconded_by_contact_id?: string | null;
-} , userId: string): Promise<MeetingMotion> => {
+},
+userId: string,
+organizationId: string): Promise<MeetingMotion | null> => {
+  if (!(await meetingExistsForOrganization(meetingId, organizationId))) {
+    return null;
+  }
+
   const result = await pool.query(
     `INSERT INTO meeting_motions (
       meeting_id, agenda_item_id, parent_motion_id, text, moved_by_contact_id, seconded_by_contact_id, created_by, modified_by
@@ -285,7 +379,10 @@ export const updateMotion = async (motionId: string, input: Partial<{
   votes_against: number | null;
   votes_abstain: number | null;
   result_notes: string | null;
-}>, userId: string): Promise<MeetingMotion | null> => {
+}>,
+userId: string,
+meetingId: string,
+organizationId: string): Promise<MeetingMotion | null> => {
   const fields: string[] = [];
   const params: unknown[] = [];
   let idx = 1;
@@ -305,12 +402,19 @@ export const updateMotion = async (motionId: string, input: Partial<{
 
   setField('modified_by', userId);
   fields.push('updated_at = NOW()');
-  params.push(motionId);
+  params.push(motionId, meetingId, organizationId);
 
   const result = await pool.query(
     `UPDATE meeting_motions
      SET ${fields.join(', ')}
      WHERE id = $${idx}
+       AND meeting_id = $${idx + 1}
+       AND EXISTS (
+         SELECT 1
+         FROM meetings
+         WHERE meetings.id = meeting_motions.meeting_id
+           AND meetings.organization_id = $${idx + 2}
+       )
      RETURNING id, meeting_id, agenda_item_id, parent_motion_id, text, moved_by_contact_id, seconded_by_contact_id,
                status, votes_for, votes_against, votes_abstain, result_notes, created_at, updated_at`,
     params
@@ -324,7 +428,13 @@ export const createActionItem = async (meetingId: string, input: {
   description?: string | null;
   assigned_contact_id?: string | null;
   due_date?: string | null;
-}, userId: string): Promise<MeetingActionItem> => {
+},
+userId: string,
+organizationId: string): Promise<MeetingActionItem | null> => {
+  if (!(await meetingExistsForOrganization(meetingId, organizationId))) {
+    return null;
+  }
+
   const result = await pool.query(
     `INSERT INTO meeting_action_items (
       meeting_id, motion_id, subject, description, assigned_contact_id, due_date, created_by, modified_by
@@ -343,8 +453,11 @@ export const createActionItem = async (meetingId: string, input: {
   return result.rows[0];
 };
 
-export const generateMinutesDraft = async (meetingId: string): Promise<{ markdown: string } | null> => {
-  const detail = await getMeetingDetail(meetingId);
+export const generateMinutesDraft = async (
+  meetingId: string,
+  organizationId: string
+): Promise<{ markdown: string } | null> => {
+  const detail = await getMeetingDetail(meetingId, organizationId);
   if (!detail) return null;
 
   const { meeting, committee, agenda_items, motions, action_items } = detail;

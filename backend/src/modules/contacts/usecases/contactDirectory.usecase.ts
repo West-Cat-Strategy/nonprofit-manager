@@ -114,7 +114,7 @@ export class ContactDirectoryUseCase {
       );
 
       const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-      const inviteUrl = `${baseUrl}/accept-invitation/${invitation.token}`;
+      const inviteUrl = `${baseUrl}/accept-invitation#${encodeURIComponent(invitation.token)}`;
       return { inviteUrl, role: targetRole };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);

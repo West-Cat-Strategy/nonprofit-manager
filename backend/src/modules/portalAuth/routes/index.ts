@@ -12,6 +12,7 @@ import {
   acceptPortalInvitation,
 } from '../controllers';
 import { authenticatePortal, checkAccountLockout } from '@middleware/domains/auth';
+import { requireJsonRequest } from '@middleware/requireJsonRequest';
 import { authLimiterMiddleware, passwordResetLimiterMiddleware } from '@middleware/domains/platform';
 import { validateBody, validateParams } from '@middleware/zodValidation';
 import {
@@ -26,7 +27,7 @@ import {
 
 const router = Router();
 
-router.post('/signup', authLimiterMiddleware, validateBody(portalSignupSchema), portalSignup);
+router.post('/signup', requireJsonRequest, authLimiterMiddleware, validateBody(portalSignupSchema), portalSignup);
 router.post(
   '/forgot-password',
   passwordResetLimiterMiddleware,
@@ -40,12 +41,14 @@ router.get(
 );
 router.post(
   '/reset-password',
+  requireJsonRequest,
   passwordResetLimiterMiddleware,
   validateBody(portalPasswordResetConfirmSchema),
   portalResetPassword
 );
 router.post(
   '/login',
+  requireJsonRequest,
   authLimiterMiddleware,
   checkAccountLockout,
   validateBody(portalLoginSchema),
@@ -63,6 +66,7 @@ router.get(
 
 router.post(
   '/invitations/accept/:token',
+  requireJsonRequest,
   authLimiterMiddleware,
   validateParams(portalInvitationTokenParamsSchema),
   validateBody(acceptPortalInvitationSchema),

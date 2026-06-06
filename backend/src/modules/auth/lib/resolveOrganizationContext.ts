@@ -11,7 +11,24 @@ export const resolveAuthenticatedOrganizationId = async (
   const organizationId = req.organizationId || req.accountId || req.tenantId;
 
   if (!organizationId) {
-    return req.user?.id ? getAuthenticatedOrganizationId(req.user.id) : null;
+    if (!req.user?.id) {
+      return null;
+    }
+
+    const fallbackOrganizationId = await getAuthenticatedOrganizationId(req.user.id);
+    if (!fallbackOrganizationId) {
+      sendError(
+        res,
+        'forbidden',
+        'No active organization access',
+        403,
+        undefined,
+        req.correlationId
+      );
+      return undefined;
+    }
+
+    return fallbackOrganizationId;
   }
 
   const result = await requireActiveOrganizationSafe(req);

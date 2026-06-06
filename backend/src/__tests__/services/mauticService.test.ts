@@ -86,12 +86,14 @@ describe('mauticService scoped configuration', () => {
         memberCount: 12,
       },
     ]);
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://mautic.example.org/app/api/segments?limit=100',
-      expect.objectContaining({
-        headers: expect.objectContaining({
-          Authorization: `Basic ${Buffer.from('site-api:site-secret').toString('base64')}`,
-        }),
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://mautic.example.org/app/api/segments?limit=100',
+        expect.objectContaining({
+          redirect: 'manual',
+          dispatcher: expect.any(Object),
+          headers: expect.objectContaining({
+            Authorization: `Basic ${Buffer.from('site-api:site-secret').toString('base64')}`,
+          }),
       })
     );
   });
@@ -148,12 +150,14 @@ describe('mauticService scoped configuration', () => {
         lists: ['42'],
       }),
     ]);
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://mautic.example.org/app/api/emails?limit=100&publishedOnly=true&orderBy=date_modified&orderByDir=desc',
-      expect.objectContaining({
-        headers: expect.objectContaining({
-          Authorization: `Basic ${Buffer.from('site-api:site-secret').toString('base64')}`,
-        }),
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://mautic.example.org/app/api/emails?limit=100&publishedOnly=true&orderBy=date_modified&orderByDir=desc',
+        expect.objectContaining({
+          redirect: 'manual',
+          dispatcher: expect.any(Object),
+          headers: expect.objectContaining({
+            Authorization: `Basic ${Buffer.from('site-api:site-secret').toString('base64')}`,
+          }),
       })
     );
   });
@@ -173,12 +177,14 @@ describe('mauticService scoped configuration', () => {
       baseUrl: 'https://env-mautic.example.org',
       segmentCount: 1,
     });
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://env-mautic.example.org/api/segments?limit=100',
-      expect.objectContaining({
-        headers: expect.objectContaining({
-          Authorization: `Basic ${Buffer.from('env-api:env-secret').toString('base64')}`,
-        }),
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://env-mautic.example.org/api/segments?limit=100',
+        expect.objectContaining({
+          redirect: 'manual',
+          dispatcher: expect.any(Object),
+          headers: expect.objectContaining({
+            Authorization: `Basic ${Buffer.from('env-api:env-secret').toString('base64')}`,
+          }),
       })
     );
   });
@@ -210,5 +216,27 @@ describe('mauticService scoped configuration', () => {
       })
     ).rejects.toThrow('Mautic base URL is not allowed');
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('blocks redirect responses instead of following them to a new host', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 302,
+      statusText: 'Found',
+      headers: new Headers({ location: 'http://127.0.0.1:8080/internal' }),
+      text: jest.fn().mockResolvedValue(''),
+    });
+
+    await expect(mauticService.getSegments(siteMauticConfig)).rejects.toThrow(
+      'Mautic redirects are not allowed'
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://mautic.example.org/app/api/segments?limit=100',
+      expect.objectContaining({
+        redirect: 'manual',
+        dispatcher: expect.any(Object),
+      })
+    );
+    expect(mockLookup).toHaveBeenCalledTimes(1);
   });
 });

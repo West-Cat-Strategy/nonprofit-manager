@@ -280,7 +280,7 @@ export async function sendPasswordResetEmail(
   firstName: string
 ): Promise<boolean> {
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-  const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
+  const resetUrl = `${frontendUrl}/reset-password#${encodeURIComponent(resetToken)}`;
 
   return sendMail({
     to,
@@ -321,7 +321,7 @@ export async function sendPortalPasswordResetEmail(
   firstName: string
 ): Promise<boolean> {
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-  const resetUrl = `${frontendUrl}/portal/reset-password/${resetToken}`;
+  const resetUrl = `${frontendUrl}/portal/reset-password#${encodeURIComponent(resetToken)}`;
 
   return sendMail({
     to,
@@ -367,7 +367,7 @@ export async function sendInvitationEmail(
   personalMessage?: string | null
 ): Promise<boolean> {
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-  const acceptUrl = `${frontendUrl}/accept-invitation/${inviteToken}`;
+  const acceptUrl = `${frontendUrl}/accept-invitation#${encodeURIComponent(inviteToken)}`;
 
   const messageBlock = personalMessage
     ? `\n${inviterName} says: "${personalMessage}"\n`

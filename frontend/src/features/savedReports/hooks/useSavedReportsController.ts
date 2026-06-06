@@ -100,7 +100,7 @@ export function useSavedReportsController() {
     if (!publicLinkToken) {
       return null;
     }
-    return publicLinkUrl || `${window.location.origin}/public/reports/${publicLinkToken}`;
+    return publicLinkUrl || `${window.location.origin}/public/reports#${encodeURIComponent(publicLinkToken)}`;
   }, [publicLinkToken, publicLinkUrl]);
 
   const resetScheduleDialog = () => {
@@ -190,7 +190,9 @@ export function useSavedReportsController() {
     setPublicLinkExpiryLocal(toDateTimeLocal(report.share_settings?.expires_at));
     setPublicLinkToken(report.public_token || null);
     setPublicLinkUrl(
-      report.public_token ? `${window.location.origin}/public/reports/${report.public_token}` : null
+      report.public_token
+        ? `${window.location.origin}/public/reports#${encodeURIComponent(report.public_token)}`
+        : null
     );
     setShareSearch('');
     void loadSharePrincipals();

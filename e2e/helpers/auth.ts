@@ -682,12 +682,12 @@ const writeReadyAuthCache = (email: string): void => {
 
 type CachedAuthCredentials = {
   email: string;
-  password: string;
+  password?: string;
 };
 
-type CachedEffectiveAdminSession = CachedAuthCredentials & {
-  token: string;
-  organizationId?: string;
+type CachedEffectiveAdminSession = {
+  email: string;
+  organizationId: string;
   user?: AuthUser;
 };
 
@@ -695,9 +695,7 @@ export type AdminAuthBootstrapContract = Pick<ResolvedAdminCredentials, 'email' 
 
 export type AdminAuthBootstrapCacheSnapshot = {
   admin?: CachedAuthCredentials | null;
-  session?:
-    | Pick<CachedEffectiveAdminSession, 'email' | 'password' | 'user'>
-    | null;
+  session?: ({ email: string; password?: string; user?: AuthUser } | null);
 };
 
 const normalizeCachedAuthEmail = (value: string | undefined): string =>
@@ -711,14 +709,22 @@ export const isCompatibleAdminAuthBootstrapCache = (
 
   if (cache.admin) {
     const cachedAdminEmail = normalizeCachedAuthEmail(cache.admin.email);
-    if (cachedAdminEmail !== contractEmail || cache.admin.password !== contract.password) {
+    if (cachedAdminEmail !== contractEmail) {
+      return false;
+    }
+
+    if (cache.admin.password !== undefined && cache.admin.password !== contract.password) {
       return false;
     }
   }
 
   if (cache.session) {
     const cachedSessionEmail = normalizeCachedAuthEmail(cache.session.email);
-    if (cachedSessionEmail !== contractEmail || cache.session.password !== contract.password) {
+    if (cachedSessionEmail !== contractEmail) {
+      return false;
+    }
+
+    if (cache.session.password !== undefined && cache.session.password !== contract.password) {
       return false;
     }
 
@@ -736,12 +742,16 @@ const readCachedAuthCredentials = (filePath: string): CachedAuthCredentials | nu
       email?: unknown;
       password?: unknown;
     };
-    const email = normalizeString(payload.email);
-    const password = normalizeString(payload.password);
-    if (!email || !password) {
+    if (payload.password !== undefined) {
+      unlinkIfExists(filePath);
       return null;
     }
-    return { email, password };
+
+    const email = normalizeString(payload.email);
+    if (!email) {
+      return null;
+    }
+    return { email };
   } catch {
     return null;
   }
@@ -752,10 +762,9 @@ const readEffectiveAdminCache = (): CachedAuthCredentials | null => {
   return readCachedAuthCredentials(effectiveAdminFile);
 };
 
-const writeEffectiveAdminCache = (email: string, password: string): void => {
+const writeEffectiveAdminCache = (email: string, _password: string): void => {
   const normalizedEmail = normalizeString(email);
-  const normalizedPassword = normalizeString(password);
-  if (!normalizedEmail || !normalizedPassword) {
+  if (!normalizedEmail) {
     return;
   }
 
@@ -763,7 +772,7 @@ const writeEffectiveAdminCache = (email: string, password: string): void => {
   fs.mkdirSync(cacheDir, { recursive: true });
   fs.writeFileSync(
     effectiveAdminFile,
-    JSON.stringify({ email: normalizedEmail, password: normalizedPassword, at: Date.now() }),
+    JSON.stringify({ email: normalizedEmail, at: Date.now() }),
     { encoding: 'utf8' }
   );
 };
@@ -784,25 +793,20 @@ const readEffectiveAdminSessionCache = (): CachedEffectiveAdminSession | null =>
       organizationId?: unknown;
       user?: unknown;
     };
+    if (payload.password !== undefined || payload.token !== undefined) {
+      unlinkIfExists(effectiveAdminSessionFile);
+      return null;
+    }
+
     const email = normalizeString(payload.email);
-    const password = normalizeString(payload.password);
-    const token = normalizeString(payload.token);
     const user = normalizeAuthUser(payload.user);
-    if (!email || !password || !token || !user) {
+    const organizationId = normalizeOrganizationId(payload.organizationId);
+    if (!email || !organizationId || !user) {
       return null;
     }
-    const organizationId = resolveValidatedSessionOrganizationId('Cached effective admin session', {
-      organizationId: normalizeOrganizationId(payload.organizationId),
-      user,
-      token,
-    });
-    if (!organizationId) {
-      return null;
-    }
+
     return {
       email,
-      password,
-      token,
       organizationId,
       user,
     };
@@ -813,11 +817,9 @@ const readEffectiveAdminSessionCache = (): CachedEffectiveAdminSession | null =>
 
 const writeEffectiveAdminSessionCache = (session: AuthSession): void => {
   const email = normalizeString(session.email);
-  const password = normalizeString(session.password);
-  const token = normalizeString(session.token);
   const user = normalizeAuthUser(session.user);
 
-  if (!email || !password || !token || !user) {
+  if (!email || !user) {
     return;
   }
 
@@ -834,7 +836,7 @@ const writeEffectiveAdminSessionCache = (session: AuthSession): void => {
   fs.mkdirSync(cacheDir, { recursive: true });
   fs.writeFileSync(
     effectiveAdminSessionFile,
-    JSON.stringify({ email, password, token, organizationId, user, at: Date.now() }),
+    JSON.stringify({ email, organizationId, user, at: Date.now() }),
     { encoding: 'utf8' }
   );
 };
@@ -1229,7 +1231,7 @@ const getCurrentAdminSession = async (page: Page): Promise<AuthSession | null> =
   const sharedUserEmail = process.env.TEST_USER_EMAIL?.trim();
   const sharedUserPassword = process.env.TEST_USER_PASSWORD?.trim();
   const password =
-    cachedEffectiveAdmin && email.toLowerCase() === cachedEffectiveAdmin.email.toLowerCase()
+    cachedEffectiveAdmin?.password && email.toLowerCase() === cachedEffectiveAdmin.email.toLowerCase()
       ? cachedEffectiveAdmin.password
       : email.toLowerCase() === configuredAdminCredentials.email.toLowerCase()
         ? configuredAdminCredentials.password
@@ -2246,7 +2248,7 @@ export async function ensureAdminLoginViaAPI(
     if (!allowExternallyManagedAuthFallbacks) {
       clearEffectiveAdminCache();
       clearEffectiveAdminSessionCache();
-    } else {
+    } else if (cachedEffectiveAdmin.password) {
       try {
         return await loginAndValidateAdminSession(
           cachedEffectiveAdmin.email,
@@ -2389,34 +2391,7 @@ export async function ensureEffectiveAdminLoginViaAPI(
       if (isUnexpectedHostAdminIdentity) {
         clearEffectiveAdminSessionCache();
         clearEffectiveAdminCache();
-      } else {
-        const restoredSession = await primeValidatedBrowserAuthSession(
-          page,
-          {
-            token: cachedEffectiveAdminSession.token,
-            organizationId: cachedEffectiveAdminSession.organizationId,
-            user: cachedEffectiveAdminSession.user,
-          },
-          { replaceCookie: true }
-        ).catch(() => null);
-
-        if (restoredSession && isAdminRole(restoredSession.user?.role)) {
-          const restoredAuthSession = await normalizeAdminSession({
-            token: cachedEffectiveAdminSession.token,
-            organizationId: restoredSession.organizationId,
-            user: {
-              ...cachedEffectiveAdminSession.user,
-              ...restoredSession.user,
-            },
-            email: cachedEffectiveAdminSession.email,
-            password: cachedEffectiveAdminSession.password,
-            isAdmin: true,
-          });
-          writeEffectiveAdminCache(restoredAuthSession.email, restoredAuthSession.password);
-          writeEffectiveAdminSessionCache(restoredAuthSession);
-          return restoredAuthSession;
-        }
-
+      } else if (!isAdminRole(cachedEffectiveAdminSession.user?.role)) {
         clearEffectiveAdminSessionCache();
         clearEffectiveAdminCache();
       }

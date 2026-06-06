@@ -68,6 +68,13 @@ export async function ingestPreviewFromBuffer(params: {
   format?: IngestSourceType;
   sheetName?: string;
   name?: string;
+  importLimits?: {
+    maxRows?: number;
+    maxColumns?: number;
+    maxCells?: number;
+    maxCellLength?: number;
+    maxWorksheets?: number;
+  };
 }): Promise<IngestPreviewResult> {
   const filenameHint = inferFormatFromFilename(params.filename);
   const mimeHint = inferFormatFromMime(params.mimeType);
@@ -84,7 +91,16 @@ export async function ingestPreviewFromBuffer(params: {
   const datasets =
     format === 'excel'
       ? await loadExcelParser().then(({ parseExcelToDatasets }) =>
-          parseExcelToDatasets(params.buffer, { name, sheetName: params.sheetName })
+          parseExcelToDatasets(params.buffer, {
+            name,
+            sheetName: params.sheetName,
+            maxRows: params.importLimits?.maxRows,
+            maxColumns: params.importLimits?.maxColumns,
+            maxCells: params.importLimits?.maxCells,
+            maxCellLength: params.importLimits?.maxCellLength,
+            maxWorksheets: params.importLimits?.maxWorksheets,
+            rejectOverLimit: true,
+          })
         )
       : format === 'sql'
         ? parseSqlToDatasets(params.buffer.toString('utf8'), { name })

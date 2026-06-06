@@ -388,7 +388,7 @@ export const createPortalInvitation = async (
     );
 
     const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    const inviteUrl = `${baseUrl}/portal/accept-invitation/${token}`;
+    const inviteUrl = `${baseUrl}/portal/accept-invitation#${encodeURIComponent(token)}`;
 
     sendSuccess(
       res,

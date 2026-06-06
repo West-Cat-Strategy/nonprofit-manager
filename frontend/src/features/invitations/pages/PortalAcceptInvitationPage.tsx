@@ -7,6 +7,7 @@ import { useAppDispatch } from '../../../store/hooks';
 import { portalLogin } from '../../portalAuth/state';
 import { AuthHeroShell, FormField, PrimaryButton } from '../../../components/ui';
 import { focusElement, focusFirstInvalidField } from '../../portal/utils/formFocus';
+import { useTokenizedRouteToken } from '../../../utils/tokenizedRouteToken';
 
 interface InvitationInfo {
   email: string;
@@ -18,7 +19,8 @@ const isLikelyInvitationToken = (value: string | undefined): boolean =>
   Boolean(value && value.length >= 20 && /^[A-Za-z0-9._-]+$/.test(value));
 
 export default function PortalAcceptInvitation() {
-  const { token } = useParams();
+  const { token: routeToken } = useParams<{ token: string }>();
+  const token = useTokenizedRouteToken(routeToken, { scrubPath: '/portal/accept-invitation' });
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [invitation, setInvitation] = useState<InvitationInfo | null>(null);

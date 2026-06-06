@@ -1,17 +1,20 @@
 # Phase 5 Security Review
 
-**Last Updated:** 2026-04-29
+**Last Updated:** 2026-06-05
+
+> Superseded historical review: the April security review below is retained for Phase 5 context, but its dependency-remediation snapshot is no longer current. Current supply-chain and security-remediation proof lives in [SECURITY_REMEDIATION_PROOF_2026-06-05.md](SECURITY_REMEDIATION_PROOF_2026-06-05.md): the root production audit reports `found 0 vulnerabilities`, `npm explain uuid --workspaces --include-workspace-root` reports `uuid@11.1.1`, and `make security-scan` is green.
 
 ## Scope
 
-- Security-focused repo review to improve the live Phase 5 plan and workboard without inventing a separate product wave.
-- Inputs: the current Phase 5 workboard and plan, active security docs, fresh repo-local policy checks, `make security-scan`, and current official external guidance.
+- Historical security-focused repo review used to improve the Phase 5 plan and workboard without inventing a separate product wave.
+- Original inputs: the April Phase 5 workboard and plan, active security docs, repo-local policy checks, `make security-scan`, and official external guidance available at that time.
+- Current remediation state is tracked in [SECURITY_REMEDIATION_PROOF_2026-06-05.md](SECURITY_REMEDIATION_PROOF_2026-06-05.md), not this historical review.
 
-## Current Repo Snapshot
+## Historical Repo Snapshot
 
 - `node scripts/check-auth-guard-policy.ts` passes.
 - `node scripts/check-rate-limit-key-policy.ts` passes.
-- `make security-scan` is green again: the deliberate backend `exceljs` -> `uuid@14` remediation is landed, frontend audit remains clean, and `gitleaks` reports no leaks.
+- June 5 reconciliation supersedes the older dependency snapshot: the root override keeps `exceljs@4.4.0` on `uuid@11.1.1`, the production audit reports `found 0 vulnerabilities`, and the proof note records a green `make security-scan`.
 - The repo already has meaningful runtime controls in place:
   - Helmet, CORS, CSRF, rate limiting, metrics, and Sentry are wired through `backend/src/index.ts`, `backend/src/middleware/metrics.ts`, and `backend/src/config/sentry.ts`.
   - Structured logging and optional log aggregation are wired through `backend/src/config/logger.ts`.
@@ -34,7 +37,7 @@
 ### Now
 
 1. Keep security inside `P5-T2B` as a tracked validation sub-lane rather than adding a fourth product wave.
-2. Keep the now-green supply-chain baseline green by preserving the deliberate backend `exceljs` -> `uuid@14` remediation and rerunning `make security-scan` whenever backend dependencies move.
+2. Keep the now-green supply-chain baseline green by preserving the root `exceljs@4.4.0` override that resolves `uuid@11.1.1`, and rerun `npm run audit:prod`, `npm explain uuid --workspaces --include-workspace-root`, and `make security-scan` whenever backend dependencies move.
 3. Operationalize the auth-alias daily-ratio dashboard from `docs/security/AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md` once the shared host gate is green so the deprecation gate stops living only in docs.
 4. Make `P5-T3` and `P5-T5` carry explicit security acceptance criteria:
    - email and preview work keeps route-security and sanitization coverage current;
@@ -62,12 +65,14 @@
 |---|---|---|
 | `node scripts/check-auth-guard-policy.ts` | Pass | No auth-guard policy regressions detected. |
 | `node scripts/check-rate-limit-key-policy.ts` | Pass | Rate-limit key policy still holds. |
-| `make security-scan` | Pass | Backend `npm audit --omit=dev --audit-level=moderate` is green again after the deliberate `exceljs` -> `uuid@14` remediation; frontend audit remains clean and `gitleaks` found no leaks. |
+| `npm run audit:prod` | Pass | June 5 proof reports `found 0 vulnerabilities`. |
+| `npm explain uuid --workspaces --include-workspace-root` | Pass | June 5 proof reports `uuid@11.1.1`. |
+| `make security-scan` | Pass | June 5 proof records a green root production audit plus gitleaks worktree/history scans with no leaks. |
 
 ## Workboard Use
 
 This note is the row-local planning artifact for the `security-hardening` sub-lane inside `P5-T2B`. It should stay current while the shared validation lane owns:
 
-- the now-landed dependency remediation,
+- the now-landed dependency remediation tracked in [SECURITY_REMEDIATION_PROOF_2026-06-05.md](SECURITY_REMEDIATION_PROOF_2026-06-05.md),
 - the queued auth-alias operational dashboard follow-through once the shared host gate is green,
 - and the security acceptance criteria that active `P5-T3` and `P5-T5` work must keep green.

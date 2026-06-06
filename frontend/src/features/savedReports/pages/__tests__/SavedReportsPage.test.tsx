@@ -291,7 +291,7 @@ describe('SavedReportsPage', () => {
   it('renders the share dialog and delegates share/public-link actions', async () => {
     const user = userEvent.setup();
     controllerStateRef.current.shareTarget = reports[0];
-    controllerStateRef.current.publicLinkDisplay = '/public/reports/public-token-1';
+    controllerStateRef.current.publicLinkDisplay = '/public/reports#public-token-1';
 
     renderWithProviders(<SavedReportsPage />, {
       preloadedState: buildAuthState([
@@ -329,7 +329,7 @@ describe('SavedReportsPage', () => {
     expect(handleCopyPublicLinkMock).toHaveBeenCalled();
     expect(handleRevokePublicLinkMock).toHaveBeenCalled();
     expect(closeShareDialogMock).toHaveBeenCalled();
-    expect(screen.getByText('/public/reports/public-token-1')).toBeInTheDocument();
+    expect(screen.getByText('/public/reports#public-token-1')).toBeInTheDocument();
   });
 
   it('renders loading, error, empty, retry, and delete behaviors', async () => {

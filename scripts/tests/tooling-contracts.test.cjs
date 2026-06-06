@@ -1345,6 +1345,95 @@ test('db-at-rest validation can load required production values from an env file
   assert.equal(result.status, 0, result.stderr);
 });
 
+test('db-at-rest env loader preserves existing shell values over env-file defaults', () => {
+  const tempDir = createTempDir();
+  const envFile = path.join(tempDir, 'db-at-rest.env');
+
+  fs.writeFileSync(
+    envFile,
+    [
+      'DB_HOST=postgres',
+      'export DB_AT_REST_PROVIDER=other',
+    ].join('\n')
+  );
+
+  const result = run(
+    'bash',
+    [
+      '-c',
+      'source scripts/lib/db-at-rest.sh && load_env_file_defaults "$1" && printf "%s\\n%s\\n" "$DB_HOST" "$DB_AT_REST_PROVIDER"',
+      '_',
+      envFile,
+    ],
+    {
+      DB_HOST: 'managed.example.test',
+    }
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(result.stdout.trim().split('\n'), ['managed.example.test', 'other']);
+});
+
+test('db-at-rest env loader rejects command substitution without executing it', () => {
+  const tempDir = createTempDir();
+  const envFile = path.join(tempDir, 'db-at-rest.env');
+  const marker = path.join(tempDir, 'executed');
+
+  fs.writeFileSync(envFile, `DB_HOST=$(touch ${marker})\n`);
+
+  const result = run('bash', [
+    '-c',
+    'source scripts/lib/db-at-rest.sh && load_env_file_defaults "$1"',
+    '_',
+    envFile,
+  ]);
+
+  assert.notEqual(result.status, 0);
+  assert.match(`${result.stdout}\n${result.stderr}`, /Unsafe env value rejected/);
+  assert.equal(fs.existsSync(marker), false);
+});
+
+test('db-at-rest env loader rejects standalone shell commands without executing them', () => {
+  const tempDir = createTempDir();
+  const envFile = path.join(tempDir, 'db-at-rest.env');
+  const marker = path.join(tempDir, 'executed');
+
+  fs.writeFileSync(envFile, `touch ${marker}\n`);
+
+  const result = run('bash', [
+    '-c',
+    'source scripts/lib/db-at-rest.sh && load_env_file_defaults "$1"',
+    '_',
+    envFile,
+  ]);
+
+  assert.notEqual(result.status, 0);
+  assert.match(`${result.stdout}\n${result.stderr}`, /Invalid env file entry/);
+  assert.equal(fs.existsSync(marker), false);
+});
+
+test('security scan uses the root production audit lane once', () => {
+  const tempDir = createTempDir();
+  const npmCallLog = path.join(tempDir, 'npm-calls.log');
+  const fakeBin = createFakeBin({
+    npm: `#!/usr/bin/env bash
+printf "%s\\n" "$*" >> "$NPM_CALL_LOG"
+exit 0
+`,
+    gitleaks: `#!/usr/bin/env bash
+exit 0
+`,
+  });
+
+  const result = run('bash', ['scripts/security-scan.sh'], {
+    PATH: `${fakeBin}:${process.env.PATH}`,
+    NPM_CALL_LOG: npmCallLog,
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(fs.readFileSync(npmCallLog, 'utf8').trim().split('\n'), ['run audit:prod']);
+});
+
 test('verify compatibility wrapper prints selector-backed commands without running them', () => {
   const result = run('bash', [
     'scripts/verify.sh',

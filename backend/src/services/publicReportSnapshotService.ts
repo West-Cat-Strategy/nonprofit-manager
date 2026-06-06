@@ -368,7 +368,7 @@ export class PublicReportSnapshotService {
       client.release();
     }
 
-    return { token, url: `/public/reports/${token}` };
+    return { token, url: `/public/reports#${encodeURIComponent(token)}` };
   }
 
   async revokePublicLink(args: {

@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { AuthHeroShell, PrimaryButton } from '../../../components/ui';
 import {
   authService,
   type AdminRegistrationReviewPreview,
 } from '../../../services/authService';
 import { useAppSelector } from '../../../store/hooks';
+import { useTokenizedRouteToken } from '../../../utils/tokenizedRouteToken';
 
 type ReviewState =
   | 'loading'
@@ -74,15 +75,16 @@ const getAlreadyReviewedMessage = (preview: AdminRegistrationReviewPreview): str
 };
 
 export default function AdminRegistrationReviewPage() {
-  const { token } = useParams<{ token: string }>();
-  const [searchParams] = useSearchParams();
+  const { token: routeToken } = useParams<{ token: string }>();
+  const token = useTokenizedRouteToken(routeToken, {
+    scrubPath: '/admin-registration-review',
+    preserveSearch: false,
+  });
   const { isAuthenticated } = useAppSelector((state) => state.auth);
   const [state, setState] = useState<ReviewState>('loading');
   const [preview, setPreview] = useState<AdminRegistrationReviewPreview | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
-
-  const autoCompleteMode = searchParams.get('mode') === 'complete';
 
   useEffect(() => {
     document.title = 'Registration Review | Nonprofit Manager';
@@ -108,58 +110,6 @@ export default function AdminRegistrationReviewPage() {
         }
 
         setPreview(nextPreview);
-
-        if (autoCompleteMode && nextPreview.canConfirm) {
-          setConfirming(true);
-          try {
-            const result = await authService.confirmAdminRegistrationReview(token);
-            if (cancelled) {
-              return;
-            }
-
-            setPreview(result.review);
-            setMessage(
-              result.status === 'already_reviewed'
-                ? getAlreadyReviewedMessage(result.review)
-                : result.message
-            );
-            setState(result.status === 'completed' ? 'success' : 'already-reviewed');
-            return;
-          } catch (error) {
-            if (cancelled) {
-              return;
-            }
-
-            const code = getErrorCode(error);
-            const fallbackMessage = getErrorMessage(error);
-
-            if (code === 'expired_review_token') {
-              setState('expired');
-              setMessage(fallbackMessage || 'This review link has expired.');
-              return;
-            }
-
-            if (
-              code === 'invalid_review_token' ||
-              code === 'pending_registration_not_found' ||
-              code === 'reviewer_unavailable'
-            ) {
-              setState('invalid');
-              setMessage(fallbackMessage || 'This review link is no longer valid.');
-              return;
-            }
-
-            setState('ready');
-            setMessage(
-              fallbackMessage || 'Unable to complete automatically. You can confirm manually below.'
-            );
-            return;
-          } finally {
-            if (!cancelled) {
-              setConfirming(false);
-            }
-          }
-        }
 
         if (nextPreview.canConfirm) {
           setState('ready');
@@ -203,7 +153,7 @@ export default function AdminRegistrationReviewPage() {
     return () => {
       cancelled = true;
     };
-  }, [autoCompleteMode, token]);
+  }, [token]);
 
   const handleConfirm = async (event: FormEvent) => {
     event.preventDefault();

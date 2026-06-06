@@ -16,7 +16,7 @@ import { AuthRequest } from '@middleware/auth';
 import { TIME } from '@config/constants';
 import { fromBase64Url, toBase64Url } from '@utils/base64url';
 import { trackLoginAttempt } from '@middleware/accountLockout';
-import { badRequest, notFoundMessage, unauthorized } from '@utils/responseHelpers';
+import { badRequest, forbidden, notFoundMessage, unauthorized } from '@utils/responseHelpers';
 import { setAuthCookie } from '@utils/cookieHelper';
 import { buildAuthTokenResponse, generateAuthSessionCsrfToken } from '@utils/authResponse';
 import { normalizeRoleSlug } from '@utils/roleSlug';
@@ -550,9 +550,14 @@ export const loginVerify = async (
     );
     await pool.query('DELETE FROM user_webauthn_challenges WHERE id = $1', [challengeId]);
 
+    const organizationId = await getAuthenticatedOrganizationId(user.id);
+    if (!organizationId) {
+      await trackLoginAttempt(email, false, user.id, clientIp);
+      return forbidden(res, 'No active organization access');
+    }
+
     await trackLoginAttempt(email, true, user.id, clientIp);
 
-    const organizationId = await getAuthenticatedOrganizationId(user.id);
     const token = issueAuthTokens(user, organizationId);
     setAuthCookie(res, token);
     const csrfToken = generateAuthSessionCsrfToken(req, res, token);
