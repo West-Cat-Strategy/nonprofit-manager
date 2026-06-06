@@ -79,7 +79,7 @@ describe('useScheduledReportsController', () => {
       makeScheduledReport({
         id: 'healthy-schedule',
         name: 'Healthy Schedule',
-        next_run_at: '2026-06-05T17:00:00.000Z',
+        next_run_at: '2099-06-05T17:00:00.000Z',
       }),
       makeScheduledReport({
         id: 'error-schedule',

@@ -1,6 +1,6 @@
 # Agent Instructions For Nonprofit Manager
 
-**Last Updated:** 2026-05-09
+**Last Updated:** 2026-06-05
 
 Use this file for repo-specific coding-agent guardrails. It is not the setup guide or the full docs catalog.
 
@@ -62,7 +62,7 @@ Use this file for repo-specific coding-agent guardrails. It is not the setup gui
 - When persona or benchmark details change, update the tracked persona-suite references first and keep `docs/product/*.md` concise.
 - Run `make check-links` for docs changes and add `make lint-doc-api-versioning` when API wording or examples changed.
 - Run `make lint-openapi` when `docs/api/openapi.yaml` changes.
-- For runtime-facing docs, run selector strict-mode when the wording changes command meanings, ports, wrappers, Docker modes, or orchestration expectations.
+- For runtime-facing docs, run selector strict-mode when the wording changes command meanings, ports, wrappers, Docker modes, hooks, or orchestration expectations.
 
 ## Default Validation Commands
 
@@ -90,7 +90,7 @@ make test-tooling
 
 `cd backend && npm test` is the supported backend test runner. It delegates to `backend/scripts/run-full-tests.sh`, prepares/verifies the isolated test DB on `127.0.0.1:8012/nonprofit_manager_test`, then runs Jest in band.
 
-`make ci-fast` is a static lint + typecheck pass only. `make test` is the repo behavior gate. `make test-coverage-full` is the coverage/full behavior gate, and `make ci-full` adds lint/typecheck/build plus `make security-audit`. Use [../testing/TESTING.md](../testing/TESTING.md) for the broader review-lane commands and follow-on rules.
+`./scripts/select-checks.sh --mode fast` is the default focused lane for one owned surface. Use `--mode strict` for shared runtime, Docker/test-wrapper, hook, E2E config, runtime-doc, or confidence-sensitive review changes. `make ci-fast` is a static lint + typecheck pass only. `make test` is the repo behavior gate. `make test-coverage-full` is the coverage/full behavior gate, and `make ci-full` adds lint/typecheck/build plus `make security-audit`. Use [../testing/TESTING.md](../testing/TESTING.md) for the broader review-lane commands and follow-on rules.
 
 ## Do Not Assume
 

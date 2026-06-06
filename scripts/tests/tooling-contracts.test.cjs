@@ -954,6 +954,19 @@ test('legacy PR verifier defaults to current supported contract notice', () => {
   assert.match(result.stdout, /scripts\/verify-pr\.sh --run-legacy 9/);
 });
 
+function selectChecks(files, mode = 'fast') {
+  const result = run('bash', [
+    'scripts/select-checks.sh',
+    '--files',
+    files,
+    '--mode',
+    mode,
+  ]);
+
+  assert.equal(result.status, 0, result.stderr);
+  return result.stdout.trim().split('\n').filter(Boolean);
+}
+
 test('select-checks keeps docs-only fast mode on docs validation', () => {
   const result = run('bash', [
     'scripts/select-checks.sh',
@@ -982,6 +995,114 @@ test('select-checks broadens docs-only strict mode into the coverage gate', () =
     'make test-tooling',
     'make test-coverage-full',
   ]);
+});
+
+test('select-checks covers the confidence-per-change lane examples', () => {
+  const examples = [
+    {
+      label: 'runtime docs strict mode',
+      files: 'docs/testing/TESTING.md docs/development/AGENT_INSTRUCTIONS.md e2e/README.md scripts/README.md',
+      mode: 'strict',
+      commands: [
+        'make check-links',
+        'make lint-doc-api-versioning',
+        'make lint-openapi',
+        'make test-tooling',
+        'make test-coverage-full',
+      ],
+    },
+    {
+      label: 'backend-only fast mode',
+      files: 'backend/src/modules/portalAuth/controllers/portalAuthController.ts',
+      mode: 'fast',
+      commands: [
+        'cd backend && npm run lint',
+        'cd backend && npm run type-check',
+        'cd backend && npm test -- src/__tests__/integration',
+      ],
+    },
+    {
+      label: 'frontend-only fast mode',
+      files: 'frontend/src/features/portal/pages/PortalDashboardPage.tsx',
+      mode: 'fast',
+      commands: [
+        'cd frontend && npm run lint',
+        'cd frontend && npm run type-check',
+        'cd frontend && npm test -- --run',
+      ],
+    },
+    {
+      label: 'E2E-only fast mode',
+      files: 'e2e/tests/public-website.spec.ts',
+      mode: 'fast',
+      commands: ['cd e2e && npm run test:smoke'],
+    },
+    {
+      label: 'database migration fast mode',
+      files: 'database/migrations/140_testing_strategy_fixture.sql database/migrations/manifest.tsv database/initdb/000_init.sql',
+      mode: 'fast',
+      commands: ['make db-verify'],
+    },
+    {
+      label: 'root dependency fast mode',
+      files: 'package.json package-lock.json',
+      mode: 'fast',
+      commands: [
+        'make test-tooling',
+        'npm run knip',
+        'make security-audit',
+        'make lint',
+        'make typecheck',
+        'make test-e2e-docker-smoke',
+      ],
+    },
+    {
+      label: 'orchestration strict mode',
+      files: 'Makefile scripts/ci.sh scripts/local-release.sh scripts/select-checks.sh',
+      mode: 'strict',
+      commands: [
+        'make test-tooling',
+        'make lint',
+        'make typecheck',
+        'make test-coverage-full',
+      ],
+    },
+    {
+      label: 'Docker public-site fast mode',
+      files: 'docker-compose.caddy.yml backend/src/public-site.ts',
+      mode: 'fast',
+      commands: [
+        'make lint',
+        'make test-tooling',
+        'cd backend && npm run lint',
+        'cd backend && npm run type-check',
+        'cd backend && npm test -- src/__tests__/integration',
+        'make docker-validate-overlays',
+        'make test-e2e-docker-smoke',
+        'make db-verify',
+      ],
+    },
+    {
+      label: 'release and security tooling strict mode',
+      files: 'scripts/local-release.sh scripts/security-scan.sh',
+      mode: 'strict',
+      commands: [
+        'make security-scan',
+        'make test-tooling',
+        'make lint',
+        'make typecheck',
+        'make test-coverage-full',
+      ],
+    },
+  ];
+
+  for (const example of examples) {
+    assert.deepEqual(
+      selectChecks(example.files, example.mode),
+      example.commands,
+      example.label
+    );
+  }
 });
 
 test('select-checks recommends tooling regression coverage for orchestration changes', () => {

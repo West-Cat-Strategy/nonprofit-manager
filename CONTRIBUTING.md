@@ -1,6 +1,6 @@
 # Contributing to Nonprofit Manager
 
-**Last Updated:** 2026-05-09
+**Last Updated:** 2026-06-05
 
 Use this guide when you want to contribute code, documentation, validation, release support, or review help to Nonprofit Manager. The root [README.md](README.md) is the organization-facing project overview; this file is the contributor workflow and validation entry point. Runtime setup details live in [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md).
 
@@ -89,7 +89,7 @@ Use the smallest validation set that still covers your change.
 | Higher-confidence validation | `make ci` for lint/typecheck/test/build, or `make ci-full` for the coverage/full gate plus build and `make security-audit` |
 | Release-facing validation | `make release-check` |
 
-Prefer root commands first. Use package-level scripts only when the change is narrow enough that a package-specific check is the clearest fit.
+Prefer root commands first. Use package-level scripts only when the change is narrow enough that a package-specific check is the clearest fit. The validation ladder is: docs/static checks, package-surface selector proof, cross-layer `make test`, coverage/full `make test-coverage-full` or `make ci-full`, then release/security follow-ons.
 
 `make ci-fast` is a lint + typecheck-only static pass. It is useful for quick feedback, but it is not a test lane or a full-confidence pass.
 
@@ -97,7 +97,7 @@ Prefer root commands first. Use package-level scripts only when the change is na
 
 `cd backend && npm test` is the supported backend runner. It invokes `backend/scripts/run-full-tests.sh`, prepares and verifies the isolated test DB on `127.0.0.1:8012/nonprofit_manager_test`, then runs Jest.
 
-The selector includes committed, dirty, staged, and untracked files by default. Use `--mode strict` when docs or scripts change runtime semantics, Docker modes, wrapper behavior, ports, or orchestration expectations; strict runtime-doc changes can broaden into `make test-coverage-full`.
+Use selector `--mode fast` for scoped changes where one owned surface changed. Use `--mode strict` when docs or scripts change runtime semantics, Docker modes, wrapper behavior, ports, hooks, shared orchestration, or confidence-sensitive review expectations; strict runtime-doc changes include `make test-tooling` before they broaden into `make test-coverage-full`. The selector includes committed, dirty, staged, and untracked files by default, or an explicit planned path set when you pass `--files "<file list>"`.
 
 Use [docs/testing/TESTING.md](docs/testing/TESTING.md) for the current meaning of `make ci*`, `make test-coverage*`, and `make db-verify`, including current review-lane caveats.
 
