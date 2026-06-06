@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 import { savedReportsApiClient } from '../api/savedReportsApiClient';
 import type { PublicReportSnapshotMeta } from '../../../types/savedReport';
 import { AuthHeroShell, PrimaryButton, SecondaryButton } from '../../../components/ui';
@@ -11,12 +11,33 @@ const LIFECYCLE_LABELS: Record<string, string> = {
   purged: 'Purged',
 };
 
+const readFragmentToken = (hash?: string): string => {
+  const fragment = hash ?? (typeof window === 'undefined' ? '' : window.location.hash);
+  return decodeURIComponent(fragment.replace(/^#/, '').trim());
+};
+
 export default function PublicReportSnapshotPage() {
-  const { token } = useParams<{ token: string }>();
+  const { token: legacyToken } = useParams<{ token: string }>();
+  const location = useLocation();
+  const [token, setToken] = useState(() => readFragmentToken(location.hash) || legacyToken || '');
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState<'csv' | 'xlsx' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [meta, setMeta] = useState<PublicReportSnapshotMeta | null>(null);
+
+  useEffect(() => {
+    const fragmentToken = readFragmentToken(location.hash);
+    const nextToken = fragmentToken || legacyToken || '';
+    setToken(nextToken);
+
+    if (fragmentToken && typeof window !== 'undefined') {
+      window.history.replaceState(
+        window.history.state,
+        document.title,
+        `${location.pathname}${location.search}`
+      );
+    }
+  }, [legacyToken, location.hash, location.pathname, location.search]);
 
   useEffect(() => {
     const load = async () => {
@@ -57,15 +78,12 @@ export default function PublicReportSnapshotPage() {
     setError(null);
     try {
       const blobPart = await savedReportsApiClient.downloadPublicReportSnapshot(token, format);
-      const blob = new Blob(
-        [blobPart],
-        {
-          type:
-            format === 'xlsx'
-              ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-              : 'text/csv',
-        }
-      );
+      const blob = new Blob([blobPart], {
+        type:
+          format === 'xlsx'
+            ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            : 'text/csv',
+      });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -95,7 +113,9 @@ export default function PublicReportSnapshotPage() {
         'Lifecycle controls automatically disable expired snapshots.',
       ]}
     >
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-text-muted">Snapshot details</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-text-muted">
+        Snapshot details
+      </p>
       {loading && (
         <p className="mt-4 text-sm text-app-text-muted" aria-live="polite">
           Loading snapshot details...
@@ -103,7 +123,10 @@ export default function PublicReportSnapshotPage() {
       )}
 
       {!loading && error && (
-        <div className="mt-4 rounded-lg border border-app-border bg-app-accent-soft p-3 text-sm text-app-accent-text" role="alert">
+        <div
+          className="mt-4 rounded-lg border border-app-border bg-app-accent-soft p-3 text-sm text-app-accent-text"
+          role="alert"
+        >
           {error}
         </div>
       )}

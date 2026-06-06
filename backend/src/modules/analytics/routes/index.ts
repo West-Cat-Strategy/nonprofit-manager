@@ -9,6 +9,7 @@ import {
   requireOrgAnalytics,
 } from '@middleware/domains/security';
 import { loadDataScope } from '@middleware/domains/data';
+import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
 import { validateParams, validateQuery } from '@middleware/zodValidation';
 import { isoDateSchema, uuidSchema } from '@validations/shared';
 import { createAnalyticsController } from '../controllers/analytics.controller';
@@ -66,6 +67,7 @@ export const createAnalyticsRoutes = (): Router => {
   const controller = createAnalyticsController();
 
   router.use(authenticate);
+  router.use(requireActiveOrganizationContext);
   router.use(loadDataScope('analytics'));
 
   router.get(

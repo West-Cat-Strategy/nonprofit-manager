@@ -8,12 +8,12 @@ import {
   createRoleHandler,
   deletePolicyGroupHandler,
   deleteRoleHandler,
-    getBranding,
-    getEmailSettings,
-    getOrganizationSettingsHandler,
-    getRegistrationSettingsHandler,
-    getTwilioSettings,
-    getUserAccessHandler,
+  getBranding,
+  getEmailSettings,
+  getOrganizationSettingsHandler,
+  getRegistrationSettingsHandler,
+  getTwilioSettings,
+  getUserAccessHandler,
   listOrganizationAccountsHandler,
   listPendingRegistrationsHandler,
   listPermissions,
@@ -60,11 +60,18 @@ import {
   updateOutcomeDefinitionSchema,
 } from '@validations/outcomeDefinition';
 import { Permission } from '@utils/permissions';
+import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
 
 const router = express.Router();
 
-router.get('/branding', authenticate, getBranding);
-router.put('/branding', authenticate, requirePermission(Permission.ADMIN_BRANDING), putBranding);
+router.get('/branding', authenticate, requireActiveOrganizationContext, getBranding);
+router.put(
+  '/branding',
+  authenticate,
+  requireActiveOrganizationContext,
+  requirePermission(Permission.ADMIN_BRANDING),
+  putBranding
+);
 
 router.get(
   '/organization-settings',
@@ -138,7 +145,12 @@ router.post(
 );
 
 router.get('/roles', authenticate, requirePermission(Permission.ADMIN_USERS), listRoles);
-router.get('/permissions', authenticate, requirePermission(Permission.ADMIN_USERS), listPermissions);
+router.get(
+  '/permissions',
+  authenticate,
+  requirePermission(Permission.ADMIN_USERS),
+  listPermissions
+);
 router.post(
   '/roles',
   authenticate,
@@ -162,7 +174,12 @@ router.delete(
   deleteRoleHandler
 );
 
-router.get('/groups', authenticate, requirePermission(Permission.ADMIN_USERS), listPolicyGroupsHandler);
+router.get(
+  '/groups',
+  authenticate,
+  requirePermission(Permission.ADMIN_USERS),
+  listPolicyGroupsHandler
+);
 router.post(
   '/groups',
   authenticate,

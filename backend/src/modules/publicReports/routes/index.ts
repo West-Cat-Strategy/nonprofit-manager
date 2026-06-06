@@ -13,10 +13,19 @@ const publicTokenParamsSchema = z.object({
   token: z.string().trim().min(1).max(255),
 });
 
-const publicDownloadQuerySchema = z.object({
-  format: z.enum(['csv', 'xlsx']),
-}).strict();
+const publicDownloadQuerySchema = z
+  .object({
+    format: z.enum(['csv', 'xlsx']),
+  })
+  .strict();
 
+router.get('/', publicReportTokenLimiterMiddleware, getReportByPublicToken);
+router.get(
+  '/download',
+  publicReportTokenLimiterMiddleware,
+  validateQuery(publicDownloadQuerySchema),
+  downloadPublicReportByToken
+);
 router.get(
   '/:token',
   publicReportTokenLimiterMiddleware,

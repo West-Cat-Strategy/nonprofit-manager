@@ -25,10 +25,9 @@ describe('Auth API Integration Tests', () => {
       return existing.rows[0].id;
     }
 
-    const userResult = await pool.query<{ id: string }>(
-      'SELECT id FROM users WHERE email = $1',
-      [testEmail]
-    );
+    const userResult = await pool.query<{ id: string }>('SELECT id FROM users WHERE email = $1', [
+      testEmail,
+    ]);
 
     const userId = userResult.rows[0]?.id;
     if (!userId) {
@@ -45,10 +44,9 @@ describe('Auth API Integration Tests', () => {
     return created.rows[0].id;
   };
   const ensureOrganizationAccessForUser = async (email: string): Promise<string> => {
-    const userResult = await pool.query<{ id: string }>(
-      'SELECT id FROM users WHERE email = $1',
-      [email]
-    );
+    const userResult = await pool.query<{ id: string }>('SELECT id FROM users WHERE email = $1', [
+      email,
+    ]);
 
     const userId = userResult.rows[0]?.id;
     if (!userId) {
@@ -162,7 +160,10 @@ describe('Auth API Integration Tests', () => {
       await safeDelete('DELETE FROM tasks WHERE created_by = ANY($1)', [userIds]);
       await safeDelete('DELETE FROM volunteer_assignments WHERE created_by = ANY($1)', [userIds]);
       await safeDelete('DELETE FROM volunteers WHERE created_by = ANY($1)', [userIds]);
-      await safeDelete('DELETE FROM event_registrations WHERE contact_id IN (SELECT id FROM contacts WHERE created_by = ANY($1))', [userIds]);
+      await safeDelete(
+        'DELETE FROM event_registrations WHERE contact_id IN (SELECT id FROM contacts WHERE created_by = ANY($1))',
+        [userIds]
+      );
       await safeDelete('DELETE FROM contacts WHERE created_by = ANY($1)', [userIds]);
       await safeDelete('DELETE FROM events WHERE created_by = ANY($1)', [userIds]);
       await safeDelete('DELETE FROM accounts WHERE created_by = ANY($1)', [userIds]);
@@ -230,10 +231,9 @@ describe('Auth API Integration Tests', () => {
         .expect(201);
 
       // Verify password is hashed in database
-      const result = await pool.query(
-        'SELECT password_hash FROM users WHERE email = $1',
-        [newEmail]
-      );
+      const result = await pool.query('SELECT password_hash FROM users WHERE email = $1', [
+        newEmail,
+      ]);
 
       expect(result.rows[0].password_hash).toBeDefined();
       expect(result.rows[0].password_hash).not.toBe(testPassword);
@@ -276,7 +276,9 @@ describe('Auth API Integration Tests', () => {
 
       expect(response.body.organizationId).toBe(expectedOrganizationId);
 
-      const decoded = jwt.verify(response.body.token, getJwtSecret()) as { organizationId?: string };
+      const decoded = jwt.verify(response.body.token, getJwtSecret()) as {
+        organizationId?: string;
+      };
       expect(decoded.organizationId).toBe(expectedOrganizationId);
 
       await request(app)
@@ -335,7 +337,6 @@ describe('Auth API Integration Tests', () => {
       // JWT format: header.payload.signature
       expect(token.split('.')).toHaveLength(3);
     });
-
   });
 
   describe('GET /api/v2/auth/me', () => {
@@ -392,10 +393,7 @@ describe('Auth API Integration Tests', () => {
     });
 
     it('should reject request with malformed Authorization header', async () => {
-      await request(app)
-        .get('/api/v2/auth/me')
-        .set('Authorization', 'InvalidFormat')
-        .expect(401);
+      await request(app).get('/api/v2/auth/me').set('Authorization', 'InvalidFormat').expect(401);
     });
 
     it('invalidates an existing token after a role change bumps auth revision', async () => {
@@ -451,10 +449,9 @@ describe('Auth API Integration Tests', () => {
         .expect(201);
 
       const currentToken = registerResponse.body.token;
-      const userResult = await pool.query<{ id: string }>(
-        'SELECT id FROM users WHERE email = $1',
-        [email]
-      );
+      const userResult = await pool.query<{ id: string }>('SELECT id FROM users WHERE email = $1', [
+        email,
+      ]);
       const updatedPasswordHash = await bcrypt.hash('NewPasswordRevision123!', 10);
 
       await pool.query(
@@ -507,20 +504,22 @@ describe('Auth API Integration Tests', () => {
 
   describe('GET /api/v2/auth/bootstrap', () => {
     it('returns startup-scoped auth bootstrap data for authenticated requests', async () => {
+      const organizationId = await ensureOrganizationAccessForUser(testEmail);
       await pool.query(
         `CREATE TABLE IF NOT EXISTS organization_branding (
-          id INTEGER PRIMARY KEY CHECK (id = 1),
+          organization_id UUID PRIMARY KEY REFERENCES accounts(id) ON DELETE CASCADE,
           config JSONB NOT NULL DEFAULT '{}'::jsonb,
           created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
           updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
         )`
       );
       await pool.query(
-        `INSERT INTO organization_branding (id, config)
-         VALUES (1, $1::jsonb)
-         ON CONFLICT (id)
+        `INSERT INTO organization_branding (organization_id, config)
+         VALUES ($1, $2::jsonb)
+         ON CONFLICT (organization_id)
          DO UPDATE SET config = EXCLUDED.config, updated_at = NOW()`,
         [
+          organizationId,
           JSON.stringify({
             appName: 'West Cat',
             appIcon: null,
@@ -628,7 +627,9 @@ describe('Auth API Integration Tests', () => {
     });
 
     it('rejects an explicit organization override when the user lacks access', async () => {
-      const userResult = await pool.query<{ id: string }>('SELECT id FROM users WHERE email = $1', [testEmail]);
+      const userResult = await pool.query<{ id: string }>('SELECT id FROM users WHERE email = $1', [
+        testEmail,
+      ]);
       const userId = userResult.rows[0]?.id;
       expect(userId).toBeTruthy();
 
@@ -666,7 +667,9 @@ describe('Auth API Integration Tests', () => {
     });
 
     it('rejects inactive explicit organization overrides', async () => {
-      const userResult = await pool.query<{ id: string }>('SELECT id FROM users WHERE email = $1', [testEmail]);
+      const userResult = await pool.query<{ id: string }>('SELECT id FROM users WHERE email = $1', [
+        testEmail,
+      ]);
       const userId = userResult.rows[0]?.id;
       expect(userId).toBeTruthy();
 
@@ -694,7 +697,8 @@ describe('Auth API Integration Tests', () => {
   });
 
   describe('PUT /api/v2/auth/profile', () => {
-    const profilePicture = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z0w8AAAAASUVORK5CYII=';
+    const profilePicture =
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z0w8AAAAASUVORK5CYII=';
 
     it('accepts camelCase profile updates and persists a base64 profile picture', async () => {
       const response = await request(app)
@@ -784,7 +788,9 @@ describe('Auth API Integration Tests', () => {
 
       expect(response.body.success).toBe(false);
       expect(response.body.error.code).toBe('validation_error');
-      expect(response.body.error.details.validation.body['notifications.emailNotifications']).toBeDefined();
+      expect(
+        response.body.error.details.validation.body['notifications.emailNotifications']
+      ).toBeDefined();
     });
 
     it('rejects unknown profile fields via strict validation', async () => {

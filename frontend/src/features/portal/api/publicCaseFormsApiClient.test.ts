@@ -14,7 +14,7 @@ describe('publicCaseFormsApiClient', () => {
     vi.clearAllMocks();
   });
 
-  it('uses token-scoped public form endpoints through the header-free public client', async () => {
+  it('uses tokenless public form endpoints with bearer-token headers', async () => {
     vi.mocked(publicApi.get).mockResolvedValueOnce({
       data: {
         success: true,
@@ -89,23 +89,35 @@ describe('publicCaseFormsApiClient', () => {
     await publicCaseFormsApiClient.saveDraft('token-1', { answers: { consent: true } });
     await publicCaseFormsApiClient.submit('token-1', { answers: { consent: true } });
 
-    expect(publicApi.get).toHaveBeenNthCalledWith(1, '/v2/public/case-forms/token-1');
+    expect(publicApi.get).toHaveBeenNthCalledWith(1, '/v2/public/case-forms', {
+      headers: { Authorization: 'Bearer token-1' },
+    });
     expect(publicApi.post).toHaveBeenNthCalledWith(
       1,
-      '/v2/public/case-forms/token-1/assets',
+      '/v2/public/case-forms/assets',
       expect.any(FormData),
       {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: 'Bearer token-1',
+        },
       }
     );
-    expect(publicApi.post).toHaveBeenNthCalledWith(2, '/v2/public/case-forms/token-1/draft', {
-      answers: { consent: true },
-    });
-    expect(publicApi.post).toHaveBeenNthCalledWith(3, '/v2/public/case-forms/token-1/submit', {
-      answers: { consent: true },
-    });
-    expect(publicCaseFormsApiClient.getResponsePacketDownloadUrl('token-1')).toBe(
-      '/api/v2/public/case-forms/token-1/response-packet'
+    expect(publicApi.post).toHaveBeenNthCalledWith(
+      2,
+      '/v2/public/case-forms/draft',
+      {
+        answers: { consent: true },
+      },
+      { headers: { Authorization: 'Bearer token-1' } }
+    );
+    expect(publicApi.post).toHaveBeenNthCalledWith(
+      3,
+      '/v2/public/case-forms/submit',
+      {
+        answers: { consent: true },
+      },
+      { headers: { Authorization: 'Bearer token-1' } }
     );
   });
 });

@@ -1,10 +1,10 @@
 # Validation & Audit Index
 
-**Last Updated:** 2026-05-16
+**Last Updated:** 2026-06-05
 
 Use this index for active validation references first, and the validation archive second. For live task ownership, blockers, and next steps, use [../phases/planning-and-progress.md](../phases/planning-and-progress.md) instead of treating these files as a workboard. Detailed persona-validation methodology now lives in tracked skill references.
 
-For Phase 5 validation work, treat the proof sequence as host first and Docker second: update the active validation note with the current `make ci-full` status before recording any follow-on `cd e2e && npm run test:docker:ci` or `cd e2e && npm run test:docker:audit` results.
+For Phase 5 validation work, treat the proof sequence as selected host/full checks first and Docker follow-ons second. Use `make release-check` for release-facing proof; when a narrower host lane is selected, record the current selector or `make ci-full` status before any follow-on `cd e2e && npm run test:docker:ci` or `cd e2e && npm run test:docker:audit` results.
 
 ## Start Here
 
@@ -20,6 +20,7 @@ For Phase 5 validation work, treat the proof sequence as host first and Docker s
 | [AUTH_ALIAS_USAGE_REPORT_2026-04-14.md](AUTH_ALIAS_USAGE_REPORT_2026-04-14.md) | Operational evidence note | Current deprecation-readiness snapshot for legacy auth alias telemetry and the linked dashboard/query workflow |
 | [CASES_INTAKE_SAVE_VERIFICATION_2026-05-13.md](CASES_INTAKE_SAVE_VERIFICATION_2026-05-13.md) | Active validation note | Cases and intake save-path verification for staff case creation, staff intake, public website referral/contact intake, portal signup/admin approval, and portal/public case-form submissions, including focused frontend/backend proof and the current Docker blocker for browser/runtime wrappers |
 | [CODEBASE_REVIEW_CLEANUP_AUDIT_2026-05-16.md](CODEBASE_REVIEW_CLEANUP_AUDIT_2026-05-16.md) | Active audit note | Conservative repo-health cleanup audit for the May 16 Review queue reconciliation, ignored local runtime clutter cleanup, recovered DB/Docker proof, and final validation status |
+| [CODE_REVIEW_REMEDIATION_PROOF_2026-06-05.md](CODE_REVIEW_REMEDIATION_PROOF_2026-06-05.md) | Active remediation proof | Code-review remediation implementation proof for tenant-boundary hardening, public token URL scrubbing, Mautic outbound guard, dependency audit cleanup, frontend accessibility/session fixes, focused validation, and Docker-gated follow-up commands |
 | [P5-T136_SECURITY_FOCUSED_CODEBASE_IMPROVEMENT_PROOF_2026-05-16.md](P5-T136_SECURITY_FOCUSED_CODEBASE_IMPROVEMENT_PROOF_2026-05-16.md) | Active proof note | Security-focused codebase improvement batch from the May 16 review, covering webhook contract hardening, public-token abuse controls, payment/customer authorization, communications provider contact-scope enforcement, and deferred candidate backlog |
 | [DOCS_AGGRESSIVE_PRUNE_INVENTORY_2026-05-07.md](DOCS_AGGRESSIVE_PRUNE_INVENTORY_2026-05-07.md) | Docs inventory and prune decision note | Starting inventory, orphan review, and prune rules for the aggressive docs refactor branch |
 | [P5-T75_AUTH_ALIAS_GATE_HANDOFF_2026-05-05.md](P5-T75_AUTH_ALIAS_GATE_HANDOFF_2026-05-05.md) | Row-local handoff note | Operational handoff for the time-gated auth alias deprecation row, preserving alias compatibility until telemetry gates and the July 1 earliest enforcement date are satisfied |
@@ -130,8 +131,8 @@ For Phase 5 validation work, treat the proof sequence as host first and Docker s
 
 ## Phase 5 Proof Order
 
-1. Run or review the host validation gate first through `make ci-full`.
-2. When the host gate is stable enough to continue, run or review the Docker follow-ons in order: `cd e2e && npm run test:docker:ci`, then `cd e2e && npm run test:docker:audit`.
+1. Run or review the selected host/full validation gate first; use `make release-check` for release-facing proof and `make ci-full` for the full host CI lane.
+2. When the host/full gate is stable enough to continue, run or review the Docker follow-ons in order: `cd e2e && npm run test:docker:ci`, then `cd e2e && npm run test:docker:audit`.
 3. The `P5-T12` host/Docker sequence is signed off in [../phases/archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md](../phases/archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md); keep future validation changes in an active note until their host/Docker sequence is complete, then move only dated, closed, or superseded material into the archive.
 
 ## Archive

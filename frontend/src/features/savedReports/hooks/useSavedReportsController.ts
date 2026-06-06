@@ -19,6 +19,9 @@ const formatLoadError = formatApiErrorMessageWith('Failed to fetch saved reports
 const formatDeleteError = formatApiErrorMessageWith('Failed to delete saved report');
 const formatScheduleError = formatApiErrorMessageWith('Failed to create scheduled report');
 
+const buildPublicReportUrl = (token: string): string =>
+  `${window.location.origin}/public/reports#${token}`;
+
 const toDateTimeLocal = (isoValue?: string): string => {
   if (!isoValue) {
     return '';
@@ -100,7 +103,7 @@ export function useSavedReportsController() {
     if (!publicLinkToken) {
       return null;
     }
-    return publicLinkUrl || `${window.location.origin}/public/reports/${publicLinkToken}`;
+    return publicLinkUrl || buildPublicReportUrl(publicLinkToken);
   }, [publicLinkToken, publicLinkUrl]);
 
   const resetScheduleDialog = () => {
@@ -189,9 +192,7 @@ export function useSavedReportsController() {
     setShareCanEdit(Boolean(report.share_settings?.can_edit));
     setPublicLinkExpiryLocal(toDateTimeLocal(report.share_settings?.expires_at));
     setPublicLinkToken(report.public_token || null);
-    setPublicLinkUrl(
-      report.public_token ? `${window.location.origin}/public/reports/${report.public_token}` : null
-    );
+    setPublicLinkUrl(report.public_token ? buildPublicReportUrl(report.public_token) : null);
     setShareSearch('');
     void loadSharePrincipals();
   };
@@ -287,7 +288,7 @@ export function useSavedReportsController() {
         publicLinkExpiryLocal ? new Date(publicLinkExpiryLocal).toISOString() : undefined
       );
       setPublicLinkToken(response.token);
-      setPublicLinkUrl(`${window.location.origin}${response.url}`);
+      setPublicLinkUrl(buildPublicReportUrl(response.token));
       await refreshReportsAfterMutation();
     } catch (generateError) {
       const message =

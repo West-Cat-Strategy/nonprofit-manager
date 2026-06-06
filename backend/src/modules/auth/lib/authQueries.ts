@@ -101,10 +101,6 @@ export interface ProfileUpdateInput {
   notifications?: Record<string, unknown>;
 }
 
-type QueryExecutor = {
-  query: typeof pool.query;
-};
-
 export const requireAuthenticatedUser = (
   req: AuthRequest,
   res: Response
@@ -121,35 +117,10 @@ export const requireAuthenticatedUser = (
   };
 };
 
-export const getDefaultOrganizationId = async (db: QueryExecutor = pool): Promise<string | null> => {
-  try {
-    const result = await db.query(
-      `SELECT id
-       FROM accounts
-       WHERE account_type = 'organization'
-         AND COALESCE(is_active, true) = true
-       ORDER BY created_at ASC
-       LIMIT 1`
-    );
-    return result.rows[0]?.id || null;
-  } catch (error) {
-    const pgError = error as { code?: string };
-    // Some tests run against partial schemas where accounts may not exist yet.
-    if (pgError.code === '42P01') {
-      return null;
-    }
-    throw error;
-  }
-};
-
 export const getAuthenticatedOrganizationId = async (userId: string): Promise<string | null> => {
   return withUserContextTransaction(userId, async (client) => {
     const accessOverview = await getUserAccessOverview(userId, client);
-    if (accessOverview.organizationAccess[0]) {
-      return accessOverview.organizationAccess[0];
-    }
-
-    return getDefaultOrganizationId(client);
+    return accessOverview.organizationAccess[0] ?? null;
   });
 };
 
@@ -211,7 +182,9 @@ export const createInitialAdminUser = async (input: {
   firstName: string;
   lastName: string;
 }): Promise<Pick<UserRow, 'id' | 'email' | 'first_name' | 'last_name' | 'role' | 'created_at'>> => {
-  const result = await pool.query<Pick<UserRow, 'id' | 'email' | 'first_name' | 'last_name' | 'role' | 'created_at'>>(
+  const result = await pool.query<
+    Pick<UserRow, 'id' | 'email' | 'first_name' | 'last_name' | 'role' | 'created_at'>
+  >(
     `INSERT INTO users (email, password_hash, first_name, last_name, role)
      VALUES ($1, $2, $3, $4, $5)
      RETURNING id, email, first_name, last_name, role, created_at`,
@@ -323,7 +296,10 @@ export const findExistingUserByEmailExcludingId = async (
   email: string,
   userId: string
 ): Promise<string | null> => {
-  const result = await pool.query('SELECT id FROM users WHERE email = $1 AND id != $2', [email, userId]);
+  const result = await pool.query('SELECT id FROM users WHERE email = $1 AND id != $2', [
+    email,
+    userId,
+  ]);
   return result.rows[0]?.id || null;
 };
 

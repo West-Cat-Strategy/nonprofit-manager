@@ -138,6 +138,15 @@ export const login = async (
 
       logger.info(`MFA required for user: ${user.email}`, { ip: clientIp, correlationId });
       const organizationId = await getAuthenticatedOrganizationId(user.id);
+      if (!organizationId) {
+        await trackLoginAttempt(normalizedEmail, false, user.id, clientIp);
+        logger.warn('Login blocked: user has no active organization access', {
+          userId: user.id,
+          email: user.email,
+          correlationId,
+        });
+        return forbidden(res, 'No active organization access');
+      }
       return sendSuccess(res, {
         ...issueTotpMfaChallenge({
           id: user.id,
@@ -153,6 +162,15 @@ export const login = async (
     await trackLoginAttempt(normalizedEmail, true, user.id, clientIp);
 
     const organizationId = await getAuthenticatedOrganizationId(user.id);
+    if (!organizationId) {
+      await trackLoginAttempt(normalizedEmail, false, user.id, clientIp);
+      logger.warn('Login blocked: user has no active organization access', {
+        userId: user.id,
+        email: user.email,
+        correlationId,
+      });
+      return forbidden(res, 'No active organization access');
+    }
     const token = issueAppSessionToken({
       id: user.id,
       email: user.email,

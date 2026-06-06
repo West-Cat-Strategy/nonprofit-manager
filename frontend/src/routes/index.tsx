@@ -87,6 +87,7 @@ const AppRoutes = () => {
         <Route path="/admin-registration-review/:token" element={<AdminRegistrationReview />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
+        <Route path="/public/reports" element={<PublicReportSnapshot />} />
         <Route path="/public/reports/:token" element={<PublicReportSnapshot />} />
         <Route path="/public/events/:site" element={<PublicEventsPage />} />
         <Route path="/event-check-in/:id" element={<PublicEventCheckInPage />} />
@@ -98,9 +99,7 @@ const AppRoutes = () => {
         {createPortalPublicRoutes()}
       </Route>
 
-      <Route element={<PortalShellRoute />}>
-        {createPortalProtectedRoutes()}
-      </Route>
+      <Route element={<PortalShellRoute />}>{createPortalProtectedRoutes()}</Route>
 
       <Route element={<AuthenticatedShellRoute />}>
         {/* Neo-Brutalist Dashboard (Primary) */}

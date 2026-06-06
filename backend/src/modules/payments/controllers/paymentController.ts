@@ -28,7 +28,9 @@ export const setPaymentPool = (dbPool: Pool): void => {
 };
 
 const isMissingTableError = (error: unknown): boolean => {
-  return typeof error === 'object' && error !== null && (error as { code?: string }).code === '42P01';
+  return (
+    typeof error === 'object' && error !== null && (error as { code?: string }).code === '42P01'
+  );
 };
 
 const getRequestUserAgent = (req: Request): string | null => {
@@ -353,7 +355,10 @@ export const createPaymentIntent = async (req: AuthRequest, res: Response): Prom
 /**
  * Get payment intent status
  */
-export const getPaymentIntent = async (req: Request<{ id: string }>, res: Response): Promise<void> => {
+export const getPaymentIntent = async (
+  req: Request<{ id: string }>,
+  res: Response
+): Promise<void> => {
   try {
     const { id } = req.params;
     const provider =
@@ -392,7 +397,10 @@ export const getPaymentIntent = async (req: Request<{ id: string }>, res: Respon
 /**
  * Cancel payment intent
  */
-export const cancelPaymentIntent = async (req: Request<{ id: string }>, res: Response): Promise<void> => {
+export const cancelPaymentIntent = async (
+  req: Request<{ id: string }>,
+  res: Response
+): Promise<void> => {
   try {
     const { id } = req.params;
     const provider =
@@ -440,11 +448,23 @@ export const createRefund = async (req: AuthRequest, res: Response): Promise<voi
       return;
     }
 
+    const selectedProvider = provider || paymentProviderService.getPaymentConfig().defaultProvider;
+    const access = await resolvePaymentIntentAccess(
+      req,
+      res,
+      paymentIntentId,
+      selectedProvider,
+      'Failed to verify refund access'
+    );
+    if (!access) {
+      return;
+    }
+
     const refund = await paymentProviderService.createRefund({
       paymentIntentId,
       amount,
       reason,
-      provider,
+      provider: selectedProvider,
     });
 
     // Append audit trail for mutating payment operations.
@@ -504,7 +524,10 @@ export const createCustomer = async (req: AuthRequest, res: Response): Promise<v
       forbidden(res, 'Payment processing permission is required');
       return;
     }
-    if (contactId && !(await hasContactOwnership(organizationResult.data.organizationId, contactId))) {
+    if (
+      contactId &&
+      !(await hasContactOwnership(organizationResult.data.organizationId, contactId))
+    ) {
       forbidden(res, 'Selected contact must belong to this organization');
       return;
     }
@@ -519,11 +542,13 @@ export const createCustomer = async (req: AuthRequest, res: Response): Promise<v
 
     // Optionally update the legacy Stripe customer reference for contact-based billing flows.
     if (pool && contactId && provider === 'stripe') {
-      await pool.query(
-        `UPDATE contacts SET stripe_customer_id = $1, updated_at = CURRENT_TIMESTAMP
+      await pool
+        .query(
+          `UPDATE contacts SET stripe_customer_id = $1, updated_at = CURRENT_TIMESTAMP
          WHERE id = $2`,
-        [customer.id, contactId]
-      ).catch((err) => logger.error('Failed to update contact with Stripe customer ID', { err }));
+          [customer.id, contactId]
+        )
+        .catch((err) => logger.error('Failed to update contact with Stripe customer ID', { err }));
     }
 
     sendSuccess(res, customer, 201);
@@ -536,7 +561,10 @@ export const createCustomer = async (req: AuthRequest, res: Response): Promise<v
 /**
  * Get customer
  */
-export const getCustomer = async (req: AuthRequest & Request<{ id: string }>, res: Response): Promise<void> => {
+export const getCustomer = async (
+  req: AuthRequest & Request<{ id: string }>,
+  res: Response
+): Promise<void> => {
   try {
     const { id } = req.params;
     const provider =
@@ -561,7 +589,9 @@ export const getCustomer = async (req: AuthRequest & Request<{ id: string }>, re
       );
       return;
     }
-    if (!(await hasPaymentCustomerOwnership(organizationResult.data.organizationId, provider, id))) {
+    if (
+      !(await hasPaymentCustomerOwnership(organizationResult.data.organizationId, provider, id))
+    ) {
       notFoundMessage(res, 'Customer not found');
       return;
     }
@@ -609,12 +639,21 @@ export const listPaymentMethods = async (
       );
       return;
     }
-    if (!(await hasPaymentCustomerOwnership(organizationResult.data.organizationId, provider, customerId))) {
+    if (
+      !(await hasPaymentCustomerOwnership(
+        organizationResult.data.organizationId,
+        provider,
+        customerId
+      ))
+    ) {
       notFoundMessage(res, 'Customer payment methods not found');
       return;
     }
 
-    const paymentMethods = await paymentProviderService.listPaymentMethods(customerId, provider as any);
+    const paymentMethods = await paymentProviderService.listPaymentMethods(
+      customerId,
+      provider as any
+    );
     sendSuccess(res, paymentMethods);
   } catch (error) {
     if (isNotFoundProviderError(error)) {
@@ -638,7 +677,9 @@ const getDonationIdFromWebhookObject = (object: Record<string, unknown>): string
   );
 };
 
-const getProviderTransactionIdFromWebhookObject = (object: Record<string, unknown>): string | null => {
+const getProviderTransactionIdFromWebhookObject = (
+  object: Record<string, unknown>
+): string | null => {
   const candidates = [
     object.id,
     object.payment_intent,
@@ -795,7 +836,10 @@ export const handleWebhook = async (req: Request, res: Response): Promise<void> 
       case 'invoice.paid':
       case 'invoice.payment_failed':
       default:
-        logger.debug('Unhandled webhook event type', { eventType: event.type, provider: event.provider });
+        logger.debug('Unhandled webhook event type', {
+          eventType: event.type,
+          provider: event.provider,
+        });
     }
 
     await markPaymentWebhookReceiptStatus(event.provider, event.id, 'processed');

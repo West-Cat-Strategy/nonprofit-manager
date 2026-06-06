@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 import {
   EmptyState,
   ErrorState,
@@ -21,6 +21,11 @@ import { formatPortalDateTime } from '../utils/dateDisplay';
 const SUBMISSION_RECEIPT_STATUSES = new Set(['submitted', 'reviewed']);
 const LOCKED_RECEIPT_STATUSES = new Set(['reviewed']);
 const INACTIVE_STATUSES = new Set(['expired', 'cancelled', 'closed']);
+
+const readFragmentToken = (hash?: string): string => {
+  const fragment = hash ?? (typeof window === 'undefined' ? '' : window.location.hash);
+  return decodeURIComponent(fragment.replace(/^#/, '').trim());
+};
 
 const getUnavailableCopy = (status: string | null | undefined) => {
   switch (status) {
@@ -52,14 +57,31 @@ const getUnavailableCopy = (status: string | null | undefined) => {
 };
 
 export default function PublicCaseFormPage() {
-  const { token } = useParams<{ token: string }>();
+  const { token: legacyToken } = useParams<{ token: string }>();
+  const location = useLocation();
   const { showSuccess, showError } = useToast();
+  const [token, setToken] = useState(() => readFragmentToken(location.hash) || legacyToken || '');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [packetDownloading, setPacketDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<CaseFormAssignmentDetail | null>(null);
   const [draftAnswers, setDraftAnswers] = useState<Record<string, unknown>>({});
   const draftSnapshotRef = useRef('');
+
+  useEffect(() => {
+    const fragmentToken = readFragmentToken(location.hash);
+    const nextToken = fragmentToken || legacyToken || '';
+    setToken(nextToken);
+
+    if (fragmentToken && typeof window !== 'undefined') {
+      window.history.replaceState(
+        window.history.state,
+        document.title,
+        `${location.pathname}${location.search}`
+      );
+    }
+  }, [legacyToken, location.hash, location.pathname, location.search]);
 
   const loadForm = useCallback(async (): Promise<void> => {
     if (!token) {
@@ -167,7 +189,9 @@ export default function PublicCaseFormPage() {
         client_submission_id: crypto.randomUUID(),
       });
       setDetail(nextDetail);
-      draftSnapshotRef.current = JSON.stringify(nextDetail.assignment.current_draft_answers || draftAnswers);
+      draftSnapshotRef.current = JSON.stringify(
+        nextDetail.assignment.current_draft_answers || draftAnswers
+      );
       showSuccess('Form submitted');
     } catch (submitError) {
       showError(submitError instanceof Error ? submitError.message : 'Failed to submit form');
@@ -176,10 +200,39 @@ export default function PublicCaseFormPage() {
     }
   };
 
+  const handleDownloadPacket = async (): Promise<void> => {
+    if (!token || !assignment?.latest_submission?.response_packet_download_url) return;
+    setPacketDownloading(true);
+    try {
+      const blobPart = await publicCaseFormsApiClient.downloadResponsePacket(token);
+      const blob = new Blob([blobPart], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${assignment.title || 'submission'}-packet.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (downloadError) {
+      showError(
+        downloadError instanceof Error
+          ? downloadError.message
+          : 'Failed to download submission packet'
+      );
+    } finally {
+      setPacketDownloading(false);
+    }
+  };
+
   const assignment = detail?.assignment ?? null;
   const assignmentStatus = assignment?.status ?? null;
-  const isReceiptState = assignmentStatus ? SUBMISSION_RECEIPT_STATUSES.has(assignmentStatus) : false;
-  const isLockedReceiptState = assignmentStatus ? LOCKED_RECEIPT_STATUSES.has(assignmentStatus) : false;
+  const isReceiptState = assignmentStatus
+    ? SUBMISSION_RECEIPT_STATUSES.has(assignmentStatus)
+    : false;
+  const isLockedReceiptState = assignmentStatus
+    ? LOCKED_RECEIPT_STATUSES.has(assignmentStatus)
+    : false;
   const isUnavailableState = assignmentStatus ? INACTIVE_STATUSES.has(assignmentStatus) : false;
   const isSubmittedAwaitingReview = assignmentStatus === 'submitted';
   const isRevisionRequested = assignmentStatus === 'revision_requested';
@@ -190,14 +243,11 @@ export default function PublicCaseFormPage() {
       ? formatPortalDateTime(assignment.latest_submission.created_at)
       : null;
   const dueAtLabel = assignment?.due_at ? formatPortalDateTime(assignment.due_at) : null;
-  const packetDownloadUrl =
+  const canDownloadPacket = Boolean(
     assignment?.latest_submission?.response_packet_download_url && token
-      ? publicCaseFormsApiClient.getResponsePacketDownloadUrl(token)
-      : null;
+  );
   const unavailableCopy =
-    isUnavailableState || (!loading && error)
-      ? getUnavailableCopy(assignmentStatus)
-      : null;
+    isUnavailableState || (!loading && error) ? getUnavailableCopy(assignmentStatus) : null;
 
   useEffect(() => {
     if (!token || !assignment || isLockedReceiptState || isUnavailableState || saving) return;
@@ -238,22 +288,19 @@ export default function PublicCaseFormPage() {
         'Complete the secure form shared with you and submit it directly to the organization.'
       }
       actions={
-        packetDownloadUrl ? (
-          <a
-            href={packetDownloadUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface px-4 py-2 text-sm font-semibold text-app-text shadow-sm transition hover:bg-app-surface-muted"
+        canDownloadPacket ? (
+          <SecondaryButton
+            type="button"
+            onClick={() => void handleDownloadPacket()}
+            disabled={packetDownloading}
           >
-            Download Submission Packet
-          </a>
+            {packetDownloading ? 'Downloading Packet...' : 'Download Submission Packet'}
+          </SecondaryButton>
         ) : null
       }
     >
       <section className="rounded-[var(--ui-radius-lg)] border border-app-border-muted bg-app-surface-elevated/92 p-6 shadow-[var(--ui-elev-2)]">
-        {loading ? (
-          <LoadingState label="Loading secure form..." />
-        ) : null}
+        {loading ? <LoadingState label="Loading secure form..." /> : null}
 
         {!loading && error ? (
           <div className="space-y-4">
@@ -344,11 +391,7 @@ export default function PublicCaseFormPage() {
                 >
                   {saving ? 'Saving...' : 'Save Draft'}
                 </SecondaryButton>
-                <PrimaryButton
-                  type="button"
-                  onClick={() => void handleSubmit()}
-                  disabled={saving}
-                >
+                <PrimaryButton type="button" onClick={() => void handleSubmit()} disabled={saving}>
                   {saving
                     ? 'Submitting...'
                     : isSubmittedAwaitingReview || isRevisionRequested

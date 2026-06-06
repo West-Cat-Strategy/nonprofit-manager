@@ -29,7 +29,7 @@ export const getCaseFormAssignmentDetailByToken = async (
     ...access.token.assignment,
     viewed_at: access.token.assignment.viewed_at || new Date(),
   }, {
-    responsePacketDownloadUrl: `/api/v2/public/case-forms/${rawToken}/response-packet`,
+    responsePacketDownloadUrl: '/api/v2/public/case-forms/response-packet',
     buildAssetDownloadUrl: null,
   });
 };
@@ -104,7 +104,7 @@ export const submitCaseFormByToken = async (
     { actorType: 'public', accessTokenId: access.token.id },
     payload,
     {
-      responsePacketDownloadUrl: `/api/v2/public/case-forms/${rawToken}/response-packet`,
+      responsePacketDownloadUrl: '/api/v2/public/case-forms/response-packet',
       buildAssetDownloadUrl: null,
     }
   );

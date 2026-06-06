@@ -3,17 +3,27 @@ import type { Response } from 'express';
 import request from 'supertest';
 
 const meetingsControllerMocks = {
-  listCommittees: jest.fn((_req: unknown, res: Response) => res.status(200).json({ committees: [] })),
+  listCommittees: jest.fn((_req: unknown, res: Response) =>
+    res.status(200).json({ committees: [] })
+  ),
   listMeetings: jest.fn((_req: unknown, res: Response) => res.status(200).json({ meetings: [] })),
-  getMeetingDetail: jest.fn((_req: unknown, res: Response) => res.status(200).json({ meeting: {} })),
+  getMeetingDetail: jest.fn((_req: unknown, res: Response) =>
+    res.status(200).json({ meeting: {} })
+  ),
   createMeeting: jest.fn((_req: unknown, res: Response) => res.status(201).json({ meeting: {} })),
   updateMeeting: jest.fn((_req: unknown, res: Response) => res.status(200).json({ meeting: {} })),
-  addAgendaItem: jest.fn((_req: unknown, res: Response) => res.status(201).json({ agendaItem: {} })),
+  addAgendaItem: jest.fn((_req: unknown, res: Response) =>
+    res.status(201).json({ agendaItem: {} })
+  ),
   reorderAgenda: jest.fn((_req: unknown, res: Response) => res.status(204).send()),
   addMotion: jest.fn((_req: unknown, res: Response) => res.status(201).json({ motion: {} })),
   updateMotion: jest.fn((_req: unknown, res: Response) => res.status(200).json({ motion: {} })),
-  createActionItem: jest.fn((_req: unknown, res: Response) => res.status(201).json({ actionItem: {} })),
-  getMinutesDraft: jest.fn((_req: unknown, res: Response) => res.status(200).json({ markdown: '# Draft' })),
+  createActionItem: jest.fn((_req: unknown, res: Response) =>
+    res.status(201).json({ actionItem: {} })
+  ),
+  getMinutesDraft: jest.fn((_req: unknown, res: Response) =>
+    res.status(200).json({ markdown: '# Draft' })
+  ),
 };
 
 jest.mock('../controllers', () => meetingsControllerMocks);
@@ -24,6 +34,17 @@ jest.mock('@middleware/domains/auth', () => {
     authenticate: (_req: unknown, _res: unknown, next: () => void) => next(),
   };
 });
+jest.mock('@middleware/requireActiveOrganizationContext', () => ({
+  __esModule: true,
+  requireActiveOrganizationContext: (req: any, _res: unknown, next: () => void) => {
+    if (req.user) {
+      req.organizationId = 'org-1';
+      req.accountId = 'org-1';
+      req.tenantId = 'org-1';
+    }
+    next();
+  },
+}));
 
 import { createMeetingsRoutes } from '../routes';
 

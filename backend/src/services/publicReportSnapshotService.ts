@@ -10,7 +10,6 @@ import type { ReportDefinition, ReportEntity } from '@app-types/report';
 const DEFAULT_RETENTION_DAYS = 90;
 const DEFAULT_SNAPSHOT_ROW_CAP = 10_000;
 const SNAPSHOT_SUBDIR = 'report-snapshots';
-const SCOPED_REPORT_ENTITIES: ReportEntity[] = ['cases', 'opportunities'];
 
 interface SavedReportRow {
   id: string;
@@ -124,7 +123,10 @@ export class PublicReportSnapshotService {
   }
 
   private getRetentionDays(): number {
-    return parsePositiveInt(process.env.REPORT_PUBLIC_SNAPSHOT_RETENTION_DAYS, DEFAULT_RETENTION_DAYS);
+    return parsePositiveInt(
+      process.env.REPORT_PUBLIC_SNAPSHOT_RETENTION_DAYS,
+      DEFAULT_RETENTION_DAYS
+    );
   }
 
   private getSnapshotRowCap(): number {
@@ -163,7 +165,9 @@ export class PublicReportSnapshotService {
   }
 
   private async safeDeleteSnapshotFiles(snapshot: SnapshotRow): Promise<void> {
-    const candidates = [snapshot.csv_file_path, snapshot.xlsx_file_path].filter(Boolean) as string[];
+    const candidates = [snapshot.csv_file_path, snapshot.xlsx_file_path].filter(
+      Boolean
+    ) as string[];
     for (const relative of candidates) {
       try {
         const full = ensureWithinUploadRoot(path.join(resolveUploadRoot(), relative));
@@ -211,9 +215,8 @@ export class PublicReportSnapshotService {
   }
 
   private assertScopeAvailability(entity: ReportEntity, organizationId?: string): void {
-    if (!SCOPED_REPORT_ENTITIES.includes(entity)) return;
     if (!organizationId) {
-      throw new Error('Organization scope is required for this report');
+      throw new Error(`Organization scope is required for ${entity} reports`);
     }
   }
 
@@ -368,7 +371,7 @@ export class PublicReportSnapshotService {
       client.release();
     }
 
-    return { token, url: `/public/reports/${token}` };
+    return { token, url: `/public/reports#${token}` };
   }
 
   async revokePublicLink(args: {
@@ -440,7 +443,10 @@ export class PublicReportSnapshotService {
     };
   }
 
-  async getPublicSnapshotDownload(token: string, format: 'csv' | 'xlsx'): Promise<{
+  async getPublicSnapshotDownload(
+    token: string,
+    format: 'csv' | 'xlsx'
+  ): Promise<{
     fileName: string;
     contentType: string;
     buffer: Buffer;

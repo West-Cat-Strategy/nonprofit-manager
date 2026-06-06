@@ -343,7 +343,7 @@ describe('CaseFormsUseCase', () => {
     expect(mocks.markAssignmentSent).toHaveBeenCalledTimes(1);
     expect(mocks.markAssignmentSent).toHaveBeenCalledWith(expect.anything(), assignment.id);
     expect(result.delivery_target).toBe('email');
-    expect(result.access_link_url).toMatch(/\/public\/case-forms\//);
+    expect(result.access_link_url).toMatch(/\/public\/case-forms#/);
   });
 
   it('does not mark email delivery sent when SMTP delivery fails', async () => {
@@ -411,7 +411,7 @@ describe('CaseFormsUseCase', () => {
     expect(mocks.markAssignmentSent).toHaveBeenCalledTimes(1);
     expect(mocks.markAssignmentSent).toHaveBeenCalledWith(expect.anything(), assignment.id);
     expect(result.delivery_target).toBe('portal_and_email');
-    expect(result.access_link_url).toMatch(/\/public\/case-forms\//);
+    expect(result.access_link_url).toMatch(/\/public\/case-forms#/);
   });
 
   it('sends an SMS secure link without requiring portal visibility', async () => {
@@ -455,7 +455,7 @@ describe('CaseFormsUseCase', () => {
     expect(sendSmsMock).toHaveBeenCalledWith(
       expect.objectContaining({
         to: '+15555550123',
-        body: expect.stringContaining('/public/case-forms/'),
+        body: expect.stringContaining('/public/case-forms#'),
       })
     );
     expect(mocks.updateAssignment).toHaveBeenCalledWith(
@@ -469,7 +469,7 @@ describe('CaseFormsUseCase', () => {
       })
     );
     expect(result.delivery_channels).toEqual(['sms']);
-    expect(result.access_link_url).toMatch(/\/public\/case-forms\//);
+    expect(result.access_link_url).toMatch(/\/public\/case-forms#/);
   });
 
   it('does not mark SMS delivery sent when Twilio delivery fails', async () => {

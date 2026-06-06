@@ -89,7 +89,7 @@ export const getBootstrap = async (
     }
 
     const [branding, organizationSettings] = await Promise.all([
-      getOrganizationBrandingConfig(),
+      organizationId ? getOrganizationBrandingConfig(organizationId) : Promise.resolve({}),
       organizationId ? findOrganizationSettings(organizationId) : Promise.resolve(null),
     ]);
     const [authorizationSnapshot, accessOverview] = await Promise.all([
@@ -120,7 +120,10 @@ export const getBootstrap = async (
       },
       organizationId: organizationId ?? null,
       branding,
-      preferences: pickStartupPreferences(preferences, organizationSettings?.config.timezone ?? null),
+      preferences: pickStartupPreferences(
+        preferences,
+        organizationSettings?.config.timezone ?? null
+      ),
       workspaceModules:
         organizationSettings?.config.workspaceModules ?? createDefaultWorkspaceModulesConfig(),
     });

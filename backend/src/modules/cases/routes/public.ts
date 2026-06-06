@@ -23,6 +23,29 @@ export const createPublicCaseFormsRoutes = (): Router => {
     new CaseFormsUseCase(new CaseFormsRepository())
   );
 
+  router.get('/', controller.getForm);
+  router.post(
+    '/assets',
+    publicCaseFormAssetLimiterMiddleware,
+    documentUpload.single('file'),
+    handleMulterError,
+    validateBody(caseFormAssetUploadSchema),
+    controller.uploadAsset
+  );
+  router.post(
+    '/draft',
+    publicCaseFormDraftLimiterMiddleware,
+    validateBody(caseFormDraftSchema),
+    controller.saveDraft
+  );
+  router.post(
+    '/submit',
+    publicCaseFormSubmitLimiterMiddleware,
+    validateBody(caseFormSubmitSchema),
+    controller.submit
+  );
+  router.get('/response-packet', controller.downloadResponsePacket);
+
   router.get('/:token', validateParams(caseFormTokenParamsSchema), controller.getForm);
   router.post(
     '/:token/assets',

@@ -14,6 +14,14 @@ import { forbidden } from '@utils/responseHelpers';
 const exportService = services.export;
 const analyticsService = services.analytics;
 
+const requireOrganizationId = (req: AuthRequest, res: Response): string | null => {
+  if (!req.organizationId) {
+    forbidden(res, 'Organization context required');
+    return null;
+  }
+  return req.organizationId;
+};
+
 const denyIfScopedExport = (scope: DataScopeFilter | undefined, res: Response): boolean => {
   if (!scope) return false;
   const hasScope =
@@ -41,6 +49,8 @@ export const exportAnalyticsSummary = async (
     if (denyIfScopedExport(scope, res)) {
       return;
     }
+    const organizationId = requireOrganizationId(req, res);
+    if (!organizationId) return;
     const format: ExportFormat = req.body.format || 'csv';
     const filters = {
       start_date: req.body.start_date,
@@ -50,7 +60,7 @@ export const exportAnalyticsSummary = async (
     };
 
     // Get analytics data
-    const summary = await analyticsService.getAnalyticsSummary(filters);
+    const summary = await analyticsService.getAnalyticsSummary({ ...filters, organizationId });
 
     const file = await exportService.exportAnalyticsSummary(summary, {
       format,
@@ -78,6 +88,8 @@ export const exportDonations = async (
     if (denyIfScopedExport(scope, res)) {
       return;
     }
+    const organizationId = requireOrganizationId(req, res);
+    if (!organizationId) return;
     const format: ExportFormat = req.body.format || 'csv';
     const filters = {
       start_date: req.body.start_date,
@@ -100,11 +112,11 @@ export const exportDonations = async (
         COALESCE(don.name, don.organization_name) as donor_name
       FROM donations d
       LEFT JOIN donors don ON d.donor_id = don.id
-      WHERE 1=1
+      WHERE d.account_id = $1
     `;
 
-    const params: any[] = [];
-    let paramCount = 1;
+    const params: any[] = [organizationId];
+    let paramCount = 2;
 
     if (filters.start_date) {
       query += ` AND d.donation_date >= $${paramCount++}`;
@@ -166,6 +178,8 @@ export const exportVolunteerHours = async (
     if (denyIfScopedExport(scope, res)) {
       return;
     }
+    const organizationId = requireOrganizationId(req, res);
+    if (!organizationId) return;
     const format: ExportFormat = req.body.format || 'csv';
     const filters = {
       start_date: req.body.start_date,
@@ -178,26 +192,27 @@ export const exportVolunteerHours = async (
     let query = `
       SELECT
         vh.id,
-        vh.log_date,
-        vh.hours,
+        vh.activity_date as log_date,
+        vh.hours_logged as hours,
         vh.activity_type,
         vh.description,
         v.first_name || ' ' || v.last_name as volunteer_name
       FROM volunteer_hours vh
       JOIN volunteers v ON vh.volunteer_id = v.id
-      WHERE 1=1
+      JOIN contacts c ON v.contact_id = c.id
+      WHERE c.account_id = $1
     `;
 
-    const params: any[] = [];
-    let paramCount = 1;
+    const params: any[] = [organizationId];
+    let paramCount = 2;
 
     if (filters.start_date) {
-      query += ` AND vh.log_date >= $${paramCount++}`;
+      query += ` AND vh.activity_date >= $${paramCount++}`;
       params.push(filters.start_date);
     }
 
     if (filters.end_date) {
-      query += ` AND vh.log_date <= $${paramCount++}`;
+      query += ` AND vh.activity_date <= $${paramCount++}`;
       params.push(filters.end_date);
     }
 
@@ -211,7 +226,7 @@ export const exportVolunteerHours = async (
       params.push(filters.activity_type);
     }
 
-    query += ` ORDER BY vh.log_date DESC`;
+    query += ` ORDER BY vh.activity_date DESC`;
 
     const result = await services.pool.query(query, params);
 
@@ -241,6 +256,8 @@ export const exportEvents = async (
     if (denyIfScopedExport(scope, res)) {
       return;
     }
+    const organizationId = requireOrganizationId(req, res);
+    if (!organizationId) return;
     const format: ExportFormat = req.body.format || 'csv';
     const filters = {
       start_date: req.body.start_date,
@@ -261,11 +278,11 @@ export const exportEvents = async (
         COUNT(DISTINCT er.id) FILTER (WHERE er.status = 'attended') as attended_count
       FROM events e
       LEFT JOIN event_registrations er ON e.id = er.event_id
-      WHERE 1=1
+      WHERE e.organization_id = $1
     `;
 
-    const params: any[] = [];
-    let paramCount = 1;
+    const params: any[] = [organizationId];
+    let paramCount = 2;
 
     if (filters.start_date) {
       query += ` AND e.start_date >= $${paramCount++}`;
@@ -318,6 +335,8 @@ export const exportComprehensive = async (
     if (denyIfScopedExport(scope, res)) {
       return;
     }
+    const organizationId = requireOrganizationId(req, res);
+    if (!organizationId) return;
     const format: ExportFormat = req.body.format || 'excel'; // Excel recommended for multi-sheet
     const filters = {
       start_date: req.body.start_date,
@@ -326,7 +345,7 @@ export const exportComprehensive = async (
 
     // Get all data
     const [summary, donations, volunteerHours, events] = await Promise.all([
-      analyticsService.getAnalyticsSummary(filters),
+      analyticsService.getAnalyticsSummary({ ...filters, organizationId }),
       services.pool.query(
         `SELECT
           d.donation_date,
@@ -335,23 +354,26 @@ export const exportComprehensive = async (
           COALESCE(don.name, don.organization_name) as donor_name
         FROM donations d
         LEFT JOIN donors don ON d.donor_id = don.id
-        WHERE d.donation_date >= $1 AND d.donation_date <= $2
+        WHERE d.account_id = $1
+          AND d.donation_date >= $2 AND d.donation_date <= $3
         ORDER BY d.donation_date DESC
         LIMIT 1000`,
-        [filters.start_date, filters.end_date]
+        [organizationId, filters.start_date, filters.end_date]
       ),
       services.pool.query(
         `SELECT
-          vh.log_date,
-          vh.hours,
+          vh.activity_date as log_date,
+          vh.hours_logged as hours,
           vh.activity_type,
           v.first_name || ' ' || v.last_name as volunteer_name
         FROM volunteer_hours vh
         JOIN volunteers v ON vh.volunteer_id = v.id
-        WHERE vh.log_date >= $1 AND vh.log_date <= $2
-        ORDER BY vh.log_date DESC
+        JOIN contacts c ON v.contact_id = c.id
+        WHERE c.account_id = $1
+          AND vh.activity_date >= $2 AND vh.activity_date <= $3
+        ORDER BY vh.activity_date DESC
         LIMIT 1000`,
-        [filters.start_date, filters.end_date]
+        [organizationId, filters.start_date, filters.end_date]
       ),
       services.pool.query(
         `SELECT
@@ -362,10 +384,11 @@ export const exportComprehensive = async (
           COUNT(DISTINCT er.id) FILTER (WHERE er.status = 'attended') as attended_count
         FROM events e
         LEFT JOIN event_registrations er ON e.id = er.event_id
-        WHERE e.start_date >= $1 AND e.start_date <= $2
+        WHERE e.organization_id = $1
+          AND e.start_date >= $2 AND e.start_date <= $3
         GROUP BY e.id, e.name, e.start_date, e.event_type
         ORDER BY e.start_date DESC`,
-        [filters.start_date, filters.end_date]
+        [organizationId, filters.start_date, filters.end_date]
       ),
     ]);
 

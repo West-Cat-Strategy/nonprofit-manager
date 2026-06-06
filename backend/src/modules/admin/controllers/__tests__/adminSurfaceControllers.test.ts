@@ -125,9 +125,7 @@ const mockRequireUserSafe = requireUserSafe as jest.MockedFunction<typeof requir
 const mockRequireActiveOrganizationSafe = requireActiveOrganizationSafe as jest.MockedFunction<
   typeof requireActiveOrganizationSafe
 >;
-const mockTestSmtpConnection = testSmtpConnection as jest.MockedFunction<
-  typeof testSmtpConnection
->;
+const mockTestSmtpConnection = testSmtpConnection as jest.MockedFunction<typeof testSmtpConnection>;
 const mockTestTwilioConnection = testTwilioConnection as jest.MockedFunction<
   typeof testTwilioConnection
 >;
@@ -156,7 +154,7 @@ const createRequest = (overrides: Partial<AuthRequest> = {}): AuthRequest =>
     validatedParams: {},
     correlationId: 'corr-1',
     ...overrides,
-  } as AuthRequest);
+  }) as AuthRequest;
 
 describe('admin surface controllers', () => {
   beforeEach(() => {
@@ -366,10 +364,16 @@ describe('admin surface controllers', () => {
 
     jest
       .spyOn(organizationSettingsUseCase, 'getOrganizationSettings')
-      .mockResolvedValueOnce(settings as Awaited<ReturnType<typeof organizationSettingsUseCase.getOrganizationSettings>>);
+      .mockResolvedValueOnce(
+        settings as Awaited<ReturnType<typeof organizationSettingsUseCase.getOrganizationSettings>>
+      );
     jest
       .spyOn(organizationSettingsUseCase, 'updateOrganizationSettings')
-      .mockResolvedValueOnce(settings as Awaited<ReturnType<typeof organizationSettingsUseCase.updateOrganizationSettings>>);
+      .mockResolvedValueOnce(
+        settings as Awaited<
+          ReturnType<typeof organizationSettingsUseCase.updateOrganizationSettings>
+        >
+      );
 
     await getOrganizationSettingsHandler(getReq, res);
     await updateOrganizationSettingsHandler(updateReq, res);
@@ -390,6 +394,7 @@ describe('admin surface controllers', () => {
 
   it('routes branding and dashboard stats through usecases', async () => {
     const brandingReq = createRequest({
+      organizationId: 'org-1',
       body: {
         appName: 'Nonprofit Manager',
         appIcon: null,
@@ -419,11 +424,12 @@ describe('admin surface controllers', () => {
     jest.spyOn(adminBrandingUseCase, 'updateBranding').mockResolvedValueOnce(branding);
     mockGetAdminDashboardStats.mockResolvedValue(stats);
 
-    await getBranding(createRequest(), res);
+    await getBranding(createRequest({ organizationId: 'org-1' }), res);
     await putBranding(brandingReq, res);
     await getAdminStats(statsReq, res);
 
-    expect(adminBrandingUseCase.updateBranding).toHaveBeenCalledWith(branding);
+    expect(adminBrandingUseCase.getBranding).toHaveBeenCalledWith('org-1');
+    expect(adminBrandingUseCase.updateBranding).toHaveBeenCalledWith('org-1', branding);
     expect(mockSendSuccess).toHaveBeenNthCalledWith(1, res, branding);
     expect(mockSendSuccess).toHaveBeenNthCalledWith(2, res, branding);
     expect(mockSendSuccess).toHaveBeenNthCalledWith(3, res, stats);

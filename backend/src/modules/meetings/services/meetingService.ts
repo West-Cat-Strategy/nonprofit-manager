@@ -1,26 +1,36 @@
 import pool from '@config/database';
 import { logger } from '@config/logger';
-import type { Committee, Meeting, MeetingAgendaItem, MeetingMotion, MeetingActionItem, MeetingDetail } from '@app-types/meeting';
+import type {
+  Committee,
+  Meeting,
+  MeetingAgendaItem,
+  MeetingMotion,
+  MeetingActionItem,
+  MeetingDetail,
+} from '@app-types/meeting';
 
-export const listCommittees = async (): Promise<Committee[]> => {
+export const listCommittees = async (organizationId: string): Promise<Committee[]> => {
   const result = await pool.query(
     `SELECT id, name, description, is_system, created_at, updated_at
      FROM committees
-     ORDER BY is_system DESC, name ASC`
+     WHERE organization_id = $1
+     ORDER BY is_system DESC, name ASC`,
+    [organizationId]
   );
   return result.rows;
 };
 
 export const listMeetings = async (filters: {
+  organizationId: string;
   committee_id?: string;
   status?: string;
   from?: string;
   to?: string;
   limit?: number;
 }): Promise<Meeting[]> => {
-  const conditions: string[] = [];
-  const params: unknown[] = [];
-  let idx = 1;
+  const conditions: string[] = ['organization_id = $1'];
+  const params: unknown[] = [filters.organizationId];
+  let idx = 2;
 
   if (filters.committee_id) {
     conditions.push(`committee_id = $${idx++}`);
@@ -54,25 +64,32 @@ export const listMeetings = async (filters: {
   return result.rows;
 };
 
-export const getMeetingDetail = async (meetingId: string): Promise<MeetingDetail | null> => {
+export const getMeetingDetail = async (
+  meetingId: string,
+  organizationId: string
+): Promise<MeetingDetail | null> => {
   const meetingResult = await pool.query(
     `SELECT id, committee_id, meeting_type, title, starts_at, ends_at, location, status,
             presiding_contact_id, secretary_contact_id, minutes_notes, created_at, updated_at
      FROM meetings
-     WHERE id = $1`,
-    [meetingId]
+     WHERE id = $1
+       AND organization_id = $2`,
+    [meetingId, organizationId]
   );
   if (meetingResult.rows.length === 0) return null;
 
   const meeting: Meeting = meetingResult.rows[0];
 
   const committee = meeting.committee_id
-    ? (await pool.query(
-        `SELECT id, name, description, is_system, created_at, updated_at
+    ? (
+        await pool.query(
+          `SELECT id, name, description, is_system, created_at, updated_at
          FROM committees
-         WHERE id = $1`,
-        [meeting.committee_id]
-      )).rows[0] || null
+         WHERE id = $1
+           AND organization_id = $2`,
+          [meeting.committee_id, organizationId]
+        )
+      ).rows[0] || null
     : null;
 
   const [agendaItems, motions, actionItems] = await Promise.all([
@@ -112,24 +129,29 @@ export const getMeetingDetail = async (meetingId: string): Promise<MeetingDetail
   };
 };
 
-export const createMeeting = async (input: {
-  committee_id?: string | null;
-  meeting_type: Meeting['meeting_type'];
-  title: string;
-  starts_at: string;
-  ends_at?: string | null;
-  location?: string | null;
-  presiding_contact_id?: string | null;
-  secretary_contact_id?: string | null;
-}, userId: string): Promise<Meeting> => {
+export const createMeeting = async (
+  input: {
+    committee_id?: string | null;
+    meeting_type: Meeting['meeting_type'];
+    title: string;
+    starts_at: string;
+    ends_at?: string | null;
+    location?: string | null;
+    presiding_contact_id?: string | null;
+    secretary_contact_id?: string | null;
+  },
+  userId: string,
+  organizationId: string
+): Promise<Meeting> => {
   const result = await pool.query(
     `INSERT INTO meetings (
-      committee_id, meeting_type, title, starts_at, ends_at, location,
+      organization_id, committee_id, meeting_type, title, starts_at, ends_at, location,
       presiding_contact_id, secretary_contact_id, created_by, modified_by
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$9)
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$10)
     RETURNING id, committee_id, meeting_type, title, starts_at, ends_at, location, status,
               presiding_contact_id, secretary_contact_id, minutes_notes, created_at, updated_at`,
     [
+      organizationId,
       input.committee_id || null,
       input.meeting_type,
       input.title,
@@ -144,18 +166,23 @@ export const createMeeting = async (input: {
   return result.rows[0];
 };
 
-export const updateMeeting = async (meetingId: string, input: Partial<{
-  committee_id: string | null;
-  meeting_type: Meeting['meeting_type'];
-  title: string;
-  starts_at: string;
-  ends_at: string | null;
-  location: string | null;
-  status: Meeting['status'];
-  presiding_contact_id: string | null;
-  secretary_contact_id: string | null;
-  minutes_notes: string | null;
-}>, userId: string): Promise<Meeting | null> => {
+export const updateMeeting = async (
+  meetingId: string,
+  input: Partial<{
+    committee_id: string | null;
+    meeting_type: Meeting['meeting_type'];
+    title: string;
+    starts_at: string;
+    ends_at: string | null;
+    location: string | null;
+    status: Meeting['status'];
+    presiding_contact_id: string | null;
+    secretary_contact_id: string | null;
+    minutes_notes: string | null;
+  }>,
+  userId: string,
+  organizationId: string
+): Promise<Meeting | null> => {
   const fields: string[] = [];
   const params: unknown[] = [];
   let idx = 1;
@@ -172,21 +199,25 @@ export const updateMeeting = async (meetingId: string, input: Partial<{
   if (input.ends_at !== undefined) setField('ends_at', input.ends_at);
   if (input.location !== undefined) setField('location', input.location);
   if (input.status !== undefined) setField('status', input.status);
-  if (input.presiding_contact_id !== undefined) setField('presiding_contact_id', input.presiding_contact_id);
-  if (input.secretary_contact_id !== undefined) setField('secretary_contact_id', input.secretary_contact_id);
+  if (input.presiding_contact_id !== undefined)
+    setField('presiding_contact_id', input.presiding_contact_id);
+  if (input.secretary_contact_id !== undefined)
+    setField('secretary_contact_id', input.secretary_contact_id);
   if (input.minutes_notes !== undefined) setField('minutes_notes', input.minutes_notes);
 
-  if (fields.length === 0) return await getMeetingDetail(meetingId).then((d) => d?.meeting || null);
+  if (fields.length === 0)
+    return await getMeetingDetail(meetingId, organizationId).then((d) => d?.meeting || null);
 
   setField('modified_by', userId);
   fields.push('updated_at = NOW()');
 
-  params.push(meetingId);
+  params.push(meetingId, organizationId);
 
   const result = await pool.query(
     `UPDATE meetings
      SET ${fields.join(', ')}
      WHERE id = $${idx}
+       AND organization_id = $${idx + 1}
      RETURNING id, committee_id, meeting_type, title, starts_at, ends_at, location, status,
                presiding_contact_id, secretary_contact_id, minutes_notes, created_at, updated_at`,
     params
@@ -194,17 +225,27 @@ export const updateMeeting = async (meetingId: string, input: Partial<{
   return result.rows[0] || null;
 };
 
-export const addAgendaItem = async (meetingId: string, input: {
-  title: string;
-  description?: string | null;
-  item_type?: MeetingAgendaItem['item_type'];
-  duration_minutes?: number | null;
-  presenter_contact_id?: string | null;
-}, userId: string): Promise<MeetingAgendaItem> => {
+export const addAgendaItem = async (
+  meetingId: string,
+  input: {
+    title: string;
+    description?: string | null;
+    item_type?: MeetingAgendaItem['item_type'];
+    duration_minutes?: number | null;
+    presenter_contact_id?: string | null;
+  },
+  userId: string,
+  organizationId: string
+): Promise<MeetingAgendaItem | null> => {
   const positionResult = await pool.query(
-    'SELECT COALESCE(MAX(position), 0) as max_pos FROM meeting_agenda_items WHERE meeting_id = $1',
-    [meetingId]
+    `SELECT COUNT(m.id) AS meeting_count, COALESCE(MAX(i.position), 0) as max_pos
+     FROM meetings m
+     LEFT JOIN meeting_agenda_items i ON i.meeting_id = m.id
+     WHERE m.id = $1
+       AND m.organization_id = $2`,
+    [meetingId, organizationId]
   );
+  if (Number(positionResult.rows[0]?.meeting_count ?? 0) === 0) return null;
   const nextPos = Number(positionResult.rows[0].max_pos) + 1;
 
   const result = await pool.query(
@@ -226,7 +267,12 @@ export const addAgendaItem = async (meetingId: string, input: {
   return result.rows[0];
 };
 
-export const reorderAgendaItems = async (meetingId: string, orderedIds: string[], userId: string): Promise<void> => {
+export const reorderAgendaItems = async (
+  meetingId: string,
+  orderedIds: string[],
+  userId: string,
+  organizationId: string
+): Promise<void> => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -240,8 +286,11 @@ export const reorderAgendaItems = async (meetingId: string, orderedIds: string[]
          FROM UNNEST($3::uuid[]) WITH ORDINALITY AS input(agenda_item_id, ordinality)
        ) AS ordered
        WHERE items.meeting_id = $1
-         AND items.id = ordered.agenda_item_id`,
-      [meetingId, userId, orderedIds]
+         AND items.id = ordered.agenda_item_id
+         AND EXISTS (
+           SELECT 1 FROM meetings m WHERE m.id = items.meeting_id AND m.organization_id = $4
+         )`,
+      [meetingId, userId, orderedIds, organizationId]
     );
     await client.query('COMMIT');
   } catch (error) {
@@ -253,17 +302,24 @@ export const reorderAgendaItems = async (meetingId: string, orderedIds: string[]
   }
 };
 
-export const addMotion = async (meetingId: string, input: {
-  agenda_item_id?: string | null;
-  parent_motion_id?: string | null;
-  text: string;
-  moved_by_contact_id?: string | null;
-  seconded_by_contact_id?: string | null;
-} , userId: string): Promise<MeetingMotion> => {
+export const addMotion = async (
+  meetingId: string,
+  input: {
+    agenda_item_id?: string | null;
+    parent_motion_id?: string | null;
+    text: string;
+    moved_by_contact_id?: string | null;
+    seconded_by_contact_id?: string | null;
+  },
+  userId: string,
+  organizationId: string
+): Promise<MeetingMotion | null> => {
   const result = await pool.query(
     `INSERT INTO meeting_motions (
       meeting_id, agenda_item_id, parent_motion_id, text, moved_by_contact_id, seconded_by_contact_id, created_by, modified_by
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$7)
+    )
+    SELECT $1,$2,$3,$4,$5,$6,$7,$7
+    WHERE EXISTS (SELECT 1 FROM meetings WHERE id = $1 AND organization_id = $8)
     RETURNING id, meeting_id, agenda_item_id, parent_motion_id, text, moved_by_contact_id, seconded_by_contact_id,
               status, votes_for, votes_against, votes_abstain, result_notes, created_at, updated_at`,
     [
@@ -274,18 +330,24 @@ export const addMotion = async (meetingId: string, input: {
       input.moved_by_contact_id || null,
       input.seconded_by_contact_id || null,
       userId,
+      organizationId,
     ]
   );
-  return result.rows[0];
+  return result.rows[0] || null;
 };
 
-export const updateMotion = async (motionId: string, input: Partial<{
-  status: MeetingMotion['status'];
-  votes_for: number | null;
-  votes_against: number | null;
-  votes_abstain: number | null;
-  result_notes: string | null;
-}>, userId: string): Promise<MeetingMotion | null> => {
+export const updateMotion = async (
+  motionId: string,
+  input: Partial<{
+    status: MeetingMotion['status'];
+    votes_for: number | null;
+    votes_against: number | null;
+    votes_abstain: number | null;
+    result_notes: string | null;
+  }>,
+  userId: string,
+  organizationId: string
+): Promise<MeetingMotion | null> => {
   const fields: string[] = [];
   const params: unknown[] = [];
   let idx = 1;
@@ -305,12 +367,15 @@ export const updateMotion = async (motionId: string, input: Partial<{
 
   setField('modified_by', userId);
   fields.push('updated_at = NOW()');
-  params.push(motionId);
+  params.push(motionId, organizationId);
 
   const result = await pool.query(
     `UPDATE meeting_motions
      SET ${fields.join(', ')}
      WHERE id = $${idx}
+       AND EXISTS (
+         SELECT 1 FROM meetings m WHERE m.id = meeting_motions.meeting_id AND m.organization_id = $${idx + 1}
+       )
      RETURNING id, meeting_id, agenda_item_id, parent_motion_id, text, moved_by_contact_id, seconded_by_contact_id,
                status, votes_for, votes_against, votes_abstain, result_notes, created_at, updated_at`,
     params
@@ -318,17 +383,24 @@ export const updateMotion = async (motionId: string, input: Partial<{
   return result.rows[0] || null;
 };
 
-export const createActionItem = async (meetingId: string, input: {
-  motion_id?: string | null;
-  subject: string;
-  description?: string | null;
-  assigned_contact_id?: string | null;
-  due_date?: string | null;
-}, userId: string): Promise<MeetingActionItem> => {
+export const createActionItem = async (
+  meetingId: string,
+  input: {
+    motion_id?: string | null;
+    subject: string;
+    description?: string | null;
+    assigned_contact_id?: string | null;
+    due_date?: string | null;
+  },
+  userId: string,
+  organizationId: string
+): Promise<MeetingActionItem | null> => {
   const result = await pool.query(
     `INSERT INTO meeting_action_items (
       meeting_id, motion_id, subject, description, assigned_contact_id, due_date, created_by, modified_by
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$7)
+    )
+    SELECT $1,$2,$3,$4,$5,$6,$7,$7
+    WHERE EXISTS (SELECT 1 FROM meetings WHERE id = $1 AND organization_id = $8)
     RETURNING id, meeting_id, motion_id, subject, description, assigned_contact_id, due_date, status, created_at, updated_at`,
     [
       meetingId,
@@ -338,13 +410,17 @@ export const createActionItem = async (meetingId: string, input: {
       input.assigned_contact_id || null,
       input.due_date || null,
       userId,
+      organizationId,
     ]
   );
-  return result.rows[0];
+  return result.rows[0] || null;
 };
 
-export const generateMinutesDraft = async (meetingId: string): Promise<{ markdown: string } | null> => {
-  const detail = await getMeetingDetail(meetingId);
+export const generateMinutesDraft = async (
+  meetingId: string,
+  organizationId: string
+): Promise<{ markdown: string } | null> => {
+  const detail = await getMeetingDetail(meetingId, organizationId);
   if (!detail) return null;
 
   const { meeting, committee, agenda_items, motions, action_items } = detail;
@@ -381,9 +457,13 @@ export const generateMinutesDraft = async (meetingId: string): Promise<{ markdow
       lines.push(`- ${m.text}`);
       lines.push(`  - Status: ${m.status}`);
       if (m.result_notes) lines.push(`  - Notes: ${m.result_notes}`);
-      const votes = [m.votes_for, m.votes_against, m.votes_abstain].some((v) => v !== null && v !== undefined);
+      const votes = [m.votes_for, m.votes_against, m.votes_abstain].some(
+        (v) => v !== null && v !== undefined
+      );
       if (votes) {
-        lines.push(`  - Votes: For ${m.votes_for ?? '—'}, Against ${m.votes_against ?? '—'}, Abstain ${m.votes_abstain ?? '—'}`);
+        lines.push(
+          `  - Votes: For ${m.votes_for ?? '—'}, Against ${m.votes_against ?? '—'}, Abstain ${m.votes_abstain ?? '—'}`
+        );
       }
     });
   }

@@ -9,10 +9,17 @@ import type {
   SubmitCaseFormDTO,
 } from '../../../types/caseForms';
 
+const publicTokenHeaders = (token: string) => ({
+  Authorization: `Bearer ${token}`,
+});
+
 class PublicCaseFormsApiClient {
   async getForm(token: string): Promise<CaseFormAssignmentDetail> {
     const response = await publicApi.get<ApiEnvelope<CaseFormAssignmentDetail>>(
-      `/v2/public/case-forms/${token}`
+      '/v2/public/case-forms',
+      {
+        headers: publicTokenHeaders(token),
+      }
     );
     return unwrapApiData(response.data);
   }
@@ -27,10 +34,10 @@ class PublicCaseFormsApiClient {
     formData.set('file', input.file);
 
     const response = await publicApi.post<ApiEnvelope<CaseFormAsset>>(
-      `/v2/public/case-forms/${token}/assets`,
+      '/v2/public/case-forms/assets',
       formData,
       {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { 'Content-Type': 'multipart/form-data', ...publicTokenHeaders(token) },
       }
     );
     return unwrapApiData(response.data);
@@ -38,22 +45,28 @@ class PublicCaseFormsApiClient {
 
   async saveDraft(token: string, payload: SaveCaseFormDraftDTO): Promise<CaseFormAssignment> {
     const response = await publicApi.post<ApiEnvelope<CaseFormAssignment>>(
-      `/v2/public/case-forms/${token}/draft`,
-      payload
+      '/v2/public/case-forms/draft',
+      payload,
+      { headers: publicTokenHeaders(token) }
     );
     return unwrapApiData(response.data);
   }
 
   async submit(token: string, payload: SubmitCaseFormDTO): Promise<CaseFormAssignmentDetail> {
     const response = await publicApi.post<ApiEnvelope<CaseFormAssignmentDetail>>(
-      `/v2/public/case-forms/${token}/submit`,
-      payload
+      '/v2/public/case-forms/submit',
+      payload,
+      { headers: publicTokenHeaders(token) }
     );
     return unwrapApiData(response.data);
   }
 
-  getResponsePacketDownloadUrl(token: string): string {
-    return `/api/v2/public/case-forms/${token}/response-packet`;
+  async downloadResponsePacket(token: string): Promise<BlobPart> {
+    const response = await publicApi.get<BlobPart>('/v2/public/case-forms/response-packet', {
+      headers: publicTokenHeaders(token),
+      responseType: 'blob',
+    });
+    return response.data;
   }
 }
 

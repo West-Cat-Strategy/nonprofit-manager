@@ -16,7 +16,7 @@ import { AuthRequest } from '@middleware/auth';
 import { TIME } from '@config/constants';
 import { fromBase64Url, toBase64Url } from '@utils/base64url';
 import { trackLoginAttempt } from '@middleware/accountLockout';
-import { badRequest, notFoundMessage, unauthorized } from '@utils/responseHelpers';
+import { badRequest, forbidden, notFoundMessage, unauthorized } from '@utils/responseHelpers';
 import { setAuthCookie } from '@utils/cookieHelper';
 import { buildAuthTokenResponse, generateAuthSessionCsrfToken } from '@utils/authResponse';
 import { normalizeRoleSlug } from '@utils/roleSlug';
@@ -202,8 +202,11 @@ export const registrationVerify = async (
 ): Promise<Response | void> => {
   try {
     const { origins, rpID } = getWebAuthnConfig();
-    const { challengeId, credential, name }: { challengeId: string; credential: RegistrationResponseJSON; name?: string } =
-      req.body;
+    const {
+      challengeId,
+      credential,
+      name,
+    }: { challengeId: string; credential: RegistrationResponseJSON; name?: string } = req.body;
 
     const challengeResult = await pool.query<ChallengeRow>(
       `SELECT id, user_id, challenge, type, expires_at
@@ -308,13 +311,12 @@ export const pendingRegistrationOptions = async (
       })),
     });
 
-    const challenge =
-      await pendingRegistrationRepository.insertPendingRegistrationChallenge({
-        pendingRegistrationId: pending.id,
-        challenge: options.challenge,
-        type: 'registration',
-        expiresInMs: CHALLENGE_TTL_MS,
-      });
+    const challenge = await pendingRegistrationRepository.insertPendingRegistrationChallenge({
+      pendingRegistrationId: pending.id,
+      challenge: options.challenge,
+      type: 'registration',
+      expiresInMs: CHALLENGE_TTL_MS,
+    });
 
     return res.json({ challengeId: challenge.id, options });
   } catch (error) {
@@ -346,9 +348,8 @@ export const pendingRegistrationVerify = async (
       return badRequest(res, 'Invalid or expired registration token');
     }
 
-    const challenge = await pendingRegistrationRepository.getPendingRegistrationChallengeById(
-      challengeId
-    );
+    const challenge =
+      await pendingRegistrationRepository.getPendingRegistrationChallengeById(challengeId);
     if (!challenge) {
       return badRequest(res, 'Invalid or expired challenge');
     }
@@ -388,8 +389,7 @@ export const pendingRegistrationVerify = async (
       counter: info.credential.counter,
       transports: credential.response.transports || null,
       deviceType: info.credentialDeviceType || null,
-      backedUp:
-        typeof info.credentialBackedUp === 'boolean' ? info.credentialBackedUp : null,
+      backedUp: typeof info.credentialBackedUp === 'boolean' ? info.credentialBackedUp : null,
       name: name || null,
     });
     await pendingRegistrationRepository.deletePendingRegistrationChallenge(challengeId);
@@ -467,8 +467,11 @@ export const loginVerify = async (
     const clientIp = req.ip || req.socket?.remoteAddress || 'unknown';
     const { origins, rpID } = getWebAuthnConfig();
 
-    const { email, challengeId, credential }: { email: string; challengeId: string; credential: AuthenticationResponseJSON } =
-      req.body;
+    const {
+      email,
+      challengeId,
+      credential,
+    }: { email: string; challengeId: string; credential: AuthenticationResponseJSON } = req.body;
 
     const challengeResult = await pool.query<ChallengeRow>(
       `SELECT id, user_id, challenge, type, expires_at
@@ -553,6 +556,10 @@ export const loginVerify = async (
     await trackLoginAttempt(email, true, user.id, clientIp);
 
     const organizationId = await getAuthenticatedOrganizationId(user.id);
+    if (!organizationId) {
+      await trackLoginAttempt(email, false, user.id, clientIp);
+      return forbidden(res, 'No active organization access');
+    }
     const token = issueAuthTokens(user, organizationId);
     setAuthCookie(res, token);
     const csrfToken = generateAuthSessionCsrfToken(req, res, token);

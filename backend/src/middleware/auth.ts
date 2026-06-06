@@ -3,10 +3,7 @@ import pool from '@config/database';
 import { logger } from '@config/logger';
 import { forbidden, notFoundMessage, serverError, unauthorized } from '@utils/responseHelpers';
 import { extractToken, AUTH_COOKIE_NAME } from '@utils/cookieHelper';
-import {
-  createRequestAuthorizationContext,
-  resolveRolesForUser,
-} from '@services/authorization';
+import { createRequestAuthorizationContext, resolveRolesForUser } from '@services/authorization';
 import { guardWithRole } from '@services/authGuardService';
 import { setRequestContext } from '@config/requestContext';
 import { normalizeRoleSlug } from '@utils/roleSlug';
@@ -45,8 +42,12 @@ interface AuthSessionUserRow {
   auth_revision: number;
 }
 
-export interface AuthRequest
-  extends Request<Record<string, string>, any, any, Record<string, string | undefined>> {
+export interface AuthRequest extends Request<
+  Record<string, string>,
+  any,
+  any,
+  Record<string, string | undefined>
+> {
   user?: JwtPayload;
   organizationId?: string;
   accountId?: string;
@@ -65,7 +66,7 @@ export interface AuthRequest
   };
 }
 
-const shouldValidateOrganizationContext = () => process.env.ORG_CONTEXT_VALIDATE !== 'false';
+const shouldValidateOrganizationContext = () => true;
 
 const clearOrganizationContext = (req: AuthRequest, userId?: string): void => {
   delete req.organizationId;
@@ -140,33 +141,34 @@ const validateResolvedOrganization = async (
       return false;
     }
 
-    const shouldValidateAccess = input.validateAccess === true;
-    if (shouldValidateAccess && input.userRole !== 'admin') {
-      const accessResult = await pool.query(
-        `SELECT id
-         FROM user_account_access
-         WHERE user_id = $1
-           AND account_id = $2
-           AND is_active = true
-         LIMIT 1`,
-        [input.userId, input.organizationId]
-      );
+    const accessResult = await pool.query(
+      `SELECT uaa.id
+       FROM user_account_access uaa
+       INNER JOIN accounts a ON a.id = uaa.account_id
+       WHERE uaa.user_id = $1
+         AND uaa.account_id = $2
+         AND uaa.is_active = true
+         AND a.account_type = 'organization'
+         AND COALESCE(a.is_active, true) = true
+       LIMIT 1`,
+      [input.userId, input.organizationId]
+    );
 
-      if (accessResult.rows.length === 0) {
-        logger.warn('User lacks access to requested organization context', {
-          orgId: input.organizationId,
-          userId: input.userId,
-          source: input.source,
-        });
-        forbidden(res, 'You do not have access to this organization');
-        return false;
-      }
+    if (accessResult.rows.length === 0) {
+      logger.warn('User lacks access to requested organization context', {
+        orgId: input.organizationId,
+        userId: input.userId,
+        role: input.userRole,
+        source: input.source,
+      });
+      forbidden(res, 'You do not have access to this organization');
+      return false;
     }
 
     req.organizationContextValidated = {
       organizationId: input.organizationId,
       isActive: true,
-      accessValidated: input.userRole === 'admin' || shouldValidateAccess,
+      accessValidated: true,
     };
 
     return true;
@@ -262,7 +264,7 @@ const resolveAuthenticatedOrganizationContext = async (
         source: usingExplicitOrganizationSwitch
           ? req.requestedOrganizationSource || 'header'
           : 'token',
-        validateAccess: usingExplicitOrganizationSwitch,
+        validateAccess: true,
       });
       if (!isValid) {
         return ORGANIZATION_RESOLUTION_FAILED;
@@ -278,7 +280,7 @@ const resolveAuthenticatedOrganizationContext = async (
       userId: sessionUser.id,
       userRole: normalizedRole,
       source: 'token',
-      validateAccess: false,
+      validateAccess: true,
     });
     if (!isValid) {
       return ORGANIZATION_RESOLUTION_FAILED;
@@ -296,7 +298,7 @@ const resolveAuthenticatedOrganizationContext = async (
       userId: sessionUser.id,
       userRole: normalizedRole,
       source: 'token',
-      validateAccess: false,
+      validateAccess: true,
     });
     if (!isValid) {
       return ORGANIZATION_RESOLUTION_FAILED;

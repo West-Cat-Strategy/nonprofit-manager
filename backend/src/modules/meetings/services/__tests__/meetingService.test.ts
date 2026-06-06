@@ -7,6 +7,7 @@ import {
   createMeeting,
   generateMinutesDraft,
   getMeetingDetail,
+  listCommittees,
   listMeetings,
   reorderAgendaItems,
   updateMeeting,
@@ -34,6 +35,7 @@ describe('meetingService', () => {
   const queryMock = pool.query as jest.MockedFunction<typeof pool.query>;
   const connectMock = pool.connect as jest.MockedFunction<typeof pool.connect>;
   const nowIso = '2026-03-03T00:00:00.000Z';
+  const organizationId = 'org-1';
 
   const buildMeetingRow = (overrides: Record<string, unknown> = {}) => ({
     id: 'meeting-1',
@@ -56,10 +58,23 @@ describe('meetingService', () => {
     jest.clearAllMocks();
   });
 
+  it('listCommittees scopes committee options to the active organization', async () => {
+    queryMock.mockResolvedValueOnce({
+      rows: [{ id: 'committee-1', name: 'Governance', description: null, is_system: false }],
+    } as never);
+
+    await listCommittees(organizationId);
+
+    const [sql, params] = queryMock.mock.calls[0] as [string, unknown[]];
+    expect(sql).toContain('WHERE organization_id = $1');
+    expect(params).toEqual([organizationId]);
+  });
+
   it('listMeetings builds full WHERE filters and caps limit at 200', async () => {
     queryMock.mockResolvedValueOnce({ rows: [buildMeetingRow()] } as never);
 
     await listMeetings({
+      organizationId,
       committee_id: 'committee-1',
       status: 'scheduled',
       from: '2026-04-01T00:00:00.000Z',
@@ -68,8 +83,11 @@ describe('meetingService', () => {
     });
 
     const [sql, params] = queryMock.mock.calls[0] as [string, unknown[]];
-    expect(sql).toContain('WHERE committee_id = $1 AND status = $2 AND starts_at >= $3 AND starts_at <= $4');
+    expect(sql).toContain(
+      'WHERE organization_id = $1 AND committee_id = $2 AND status = $3 AND starts_at >= $4 AND starts_at <= $5'
+    );
     expect(params).toEqual([
+      organizationId,
       'committee-1',
       'scheduled',
       '2026-04-01T00:00:00.000Z',
@@ -81,17 +99,17 @@ describe('meetingService', () => {
   it('listMeetings omits WHERE when no filters are provided and floors negative limit to 1', async () => {
     queryMock.mockResolvedValueOnce({ rows: [] } as never);
 
-    await listMeetings({ limit: -1 });
+    await listMeetings({ organizationId, limit: -1 });
 
     const [sql, params] = queryMock.mock.calls[0] as [string, unknown[]];
-    expect(sql).not.toContain('WHERE');
-    expect(params).toEqual([1]);
+    expect(sql).toContain('WHERE organization_id = $1');
+    expect(params).toEqual([organizationId, 1]);
   });
 
   it('getMeetingDetail returns null when meeting does not exist', async () => {
     queryMock.mockResolvedValueOnce({ rows: [] } as never);
 
-    await expect(getMeetingDetail('missing-meeting')).resolves.toBeNull();
+    await expect(getMeetingDetail('missing-meeting', organizationId)).resolves.toBeNull();
     expect(queryMock).toHaveBeenCalledTimes(1);
   });
 
@@ -118,7 +136,7 @@ describe('meetingService', () => {
       .mockResolvedValueOnce({ rows: [] } as never)
       .mockResolvedValueOnce({ rows: [] } as never);
 
-    const detail = await getMeetingDetail('meeting-1');
+    const detail = await getMeetingDetail('meeting-1', organizationId);
 
     expect(detail?.meeting.id).toBe('meeting-1');
     expect(detail?.committee).toBeNull();
@@ -135,7 +153,7 @@ describe('meetingService', () => {
       .mockResolvedValueOnce({ rows: [] } as never)
       .mockResolvedValueOnce({ rows: [] } as never);
 
-    const detail = await getMeetingDetail('meeting-1');
+    const detail = await getMeetingDetail('meeting-1', organizationId);
 
     expect(detail?.committee).toMatchObject({ id: 'committee-1', name: 'Governance' });
     expect(queryMock).toHaveBeenCalledTimes(5);
@@ -150,11 +168,13 @@ describe('meetingService', () => {
         title: 'Budget Committee',
         starts_at: '2026-04-01T17:00:00.000Z',
       },
-      'user-1'
+      'user-1',
+      organizationId
     );
 
     expect(created.id).toBe('meeting-1');
     expect(queryMock.mock.calls[0][1]).toEqual([
+      organizationId,
       null,
       'regular',
       'Budget Committee',
@@ -183,10 +203,12 @@ describe('meetingService', () => {
         presiding_contact_id: 'contact-1',
         secretary_contact_id: 'contact-2',
       },
-      'user-2'
+      'user-2',
+      organizationId
     );
 
     expect(queryMock.mock.calls[0][1]).toEqual([
+      organizationId,
       'committee-2',
       'special',
       'Planning Session',
@@ -206,7 +228,7 @@ describe('meetingService', () => {
       .mockResolvedValueOnce({ rows: [] } as never)
       .mockResolvedValueOnce({ rows: [] } as never);
 
-    const result = await updateMeeting('meeting-1', {}, 'user-1');
+    const result = await updateMeeting('meeting-1', {}, 'user-1', organizationId);
 
     expect(result?.id).toBe('meeting-1');
     expect(queryMock).toHaveBeenCalledTimes(4);
@@ -215,14 +237,16 @@ describe('meetingService', () => {
   it('updateMeeting returns null when no fields are provided and meeting is missing', async () => {
     queryMock.mockResolvedValueOnce({ rows: [] } as never);
 
-    const result = await updateMeeting('missing-meeting', {}, 'user-1');
+    const result = await updateMeeting('missing-meeting', {}, 'user-1', organizationId);
 
     expect(result).toBeNull();
     expect(queryMock).toHaveBeenCalledTimes(1);
   });
 
   it('updateMeeting updates all provided fields in a single UPDATE statement', async () => {
-    queryMock.mockResolvedValueOnce({ rows: [buildMeetingRow({ title: 'Updated Meeting' })] } as never);
+    queryMock.mockResolvedValueOnce({
+      rows: [buildMeetingRow({ title: 'Updated Meeting' })],
+    } as never);
 
     const result = await updateMeeting(
       'meeting-1',
@@ -238,7 +262,8 @@ describe('meetingService', () => {
         secretary_contact_id: 'contact-11',
         minutes_notes: 'Working notes',
       },
-      'user-9'
+      'user-9',
+      organizationId
     );
 
     const [sql, params] = queryMock.mock.calls[0] as [string, unknown[]];
@@ -257,13 +282,14 @@ describe('meetingService', () => {
       'Working notes',
       'user-9',
       'meeting-1',
+      organizationId,
     ]);
     expect(result?.title).toBe('Updated Meeting');
   });
 
   it('addAgendaItem applies default values when optional fields are missing', async () => {
     queryMock
-      .mockResolvedValueOnce({ rows: [{ max_pos: '3' }] } as never)
+      .mockResolvedValueOnce({ rows: [{ meeting_count: '1', max_pos: '3' }] } as never)
       .mockResolvedValueOnce({
         rows: [{ id: 'agenda-2', meeting_id: 'meeting-1', position: 4, title: 'Budget Review' }],
       } as never);
@@ -273,7 +299,8 @@ describe('meetingService', () => {
       {
         title: 'Budget Review',
       },
-      'user-1'
+      'user-1',
+      organizationId
     );
 
     expect(queryMock.mock.calls[1][1]).toEqual([
@@ -290,7 +317,7 @@ describe('meetingService', () => {
 
   it('addAgendaItem preserves optional values when provided', async () => {
     queryMock
-      .mockResolvedValueOnce({ rows: [{ max_pos: 1 }] } as never)
+      .mockResolvedValueOnce({ rows: [{ meeting_count: '1', max_pos: 1 }] } as never)
       .mockResolvedValueOnce({ rows: [{ id: 'agenda-3' }] } as never);
 
     await addAgendaItem(
@@ -302,7 +329,8 @@ describe('meetingService', () => {
         duration_minutes: 15,
         presenter_contact_id: 'contact-4',
       },
-      'user-2'
+      'user-2',
+      organizationId
     );
 
     expect(queryMock.mock.calls[1][1]).toEqual([
@@ -325,7 +353,8 @@ describe('meetingService', () => {
       {
         text: 'Approve annual budget',
       },
-      'user-1'
+      'user-1',
+      organizationId
     );
 
     expect(queryMock.mock.calls[0][1]).toEqual([
@@ -336,6 +365,7 @@ describe('meetingService', () => {
       null,
       null,
       'user-1',
+      organizationId,
     ]);
   });
 
@@ -351,7 +381,8 @@ describe('meetingService', () => {
         moved_by_contact_id: 'contact-5',
         seconded_by_contact_id: 'contact-6',
       },
-      'user-2'
+      'user-2',
+      organizationId
     );
 
     expect(queryMock.mock.calls[0][1]).toEqual([
@@ -362,11 +393,12 @@ describe('meetingService', () => {
       'contact-5',
       'contact-6',
       'user-2',
+      organizationId,
     ]);
   });
 
   it('updateMotion returns null when no patch fields are provided', async () => {
-    const result = await updateMotion('motion-1', {}, 'user-1');
+    const result = await updateMotion('motion-1', {}, 'user-1', organizationId);
 
     expect(result).toBeNull();
     expect(queryMock).not.toHaveBeenCalled();
@@ -384,20 +416,35 @@ describe('meetingService', () => {
         votes_abstain: 1,
         result_notes: 'Passed after discussion',
       },
-      'user-3'
+      'user-3',
+      organizationId
     );
 
     const [sql, params] = queryMock.mock.calls[0] as [string, unknown[]];
     expect(sql).toContain('status = $1');
     expect(sql).toContain('result_notes = $5');
-    expect(params).toEqual(['carried', 7, 2, 1, 'Passed after discussion', 'user-3', 'motion-1']);
+    expect(params).toEqual([
+      'carried',
+      7,
+      2,
+      1,
+      'Passed after discussion',
+      'user-3',
+      'motion-1',
+      organizationId,
+    ]);
     expect(result).toEqual({ id: 'motion-1', status: 'carried' });
   });
 
   it('updateMotion returns null when UPDATE matches no rows', async () => {
     queryMock.mockResolvedValueOnce({ rows: [] } as never);
 
-    const result = await updateMotion('missing-motion', { status: 'failed' }, 'user-4');
+    const result = await updateMotion(
+      'missing-motion',
+      { status: 'failed' },
+      'user-4',
+      organizationId
+    );
 
     expect(result).toBeNull();
   });
@@ -410,7 +457,8 @@ describe('meetingService', () => {
       {
         subject: 'Follow up with finance team',
       },
-      'user-1'
+      'user-1',
+      organizationId
     );
 
     expect(queryMock.mock.calls[0][1]).toEqual([
@@ -421,6 +469,7 @@ describe('meetingService', () => {
       null,
       null,
       'user-1',
+      organizationId,
     ]);
   });
 
@@ -436,7 +485,8 @@ describe('meetingService', () => {
         assigned_contact_id: 'contact-8',
         due_date: '2026-05-10',
       },
-      'user-2'
+      'user-2',
+      organizationId
     );
 
     expect(queryMock.mock.calls[0][1]).toEqual([
@@ -447,13 +497,14 @@ describe('meetingService', () => {
       'contact-8',
       '2026-05-10',
       'user-2',
+      organizationId,
     ]);
   });
 
   it('generateMinutesDraft returns null when meeting detail is unavailable', async () => {
     queryMock.mockResolvedValueOnce({ rows: [] } as never);
 
-    await expect(generateMinutesDraft('missing-meeting')).resolves.toBeNull();
+    await expect(generateMinutesDraft('missing-meeting', organizationId)).resolves.toBeNull();
   });
 
   it('generateMinutesDraft includes optional notes, votes, and action details when present', async () => {
@@ -511,7 +562,7 @@ describe('meetingService', () => {
         ],
       } as never);
 
-    const result = await generateMinutesDraft('meeting-1');
+    const result = await generateMinutesDraft('meeting-1', organizationId);
 
     expect(result?.markdown).toContain('# Minutes Draft: April Governance');
     expect(result?.markdown).toContain('- Committee: Governance');
@@ -549,7 +600,7 @@ describe('meetingService', () => {
       .mockResolvedValueOnce({ rows: [] } as never)
       .mockResolvedValueOnce({ rows: [] } as never);
 
-    const result = await generateMinutesDraft('meeting-1');
+    const result = await generateMinutesDraft('meeting-1', organizationId);
 
     expect(result?.markdown).toContain('- Committee: —');
     expect(result?.markdown).toContain('No motions recorded.');
@@ -575,7 +626,8 @@ describe('meetingService', () => {
     await reorderAgendaItems(
       'meeting-1',
       ['00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002'],
-      'user-1'
+      'user-1',
+      organizationId
     );
 
     expect(clientQuery).toHaveBeenCalledTimes(3);
@@ -584,6 +636,7 @@ describe('meetingService', () => {
       'meeting-1',
       'user-1',
       ['00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002'],
+      organizationId,
     ]);
     expect(release).toHaveBeenCalled();
   });
@@ -606,7 +659,8 @@ describe('meetingService', () => {
       reorderAgendaItems(
         'meeting-1',
         ['00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002'],
-        'user-1'
+        'user-1',
+        organizationId
       )
     ).rejects.toThrow('update failed');
 

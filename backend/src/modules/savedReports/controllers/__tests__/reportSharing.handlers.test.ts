@@ -163,7 +163,7 @@ describe('savedReports reportSharing.handlers facade', () => {
     mockRequest.body = { expires_at: '2026-03-20T00:00:00.000Z' };
     mockSnapshotService.createSnapshotForPublicLink.mockResolvedValue({
       token: 'token-123',
-      url: '/public/reports/token-123',
+      url: '/public/reports#token-123',
     } as never);
 
     await reportSharingController.generatePublicLink(
@@ -180,7 +180,7 @@ describe('savedReports reportSharing.handlers facade', () => {
     });
     expect(mockJson).toHaveBeenCalledWith({
       token: 'token-123',
-      url: '/public/reports/token-123',
+      url: '/public/reports#token-123',
     });
   });
 

@@ -118,7 +118,7 @@ make db-verify
 - Docs-only change: `make check-links`; add `make lint-doc-api-versioning` when API wording/examples changed
 - Small mixed change: `./scripts/select-checks.sh --base HEAD~1 --mode fast`
 - Shared tooling/runtime/docs change: `./scripts/select-checks.sh --base HEAD~1 --mode strict`
-- Release-facing change: `make ci-full`
+- Release-facing change: `make release-check`
 - Package-level type checking: `cd backend && npm run type-check` or `cd frontend && npm run type-check`
 - Backend integration rerun: `cd backend && npm test -- src/__tests__/integration`
 - Script and wrapper contract change: `make test-tooling`

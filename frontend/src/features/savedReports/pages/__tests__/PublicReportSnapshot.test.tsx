@@ -8,6 +8,7 @@ vi.mock('react-router-dom', async () => {
   return {
     ...actual,
     useParams: () => ({ token: 'token-1' }),
+    useLocation: () => ({ pathname: '/public/reports', search: '', hash: window.location.hash }),
   };
 });
 
@@ -25,6 +26,7 @@ const mockSavedReportsApi = savedReportsApiClient as unknown as {
 describe('PublicReportSnapshotPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.history.replaceState(null, '', '/');
   });
 
   it('renders active metadata and download actions', async () => {
@@ -78,5 +80,27 @@ describe('PublicReportSnapshotPage', () => {
     await waitFor(() => {
       expect(screen.getByText(/report not found/i)).toBeInTheDocument();
     });
+  });
+
+  it('reads fragment tokens and scrubs the visible URL', async () => {
+    window.history.replaceState(null, '', '/public/reports#fragment-token');
+    mockSavedReportsApi.fetchPublicReportMetadata.mockResolvedValue({
+      token: 'fragment-token',
+      report_id: 'report-1',
+      report_name: 'Fragment Report',
+      entity: 'contacts',
+      rows_count: 1,
+      lifecycle_state: 'active',
+      expires_at: null,
+      created_at: '2026-03-03T00:00:00.000Z',
+      available_formats: ['csv'],
+    });
+
+    render(<PublicReportSnapshotPage />);
+
+    await waitFor(() => {
+      expect(mockSavedReportsApi.fetchPublicReportMetadata).toHaveBeenCalledWith('fragment-token');
+    });
+    expect(window.location.hash).toBe('');
   });
 });

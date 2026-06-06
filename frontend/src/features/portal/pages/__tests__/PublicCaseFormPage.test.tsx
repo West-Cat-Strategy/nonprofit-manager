@@ -8,6 +8,7 @@ import PublicCaseFormPage from '../PublicCaseFormPage';
 const getFormMock = vi.fn();
 const saveDraftMock = vi.fn();
 const submitMock = vi.fn();
+const downloadResponsePacketMock = vi.fn();
 const showSuccessMock = vi.fn();
 const showErrorMock = vi.fn();
 
@@ -17,7 +18,7 @@ vi.mock('../../api/publicCaseFormsApiClient', () => ({
     uploadAsset: vi.fn(),
     saveDraft: (...args: unknown[]) => saveDraftMock(...args),
     submit: (...args: unknown[]) => submitMock(...args),
-    getResponsePacketDownloadUrl: vi.fn((token: string) => `/api/v2/public/case-forms/${token}/response-packet`),
+    downloadResponsePacket: (...args: unknown[]) => downloadResponsePacketMock(...args),
   },
 }));
 
@@ -35,6 +36,7 @@ vi.mock('../../../cases/components/CaseFormRenderer', () => ({
 const renderPage = (route = '/public/case-forms/token-1') =>
   renderWithProviders(
     <Routes>
+      <Route path="/public/case-forms" element={<PublicCaseFormPage />} />
       <Route path="/public/case-forms/:token" element={<PublicCaseFormPage />} />
     </Routes>,
     { route }
@@ -93,7 +95,7 @@ const buildSubmittedDetail = () => ({
       signature_refs: [],
       submitted_by_actor_type: 'public',
       created_at: '2026-04-16T12:30:00.000Z',
-      response_packet_download_url: '/api/v2/public/case-forms/token-1/response-packet',
+      response_packet_download_url: '/api/v2/public/case-forms/response-packet',
     },
     submitted_at: '2026-04-16T12:30:00.000Z',
     updated_at: '2026-04-16T12:30:00.000Z',
@@ -104,6 +106,7 @@ const buildSubmittedDetail = () => ({
 describe('PublicCaseFormPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.history.replaceState(null, '', '/');
     getFormMock.mockImplementation(async () => buildSentDetail());
   });
 
@@ -131,15 +134,28 @@ describe('PublicCaseFormPage', () => {
     await waitFor(() => {
       expect(screen.getByText(/submission received/i)).toBeInTheDocument();
     });
-    expect(screen.getByRole('link', { name: /download submission packet/i })).toHaveAttribute(
-      'href',
-      '/api/v2/public/case-forms/token-1/response-packet'
-    );
+    expect(screen.getByRole('button', { name: /download submission packet/i })).toBeInTheDocument();
     expect(
-      screen.getByText(/you can still update this secure form and resubmit it until staff finish reviewing the submission/i)
+      screen.queryByRole('link', { name: /download submission packet/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /you can still update this secure form and resubmit it until staff finish reviewing the submission/i
+      )
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /resubmit form/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /save draft/i })).toBeInTheDocument();
+  });
+
+  it('loads fragment-token links and scrubs the browser URL', async () => {
+    window.history.replaceState(null, '', '/public/case-forms#fragment-token');
+
+    renderPage('/public/case-forms#fragment-token');
+
+    await waitFor(() => {
+      expect(getFormMock).toHaveBeenCalledWith('fragment-token');
+    });
+    expect(window.location.hash).toBe('');
   });
 
   it('offers retry recovery when the secure form fails to load', async () => {

@@ -20,7 +20,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
-import { requirePermission, requireRole } from '@middleware/permissions';
+import { requirePermission } from '@middleware/permissions';
 import { validateBody, validateParams } from '@middleware/zodValidation';
 import * as paymentController from '../controllers';
 import { Permission } from '@utils/permissions';
@@ -116,7 +116,7 @@ router.post(
 router.post(
   '/refunds',
   authenticate,
-  requireRole('admin', 'manager', 'staff'),
+  requirePermission(Permission.PAYMENT_PROCESS),
   validateBody(createRefundSchema),
   paymentController.createRefund
 );

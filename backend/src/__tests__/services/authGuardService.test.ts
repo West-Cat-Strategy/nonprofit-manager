@@ -264,10 +264,10 @@ describe('authGuardService', () => {
         buildRequest({ organizationId: 'missing-org' })
       );
 
-      expect(mockQuery).toHaveBeenCalledWith(
-        expect.stringContaining('FROM accounts'),
-        ['missing-org']
-      );
+      expect(mockQuery).toHaveBeenCalledWith(expect.stringContaining('FROM accounts'), [
+        'missing-org',
+        baseUser.id,
+      ]);
       expect(result).toEqual({
         ok: false,
         error: {
@@ -279,7 +279,7 @@ describe('authGuardService', () => {
     });
 
     it('returns forbidden when the organization exists but is inactive', async () => {
-      mockQuery.mockResolvedValueOnce({ rows: [{ is_active: false }] });
+      mockQuery.mockResolvedValueOnce({ rows: [{ is_active: false, access_id: 'access-1' }] });
 
       const result = await requireActiveOrganizationSafe(
         buildRequest({ organizationId: 'inactive-org' })
@@ -296,7 +296,7 @@ describe('authGuardService', () => {
     });
 
     it('returns the active organization id after a successful lookup', async () => {
-      mockQuery.mockResolvedValueOnce({ rows: [{ is_active: true }] });
+      mockQuery.mockResolvedValueOnce({ rows: [{ is_active: true, access_id: 'access-1' }] });
 
       const result = await requireActiveOrganizationSafe(
         buildRequest({ organizationId: 'active-org' })
@@ -307,6 +307,23 @@ describe('authGuardService', () => {
         data: {
           user: baseUser,
           organizationId: 'active-org',
+        },
+      });
+    });
+
+    it('returns forbidden when the user lacks active access to the organization context', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [{ is_active: true, access_id: null }] });
+
+      const result = await requireActiveOrganizationSafe(
+        buildRequest({ organizationId: 'active-org' })
+      );
+
+      expect(result).toEqual({
+        ok: false,
+        error: {
+          code: 'forbidden',
+          message: 'You do not have access to this organization',
+          statusCode: 403,
         },
       });
     });
@@ -384,10 +401,7 @@ describe('authGuardService', () => {
       );
 
       expect(result).toBe(false);
-      expect(mockUnauthorized).toHaveBeenCalledWith(
-        res,
-        'Unauthorized: No authenticated user'
-      );
+      expect(mockUnauthorized).toHaveBeenCalledWith(res, 'Unauthorized: No authenticated user');
       expect(mockForbidden).not.toHaveBeenCalled();
     });
 

@@ -1053,6 +1053,7 @@ test('select-checks routes workspace package manifests through dependency checks
   assert.deepEqual(result.stdout.trim().split('\n'), [
     'make test-tooling',
     'npm run knip',
+    'npm run audit',
     'make security-audit',
     'cd backend && npm run lint',
     'cd backend && npm run type-check',
@@ -1079,6 +1080,7 @@ test('select-checks routes root package manifests through lint and typecheck pro
   assert.deepEqual(result.stdout.trim().split('\n'), [
     'make test-tooling',
     'npm run knip',
+    'npm run audit',
     'make security-audit',
     'make lint',
     'make typecheck',
@@ -1111,6 +1113,7 @@ test('select-checks routes contracts package changes through dependency and type
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(result.stdout.trim().split('\n'), [
     'npm run knip',
+    'npm run audit',
     'make security-audit',
     'cd contracts && npm run type-check',
   ]);

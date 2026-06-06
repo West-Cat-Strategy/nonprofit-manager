@@ -9,10 +9,7 @@ import type { AuthRequest } from '@middleware/auth';
 import type { Response } from 'express';
 import { unauthorized, forbidden } from '@utils/responseHelpers';
 import { type Permission, hasAnyPermissionForRoles } from '@utils/permissions';
-import {
-  hasRoleAccess,
-  hasStaticPermissionAccess,
-} from '@services/authorization';
+import { hasRoleAccess, hasStaticPermissionAccess } from '@services/authorization';
 
 export type GuardFailureCode = 'unauthorized' | 'forbidden' | 'bad_request' | 'not_found';
 
@@ -40,7 +37,7 @@ const getOrganizationId = (req: AuthRequest): string | undefined => {
     logger.info('No organization context found in request object', {
       path: req.path,
       hasUser: !!req.user,
-      correlationId: req.correlationId
+      correlationId: req.correlationId,
     });
   }
   return id;
@@ -70,10 +67,8 @@ const requireAnyPermissionError = (permissions: (Permission | string)[]): GuardF
   statusCode: 403,
 });
 
-const getCandidateRoles = (
-  user: AuthenticatedUser,
-  req: AuthRequest
-): string[] => req.authorizationContext?.roles || [user.role];
+const getCandidateRoles = (user: AuthenticatedUser, req: AuthRequest): string[] =>
+  req.authorizationContext?.roles || [user.role];
 
 /**
  * Safe variants: deterministic result contract for route/controller callers.
@@ -98,7 +93,13 @@ export function requirePermissionSafe(
     return userResult;
   }
 
-  if (!hasStaticPermissionAccess(userResult.data.user.role, permission, req.authorizationContext?.roles)) {
+  if (
+    !hasStaticPermissionAccess(
+      userResult.data.user.role,
+      permission,
+      req.authorizationContext?.roles
+    )
+  ) {
     return { ok: false, error: requirePermissionError(permission) };
   }
 
@@ -168,7 +169,8 @@ export async function requireActiveOrganizationSafe(
 
   if (
     req.organizationContextValidated?.organizationId === organizationId &&
-    req.organizationContextValidated.isActive
+    req.organizationContextValidated.isActive &&
+    req.organizationContextValidated.accessValidated
   ) {
     return {
       ok: true,
@@ -176,12 +178,19 @@ export async function requireActiveOrganizationSafe(
     };
   }
 
-  const result = await pool.query<{ is_active: boolean }>(
-    `SELECT is_active
-     FROM accounts
-     WHERE id = $1
+  const result = await pool.query<{ is_active: boolean; access_id: string | null }>(
+    `SELECT
+       COALESCE(a.is_active, true) AS is_active,
+       uaa.id AS access_id
+     FROM accounts a
+     LEFT JOIN user_account_access uaa
+       ON uaa.account_id = a.id
+      AND uaa.user_id = $2
+      AND uaa.is_active = true
+     WHERE a.id = $1
+       AND a.account_type = 'organization'
      LIMIT 1`,
-    [organizationId]
+    [organizationId, userResult.data.user.id]
   );
 
   if (result.rows.length === 0) {
@@ -201,6 +210,17 @@ export async function requireActiveOrganizationSafe(
       error: {
         code: 'forbidden',
         message: 'Organization is inactive',
+        statusCode: 403,
+      },
+    };
+  }
+
+  if (!result.rows[0].access_id) {
+    return {
+      ok: false,
+      error: {
+        code: 'forbidden',
+        message: 'You do not have access to this organization',
         statusCode: 403,
       },
     };

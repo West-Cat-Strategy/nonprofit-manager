@@ -5,7 +5,13 @@ import { logger } from '@config/logger';
 import { AuthRequest } from '@middleware/auth';
 import { trackLoginAttempt } from '@middleware/accountLockout';
 import { decrypt, encrypt } from '@utils/encryption';
-import { badRequest, conflict, notFoundMessage, unauthorized } from '@utils/responseHelpers';
+import {
+  badRequest,
+  conflict,
+  forbidden,
+  notFoundMessage,
+  unauthorized,
+} from '@utils/responseHelpers';
 import { setAuthCookie } from '@utils/cookieHelper';
 import { buildAuthTokenResponse, generateAuthSessionCsrfToken } from '@utils/authResponse';
 import { sendSuccess } from '@modules/shared/http/envelope';
@@ -64,7 +70,12 @@ export const getSecurityOverview = async (
       return notFoundMessage(res, 'User not found');
     }
 
-    const passkeyResult = await pool.query<{ id: string; name: string | null; created_at: Date; last_used_at: Date | null }>(
+    const passkeyResult = await pool.query<{
+      id: string;
+      name: string | null;
+      created_at: Date;
+      last_used_at: Date | null;
+    }>(
       `SELECT id, name, created_at, last_used_at
        FROM user_webauthn_credentials
        WHERE user_id = $1
@@ -131,10 +142,12 @@ export const enableTotp = async (
   try {
     const { code }: { code: string } = req.body;
 
-    const result = await pool.query<{ mfa_totp_enabled: boolean; mfa_totp_pending_secret_enc: string | null }>(
-      'SELECT mfa_totp_enabled, mfa_totp_pending_secret_enc FROM users WHERE id = $1',
-      [req.user!.id]
-    );
+    const result = await pool.query<{
+      mfa_totp_enabled: boolean;
+      mfa_totp_pending_secret_enc: string | null;
+    }>('SELECT mfa_totp_enabled, mfa_totp_pending_secret_enc FROM users WHERE id = $1', [
+      req.user!.id,
+    ]);
     if (result.rows.length === 0) {
       return notFoundMessage(res, 'User not found');
     }
@@ -297,6 +310,10 @@ export const completeTotpLogin = async (
     await trackLoginAttempt(email, true, user.id, clientIp);
 
     const organizationId = await getAuthenticatedOrganizationId(user.id);
+    if (!organizationId) {
+      await trackLoginAttempt(email, false, user.id, clientIp);
+      return forbidden(res, 'No active organization access');
+    }
     const token = issueAuthTokens(user, organizationId);
     setAuthCookie(res, token);
     const csrfToken = generateAuthSessionCsrfToken(req, res, token);

@@ -81,7 +81,7 @@ const assignment = {
   revision_notes: null,
   created_at: '2026-04-16T12:00:00.000Z',
   updated_at: '2026-04-16T12:00:00.000Z',
-  access_link_url: 'https://example.test/public/case-forms/stale-token',
+  access_link_url: 'https://example.test/public/case-forms#stale-token',
 };
 
 const assignmentDetail = {

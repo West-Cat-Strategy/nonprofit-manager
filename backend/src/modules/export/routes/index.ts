@@ -15,6 +15,7 @@ import {
 import { authenticate } from '@middleware/domains/auth';
 import { requireExportPermission } from '@middleware/domains/security';
 import { loadDataScope } from '@middleware/domains/data';
+import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
 import { validateBody } from '@middleware/zodValidation';
 import { isoDateSchema, uuidSchema } from '@validations/shared';
 
@@ -71,6 +72,7 @@ const comprehensiveExportSchema = z.object({
 
 // All routes require authentication and export permissions
 router.use(authenticate);
+router.use(requireActiveOrganizationContext);
 router.use(requireExportPermission);
 router.use(loadDataScope('exports'));
 

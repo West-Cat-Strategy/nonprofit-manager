@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { authenticate, authorize } from '@middleware/domains/auth';
+import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import {
   listCommittees,
@@ -103,7 +104,7 @@ const createActionItemSchema = z.object({
   due_date: dateStringSchema.optional(),
 });
 
-router.use(authenticate, authorize('admin', 'manager', 'staff'));
+router.use(authenticate, requireActiveOrganizationContext, authorize('admin', 'manager', 'staff'));
 
 router.get('/committees', listCommittees);
 

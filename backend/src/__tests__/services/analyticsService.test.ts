@@ -36,6 +36,7 @@ describe('AnalyticsService', () => {
   let analyticsService: AnalyticsService;
   let mockPool: jest.Mocked<Pool>;
   let mockQuery: jest.Mock;
+  const organizationId = 'org-1';
   const mockGetCached = getCached as jest.MockedFunction<typeof getCached>;
   const mockSetCached = setCached as jest.MockedFunction<typeof setCached>;
 
@@ -376,12 +377,12 @@ describe('AnalyticsService', () => {
         },
         'GROUP BY payment_method': { rows: [] },
         'EXTRACT(YEAR FROM donation_date)': { rows: [] },
-        'total_registrations': {
+        total_registrations: {
           rows: [{ total_registrations: '5', events_attended: '4', no_shows: '1' }],
         },
         'GROUP BY e.event_type': { rows: [] },
         'ORDER BY e.start_date': { rows: [] },
-        'related_to_type': {
+        related_to_type: {
           rows: [
             {
               total_tasks: '10',
@@ -465,13 +466,13 @@ describe('AnalyticsService', () => {
         },
         'GROUP BY payment_method': { rows: [] },
         'EXTRACT(YEAR FROM donation_date)': { rows: [] },
-        'total_registrations': {
+        total_registrations: {
           rows: [{ total_registrations: '3', events_attended: '3', no_shows: '0' }],
         },
         'GROUP BY e.event_type': { rows: [] },
         'ORDER BY e.start_date': { rows: [] },
         'FROM volunteers v': { rows: [] }, // Contact is not a volunteer
-        'related_to_type': {
+        related_to_type: {
           rows: [
             {
               total_tasks: '5',
@@ -559,7 +560,7 @@ describe('AnalyticsService', () => {
         ],
       });
 
-      const result = await analyticsService.getAnalyticsSummary();
+      const result = await analyticsService.getAnalyticsSummary({ organizationId });
 
       expect(result.total_accounts).toBe(100);
       expect(result.active_accounts).toBe(90);
@@ -567,18 +568,30 @@ describe('AnalyticsService', () => {
       expect(result.total_donations_ytd).toBe(50000);
       expect(result.total_volunteers).toBe(50);
       expect(result.engagement_distribution.high).toBe(100);
+      expect(mockGetCached).toHaveBeenCalledWith(
+        expect.stringContaining(`summary:${organizationId}:`)
+      );
+      expect(mockQuery.mock.calls[0]?.[1]).toEqual([organizationId]);
     });
 
     it('should accept date range filters', async () => {
       mockQuery.mockResolvedValue({ rows: [{}] });
 
       await analyticsService.getAnalyticsSummary({
+        organizationId,
         start_date: '2024-01-01',
         end_date: '2024-06-30',
       });
 
       // Verify filters were passed to the queries
       expect(mockQuery).toHaveBeenCalled();
+      expect(mockQuery.mock.calls[0]?.[1]).toEqual([organizationId]);
+    });
+
+    it('should reject analytics summary without organization scope', async () => {
+      await expect(analyticsService.getAnalyticsSummary()).rejects.toThrow(
+        'Organization scope is required for analytics summary'
+      );
     });
   });
 
@@ -615,12 +628,12 @@ describe('AnalyticsService', () => {
         },
         'GROUP BY payment_method': { rows: [] },
         'EXTRACT(YEAR FROM donation_date)': { rows: [] },
-        'total_registrations': {
+        total_registrations: {
           rows: [{ total_registrations: '20', events_attended: '18', no_shows: '2' }],
         },
         'GROUP BY e.event_type': { rows: [] },
         'ORDER BY e.start_date': { rows: [] },
-        'related_to_type': {
+        related_to_type: {
           rows: [
             {
               total_tasks: '30',
@@ -685,12 +698,12 @@ describe('AnalyticsService', () => {
         },
         'GROUP BY payment_method': { rows: [] },
         'EXTRACT(YEAR FROM donation_date)': { rows: [] },
-        'total_registrations': {
+        total_registrations: {
           rows: [{ total_registrations: '0', events_attended: '0', no_shows: '0' }],
         },
         'GROUP BY e.event_type': { rows: [] },
         'ORDER BY e.start_date': { rows: [] },
-        'related_to_type': {
+        related_to_type: {
           rows: [
             {
               total_tasks: '0',

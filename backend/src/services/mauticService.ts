@@ -5,6 +5,8 @@
 
 import dns from 'dns/promises';
 import net from 'net';
+import { Agent, interceptors } from 'undici';
+import type { Dispatcher } from 'undici';
 import pool from '@config/database';
 import { logger } from '@config/logger';
 import type { WebsiteMauticSettings } from '@app-types/publishing';
@@ -231,43 +233,61 @@ const resolveMauticRuntimeConfig = (config?: MauticClientConfig): MauticConfigRe
 
 async function resolveSafeMauticHostname(
   hostname: string
-): Promise<{ ok: boolean; reason?: string }> {
+): Promise<{ ok: boolean; reason?: string; addresses: string[] }> {
   if (!hostname) {
-    return { ok: false, reason: 'URL must include a hostname' };
+    return { ok: false, reason: 'URL must include a hostname', addresses: [] };
   }
 
   if (isPrivateHostname(hostname)) {
-    return { ok: false, reason: 'Host is not allowed' };
+    return { ok: false, reason: 'Host is not allowed', addresses: [] };
   }
 
   if (net.isIP(hostname)) {
     return isPrivateIp(hostname)
-      ? { ok: false, reason: 'IP address is not allowed' }
-      : { ok: true };
+      ? { ok: false, reason: 'IP address is not allowed', addresses: [] }
+      : { ok: true, addresses: [hostname] };
   }
 
   try {
     const addresses = await dns.lookup(hostname, { all: true, verbatim: true });
     if (addresses.length === 0) {
-      return { ok: false, reason: 'Hostname did not resolve' };
+      return { ok: false, reason: 'Hostname did not resolve', addresses: [] };
     }
 
     if (addresses.some((address) => isPrivateIp(address.address))) {
-      return { ok: false, reason: 'Hostname resolves to a private IP' };
+      return { ok: false, reason: 'Hostname resolves to a private IP', addresses: [] };
     }
 
-    return { ok: true };
+    return { ok: true, addresses: addresses.map((address) => address.address) };
   } catch {
-    return { ok: false, reason: 'Hostname resolution failed' };
+    return { ok: false, reason: 'Hostname resolution failed', addresses: [] };
   }
 }
 
-async function assertMauticFetchAllowed(config: MauticRuntimeConfig): Promise<void> {
+async function createMauticDispatcher(
+  config: MauticRuntimeConfig
+): Promise<Dispatcher & { close(): Promise<void> }> {
   const parsed = new URL(config.baseUrl);
   const resolved = await resolveSafeMauticHostname(normalizeHostname(parsed.hostname));
   if (!resolved.ok) {
     throw new Error(`Mautic base URL is not allowed: ${resolved.reason || 'Unsafe host'}`);
   }
+
+  return new Agent().compose(
+    interceptors.dns({
+      maxTTL: 0,
+      lookup: (_origin, _options, callback) => {
+        callback(
+          null,
+          resolved.addresses.map((address) => ({
+            address,
+            family: address.includes(':') ? 6 : 4,
+            ttl: 0,
+          }))
+        );
+      },
+    })
+  ) as Dispatcher & { close(): Promise<void> };
 }
 
 function initializeMautic(): void {
@@ -339,37 +359,47 @@ async function mauticRequest<T>(
     throw new Error(resolved.error || 'Mautic is not configured');
   }
 
-  await assertMauticFetchAllowed(resolved.config);
+  const dispatcher = await createMauticDispatcher(resolved.config);
 
-  const response = await fetch(buildUrl(resolved.config, path), {
-    ...init,
-    headers: {
-      Accept: 'application/json',
-      Authorization: buildAuthHeader(resolved.config),
-      'Content-Type': 'application/json',
-      ...(init.headers || {}),
-    },
-  });
+  try {
+    const response = await fetch(buildUrl(resolved.config, path), {
+      ...init,
+      redirect: 'manual',
+      headers: {
+        Accept: 'application/json',
+        Authorization: buildAuthHeader(resolved.config),
+        'Content-Type': 'application/json',
+        ...(init.headers || {}),
+      },
+      dispatcher,
+    } as RequestInit & { dispatcher: Dispatcher });
 
-  if (!response.ok) {
-    const details = await response.text().catch(() => '');
-    throw new Error(
-      `Mautic request failed (${response.status}${response.statusText ? ` ${response.statusText}` : ''})${
-        details ? `: ${details}` : ''
-      }`
-    );
+    if (response.status >= 300 && response.status < 400) {
+      throw new Error('Mautic redirects are not allowed');
+    }
+
+    if (!response.ok) {
+      const details = await response.text().catch(() => '');
+      throw new Error(
+        `Mautic request failed (${response.status}${response.statusText ? ` ${response.statusText}` : ''})${
+          details ? `: ${details}` : ''
+        }`
+      );
+    }
+
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
+    const text = await response.text();
+    if (!text) {
+      return {} as T;
+    }
+
+    return JSON.parse(text) as T;
+  } finally {
+    await dispatcher.close();
   }
-
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  const text = await response.text();
-  if (!text) {
-    return {} as T;
-  }
-
-  return JSON.parse(text) as T;
 }
 
 function mapContact(contact: MauticContact): MauticContact {
@@ -458,7 +488,6 @@ export async function getStatus(config?: MauticClientConfig): Promise<MauticStat
   }
 
   try {
-    await assertMauticFetchAllowed(resolved.config);
     const segments = await getSegments(config);
     return {
       configured: true,

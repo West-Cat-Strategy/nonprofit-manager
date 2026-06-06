@@ -174,6 +174,13 @@ describe('auth middleware', () => {
               is_active: true,
             },
           ],
+        })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 'access-1',
+            },
+          ],
         });
       getAuthenticatedOrganizationId.mockResolvedValueOnce('org-1');
 
@@ -226,21 +233,69 @@ describe('auth middleware', () => {
               is_active: true,
             },
           ],
+        })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 'access-1',
+            },
+          ],
         });
 
       await authenticate(req, res, next);
 
-      expect(pool.query).toHaveBeenNthCalledWith(
-        2,
-        expect.stringContaining('FROM accounts'),
-        ['org-1']
-      );
+      expect(pool.query).toHaveBeenNthCalledWith(2, expect.stringContaining('FROM accounts'), [
+        'org-1',
+      ]);
       expect(req.organizationContextValidated).toEqual({
         organizationId: 'org-1',
         isActive: true,
-        accessValidated: false,
+        accessValidated: true,
       });
       expect(next).toHaveBeenCalled();
+    });
+
+    it('rejects token-bound organization context when the user lacks active organization access', async () => {
+      const req = {
+        headers: { authorization: 'Bearer org-token' },
+      } as AuthRequest;
+      const res = createMockResponse() as unknown as Response;
+      const next = jest.fn();
+
+      verifyTokenWithOptionalIssuer.mockReturnValue({
+        id: 'user-1',
+        email: 'token@example.com',
+        role: 'admin',
+        type: 'app',
+        authRevision: 1,
+        organizationId: 'org-1',
+      });
+      pool.query
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 'user-1',
+              email: 'db@example.com',
+              role: 'admin',
+              is_active: true,
+              auth_revision: 1,
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 'org-1',
+              is_active: true,
+            },
+          ],
+        })
+        .mockResolvedValueOnce({ rows: [] });
+
+      await authenticate(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(next).not.toHaveBeenCalled();
     });
   });
 

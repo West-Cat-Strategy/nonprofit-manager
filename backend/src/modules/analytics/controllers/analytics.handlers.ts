@@ -13,10 +13,7 @@ import { forbidden, notFoundMessage } from '@utils/responseHelpers';
 
 // Service access moved inside handlers to avoid circular dependencies
 
-const denyIfScopedForOrgWide = (
-  scope: DataScopeFilter | undefined,
-  res: Response
-): boolean => {
+const denyIfScopedForOrgWide = (scope: DataScopeFilter | undefined, res: Response): boolean => {
   if (!scope) return false;
   const hasScope =
     (scope.accountIds && scope.accountIds.length > 0) ||
@@ -121,6 +118,10 @@ export const getAnalyticsSummary = async (
     if (denyIfScopedForOrgWide(scope, res)) {
       return;
     }
+    if (!req.organizationId) {
+      forbidden(res, 'Organization context required');
+      return;
+    }
     const query = (req.validatedQuery ?? req.query) as {
       start_date?: string;
       end_date?: string;
@@ -132,6 +133,7 @@ export const getAnalyticsSummary = async (
       end_date: query.end_date,
       account_type: query.account_type,
       category: query.category,
+      organizationId: req.organizationId,
     };
 
     const summary = await services.analytics.getAnalyticsSummary(filters);
@@ -276,9 +278,7 @@ export const getDonationTrends = async (
     }
     const query = (req.validatedQuery ?? req.query) as { months?: number | string };
     const parsedMonths =
-      typeof query.months === 'number'
-        ? query.months
-        : parseInt(String(query.months ?? ''), 10);
+      typeof query.months === 'number' ? query.months : parseInt(String(query.months ?? ''), 10);
     const months = Number.isFinite(parsedMonths) ? parsedMonths : 12;
     const trends = await services.analytics.getDonationTrends(Math.min(months, 24));
     const maskedTrends = maskFinancialData(trends, req.user!.role);
@@ -304,9 +304,7 @@ export const getVolunteerHoursTrends = async (
     }
     const query = (req.validatedQuery ?? req.query) as { months?: number | string };
     const parsedMonths =
-      typeof query.months === 'number'
-        ? query.months
-        : parseInt(String(query.months ?? ''), 10);
+      typeof query.months === 'number' ? query.months : parseInt(String(query.months ?? ''), 10);
     const months = Number.isFinite(parsedMonths) ? parsedMonths : 12;
     const trends = await services.analytics.getVolunteerHoursTrends(Math.min(months, 24));
     res.json(trends);
@@ -331,9 +329,7 @@ export const getEventAttendanceTrends = async (
     }
     const query = (req.validatedQuery ?? req.query) as { months?: number | string };
     const parsedMonths =
-      typeof query.months === 'number'
-        ? query.months
-        : parseInt(String(query.months ?? ''), 10);
+      typeof query.months === 'number' ? query.months : parseInt(String(query.months ?? ''), 10);
     const months = Number.isFinite(parsedMonths) ? parsedMonths : 12;
     const trends = await services.analytics.getEventAttendanceTrends(Math.min(months, 24));
     res.json(trends);
@@ -383,12 +379,12 @@ export const getTrendAnalysis = async (
     if (denyIfScopedForOrgWide(scope, res)) {
       return;
     }
-    const { metricType } = req.params as { metricType: 'donations' | 'volunteer_hours' | 'event_attendance' };
+    const { metricType } = req.params as {
+      metricType: 'donations' | 'volunteer_hours' | 'event_attendance';
+    };
     const query = (req.validatedQuery ?? req.query) as { months?: number | string };
     const parsedMonths =
-      typeof query.months === 'number'
-        ? query.months
-        : parseInt(String(query.months ?? ''), 10);
+      typeof query.months === 'number' ? query.months : parseInt(String(query.months ?? ''), 10);
     const months = Number.isFinite(parsedMonths) ? parsedMonths : 12;
 
     const analysis = await services.analytics.getTrendAnalysis(metricType, months);
@@ -412,15 +408,15 @@ export const detectAnomalies = async (
     if (denyIfScopedForOrgWide(scope, res)) {
       return;
     }
-    const { metricType } = req.params as { metricType: 'donations' | 'volunteer_hours' | 'event_attendance' };
+    const { metricType } = req.params as {
+      metricType: 'donations' | 'volunteer_hours' | 'event_attendance';
+    };
     const query = (req.validatedQuery ?? req.query) as {
       months?: number | string;
       sensitivity?: number | string;
     };
     const parsedMonths =
-      typeof query.months === 'number'
-        ? query.months
-        : parseInt(String(query.months ?? ''), 10);
+      typeof query.months === 'number' ? query.months : parseInt(String(query.months ?? ''), 10);
     const months = Number.isFinite(parsedMonths) ? parsedMonths : 12;
     const parsedSensitivity =
       typeof query.sensitivity === 'number'
