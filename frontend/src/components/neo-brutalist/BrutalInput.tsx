@@ -1,6 +1,6 @@
 /**
- * BrutalInput - Neo-Brutalist Input Component
- * Hard borders, no rounded corners
+ * Legacy input export kept for route compatibility.
+ * Renders with Calm Ops field styling.
  */
 
 import type { InputHTMLAttributes, ReactNode } from 'react';
@@ -24,14 +24,14 @@ export default function BrutalInput({
             <input
                 {...props}
                 className={`
-                    w-full border-2 border-[var(--app-input-border)] 
+                    min-h-10 w-full rounded-[var(--ui-radius-sm)] border border-app-input-border
                     px-4 py-2 ${icon ? 'pl-10' : ''} 
                     bg-app-input-bg
                     text-app-text
                     placeholder:text-app-text-subtle
                     focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] focus:ring-offset-2 focus:ring-offset-[var(--app-bg)]
                     disabled:opacity-50 disabled:cursor-not-allowed
-                    transition-all
+                    shadow-sm transition-all
                 `}
             />
         </div>

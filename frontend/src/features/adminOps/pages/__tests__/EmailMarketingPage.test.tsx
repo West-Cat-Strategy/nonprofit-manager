@@ -34,6 +34,13 @@ vi.mock('../adminSettings/sections/EmailSettingsSection', () => ({
 
 const mockedApi = vi.mocked(api);
 
+const createFutureDateTimeLocalValue = () => {
+  const date = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  const pad = (value: number) => value.toString().padStart(2, '0');
+
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T10:00`;
+};
+
 describe('EmailMarketingPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -1298,6 +1305,7 @@ describe('EmailMarketingPage', () => {
   });
 
   it('schedules guided-builder campaigns without calling the immediate send endpoint', async () => {
+    const scheduledSendTime = createFutureDateTimeLocalValue();
     mockedApi.post.mockImplementation((url: string) => {
       if (url === '/communications/campaigns') {
         return Promise.resolve({
@@ -1309,7 +1317,7 @@ describe('EmailMarketingPage', () => {
             subject: 'Scheduled Appeal',
             listId: 'list-1',
             createdAt: '2026-04-24T12:00:00Z',
-            sendTime: '2026-06-01T10:00',
+            sendTime: scheduledSendTime,
           },
         });
       }
@@ -1323,7 +1331,11 @@ describe('EmailMarketingPage', () => {
     });
 
     const newCampaignButton = await screen.findByRole('button', { name: /new campaign/i });
+    await waitFor(() => {
+      expect(newCampaignButton).not.toBeDisabled();
+    });
     await user.click(newCampaignButton);
+    expect(await screen.findByText('Create Email Campaign')).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/campaign title/i), {
       target: { value: 'Scheduled Appeal' },
@@ -1338,7 +1350,7 @@ describe('EmailMarketingPage', () => {
       target: { value: 'hello@example.org' },
     });
     fireEvent.change(screen.getByLabelText(/schedule send time/i), {
-      target: { value: '2026-06-01T10:00' },
+      target: { value: scheduledSendTime },
     });
 
     const scheduleButton = screen.getByRole('button', { name: /schedule campaign/i });
@@ -1352,7 +1364,7 @@ describe('EmailMarketingPage', () => {
           subject: 'Scheduled Appeal',
           fromName: 'Community Org',
           replyTo: 'hello@example.org',
-          sendTime: '2026-06-01T10:00',
+          sendTime: scheduledSendTime,
           builderContent: expect.objectContaining({
             blocks: expect.arrayContaining([
               expect.objectContaining({

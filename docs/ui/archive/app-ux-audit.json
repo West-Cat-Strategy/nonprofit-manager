@@ -84,16 +84,16 @@
     ]
   },
   "postFix": {
-    "auditedAt": "2026-04-28T00:00:00Z",
+    "auditedAt": "2026-06-05T00:00:00Z",
     "staticAudit": {
       "routeIntegrityPassed": true,
       "routeCatalogDriftPassed": true,
       "brokenTargets": [],
       "styleAudit": {
-        "hardcodedColorUtilities": 1541,
-        "semanticTokenUtilities": 10150,
+        "hardcodedColorUtilities": 1585,
+        "semanticTokenUtilities": 10180,
         "inlineStyleUsages": 60,
-        "ratioSemanticToHardcoded": 6.5866
+        "ratioSemanticToHardcoded": 6.4227
       },
       "disallowedInlineStylePaths": []
     },

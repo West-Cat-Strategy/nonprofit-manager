@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { vi } from 'vitest';
 import Navigation from '../Navigation';
+import StaffSideNavigation from '../navigation/StaffSideNavigation';
 import { renderWithProviders } from '../../test/testUtils';
 import { THEME_IDS } from '../../theme/themeRegistry';
 
@@ -26,24 +27,36 @@ const primaryItems = [
     name: 'Workbench',
     path: '/dashboard',
     shortLabel: 'Workbench',
+    icon: '⌂',
+    area: 'Home',
+    group: 'primary',
   },
   {
     id: 'contacts',
     name: 'People',
     path: '/contacts',
     shortLabel: 'People',
+    icon: '👥',
+    area: 'People',
+    group: 'primary',
   },
   {
     id: 'cases',
     name: 'Cases',
     path: '/cases',
     shortLabel: 'Cases',
+    icon: '📁',
+    area: 'Service',
+    group: 'primary',
   },
   {
     id: 'donations',
     name: 'Donations',
     path: '/donations',
     shortLabel: 'Donations',
+    icon: '💰',
+    area: 'Finance',
+    group: 'primary',
   },
 ];
 
@@ -54,6 +67,8 @@ const secondaryItems = [
     path: '/tasks',
     icon: '✓',
     shortLabel: 'Tasks',
+    area: 'Engagement',
+    group: 'secondary',
   },
   {
     id: 'events',
@@ -61,6 +76,8 @@ const secondaryItems = [
     path: '/events',
     icon: '📅',
     shortLabel: 'Events',
+    area: 'Engagement',
+    group: 'secondary',
   },
   {
     id: 'websites',
@@ -68,6 +85,8 @@ const secondaryItems = [
     path: '/websites',
     icon: '🌐',
     shortLabel: 'Websites',
+    area: 'Publishing',
+    group: 'secondary',
   },
 ];
 
@@ -89,6 +108,8 @@ const utilityNavLinks = [
     ariaLabel: 'Reports',
   },
 ];
+
+const enabledItems = [...primaryItems, ...secondaryItems];
 
 vi.mock('../../features/navigation/components/StaffNavigationQuickLookupDialog', () => ({
   default: ({ onClose }: { onClose: () => void }) => (
@@ -141,6 +162,7 @@ const buildViewModel = (overrides: Record<string, unknown> = {}) => ({
   desktopPrimaryItems: primaryItems.slice(0, 4),
   desktopOverflowItems: secondaryItems,
   navigationPreferences: {
+    enabledItems,
     favoriteItems: [],
     primaryItems,
     secondaryItems,
@@ -186,53 +208,71 @@ describe('Navigation', () => {
     viewModelRef.current = buildViewModel();
   });
 
-  it('renders the compact primary navigation and desktop overflow grouping', async () => {
+  it('renders the Calm Ops top bar with brand, search, alerts, and account controls', () => {
     renderWithProviders(<Navigation />, { route: '/dashboard' });
 
     expect(screen.getByRole('navigation', { name: /global navigation/i })).toHaveClass(
       'app-shell-surface-opaque'
     );
-    expect(screen.getByRole('link', { name: /^workbench$/i })).toHaveAttribute('href', '/dashboard');
-    expect(screen.getByRole('link', { name: /^people$/i })).toHaveAttribute('href', '/contacts');
-    expect(screen.getByRole('link', { name: /^cases$/i })).toHaveAttribute('href', '/cases');
-    expect(screen.getByRole('link', { name: /^donations$/i })).toHaveAttribute('href', '/donations');
+    expect(screen.getByRole('link', { name: /nonprofit manager/i })).toHaveAttribute(
+      'href',
+      '/dashboard'
+    );
+    expect(
+      screen.getByRole('button', { name: /search people, cases, notes, donations, and routes/i })
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^alerts$/i })).toHaveAttribute('href', '/alerts');
+    expect(screen.getByRole('button', { name: /user menu/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /main menu/i })).toBeInTheDocument();
 
-    const primaryNav = screen.getByRole('navigation', { name: /primary navigation/i });
-    expect(within(primaryNav).getAllByRole('link')).toHaveLength(4);
-
-    expect(screen.queryByRole('button', { name: /^utilities$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: /primary navigation/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /more navigation/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /theme settings/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /admin quick actions/i })).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: /more navigation/i }));
-    expect(screen.getByRole('link', { name: /^tasks$/i })).toHaveAttribute('href', '/tasks');
-    expect(screen.getByRole('link', { name: /^events$/i })).toHaveAttribute('href', '/events');
-    expect(screen.getByRole('link', { name: /^websites$/i })).toHaveAttribute('href', '/websites');
-
-    expect(screen.getByRole('link', { name: /^alerts$/i })).toHaveAttribute('href', '/alerts');
-    expect(screen.getByRole('link', { name: /^alerts$/i })).toHaveClass(
-      'app-accent-contrast-ink'
-    );
     expect(preloadContactsPeopleRouteMock).not.toHaveBeenCalled();
     expect(preloadQuickLookupDialogMock).not.toHaveBeenCalled();
   });
 
-  it('prefetches the People route only when the user shows intent on the navigation item', () => {
-    renderWithProviders(<Navigation />, { route: '/dashboard' });
+  it('renders route-family navigation in the side rail', () => {
+    renderWithProviders(<StaffSideNavigation />, { route: '/dashboard' });
 
-    const peopleLink = screen.getByRole('link', { name: /^people$/i });
-    expect(preloadContactsPeopleRouteMock).not.toHaveBeenCalled();
+    const sideRail = screen.getByRole('complementary', { name: /workspace navigation/i });
+    const primaryNav = within(sideRail).getByRole('navigation', { name: /primary workspace areas/i });
 
-    fireEvent.mouseEnter(peopleLink);
-    fireEvent.focus(peopleLink);
-
-    expect(preloadContactsPeopleRouteMock).toHaveBeenCalledTimes(2);
+    expect(document.getElementById('side-nav-Home')).toHaveTextContent('Work');
+    expect(document.getElementById('side-nav-Service')).toHaveTextContent('Service');
+    expect(document.getElementById('side-nav-People')).toHaveTextContent('People');
+    expect(document.getElementById('side-nav-Engagement')).toHaveTextContent('Engagement');
+    expect(document.getElementById('side-nav-Finance')).toHaveTextContent('Finance');
+    expect(document.getElementById('side-nav-Publishing')).toHaveTextContent('Publishing');
+    expect(within(primaryNav).getByRole('link', { name: /workbench/i })).toHaveAttribute(
+      'href',
+      '/dashboard'
+    );
+    expect(within(primaryNav).getByRole('link', { name: /people/i })).toHaveAttribute(
+      'href',
+      '/contacts'
+    );
+    expect(within(primaryNav).getByRole('link', { name: /cases/i })).toHaveAttribute(
+      'href',
+      '/cases'
+    );
+    expect(within(primaryNav).getByRole('link', { name: /donations/i })).toHaveAttribute(
+      'href',
+      '/donations'
+    );
+    expect(within(primaryNav).getByRole('link', { name: /workbench/i })).toHaveAttribute(
+      'aria-current',
+      'page'
+    );
   });
 
   it('prefetches the quick lookup dialog only when the search control receives intent', () => {
     renderWithProviders(<Navigation />, { route: '/dashboard' });
 
-    const searchButton = screen.getByRole('button', { name: /^search$/i });
+    const searchButton = screen.getByRole('button', {
+      name: /search people, cases, notes, donations, and routes/i,
+    });
     expect(preloadQuickLookupDialogMock).not.toHaveBeenCalled();
 
     fireEvent.mouseEnter(searchButton);
@@ -298,41 +338,14 @@ describe('Navigation', () => {
     expect(screen.queryAllByRole('link', { name: /^admin settings$/i })).toHaveLength(0);
   });
 
-  it('highlights hidden desktop destinations through the More menu', async () => {
+  it('highlights active destinations in the side rail', () => {
     viewModelRef.current = buildViewModel({
       currentLocation: '/tasks',
     });
 
-    renderWithProviders(<Navigation />, { route: '/tasks' });
+    renderWithProviders(<StaffSideNavigation />, { route: '/tasks' });
 
-    const moreButton = screen.getByRole('button', { name: /more navigation/i });
-    expect(moreButton).toHaveClass('border-app-accent', 'bg-app-accent');
-
-    fireEvent.click(moreButton);
     expect(screen.getByRole('link', { name: /^tasks$/i })).toHaveAttribute('aria-current', 'page');
-  });
-
-  it('closes the More menu from the backdrop and restores focus to its trigger', async () => {
-    const { container } = renderWithProviders(<Navigation />, { route: '/dashboard' });
-
-    const moreButton = screen.getByRole('button', { name: /more navigation/i });
-    fireEvent.click(moreButton);
-
-    expect(
-      await screen.findByRole('navigation', { name: /more navigation/i })
-    ).toBeInTheDocument();
-
-    const backdrop = container.querySelector('div[aria-hidden="true"]');
-    expect(backdrop).toBeTruthy();
-
-    fireEvent.click(backdrop as HTMLElement);
-
-    await waitFor(() => {
-      expect(
-        screen.queryByRole('navigation', { name: /more navigation/i })
-      ).not.toBeInTheDocument();
-      expect(moreButton).toHaveFocus();
-    });
   });
 
   it('maintains user menu state and delegates logout', async () => {
@@ -356,7 +369,9 @@ describe('Navigation', () => {
   it('opens and closes the search dialog while restoring focus', async () => {
     renderWithProviders(<Navigation />, { route: '/dashboard' });
 
-    const searchButton = await screen.findByRole('button', { name: /^search$/i });
+    const searchButton = await screen.findByRole('button', {
+      name: /search people, cases, notes, donations, and routes/i,
+    });
     expect(searchButton).not.toHaveFocus();
     fireEvent.click(searchButton);
     expect(await screen.findByRole('dialog', { name: /search people/i })).toBeInTheDocument();
@@ -368,16 +383,21 @@ describe('Navigation', () => {
     });
   });
 
-  it('keeps the quick lookup overlay exclusive by closing the More menu first', async () => {
+  it('keeps the quick lookup overlay exclusive by closing the user menu first', async () => {
     renderWithProviders(<Navigation />, { route: '/dashboard' });
 
-    fireEvent.click(screen.getByRole('button', { name: /more navigation/i }));
-    expect(screen.getByRole('navigation', { name: /more navigation/i })).toBeInTheDocument();
+    const userMenuButton = screen.getByRole('button', { name: /user menu/i });
+    fireEvent.click(userMenuButton);
+    expect(userMenuButton).toHaveAttribute('aria-expanded', 'true');
 
-    fireEvent.click(screen.getByRole('button', { name: /^search$/i }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /search people, cases, notes, donations, and routes/i,
+      })
+    );
 
     expect(await screen.findByRole('dialog', { name: /search people/i })).toBeInTheDocument();
-    expect(screen.queryByRole('navigation', { name: /more navigation/i })).not.toBeInTheDocument();
+    expect(userMenuButton).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('opens the mobile drawer as a dialog and focuses its close button', async () => {

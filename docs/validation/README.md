@@ -1,6 +1,6 @@
 # Validation & Audit Index
 
-**Last Updated:** 2026-05-16
+**Last Updated:** 2026-06-05
 
 Use this index for active validation references first, and the validation archive second. For live task ownership, blockers, and next steps, use [../phases/planning-and-progress.md](../phases/planning-and-progress.md) instead of treating these files as a workboard. Detailed persona-validation methodology now lives in tracked skill references.
 
@@ -21,6 +21,7 @@ For Phase 5 validation work, treat the proof sequence as host first and Docker s
 | [CASES_INTAKE_SAVE_VERIFICATION_2026-05-13.md](CASES_INTAKE_SAVE_VERIFICATION_2026-05-13.md) | Active validation note | Cases and intake save-path verification for staff case creation, staff intake, public website referral/contact intake, portal signup/admin approval, and portal/public case-form submissions, including focused frontend/backend proof and the current Docker blocker for browser/runtime wrappers |
 | [CODEBASE_REVIEW_CLEANUP_AUDIT_2026-05-16.md](CODEBASE_REVIEW_CLEANUP_AUDIT_2026-05-16.md) | Active audit note | Conservative repo-health cleanup audit for the May 16 Review queue reconciliation, ignored local runtime clutter cleanup, recovered DB/Docker proof, and final validation status |
 | [P5-T136_SECURITY_FOCUSED_CODEBASE_IMPROVEMENT_PROOF_2026-05-16.md](P5-T136_SECURITY_FOCUSED_CODEBASE_IMPROVEMENT_PROOF_2026-05-16.md) | Active proof note | Security-focused codebase improvement batch from the May 16 review, covering webhook contract hardening, public-token abuse controls, payment/customer authorization, communications provider contact-scope enforcement, and deferred candidate backlog |
+| [P5-T137_CALM_OPS_UI_UX_OVERHAUL_PROOF_2026-06-05.md](P5-T137_CALM_OPS_UI_UX_OVERHAUL_PROOF_2026-06-05.md) | Active proof note | Whole-app Calm Ops UI/UX overhaul tracking shared frontend primitives, user-facing route-family migration, route/API contract preservation, browser proof, full host/mobile/Docker validation, and the documented `exceljs -> uuid` audit follow-up |
 | [DOCS_AGGRESSIVE_PRUNE_INVENTORY_2026-05-07.md](DOCS_AGGRESSIVE_PRUNE_INVENTORY_2026-05-07.md) | Docs inventory and prune decision note | Starting inventory, orphan review, and prune rules for the aggressive docs refactor branch |
 | [P5-T75_AUTH_ALIAS_GATE_HANDOFF_2026-05-05.md](P5-T75_AUTH_ALIAS_GATE_HANDOFF_2026-05-05.md) | Row-local handoff note | Operational handoff for the time-gated auth alias deprecation row, preserving alias compatibility until telemetry gates and the July 1 earliest enforcement date are satisfied |
 | [PERSONA_UI_UX_WORKFLOW_AUDIT_2026-04-22.md](PERSONA_UI_UX_WORKFLOW_AUDIT_2026-04-22.md) | Active validation note | Current six-persona UI/UX workflow audit covering route-contract proof, board read-only posture, thin browser anchors, and documented unmet persona needs |

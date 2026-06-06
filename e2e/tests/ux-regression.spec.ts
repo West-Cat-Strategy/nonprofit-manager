@@ -496,19 +496,19 @@ const gotoAdminRouteWithFallback = async (
 };
 
 test.describe("UI/UX regression flows", () => {
-  test("global navigation stays compact below lg and expands at lg", async ({
+  test("global navigation stays compact below lg and exposes the desktop side rail at lg", async ({
     authenticatedPage,
   }) => {
     const runtimeIssues = trackRuntimeIssues(authenticatedPage);
     const globalNav = authenticatedPage
       .getByRole("navigation", { name: /global navigation/i })
       .first();
-    const primaryNav = authenticatedPage
-      .locator('[aria-label="Primary navigation"]')
+    const workspaceRail = authenticatedPage
+      .locator('aside[aria-label="Workspace navigation"]')
       .first();
-    const moreButton = authenticatedPage.locator(
-      'button[aria-label="More navigation"]',
-    );
+    const workspaceAreas = authenticatedPage
+      .getByRole("navigation", { name: /primary workspace areas/i })
+      .first();
     const userMenuButton = authenticatedPage.locator(
       'button[aria-label="User menu"]',
     );
@@ -518,16 +518,18 @@ test.describe("UI/UX regression flows", () => {
     const searchButton = authenticatedPage.locator(
       'button[aria-label="Search"]',
     );
+    const desktopSearchButton = authenticatedPage
+      .getByRole("button", { name: /search people, cases/i })
+      .first();
     const alertsLink = authenticatedPage.getByRole("link", { name: /alert rules/i }).first();
 
     await authenticatedPage.setViewportSize({ width: 900, height: 900 });
     await authenticatedPage.goto("/dashboard");
     await expect(globalNav).toBeVisible({ timeout: 10000 });
-    await expect(primaryNav).toBeHidden();
-    await expect(moreButton).toBeHidden();
+    await expect(workspaceRail).toBeHidden();
     await expect(userMenuButton).toBeHidden();
     await expect(mainMenuButton).toBeVisible();
-    await expect(searchButton).toBeVisible();
+    await expect(desktopSearchButton).toBeVisible();
     await expect(alertsLink).toBeVisible();
 
     await mainMenuButton.click();
@@ -543,6 +545,12 @@ test.describe("UI/UX regression flows", () => {
     await expect(
       authenticatedPage.getByText(/^account$/i).first(),
     ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole("link", { name: /^workbench$/i }).first(),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole("link", { name: /^tasks$/i }).first(),
+    ).toBeVisible();
     await expectNoHorizontalOverflow(
       authenticatedPage,
       "dashboard shell at 1024px",
@@ -557,24 +565,27 @@ test.describe("UI/UX regression flows", () => {
       runtimeIssues,
       "/dashboard",
       /^workbench$/i,
-      [globalNav, mainMenuButton, searchButton, alertsLink],
+      [globalNav, mainMenuButton, desktopSearchButton, alertsLink],
     );
     runtimeIssues.clear();
 
     await authenticatedPage.setViewportSize({ width: 1280, height: 900 });
     await authenticatedPage.goto("/dashboard");
     await expect(globalNav).toBeVisible({ timeout: 10000 });
-    await expect(primaryNav).toBeVisible();
+    await expect(workspaceRail).toBeVisible();
+    await expect(workspaceAreas).toBeVisible();
     await expect(
-      primaryNav.getByRole("link", { name: /^workbench$/i }).first(),
+      workspaceAreas.getByRole("link", { name: /^workbench$/i }).first(),
     ).toBeVisible();
     await expect(
-      primaryNav.getByRole("link", { name: /^people$/i }).first(),
+      workspaceAreas.getByRole("link", { name: /^people$/i }).first(),
     ).toBeVisible();
     await expect(
-      primaryNav.getByRole("link", { name: /^cases$/i }).first(),
+      workspaceAreas.getByRole("link", { name: /^cases$/i }).first(),
     ).toBeVisible();
-    await expect(moreButton).toBeVisible();
+    await expect(
+      workspaceAreas.getByRole("link", { name: /^tasks$/i }).first(),
+    ).toBeVisible();
     await expect(userMenuButton).toBeVisible({ timeout: 10000 });
     await expect(mainMenuButton).toBeHidden();
     await expect(
@@ -584,12 +595,8 @@ test.describe("UI/UX regression flows", () => {
       authenticatedPage.getByRole("link", { name: /create intake/i }).first(),
     ).toBeVisible();
 
-    await moreButton.click();
     await expect(
-      authenticatedPage.getByRole("link", { name: /^tasks$/i }).first(),
-    ).toBeVisible();
-    await expect(
-      authenticatedPage.getByRole("link", { name: /^analytics$/i }).first(),
+      workspaceAreas.getByRole("link", { name: /^analytics$/i }).first(),
     ).toBeVisible();
 
     await userMenuButton.click();
@@ -601,15 +608,18 @@ test.describe("UI/UX regression flows", () => {
         .getByRole("button", { name: /switch to (light|dark)/i })
         .first(),
     ).toBeVisible();
+    await authenticatedPage.keyboard.press("Escape");
+    await expect(
+      authenticatedPage.getByRole("link", { name: /admin settings/i }).first(),
+    ).toBeHidden();
 
-    await searchButton.click();
+    await desktopSearchButton.click();
     await expect(
       authenticatedPage.getByRole("dialog", { name: /search people/i }),
     ).toBeVisible();
     await authenticatedPage
       .getByRole("button", { name: /close search dialog/i })
       .click();
-    await expect(searchButton).toBeFocused();
     await expectNoHorizontalOverflow(
       authenticatedPage,
       "dashboard shell at 1280px",
@@ -628,9 +638,9 @@ test.describe("UI/UX regression flows", () => {
       /^workbench$/i,
       [
         globalNav,
-        primaryNav,
+        workspaceRail,
+        workspaceAreas,
         userMenuButton,
-        searchButton,
         authenticatedPage.getByRole("link", { name: /create intake/i }).first(),
       ],
     );

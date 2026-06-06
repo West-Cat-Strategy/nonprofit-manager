@@ -1,11 +1,11 @@
 # User Interface Template Information
 
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-06-05
 
 
 > Document Type: Canonical UI Constitution
-> Version: 2.0.0
-> Last Updated: March 6, 2026
+> Version: 2.1.0
+> Last Updated: June 5, 2026
 > Status: Active
 
 This document is the authoritative design reference for Nonprofit Manager. The old neo-brutalist-first guidance is retired. The application now follows an editorial operations system that prioritizes readability, workflow efficiency, and consistent staff/portal/public navigation.
@@ -14,13 +14,13 @@ Start with [README.md](README.md) for the active UI-doc map and [archive/README.
 
 ## Design Direction
 
-The default visual language is editorial operations:
+The default visual language is Calm Ops:
 
-- Neutral workspace surfaces with visible but lighter borders.
-- Dark-ink/navy primary actions instead of saturated accent-first blocks.
-- Clear typographic hierarchy using `Fraunces` for headings and `Space Grotesk` for working text.
-- Dense but scannable tables, filter bars, and cards.
-- Shared shell primitives across staff, portal, auth, and public routes.
+- Neutral workspace surfaces with subtle borders, compact spacing, and shallow shadows.
+- Restrained teal, indigo, and green accents for primary actions, selection, and semantic status.
+- Clear typographic hierarchy using `Public Sans` for working UI and `Manrope` for display or page-level headings.
+- Dense but scannable tables, filter bars, action rails, cards, and forms.
+- Shared shell primitives across staff, portal, auth, public, and demo/test route-QA surfaces.
 
 This system is meant to feel credible and operational rather than playful or ornamental.
 
@@ -28,7 +28,7 @@ This system is meant to feel credible and operational rather than playful or orn
 
 1. Readability first. Headings, labels, row states, and actions must be immediately distinguishable.
 2. Workflow over decoration. A user should always know the next safe action from the current page.
-3. Shared primitives before bespoke layouts. Use the common shell, page header, section card, state, table, and button components unless a page has a strong product reason not to.
+3. Shared primitives before bespoke layouts. Use the common shell, side navigation, page header, section card, metric strip, toolbar row, status pill, state, table, form, and button components unless a page has a strong product reason not to.
 4. Navigation must be canonical. Runtime links and redirects must resolve through the route manifests under `frontend/src/routes/startupRouteCatalog.ts` and feature-owned manifests such as `frontend/src/features/adminOps/adminRouteManifest.ts`.
 5. Accessibility is part of the design system, not a QA afterthought.
 
@@ -36,8 +36,9 @@ This system is meant to feel credible and operational rather than playful or orn
 
 ### Staff Shell
 
-- Global navigation is the primary entry point for staff workflows.
-- Utility destinations such as analytics, reports, and alerts belong in the staff utility rail.
+- The staff top bar carries workspace identity, search, alerts, theme, and account controls.
+- The staff side rail is the primary entry point for route-family navigation.
+- Utility destinations such as analytics, reports, and alerts belong in the staff navigation model rather than one-off page shortcuts.
 - Page headers must expose the primary action and should avoid burying high-value tasks below the fold.
 
 ### Admin Shell
@@ -68,6 +69,7 @@ This system is meant to feel credible and operational rather than playful or orn
 
 - Use `SectionCard` for grouped content.
 - Use `DataTable` for row-heavy views.
+- Use `MetricStrip`, `ToolbarRow`, and `StatusPill` for dashboard metrics, filters, and state labels before introducing page-local variants.
 - Use `LoadingState`, `EmptyState`, and `ErrorState` rather than ad hoc placeholders.
 
 ### Tables and Density
@@ -122,6 +124,7 @@ Do:
 - Prefer manifest-backed navigation.
 - Improve workflow clarity when replacing broken shortcuts or dead-end routes.
 - Keep cards, tables, and forms visually consistent across staff and portal experiences.
+- Preserve route paths, permission behavior, `/api/v2` contracts, and response envelopes during UI-only migrations.
 
 Do not:
 
@@ -129,3 +132,4 @@ Do not:
 - Add new literal internal routes that bypass the route manifests.
 - Use inline styles for ordinary spacing, colors, or text wrapping.
 - Ship route surfaces without H1, primary action, and empty/error/loading treatment.
+- Add a new UI framework or icon dependency for presentation-only refreshes.

@@ -208,12 +208,12 @@ export default function FocusQueuePanel({
             <article key={entry.id} className={workbenchInteractiveCardClassName}>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+                  <p className="text-xs font-medium text-app-text-subtle">
                     Workqueue
                   </p>
                   <p className="mt-2 text-base font-bold text-app-text-heading">{entry.label}</p>
                 </div>
-                <span className="rounded-lg border border-app-border bg-app-surface px-3 py-1 text-lg font-bold text-app-text-heading">
+                <span className="rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-3 py-1 text-lg font-semibold text-app-text-heading">
                   {entry.value}
                 </span>
               </div>
@@ -242,7 +242,7 @@ export default function FocusQueuePanel({
           ))}
           {savedQueueEntries.map((entry) => (
             <Link key={entry.id} to={entry.href} className={workbenchInteractiveCardClassName}>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+              <p className="text-xs font-medium text-app-text-subtle">
                 Saved queue
               </p>
               <p className="mt-2 text-base font-bold text-app-text-heading">{entry.name}</p>

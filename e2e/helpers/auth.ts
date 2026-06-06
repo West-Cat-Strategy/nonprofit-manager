@@ -16,6 +16,30 @@ const DEFAULT_ADMIN_EMAIL = 'admin@example.com';
 const PLAYWRIGHT_MANAGED_ADMIN_PASSWORD = 'Admin123!@#';
 const DOCKER_SETUP_ADMIN_PASSWORD = PLAYWRIGHT_MANAGED_ADMIN_PASSWORD;
 const DOCKER_SEEDED_ADMIN_PASSWORD = 'password123';
+const RLS_VERIFICATION_PASSWORD_HASH = 'verification-only';
+const RLS_VERIFICATION_ADMIN_USER_ID = '00000000-0000-4000-8000-000000000102';
+const RLS_VERIFICATION_ADMIN_EMAIL = 'rls-admin@example.test';
+const RLS_VERIFICATION_USER_IDS = [
+  '00000000-0000-4000-8000-000000000101',
+  RLS_VERIFICATION_ADMIN_USER_ID,
+  '00000000-0000-4000-8000-000000000103',
+  '00000000-0000-4000-8000-000000000104',
+];
+const RLS_VERIFICATION_ACCOUNT_IDS = [
+  '00000000-0000-4000-8000-000000000201',
+  '00000000-0000-4000-8000-000000000202',
+];
+const RLS_VERIFICATION_CONTACT_IDS = ['00000000-0000-4000-8000-000000000301'];
+const RLS_VERIFICATION_ACCESS_IDS = [
+  '00000000-0000-4000-8000-000000000401',
+  '00000000-0000-4000-8000-000000000402',
+];
+const RLS_VERIFICATION_USER_EMAILS = [
+  'rls-verifier@example.test',
+  RLS_VERIFICATION_ADMIN_EMAIL,
+  'rls-non-admin@example.test',
+  'rls-access-target@example.test',
+];
 const backendRequire = createRequire(path.resolve(__dirname, '..', '..', 'backend', 'package.json'));
 const { Client: PgClient } = backendRequire('pg') as {
   Client: new (config: {
@@ -152,6 +176,21 @@ type ResolvedAdminCredentials = {
   passwordSource: string;
   explicitOverride: boolean;
   runtimeProfile: AdminRuntimeProfile;
+};
+
+type RlsVerificationAdminBootstrapRow = {
+  id?: unknown;
+  email?: unknown;
+  password_hash?: unknown;
+  passwordHash?: unknown;
+  role?: unknown;
+};
+
+export type RlsVerificationAdminBootstrapState = {
+  setupRequired?: SetupRequiredState;
+  explicitAdminCredentialOverride?: boolean;
+  allowExternallyManagedAuthFallbacks?: boolean;
+  adminRows: RlsVerificationAdminBootstrapRow[];
 };
 
 type DefaultAdminCredentialProfile = Pick<
@@ -404,6 +443,43 @@ const normalizeString = (value: unknown): string | undefined => {
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
+const normalizeLowerString = (value: unknown): string | undefined =>
+  normalizeString(value)?.toLowerCase();
+
+const isRlsVerificationAdminBootstrapRow = (
+  row: RlsVerificationAdminBootstrapRow
+): boolean => {
+  const id = normalizeLowerString(row.id);
+  const email = normalizeLowerString(row.email);
+  const passwordHash =
+    normalizeString(row.password_hash) || normalizeString(row.passwordHash);
+  const role = normalizeLowerString(row.role);
+
+  return (
+    id === RLS_VERIFICATION_ADMIN_USER_ID &&
+    email === RLS_VERIFICATION_ADMIN_EMAIL &&
+    passwordHash === RLS_VERIFICATION_PASSWORD_HASH &&
+    role === 'admin'
+  );
+};
+
+export const shouldRecoverRlsVerificationOnlyAdminBootstrap = (
+  state: RlsVerificationAdminBootstrapState
+): boolean => {
+  if (state.setupRequired !== false) {
+    return false;
+  }
+
+  if (state.explicitAdminCredentialOverride || state.allowExternallyManagedAuthFallbacks) {
+    return false;
+  }
+
+  return (
+    state.adminRows.length > 0 &&
+    state.adminRows.every(isRlsVerificationAdminBootstrapRow)
+  );
+};
+
 const normalizeAuthUser = (value: unknown): AuthUser | undefined => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return undefined;
@@ -585,6 +661,106 @@ const withAuthDatabaseClient = async <T>(
   } finally {
     await client.end().catch(() => undefined);
   }
+};
+
+const readAdminBootstrapRows = async (): Promise<RlsVerificationAdminBootstrapRow[]> =>
+  withAuthDatabaseClient(async (client) => {
+    const result = await client.query<RlsVerificationAdminBootstrapRow>(
+      `
+      SELECT
+        id::text,
+        email,
+        password_hash,
+        role
+      FROM users
+      WHERE role = 'admin'
+      ORDER BY email
+      `
+    );
+
+    return result.rows;
+  });
+
+const clearRlsVerificationFixturesFromAuthDatabase = async (): Promise<void> => {
+  await withAuthDatabaseClient(async (client) => {
+    await client.query(
+      `
+      DELETE FROM volunteers
+      WHERE contact_id = ANY($1::uuid[])
+      `,
+      [RLS_VERIFICATION_CONTACT_IDS]
+    );
+
+    await client.query(
+      `
+      DELETE FROM user_account_access
+      WHERE id = ANY($3::uuid[])
+         OR user_id = ANY($1::uuid[])
+         OR granted_by = ANY($1::uuid[])
+         OR account_id = ANY($2::uuid[])
+      `,
+      [RLS_VERIFICATION_USER_IDS, RLS_VERIFICATION_ACCOUNT_IDS, RLS_VERIFICATION_ACCESS_IDS]
+    );
+
+    await client.query(
+      `
+      DELETE FROM contacts
+      WHERE id = ANY($1::uuid[])
+        AND email = 'rls-contact@example.test'
+      `,
+      [RLS_VERIFICATION_CONTACT_IDS]
+    );
+
+    await client.query(
+      `
+      DELETE FROM accounts
+      WHERE id = ANY($1::uuid[])
+        AND account_number = ANY($2::text[])
+      `,
+      [RLS_VERIFICATION_ACCOUNT_IDS, ['VERIFY-RLS-ACCOUNT', 'VERIFY-RLS-ADMIN-WRITE']]
+    );
+
+    await client.query(
+      `
+      DELETE FROM users
+      WHERE id = ANY($1::uuid[])
+        AND email = ANY($2::text[])
+        AND password_hash = $3
+      `,
+      [
+        RLS_VERIFICATION_USER_IDS,
+        RLS_VERIFICATION_USER_EMAILS,
+        RLS_VERIFICATION_PASSWORD_HASH,
+      ]
+    );
+  });
+};
+
+const resetRlsVerificationOnlyAdminBootstrapIfNeeded = async (
+  setupStatus: SetupStatusResult | null,
+  options: {
+    explicitAdminCredentialOverride: boolean;
+    allowExternallyManagedAuthFallbacks: boolean;
+  }
+): Promise<boolean> => {
+  if (setupStatus?.setupRequired !== false) {
+    return false;
+  }
+
+  const adminRows = await readAdminBootstrapRows();
+  if (
+    !shouldRecoverRlsVerificationOnlyAdminBootstrap({
+      setupRequired: setupStatus.setupRequired,
+      explicitAdminCredentialOverride: options.explicitAdminCredentialOverride,
+      allowExternallyManagedAuthFallbacks: options.allowExternallyManagedAuthFallbacks,
+      adminRows,
+    })
+  ) {
+    return false;
+  }
+
+  await clearRlsVerificationFixturesFromAuthDatabase();
+  return true;
 };
 
 const resolveAuthHelperEncryptionKey = (): Buffer => {
@@ -2095,9 +2271,26 @@ export async function ensureAdminLoginViaAPI(
     return currentAdminSession;
   }
 
-  const initialSetupStatus = await getSetupStatusOrNull(page, { attempts: 3, delayMs: 200 }).catch(
+  let initialSetupStatus = await getSetupStatusOrNull(page, { attempts: 3, delayMs: 200 }).catch(
     () => null
   );
+  const allowExternallyManagedAuthFallbacks = shouldAllowExternallyManagedAuthFallbacks();
+  const explicitAdminCredentialOverride = Boolean(
+    process.env.ADMIN_USER_EMAIL?.trim() || process.env.ADMIN_USER_PASSWORD?.trim()
+  );
+  const resetRlsVerificationOnlyBootstrap =
+    await resetRlsVerificationOnlyAdminBootstrapIfNeeded(initialSetupStatus, {
+      explicitAdminCredentialOverride,
+      allowExternallyManagedAuthFallbacks,
+    });
+  if (resetRlsVerificationOnlyBootstrap) {
+    invalidateSharedAuthCaches({ clearLocks: true, clearAdminCaches: true });
+    await clearAuth(page);
+    initialSetupStatus = await getSetupStatusOrNull(page, { attempts: 3, delayMs: 200 }).catch(
+      () => ({ setupRequired: true, userCount: 0 })
+    );
+  }
+
   const { primary: primaryAdminCredentials, alternate: alternateAdminCredentials } =
     resolveAdminCredentialCandidates({
       setupRequired: initialSetupStatus?.setupRequired ?? null,
@@ -2105,10 +2298,12 @@ export async function ensureAdminLoginViaAPI(
   const adminEmail = primaryAdminCredentials.email;
   const adminPassword = primaryAdminCredentials.password;
   const strictAdminAuth = isStrictAdminAuthRequired();
-  const allowExternallyManagedAuthFallbacks = shouldAllowExternallyManagedAuthFallbacks();
   let alternateDefaultAdminError: unknown;
 
-  if (initialSetupStatus?.setupRequired && !allowExternallyManagedAuthFallbacks) {
+  if (
+    (initialSetupStatus?.setupRequired || resetRlsVerificationOnlyBootstrap) &&
+    !allowExternallyManagedAuthFallbacks
+  ) {
     invalidateSharedAuthCaches({ clearLocks: true, clearAdminCaches: true });
   }
 

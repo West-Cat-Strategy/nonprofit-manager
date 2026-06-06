@@ -493,8 +493,13 @@ const smokeCases: SmokeCase[] = [
     primaryActionPattern: /create event/i,
     primaryActionRole: 'link',
     contractAssertion: async () => {
+      const currentMonthLabel = new Intl.DateTimeFormat('en-US', {
+        month: 'long',
+        year: 'numeric',
+      }).format(new Date());
+
       expect(
-        (await screen.findAllByText(/may 2026/i)).length
+        (await screen.findAllByText(new RegExp(currentMonthLabel, 'i'))).length
       ).toBeGreaterThan(0);
     },
   },

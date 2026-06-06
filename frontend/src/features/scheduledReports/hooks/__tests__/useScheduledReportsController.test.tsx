@@ -75,11 +75,13 @@ describe('useScheduledReportsController', () => {
   });
 
   it('filters scheduled reports that need attention from existing health fields', async () => {
+    const futureNextRunAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
     fetchScheduledReportsMock.mockResolvedValue([
       makeScheduledReport({
         id: 'healthy-schedule',
         name: 'Healthy Schedule',
-        next_run_at: '2026-06-05T17:00:00.000Z',
+        next_run_at: futureNextRunAt,
       }),
       makeScheduledReport({
         id: 'error-schedule',

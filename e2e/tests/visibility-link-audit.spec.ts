@@ -45,7 +45,7 @@ type ClickthroughAuditLink = {
   label: string;
   href: string;
   surface: 'staff' | 'portal';
-  scope?: 'primary-navigation' | 'more-navigation' | 'more-button' | 'alerts-shortcut';
+  scope?: 'workspace-navigation' | 'alerts-shortcut';
 };
 
 type LinkAuditRow = {
@@ -404,15 +404,14 @@ const portalRouteAudits: RouteAuditConfig[] = [
 ];
 
 const staffNavigationLinks: ClickthroughAuditLink[] = [
-  { label: 'Workbench', href: '/dashboard', surface: 'staff', scope: 'primary-navigation' },
-  { label: 'People', href: '/contacts', surface: 'staff', scope: 'primary-navigation' },
-  { label: 'Cases', href: '/cases', surface: 'staff', scope: 'primary-navigation' },
-  { label: 'More', href: '#topnav-more-menu', surface: 'staff', scope: 'more-button' },
-  { label: 'Tasks', href: '/tasks', surface: 'staff', scope: 'more-navigation' },
-  { label: 'Accounts', href: '/accounts', surface: 'staff', scope: 'more-navigation' },
-  { label: 'Volunteers', href: '/volunteers', surface: 'staff', scope: 'more-navigation' },
-  { label: 'Analytics', href: '/analytics', surface: 'staff', scope: 'more-navigation' },
-  { label: 'Reports', href: '/reports', surface: 'staff', scope: 'more-navigation' },
+  { label: 'Workbench', href: '/dashboard', surface: 'staff', scope: 'workspace-navigation' },
+  { label: 'People', href: '/contacts', surface: 'staff', scope: 'workspace-navigation' },
+  { label: 'Cases', href: '/cases', surface: 'staff', scope: 'workspace-navigation' },
+  { label: 'Tasks', href: '/tasks', surface: 'staff', scope: 'workspace-navigation' },
+  { label: 'Accounts', href: '/accounts', surface: 'staff', scope: 'workspace-navigation' },
+  { label: 'Volunteers', href: '/volunteers', surface: 'staff', scope: 'workspace-navigation' },
+  { label: 'Analytics', href: '/analytics', surface: 'staff', scope: 'workspace-navigation' },
+  { label: 'Reports', href: '/reports', surface: 'staff', scope: 'workspace-navigation' },
   { label: 'Alert rules', href: '/alerts', surface: 'staff', scope: 'alerts-shortcut' },
 ];
 
@@ -1126,30 +1125,17 @@ authTest.describe('Staff text visibility and link audit', () => {
       findRouteAuditConfig('staff', '/dashboard'),
       recoveryOptions
     );
-    const primaryNavigation = authenticatedPage.getByRole('navigation', {
-      name: /primary navigation/i,
+    const workspaceNavigation = authenticatedPage.getByRole('navigation', {
+      name: /primary workspace areas/i,
     });
-    await expect(primaryNavigation).toBeVisible();
-    const moreNavigationButton = authenticatedPage.getByRole('button', {
-      name: /more navigation/i,
-    });
+    await expect(workspaceNavigation).toBeVisible();
 
     for (const linkConfig of staffNavigationLinks) {
       const targetHref = normalizeRouteLocation(linkConfig.href);
       let link;
 
-      if (linkConfig.scope === 'primary-navigation') {
-        link = primaryNavigation.getByRole('link', { name: toNamePattern(linkConfig.label) }).first();
-      } else if (linkConfig.scope === 'more-button') {
-        link = moreNavigationButton.first();
-      } else if (linkConfig.scope === 'more-navigation') {
-        await expect(moreNavigationButton).toBeVisible();
-        await moreNavigationButton.click();
-        const moreNavigationMenu = authenticatedPage.getByRole('navigation', {
-          name: /more navigation/i,
-        });
-        await expect(moreNavigationMenu).toBeVisible();
-        link = moreNavigationMenu
+      if (linkConfig.scope === 'workspace-navigation') {
+        link = workspaceNavigation
           .getByRole('link', { name: toNamePattern(linkConfig.label) })
           .first();
       } else {
@@ -1157,9 +1143,6 @@ authTest.describe('Staff text visibility and link audit', () => {
       }
 
       await expect(link, `missing visible staff nav link for ${linkConfig.label}`).toBeVisible();
-      if (linkConfig.scope === 'more-button') {
-        continue;
-      }
       await link.scrollIntoViewIfNeeded();
       await link.click();
       await waitForCanonicalNavigation(

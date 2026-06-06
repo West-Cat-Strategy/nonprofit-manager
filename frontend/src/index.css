@@ -3,70 +3,70 @@
 
 /* LOOP Design System - Core Engine */
 :root {
-  --font-display: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman', serif;
-  --font-body: 'Space Grotesk', 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Public Sans', 'Manrope', 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+  --font-body: 'Public Sans', 'Manrope', 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
   
   /* GLOBAL DEFAULTS (NEO-BRUTALIST) */
-  --loop-yellow: #ffd700;
-  --loop-red: #dc2626;
-  --loop-green: #90ee90;
-  --loop-purple: #d8bfd8;
-  --loop-pink: #ffb6c1;
-  --loop-cyan: #4dd0e1;
-  --loop-blue: #87ceeb;
+  --loop-yellow: #fef3c7;
+  --loop-red: #fee2e2;
+  --loop-green: #dcfce7;
+  --loop-purple: #e0e7ff;
+  --loop-pink: #fce7f3;
+  --loop-cyan: #ccfbf1;
+  --loop-blue: #dbeafe;
 
-  --app-bg: #f9fafb;
+  --app-bg: #f6f8fa;
   --app-surface: #ffffff;
-  --app-surface-muted: #f3f4f6;
-  --app-text: #000000;
-  --app-text-muted: #4b5563;
-  --app-text-subtle: #4b5563;
-  --app-border: #000000;
-  --app-accent: #2563eb;
-  --app-accent-hover: #1d4ed8;
+  --app-surface-muted: #f1f5f9;
+  --app-text: #172033;
+  --app-text-muted: #526173;
+  --app-text-subtle: #6b7a8c;
+  --app-border: #cfd8e3;
+  --app-accent: #0f766e;
+  --app-accent-hover: #0b5f59;
   --app-accent-foreground: #ffffff;
-  --app-accent-text: #2563eb;
-  --app-accent-text-hover: #1d4ed8;
+  --app-accent-text: #0f766e;
+  --app-accent-text-hover: #0b5f59;
   --app-link: #2563eb;
   --app-link-hover: #1d4ed8;
-  --app-link-visited: #1d4ed8;
-  --app-accent-soft: #dbeafe;
-  --app-accent-soft-hover: #bfdbfe;
-  --app-overlay-scrim: rgba(15, 23, 42, 0.32);
+  --app-link-visited: #3730a3;
+  --app-accent-soft: #d9f3ef;
+  --app-accent-soft-hover: #bfe7e1;
+  --app-overlay-scrim: rgba(15, 23, 42, 0.42);
   --app-shell-surface: #ffffff;
-  --app-brutal-ink: #111111;
-  --app-brutal-ink-muted: #374151;
-  --app-brutal-outline: #000000;
+  --app-brutal-ink: #172033;
+  --app-brutal-ink-muted: #526173;
+  --app-brutal-outline: #cfd8e3;
   --app-messenger-accent: #0b4f47;
   --app-messenger-accent-hover: #083d38;
   --app-messenger-accent-soft: rgba(11, 79, 71, 0.16);
 
-  --app-hover: #f3f4f6;
+  --app-hover: #eef3f7;
   --app-input-bg: #ffffff;
-  --app-input-border: #000000;
-  --app-text-heading: #000000;
-  --app-text-label: #374151;
-  --app-border-muted: #d1d5db;
+  --app-input-border: #cbd5e1;
+  --app-text-heading: #0f172a;
+  --app-text-label: #334155;
+  --app-border-muted: #d9e2ec;
   --app-surface-elevated: #ffffff;
 
-  --shadow-color: #000000;
-  --border-brutal: 2px solid #000000;
-  --shadow-brutal: 6px 6px 0px var(--shadow-color);
-  --shadow-brutal-sm: 2px 2px 0px var(--shadow-color);
-  --shadow-brutal-lg: 8px 8px 0px var(--shadow-color);
-  --focus-ring: #000000;
+  --shadow-color: rgba(15, 23, 42, 0.14);
+  --border-brutal: 1px solid var(--app-border-muted);
+  --shadow-brutal: 0 10px 28px rgba(15, 23, 42, 0.08);
+  --shadow-brutal-sm: 0 4px 14px rgba(15, 23, 42, 0.06);
+  --shadow-brutal-lg: 0 18px 44px rgba(15, 23, 42, 0.12);
+  --focus-ring: #0f766e;
 }
 
 /* Base Redesign Layer Tokens */
 :root {
-  --ui-font-display: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman', serif;
-  --ui-font-body: 'Space Grotesk', 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+  --ui-font-display: 'Public Sans', 'Manrope', 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+  --ui-font-body: 'Public Sans', 'Manrope', 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
   --ui-font-mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
 
   --ui-radius-xs: 0.35rem;
-  --ui-radius-sm: 0.7rem;
-  --ui-radius-md: 1rem;
-  --ui-radius-lg: 1.3rem;
+  --ui-radius-sm: 0.5rem;
+  --ui-radius-md: 0.5rem;
+  --ui-radius-lg: 0.5rem;
 
   --ui-elev-1: 0 8px 22px rgba(18, 27, 39, 0.08), 0 0 0 1px rgba(18, 27, 39, 0.04);
   --ui-elev-2: 0 30px 60px rgba(18, 27, 39, 0.14), 0 10px 28px rgba(18, 27, 39, 0.08);
@@ -201,51 +201,51 @@ body :where(a[href]:focus-visible) {
 
 /* GLOBAL DARK MODE (DEFAULT FALLBACK) */
 body.dark:not([class*='theme-']) {
-  --app-bg: #121212;
-  --app-surface: #000000;
-  --app-surface-muted: #1f2937;
-  --app-text: #ffffff;
-  --app-text-muted: #d1d5db;
-  --app-text-subtle: #9ca3af;
-  --app-border: #ffffff;
-  --app-accent: #2563eb;
-  --app-accent-hover: #1d4ed8;
+  --app-bg: #0f172a;
+  --app-surface: #111c2f;
+  --app-surface-muted: #17233a;
+  --app-text: #e5edf6;
+  --app-text-muted: #aab8c7;
+  --app-text-subtle: #8ea0b5;
+  --app-border: #314057;
+  --app-accent: #2dd4bf;
+  --app-accent-hover: #5eead4;
   --app-accent-foreground: #ffffff;
-  --app-accent-text: #60a5fa;
-  --app-accent-text-hover: #93c5fd;
-  --app-link: #60a5fa;
-  --app-link-hover: #93c5fd;
-  --app-link-visited: #93c5fd;
-  --app-accent-soft: rgba(37, 99, 235, 0.2);
-  --app-accent-soft-hover: rgba(37, 99, 235, 0.35);
+  --app-accent-text: #5eead4;
+  --app-accent-text-hover: #99f6e4;
+  --app-link: #93c5fd;
+  --app-link-hover: #bfdbfe;
+  --app-link-visited: #c4b5fd;
+  --app-accent-soft: rgba(45, 212, 191, 0.14);
+  --app-accent-soft-hover: rgba(45, 212, 191, 0.24);
   --app-overlay-scrim: rgba(2, 6, 23, 0.58);
-  --app-shell-surface: #1f2937;
-  --app-brutal-ink: #111111;
-  --app-brutal-ink-muted: #374151;
-  --app-brutal-outline: #000000;
+  --app-shell-surface: #111c2f;
+  --app-brutal-ink: #e5edf6;
+  --app-brutal-ink-muted: #aab8c7;
+  --app-brutal-outline: #314057;
   --app-messenger-accent: #0b4f47;
   --app-messenger-accent-hover: #083d38;
   --app-messenger-accent-soft: rgba(11, 79, 71, 0.24);
 
   --app-hover: #1f2937;
-  --app-input-bg: #1a1a1a;
-  --app-input-border: #ffffff;
-  --app-text-heading: #ffffff;
-  --app-text-label: #d1d5db;
-  --app-border-muted: #374151;
-  --app-surface-elevated: #1f2937;
+  --app-input-bg: #111c2f;
+  --app-input-border: #3d4d65;
+  --app-text-heading: #f8fafc;
+  --app-text-label: #cbd5e1;
+  --app-border-muted: #27364c;
+  --app-surface-elevated: #16243a;
 
-  --shadow-color: #ffffff;
-  --border-brutal: 2px solid #ffffff;
-  --focus-ring: #ffffff;
+  --shadow-color: rgba(0, 0, 0, 0.35);
+  --border-brutal: 1px solid var(--app-border-muted);
+  --focus-ring: #5eead4;
 
-  --loop-yellow: #ffd700;
-  --loop-red: #dc2626;
-  --loop-green: #90ee90;
-  --loop-purple: #d8bfd8;
-  --loop-pink: #ffb6c1;
-  --loop-cyan: #4dd0e1;
-  --loop-blue: #87ceeb;
+  --loop-yellow: #78350f;
+  --loop-red: #7f1d1d;
+  --loop-green: #14532d;
+  --loop-purple: #312e81;
+  --loop-pink: #831843;
+  --loop-cyan: #134e4a;
+  --loop-blue: #1e3a8a;
 }
 
 /* Let dark-mode text inherit from local component tokens instead of force-resetting descendants. */
@@ -664,10 +664,7 @@ body.dark :is(button, a)[class*='border-app-'][aria-disabled='true'] {
 /* UI REDESIGN BASE */
 body.ui-redesign {
   font-family: var(--ui-font-body);
-  background: 
-    radial-gradient(circle at 0% 0%, var(--app-shell-glow, transparent), transparent 32rem),
-    radial-gradient(circle at 100% 0%, var(--app-shell-glow-secondary, transparent), transparent 26rem),
-    linear-gradient(180deg, var(--app-shell-top, var(--app-bg)) 0%, var(--app-bg) 22rem, var(--app-bg) 100%);
+  background: linear-gradient(180deg, var(--app-shell-top, #fbfcfd) 0%, var(--app-bg) 18rem, var(--app-bg) 100%);
   color: var(--app-text);
   background-attachment: fixed;
 }
@@ -675,6 +672,7 @@ body.ui-redesign {
 body.ui-redesign h1, body.ui-redesign h2, body.ui-redesign h3, 
 body.ui-redesign h4, body.ui-redesign h5, body.ui-redesign h6 {
   font-family: var(--ui-font-display);
+  letter-spacing: 0;
   color: var(--app-text-heading);
 }
 
@@ -695,6 +693,80 @@ body.ui-redesign input, body.ui-redesign select, body.ui-redesign textarea {
 }
 
 body.ui-redesign button { border-radius: var(--ui-radius-sm); }
+
+body.ui-redesign :is(.border-2, .border-4, .border-\[3px\]) {
+  border-width: 1px !important;
+}
+
+body.ui-redesign :is(.border-black, .border-\[var\(--app-border\)\]) {
+  border-color: var(--app-border-muted) !important;
+}
+
+body.ui-redesign :is(
+  .shadow-brutal,
+  .shadow-brutal-sm,
+  .shadow-brutal-lg,
+  [class*='shadow-[2px_2px_0px'],
+  [class*='shadow-[3px_3px_0px'],
+  [class*='shadow-[4px_4px_0px'],
+  [class*='shadow-[6px_6px_0px'],
+  [class*='shadow-[8px_8px_0px']
+) {
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08) !important;
+}
+
+body.ui-redesign :is(
+  .font-black,
+  .font-extrabold
+) {
+  font-weight: 700 !important;
+}
+
+body.ui-redesign :is(.uppercase) {
+  letter-spacing: 0.08em;
+}
+
+body.ui-redesign :is(
+  .bg-\[var\(--loop-yellow\)\],
+  .bg-loop-yellow
+) {
+  background-color: var(--loop-yellow) !important;
+  color: var(--app-text-heading) !important;
+}
+
+body.ui-redesign :is(
+  .bg-\[var\(--loop-green\)\],
+  .bg-loop-green
+) {
+  background-color: var(--loop-green) !important;
+  color: var(--app-text-heading) !important;
+}
+
+body.ui-redesign :is(
+  .bg-\[var\(--loop-cyan\)\],
+  .bg-loop-cyan,
+  .bg-\[var\(--loop-blue\)\],
+  .bg-loop-blue
+) {
+  background-color: var(--loop-blue) !important;
+  color: var(--app-text-heading) !important;
+}
+
+body.ui-redesign :is(
+  .bg-\[var\(--loop-purple\)\],
+  .bg-loop-purple
+) {
+  background-color: var(--loop-purple) !important;
+  color: var(--app-text-heading) !important;
+}
+
+body.ui-redesign :is(
+  .bg-\[var\(--loop-pink\)\],
+  .bg-loop-pink
+) {
+  background-color: var(--loop-pink) !important;
+  color: var(--app-text-heading) !important;
+}
 
 .contact-print-page {
   color: #000000;

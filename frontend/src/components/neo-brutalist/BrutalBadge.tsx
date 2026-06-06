@@ -1,6 +1,6 @@
 /**
- * BrutalBadge - Neo-Brutalist Badge Component
- * Status indicators with hard borders
+ * Legacy badge export kept for route compatibility.
+ * Renders as a compact Calm Ops status pill.
  */
 
 import type { ReactNode } from 'react';
@@ -19,12 +19,12 @@ export default function BrutalBadge({
     className = '',
 }: BrutalBadgeProps) {
     const colorClasses = {
-        green: 'bg-loop-green text-[var(--app-brutal-ink)] border-[var(--app-brutal-outline)]',
-        yellow: 'bg-loop-yellow text-[var(--app-brutal-ink)] border-[var(--app-brutal-outline)]',
-        red: 'bg-app-accent-soft text-[var(--app-text)] border-[var(--app-border)]',
-        gray: 'bg-app-hover text-[var(--app-text)] border-[var(--app-border)]',
-        purple: 'bg-loop-purple text-[var(--app-brutal-ink)] border-[var(--app-brutal-outline)]',
-        blue: 'bg-app-accent-soft text-[var(--app-text)] border-[var(--app-border)]',
+        green: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+        yellow: 'border-amber-200 bg-amber-50 text-amber-700',
+        red: 'border-red-200 bg-red-50 text-red-700',
+        gray: 'border-app-border-muted bg-app-surface-muted text-app-text-muted',
+        purple: 'border-indigo-200 bg-indigo-50 text-indigo-700',
+        blue: 'border-blue-200 bg-blue-50 text-blue-700',
     };
 
     const sizeClasses = {
@@ -35,7 +35,7 @@ export default function BrutalBadge({
     return (
         <span
             className={`
-        inline-block border-2 font-bold uppercase
+        inline-flex items-center rounded-[var(--ui-radius-sm)] border font-semibold
         ${colorClasses[color]}
         ${sizeClasses[size]}
         ${className}
