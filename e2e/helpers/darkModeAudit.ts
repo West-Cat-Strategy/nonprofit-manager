@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import type { Page } from '@playwright/test';
-import { normalizeRouteLocation } from '../../frontend/src/routes/routeCatalog';
+import { normalizeRouteLocation } from './testSupport/frontendRoutes';
 import {
   collectRouteRenderBlockers,
   isRecoverableModuleImportConsoleBurst,

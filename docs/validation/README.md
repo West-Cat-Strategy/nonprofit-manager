@@ -1,6 +1,6 @@
 # Validation & Audit Index
 
-**Last Updated:** 2026-06-05
+**Last Updated:** 2026-06-06
 
 Use this index for active validation references first, and the validation archive second. For live task ownership, blockers, and next steps, use [../phases/planning-and-progress.md](../phases/planning-and-progress.md) instead of treating these files as a workboard. Detailed persona-validation methodology now lives in tracked skill references.
 
@@ -24,6 +24,7 @@ For Phase 5 validation work, treat the proof sequence as selected host/full chec
 | [CODE_REVIEW_REMEDIATION_PROOF_2026-06-05.md](CODE_REVIEW_REMEDIATION_PROOF_2026-06-05.md) | Active remediation proof | Code-review remediation implementation proof for tenant-boundary hardening, public token URL scrubbing, Mautic outbound guard, dependency audit cleanup, frontend accessibility/session fixes, focused validation, and Docker-gated follow-up commands |
 | [P5-T136_SECURITY_FOCUSED_CODEBASE_IMPROVEMENT_PROOF_2026-05-16.md](P5-T136_SECURITY_FOCUSED_CODEBASE_IMPROVEMENT_PROOF_2026-05-16.md) | Active proof note | Security-focused codebase improvement batch from the May 16 review, covering webhook contract hardening, public-token abuse controls, payment/customer authorization, communications provider contact-scope enforcement, and deferred candidate backlog |
 | [P5-T137_CALM_OPS_UI_UX_OVERHAUL_PROOF_2026-06-05.md](P5-T137_CALM_OPS_UI_UX_OVERHAUL_PROOF_2026-06-05.md) | Active proof note | Whole-app Calm Ops UI/UX overhaul tracking shared frontend primitives, user-facing route-family migration, route/API contract preservation, browser proof, full host/mobile/Docker validation, and the documented `exceljs -> uuid` audit follow-up |
+| [P5-T138_COMPLETE_MODULARIZATION_REMEDIATION_PROOF_2026-06-06.md](P5-T138_COMPLETE_MODULARIZATION_REMEDIATION_PROOF_2026-06-06.md) | Active proof note | Complete modularization remediation wave tracking baseline ratchets, shared contract extraction, E2E test-support boundary isolation, backend module declaration scaffolding, worker-lane handoffs, strict selector proof, and the Docker-enabled `make test-coverage-full` backend org-access fixture blocker |
 | [DOCS_AGGRESSIVE_PRUNE_INVENTORY_2026-05-07.md](DOCS_AGGRESSIVE_PRUNE_INVENTORY_2026-05-07.md) | Docs inventory and prune decision note | Starting inventory, orphan review, and prune rules for the aggressive docs refactor branch |
 | [P5-T75_AUTH_ALIAS_GATE_HANDOFF_2026-05-05.md](P5-T75_AUTH_ALIAS_GATE_HANDOFF_2026-05-05.md) | Row-local handoff note | Operational handoff for the time-gated auth alias deprecation row, preserving alias compatibility until telemetry gates and the July 1 earliest enforcement date are satisfied |
 | [PERSONA_UI_UX_WORKFLOW_AUDIT_2026-04-22.md](PERSONA_UI_UX_WORKFLOW_AUDIT_2026-04-22.md) | Active validation note | Current six-persona UI/UX workflow audit covering route-contract proof, board read-only posture, thin browser anchors, and documented unmet persona needs |

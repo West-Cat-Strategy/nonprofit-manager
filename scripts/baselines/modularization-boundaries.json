@@ -1,0 +1,33 @@
+{
+  "generated_at": "2026-06-06T00:00:00Z",
+  "notes": [
+    "P5-T138 captures the current modularization debt as a ratchet baseline.",
+    "Counts may decrease as modules move behind feature/domain boundaries, but they must not increase without intentionally updating this baseline and proof."
+  ],
+  "metrics": {
+    "backendModuleImportsFromRootServices": {
+      "cap": 203,
+      "description": "Non-test backend module import statements that depend on @services/* root-service surfaces."
+    },
+    "backendRootServiceFiles": {
+      "cap": 139,
+      "description": "TypeScript files under backend/src/services."
+    },
+    "frontendFeatureImportsFromSharedServices": {
+      "cap": 153,
+      "description": "Non-test frontend feature import statements that reach shared/root service paths."
+    },
+    "backendControllerSqlCalls": {
+      "cap": 46,
+      "description": "Direct .query( calls in backend module controller files outside tests."
+    },
+    "e2eDirectAppSourceImports": {
+      "cap": 4,
+      "description": "E2E imports that reach backend/src or frontend/src directly."
+    },
+    "e2eDirectAppSourceImportsOutsideTestSupport": {
+      "cap": 0,
+      "description": "Direct E2E app-source imports outside e2e/helpers/testSupport."
+    }
+  }
+}

@@ -3,7 +3,7 @@ import type { BrowserContext, Page } from '@playwright/test';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import '../helpers/testEnv';
-import { routeCatalog, type RouteCatalogEntry } from '../../frontend/src/routes/routeCatalog';
+import { routeCatalog, type RouteCatalogEntry } from '../helpers/testSupport/frontendRoutes';
 import { ensureEffectiveAdminLoginViaAPI, type AuthSession } from '../helpers/auth';
 import {
   clearDatabase,

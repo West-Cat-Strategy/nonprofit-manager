@@ -1,6 +1,6 @@
 # Planning & Progress
 
-**Last Updated:** 2026-06-05
+**Last Updated:** 2026-06-06
 
 Use this file only for live tracked work. Historical phase closeouts, earlier workboard material, and completed-row proof live in [archive/README.md](archive/README.md), [archive/WORKBOARD_HISTORY_2026.md](archive/WORKBOARD_HISTORY_2026.md), and [../validation/README.md](../validation/README.md).
 
@@ -9,11 +9,11 @@ Use this file only for live tracked work. Historical phase closeouts, earlier wo
 | Snapshot | Value |
 |---|---:|
 | Current phase | Phase 5 - Email, Website, Portal, and Reliability |
-| Active rows | 5 |
+| Active rows | 6 |
 | In Progress | 0 |
 | Review | 4 |
 | Ready | 0 |
-| Blocked | 1 |
+| Blocked | 2 |
 | Phase 4 carry-over rows | 0 |
 | Recent thread follow-through rows | 0 |
 
@@ -55,11 +55,13 @@ Use this file only for live tracked work. Historical phase closeouts, earlier wo
 - Codebase cleanup reconciliation, 2026-05-16: `P5-T135` removed proof-complete Review rows `P5-T111`, `P5-T114`, `P5-T115`, `P5-T119`, and `P5-T124` through `P5-T134` from this live board after current Docker/test-DB proof cleared the prior caveats; see [archive/P5_CODEBASE_REVIEW_CLEANUP_CLOSEOUT_2026-05-16.md](archive/P5_CODEBASE_REVIEW_CLEANUP_CLOSEOUT_2026-05-16.md) and [../validation/CODEBASE_REVIEW_CLEANUP_AUDIT_2026-05-16.md](../validation/CODEBASE_REVIEW_CLEANUP_AUDIT_2026-05-16.md). `P5-T6` remains the scope-control gate, `P5-T75` remains time-gated, and `P5-T135` remains Review for final signoff.
 - Security-focused improvement batch, 2026-05-16: `P5-T136` extends the read-only codebase improvement review into authorized runtime work while preserving the existing dirty `P5-T135` cleanup/audit checkout. The active batch is limited to security and reliability hardening for tenant boundaries, provider/webhook contracts, public-token abuse controls, and supporting DB/tooling safety proof. Lower-risk frontend accessibility polish and broad product expansion remain deferred candidate backlog items in the validation note.
 - Whole-app Calm Ops UI/UX overhaul, 2026-06-05: `P5-T137` is signed out in a clean sibling worktree to preserve the existing dirty date-stability lane. The implementation may refactor shared frontend presentation, route-family shells, and route UX coverage across user-facing surfaces while preserving route paths, permissions, `/api/v2` contracts, response envelopes, and backend behavior except for proven workflow defects found during validation. The branch must not carry unrelated `package-lock.json` churn.
+- Coordinated exception, 2026-06-06: `P5-T138` complete modularization remediation is split into lead-owned policy/proof integration plus disjoint worker lanes for shared alert contracts, E2E test-support boundary isolation, and backend module declaration scaffolding. The lead lane owns this board, validation proof, validation index, policy baselines, package metadata, route registrars, frontend route catalogs, root store wiring, Docker/package wiring, and final validation; route paths, `/api/v2` envelopes, permissions, database schema, production deploys, and npm package extraction for app modules remain out of scope.
 
 ## Priority Board
 
 | Status | ID | Task | Immediate Next Move | Evidence |
 |---|---|---|---|---|
+| Blocked | P5-T138 | Complete modularization remediation | Backend coverage closeout remains: implementation, static policy, typecheck, tooling, audit, focused backend/frontend/E2E checks, and strict selector proof are recorded; Docker is now reachable, but `make test-coverage-full` fails in backend integration coverage with org-access fixture drift (`403` where older suites expect `200`/`201`/validation `400`). Open or assign a separate backend fixture-alignment slice, then rerun `make test-coverage-full`. | [../validation/P5-T138_COMPLETE_MODULARIZATION_REMEDIATION_PROOF_2026-06-06.md](../validation/P5-T138_COMPLETE_MODULARIZATION_REMEDIATION_PROOF_2026-06-06.md) |
 | Review | P5-T137 | Whole-app Calm Ops UI/UX overhaul | Review the completed Calm Ops shared frontend system, route-family migration, browser proof, and merge-readiness validation ledger. `make test` now completes the host/mobile/Docker gate; residual follow-up is limited to the existing `exceljs -> uuid` audit remediation decision. | [../validation/P5-T137_CALM_OPS_UI_UX_OVERHAUL_PROOF_2026-06-05.md](../validation/P5-T137_CALM_OPS_UI_UX_OVERHAUL_PROOF_2026-06-05.md) |
 | Review | P5-T6 | Follow-on backlog: workflow/customization, memberships/appeals, finance/program ops | Keep live as the scope-control gate. May 9 revalidation confirmed the backlog/reference docs still reject unscoped runtime implementation and direct source copying; future typed appeals, restrictions, donation batches, memberships, finance breadth, service-site routing, closure continuity, local communications follow-through, and generic workflow tooling need separately signed-out rows. | [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md), [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md), [../development/reference-patterns/P5-T6-reference-repo-consolidation-2026-05-01.md](../development/reference-patterns/P5-T6-reference-repo-consolidation-2026-05-01.md), [../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md](../validation/P5_REVIEW_SUBAGENT_WAVE_REVALIDATION_2026-05-09.md) |
 | Review | P5-T136 | Security-focused codebase improvement batch | Review the completed focused security/tooling batch: webhook event validation and API-key org guard parity, public report token rate limiting, payment/customer permission and tenant checks, communications provider contact-scope enforcement, exact migration-readiness checks, verifier target-safety tightening, Docker selector policy routing, and `.mjs` Knip visibility are implemented with focused proof. Meeting tenant-boundary schema work, Mautic DNS pinning, side-effect-free tooling fixtures, and frontend accessibility polish remain deferred candidate follow-ups in the validation note. | [../validation/P5-T136_SECURITY_FOCUSED_CODEBASE_IMPROVEMENT_PROOF_2026-05-16.md](../validation/P5-T136_SECURITY_FOCUSED_CODEBASE_IMPROVEMENT_PROOF_2026-05-16.md) |

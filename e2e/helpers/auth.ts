@@ -7,7 +7,7 @@ import fs from 'fs';
 import { createRequire } from 'module';
 import path from 'path';
 import { Page, expect } from '@playwright/test';
-import { enrollTotpSecret, generateTotpCodeForTest } from '../../backend/src/modules/auth/lib/totp';
+import { enrollTotpSecret, generateTotpCodeForTest } from './testSupport/backendAuth';
 import { getSharedTestUser, setSharedTestUser } from './testUser';
 
 const RETRYABLE_NETWORK_ERROR = /ECONNRESET|ECONNREFUSED|ETIMEDOUT|EPIPE|socket hang up/i;

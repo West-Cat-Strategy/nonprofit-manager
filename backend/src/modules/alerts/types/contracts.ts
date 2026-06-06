@@ -1,41 +1,27 @@
-export type AlertMetricType =
-  | 'donations'
-  | 'donation_amount'
-  | 'volunteer_hours'
-  | 'event_attendance'
-  | 'case_volume'
-  | 'engagement_score';
+import type {
+  AlertCondition,
+  AlertConfigFields,
+  AlertCreateConfigRequest,
+  AlertMetricType,
+  AlertSeverity,
+  AlertStatsContract,
+  AlertStatus,
+  AlertTestResultContract,
+  AlertUpdateConfigRequest,
+} from '@nonprofit-manager/contracts/alerts';
 
-export type AlertCondition =
-  | 'exceeds'
-  | 'drops_below'
-  | 'changes_by'
-  | 'anomaly_detected'
-  | 'trend_reversal';
+export type {
+  AlertChannel,
+  AlertCondition,
+  AlertFrequency,
+  AlertMetricType,
+  AlertSeverity,
+  AlertStatus,
+} from '@nonprofit-manager/contracts/alerts';
 
-export type AlertFrequency = 'real_time' | 'daily' | 'weekly' | 'monthly';
-
-export type AlertChannel = 'email' | 'in_app' | 'slack' | 'webhook';
-
-export type AlertSeverity = 'low' | 'medium' | 'high' | 'critical';
-
-export type AlertStatus = 'active' | 'paused' | 'triggered' | 'resolved';
-
-export interface AlertConfig {
+export interface AlertConfig extends Omit<AlertConfigFields, 'filters'> {
   id: string;
   user_id: string;
-  name: string;
-  description?: string | null;
-  metric_type: AlertMetricType;
-  condition: AlertCondition;
-  threshold?: number | null;
-  percentage_change?: number | null;
-  sensitivity?: number | null;
-  frequency: AlertFrequency;
-  channels: AlertChannel[];
-  severity: AlertSeverity;
-  enabled: boolean;
-  recipients?: string[];
   filters?: Record<string, unknown>;
   created_by: string;
   created_at: Date;
@@ -61,56 +47,18 @@ export interface AlertInstance {
   acknowledged_at?: Date | null;
 }
 
-export interface CreateAlertDTO {
+export interface CreateAlertDTO extends Omit<AlertCreateConfigRequest, 'filters'> {
   user_id: string;
-  name: string;
-  description?: string;
-  metric_type: AlertMetricType;
-  condition: AlertCondition;
-  threshold?: number;
-  percentage_change?: number;
-  sensitivity?: number;
-  frequency: AlertFrequency;
-  channels: AlertChannel[];
-  severity: AlertSeverity;
-  enabled: boolean;
-  recipients?: string[];
   filters?: Record<string, unknown>;
 }
 
-export interface UpdateAlertDTO {
-  name?: string;
-  description?: string;
-  metric_type?: AlertMetricType;
-  condition?: AlertCondition;
-  threshold?: number;
-  percentage_change?: number;
-  sensitivity?: number;
-  frequency?: AlertFrequency;
-  channels?: AlertChannel[];
-  severity?: AlertSeverity;
-  enabled?: boolean;
-  recipients?: string[];
+export interface UpdateAlertDTO extends Omit<AlertUpdateConfigRequest, 'filters'> {
   filters?: Record<string, unknown>;
 }
 
-export interface AlertTestResult {
-  would_trigger: boolean;
-  current_value: number;
-  threshold_value?: number;
-  message: string;
-  details?: Record<string, unknown>;
-}
+export type AlertTestResult = AlertTestResultContract;
 
-export interface AlertStats {
-  total_alerts: number;
-  active_alerts: number;
-  triggered_today: number;
-  triggered_this_week: number;
-  triggered_this_month: number;
-  by_severity: Record<AlertSeverity, number>;
-  by_metric: Partial<Record<AlertMetricType, number>>;
-}
+export type AlertStats = AlertStatsContract;
 
 export interface AlertInstanceFilters {
   userId: string;

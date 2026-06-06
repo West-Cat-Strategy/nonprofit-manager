@@ -5,7 +5,7 @@ import type { Page } from '@playwright/test';
 import { unwrapSuccess } from '../helpers/apiEnvelope';
 import { getAuthHeaders } from '../helpers/database';
 import { loginPortalUserUI, provisionApprovedPortalUser, type ProvisionedPortalUser } from '../helpers/portal';
-import { adminRouteManifest } from '../../frontend/src/features/adminOps/adminRouteManifest';
+import { adminRouteManifest } from '../helpers/testSupport/frontendRoutes';
 import { captureRouteRuntime, type RouteRuntimeSnapshot } from '../helpers/darkModeAudit';
 
 const apiURL = process.env.API_URL || 'http://127.0.0.1:3001';
