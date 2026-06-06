@@ -1,6 +1,5 @@
 /**
- * Neo-brutalist Multi-Select Component
- * Select multiple values from a list
+ * Legacy multi-select export kept for route compatibility.
  */
 
 import React, { useRef } from 'react';
@@ -67,22 +66,22 @@ export const BrutalMultiSelect: React.FC<BrutalMultiSelectProps> = ({
   return (
     <div className="space-y-1" ref={containerRef}>
       {label && (
-        <label className="block text-sm font-bold text-app-text">
+        <label className="block text-sm font-medium text-app-text-label">
           {label}
           {required && <span className="text-app-accent ml-1">*</span>}
         </label>
       )}
       <div
-        className={`border-2 bg-app-surface cursor-pointer
-          ${error ? 'border-app-accent' : 'border-app-text'}
-          ${isOpen ? 'border-app-accent' : 'border-app-text'}
-          focus:outline-none focus:border-app-accent`}
+        className={`cursor-pointer rounded-[var(--ui-radius-sm)] border bg-app-input-bg shadow-sm
+          ${error ? 'border-app-accent' : 'border-app-input-border'}
+          ${isOpen ? 'border-app-accent' : 'border-app-input-border'}
+          focus:outline-none focus:ring-2 focus:ring-app-accent`}
       >
         <div className="p-2 flex flex-wrap gap-2">
           {selectedLabels.map((label) => (
             <span
               key={label}
-              className="bg-app-text text-[var(--app-bg)] px-2 py-1 text-xs font-bold flex items-center gap-1"
+              className="flex items-center gap-1 rounded-[var(--ui-radius-xs)] border border-app-border-muted bg-app-surface-muted px-2 py-1 text-xs font-medium text-app-text"
             >
               {label}
               <button
@@ -104,18 +103,18 @@ export const BrutalMultiSelect: React.FC<BrutalMultiSelectProps> = ({
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onFocus={() => setIsOpen(true)}
-            className="flex-1 min-w-[100px] bg-transparent focus:outline-none font-mono text-sm"
+            className="flex-1 min-w-[100px] bg-transparent text-sm focus:outline-none"
           />
         </div>
       </div>
 
       {isOpen && filteredOptions.length > 0 && (
-        <div className="border-2 border-app-text border-t-0 bg-app-surface">
+        <div className="mt-1 overflow-hidden rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface shadow-sm">
           {filteredOptions.map((option) => (
             <button
               key={option.value}
               onClick={() => handleSelect(option.value)}
-              className="w-full px-3 py-2 text-left hover:bg-app-surface-muted font-mono text-sm border-b border-app-border last:border-b-0"
+              className="w-full border-b border-app-border-muted px-3 py-2 text-left text-sm hover:bg-app-surface-muted last:border-b-0"
             >
               {option.label}
             </button>
@@ -124,7 +123,7 @@ export const BrutalMultiSelect: React.FC<BrutalMultiSelectProps> = ({
       )}
 
       {error && (
-        <p className="text-xs font-bold text-app-accent">{error}</p>
+        <p className="text-xs font-medium text-red-600">{error}</p>
       )}
       {hint && !error && (
         <p className="text-xs text-app-text-muted">{hint}</p>

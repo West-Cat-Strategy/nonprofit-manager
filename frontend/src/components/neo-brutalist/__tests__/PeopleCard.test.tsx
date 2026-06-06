@@ -26,7 +26,7 @@ describe('PeopleCard', () => {
     );
   });
 
-  it('keeps bright cards on brutal-ink text for readable demo names', () => {
+  it('keeps bright cards on readable Calm Ops heading text', () => {
     render(
       <PeopleCard
         person={{
@@ -43,6 +43,8 @@ describe('PeopleCard', () => {
       />
     );
 
-    expect(screen.getByRole('heading', { name: 'Avery Stone' }).className).toContain('text-black');
+    expect(screen.getByRole('heading', { name: 'Avery Stone' }).className).toContain(
+      'text-app-text-heading'
+    );
   });
 });

@@ -3,7 +3,7 @@ import type { InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes 
 import { classNames } from './classNames';
 
 const baseInputClass =
-  'mt-1 w-full rounded-[var(--ui-radius-sm)] border border-app-input-border bg-app-input-bg px-3 py-2 text-sm text-app-text placeholder:text-app-text-subtle focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg)]';
+  'mt-1 min-h-10 w-full rounded-[var(--ui-radius-sm)] border border-app-input-border bg-app-input-bg px-3 py-2 text-sm text-app-text shadow-sm placeholder:text-app-text-subtle focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg)]';
 
 interface FieldLabelProps {
   label: string;
@@ -18,7 +18,7 @@ function FieldLabel({ label, required, helperText, error, htmlFor }: FieldLabelP
     <div className="space-y-1">
       <label
         htmlFor={htmlFor}
-        className="block text-xs font-semibold uppercase tracking-wide text-app-text-label"
+        className="block text-sm font-medium text-app-text-label"
       >
         {label}
         {required && <span className="ml-1 text-app-accent">*</span>}

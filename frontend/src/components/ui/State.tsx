@@ -6,7 +6,7 @@ export function LoadingState({ label = 'Loading...', className }: { label?: stri
   return (
     <div
       className={classNames(
-        'rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface-muted p-4',
+        'rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface p-4 shadow-sm',
         className
       )}
       role="status"
@@ -31,13 +31,13 @@ export function ErrorState({ message, onRetry, retryLabel = 'Try again', classNa
   return (
     <div
       className={classNames(
-        'rounded-[var(--ui-radius-sm)] border border-app-border bg-app-accent-soft p-4',
+        'rounded-[var(--ui-radius-sm)] border border-red-200 bg-red-50 p-4 shadow-sm',
         className
       )}
       role="alert"
       aria-live="assertive"
     >
-      <p className="text-sm text-app-accent-text">{message}</p>
+      <p className="text-sm text-red-700">{message}</p>
       {onRetry && (
         <PrimaryButton className="mt-3" onClick={onRetry}>
           {retryLabel}
@@ -58,7 +58,7 @@ export function EmptyState({ title, description, action, className }: EmptyState
   return (
     <div
       className={classNames(
-        'rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface-muted p-6',
+        'rounded-[var(--ui-radius-sm)] border border-dashed border-app-border-muted bg-app-surface p-6 shadow-sm',
         className
       )}
     >

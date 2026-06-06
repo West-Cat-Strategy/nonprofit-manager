@@ -40,25 +40,25 @@ export default function MyWorkPanel() {
               <Link
                 key={caseItem.id}
                 to={`/cases/${caseItem.id}`}
-                className="block rounded-2xl border border-app-border bg-app-surface px-4 py-3 transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
+                className="block rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-4 py-3 transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-app-text-subtle">
+                    <p className="text-xs font-medium text-app-text-subtle">
                       {caseItem.case_number}
                     </p>
                     <p className="mt-1 truncate text-sm font-semibold text-app-text-heading">
                       {caseItem.title}
                     </p>
                   </div>
-                  <span className="rounded-full bg-app-accent-soft px-2 py-1 text-xs font-semibold text-app-accent-text">
+                  <span className="rounded-[var(--ui-radius-sm)] bg-app-accent-soft px-2 py-1 text-xs font-semibold text-app-accent-text">
                     {formatDueLabel(caseItem)}
                   </span>
                 </div>
               </Link>
             ))
           ) : (
-            <div className="rounded-2xl border border-dashed border-app-border bg-app-surface-muted/60 px-4 py-4 text-sm text-app-text-muted">
+            <div className="rounded-[var(--ui-radius-sm)] border border-dashed border-app-border-muted bg-app-surface-muted/60 px-4 py-4 text-sm text-app-text-muted">
               No assigned cases are waiting for you right now.
             </div>
           )}
@@ -70,8 +70,8 @@ export default function MyWorkPanel() {
           ) : null}
         </div>
 
-        <div className="rounded-2xl border border-app-border/70 bg-app-surface px-4 py-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+        <div className="rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-4 py-4">
+          <p className="text-xs font-medium text-app-text-subtle">
             Next follow-ups
           </p>
           <div className="mt-3 space-y-3">
@@ -80,7 +80,7 @@ export default function MyWorkPanel() {
                 <Link
                   key={followUp.id}
                   to="/follow-ups"
-                  className="block rounded-2xl border border-app-border bg-app-surface-muted px-3 py-3 transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
+                  className="block rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface-muted px-3 py-3 transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
                 >
                   <p className="text-sm font-semibold text-app-text-heading">{followUp.title}</p>
                   <p className="mt-1 text-xs uppercase tracking-[0.12em] text-app-text-subtle">

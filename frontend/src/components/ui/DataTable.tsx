@@ -33,7 +33,7 @@ export default function DataTable<T>({
     <div
       data-shell-transition
       className={classNames(
-        'overflow-x-auto rounded-[var(--ui-radius-sm)] border border-app-border-muted',
+        'overflow-x-auto rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface shadow-sm',
         className
       )}
     >
@@ -42,14 +42,14 @@ export default function DataTable<T>({
         className="min-w-full divide-y divide-app-border-muted bg-app-surface text-sm"
       >
         {caption ? <caption className={captionClassName}>{caption}</caption> : null}
-        <thead className="bg-app-surface-muted">
+        <thead className="bg-app-surface-muted/70">
           <tr>
             {columns.map((column) => (
               <th
                 key={String(column.key)}
                 scope="col"
                 className={classNames(
-                  'whitespace-normal break-words px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-app-text-muted [overflow-wrap:anywhere]',
+                  'whitespace-normal break-words px-4 py-3 text-left text-xs font-semibold text-app-text-muted [overflow-wrap:anywhere]',
                   column.className
                 )}
               >

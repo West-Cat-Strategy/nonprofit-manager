@@ -267,6 +267,92 @@ seed_rls_fixtures() {
     -f "$SCRIPT_DIR/sql/verify_rls_fixtures.sql" >/dev/null
 }
 
+cleanup_rls_fixtures() {
+  admin_psql \
+    -v fixture_user_id="$RLS_FIXTURE_USER_ID" \
+    -v fixture_admin_user_id="$RLS_FIXTURE_ADMIN_USER_ID" \
+    -v fixture_non_admin_user_id="$RLS_FIXTURE_NON_ADMIN_USER_ID" \
+    -v fixture_access_target_user_id="$RLS_FIXTURE_ACCESS_TARGET_USER_ID" \
+    -v fixture_account_id="$RLS_FIXTURE_ACCOUNT_ID" \
+    -v fixture_admin_write_account_id="$RLS_FIXTURE_ADMIN_WRITE_ACCOUNT_ID" \
+    -v fixture_contact_id="$RLS_FIXTURE_CONTACT_ID" \
+    -v fixture_access_id="$RLS_FIXTURE_ACCESS_ID" \
+    -v fixture_non_admin_access_id="$RLS_FIXTURE_NON_ADMIN_ACCESS_ID" <<'SQL' >/dev/null
+DELETE FROM volunteers
+WHERE contact_id = :'fixture_contact_id'::uuid;
+
+DELETE FROM user_account_access
+WHERE id IN (:'fixture_access_id'::uuid, :'fixture_non_admin_access_id'::uuid)
+   OR user_id IN (
+     :'fixture_user_id'::uuid,
+     :'fixture_admin_user_id'::uuid,
+     :'fixture_non_admin_user_id'::uuid,
+     :'fixture_access_target_user_id'::uuid
+   )
+   OR granted_by IN (
+     :'fixture_user_id'::uuid,
+     :'fixture_admin_user_id'::uuid,
+     :'fixture_non_admin_user_id'::uuid,
+     :'fixture_access_target_user_id'::uuid
+   )
+   OR account_id IN (:'fixture_account_id'::uuid, :'fixture_admin_write_account_id'::uuid);
+
+DELETE FROM contacts
+WHERE id = :'fixture_contact_id'::uuid
+  AND email = 'rls-contact@example.test';
+
+DELETE FROM accounts
+WHERE id IN (:'fixture_account_id'::uuid, :'fixture_admin_write_account_id'::uuid)
+  AND account_number IN ('VERIFY-RLS-ACCOUNT', 'VERIFY-RLS-ADMIN-WRITE');
+
+DELETE FROM users
+WHERE id IN (
+    :'fixture_user_id'::uuid,
+    :'fixture_admin_user_id'::uuid,
+    :'fixture_non_admin_user_id'::uuid,
+    :'fixture_access_target_user_id'::uuid
+  )
+  AND email IN (
+    'rls-verifier@example.test',
+    'rls-admin@example.test',
+    'rls-non-admin@example.test',
+    'rls-access-target@example.test'
+  )
+  AND password_hash = 'verification-only';
+SQL
+}
+
+check_rls_fixtures_cleaned() {
+  local remaining_count
+  remaining_count="$(admin_psql \
+    -v fixture_user_id="$RLS_FIXTURE_USER_ID" \
+    -v fixture_admin_user_id="$RLS_FIXTURE_ADMIN_USER_ID" \
+    -v fixture_non_admin_user_id="$RLS_FIXTURE_NON_ADMIN_USER_ID" \
+    -v fixture_access_target_user_id="$RLS_FIXTURE_ACCESS_TARGET_USER_ID" \
+    -Atq <<'SQL'
+SELECT COUNT(*)
+FROM users
+WHERE (
+    id IN (
+      :'fixture_user_id'::uuid,
+      :'fixture_admin_user_id'::uuid,
+      :'fixture_non_admin_user_id'::uuid,
+      :'fixture_access_target_user_id'::uuid
+    )
+    OR email LIKE 'rls-%@example.test'
+  )
+  AND password_hash = 'verification-only';
+SQL
+  )"
+
+  if [[ "$remaining_count" != "0" ]]; then
+    echo "Migration verification failed: disposable RLS verification users remain after cleanup (${remaining_count})" >&2
+    return 1
+  fi
+
+  return 0
+}
+
 check_app_role_rls_behavior() {
   local scoped_counts
   scoped_counts="$(app_psql \
@@ -475,6 +561,8 @@ run_check "Verification app role is non-superuser and cannot bypass RLS" check_a
 run_check "Expected tables have FORCE RLS enabled" check_rls_table_contract
 run_check "RLS verification fixtures are seeded" seed_rls_fixtures
 run_check "Verification app role observes the RLS contract" check_app_role_rls_behavior
+run_check "Disposable RLS verification fixtures are removed" cleanup_rls_fixtures
+run_check "RLS verification fixture cleanup left no bootstrap users behind" check_rls_fixtures_cleaned
 run_check "Known superseded indexes have been removed" check_forbidden_duplicate_indexes
 run_check "Audit log partition window covers the required future range" check_audit_log_partition_window
 

@@ -209,13 +209,13 @@ function CustomDashboardContent() {
   return (
     <NeoBrutalistLayout pageTitle="CUSTOM DASHBOARD">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        <header className="rounded-3xl border border-app-border/70 bg-app-surface/90 p-6 shadow-sm">
+        <header className="rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface p-5 shadow-sm sm:p-6">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-text-subtle">
+              <p className="text-xs font-semibold uppercase tracking-[0.1em] text-app-text-subtle">
                 Custom dashboard
               </p>
-              <h1 className="mt-2 text-3xl font-black uppercase tracking-[0.03em] text-app-text-heading sm:text-4xl">
+              <h1 className="mt-2 text-3xl font-semibold text-app-text-heading sm:text-4xl">
                 {currentDashboard.name}
               </h1>
               <p className="mt-3 text-sm leading-6 text-app-text-muted sm:text-base">
@@ -231,25 +231,25 @@ function CustomDashboardContent() {
               <button
                 onClick={dashboardData?.refreshDashboardData}
                 disabled={dashboardData?.isRefreshing}
-                className="inline-flex items-center justify-center rounded-xl border border-app-border bg-app-surface px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 disabled:opacity-50"
+                className="inline-flex min-h-10 items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 disabled:opacity-50"
               >
                 {dashboardData?.isRefreshing ? 'Refreshing...' : 'Refresh Data'}
               </button>
               <button
                 onClick={dashboardData?.clearDashboardCache}
-                className="inline-flex items-center justify-center rounded-xl border border-app-border bg-app-surface px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
+                className="inline-flex min-h-10 items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
               >
                 Clear Cache
               </button>
               <Link
                 to="/dashboard"
-                className="inline-flex items-center justify-center rounded-xl border border-app-border bg-app-surface px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
+                className="inline-flex min-h-10 items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
               >
                 Back to Workbench
               </Link>
               <Link
                 to="/dashboard?panel=settings"
-                className="inline-flex items-center justify-center rounded-xl border border-app-border bg-app-surface px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
+                className="inline-flex min-h-10 items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
               >
                 View Settings
               </Link>
@@ -257,27 +257,27 @@ function CustomDashboardContent() {
                 <>
                   <button
                     onClick={() => setShowAddWidget(true)}
-                    className="inline-flex items-center justify-center rounded-xl border border-app-accent bg-app-accent px-4 py-2 text-sm font-semibold text-[var(--app-accent-foreground)] shadow-sm transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
+                    className="inline-flex min-h-10 items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-accent bg-app-accent px-4 py-2 text-sm font-semibold text-[var(--app-accent-foreground)] shadow-sm transition hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
                   >
                     Add Widget
                   </button>
                   <button
                     onClick={handleResetToDefault}
-                    className="inline-flex items-center justify-center rounded-xl border border-app-border bg-app-surface px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
+                    className="inline-flex min-h-10 items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
                   >
                     Reset to Default
                   </button>
                   <button
                     onClick={handleCancelEdit}
                     disabled={saving}
-                    className="inline-flex items-center justify-center rounded-xl border border-app-border bg-app-surface px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 disabled:opacity-50"
+                    className="inline-flex min-h-10 items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSaveLayout}
                     disabled={saving}
-                    className="inline-flex items-center justify-center rounded-xl border border-app-accent bg-app-accent px-4 py-2 text-sm font-semibold text-[var(--app-accent-foreground)] shadow-sm transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 disabled:opacity-50"
+                    className="inline-flex min-h-10 items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-accent bg-app-accent px-4 py-2 text-sm font-semibold text-[var(--app-accent-foreground)] shadow-sm transition hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 disabled:opacity-50"
                   >
                     {saving ? 'Saving…' : 'Save Layout'}
                   </button>
@@ -285,7 +285,7 @@ function CustomDashboardContent() {
               ) : (
                 <button
                   onClick={() => dispatch(setEditMode(true))}
-                  className="inline-flex items-center justify-center rounded-xl border border-app-accent bg-app-accent px-4 py-2 text-sm font-semibold text-[var(--app-accent-foreground)] shadow-sm transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
+                  className="inline-flex min-h-10 items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-accent bg-app-accent px-4 py-2 text-sm font-semibold text-[var(--app-accent-foreground)] shadow-sm transition hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
                 >
                   Edit Layout
                 </button>
@@ -295,7 +295,7 @@ function CustomDashboardContent() {
         </header>
 
         <section
-          className="mt-6 rounded-3xl border border-app-border/70 bg-app-surface/90 p-5 shadow-sm"
+          className="mt-6 rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface p-5 shadow-sm"
           aria-label="Dashboard data refresh"
         >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -314,7 +314,7 @@ function CustomDashboardContent() {
             </div>
             <div
               data-testid="custom-dashboard-refresh-state"
-              className="rounded-full border border-app-border bg-app-surface px-3 py-1.5 text-sm font-medium text-app-text"
+              className="rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-3 py-1.5 text-sm font-medium text-app-text"
             >
               {dashboardData?.isRefreshing ? 'Refreshing data' : 'Data ready'}
             </div>
@@ -322,7 +322,7 @@ function CustomDashboardContent() {
         </section>
 
         <section
-          className="mt-6 rounded-3xl border border-app-border/70 bg-app-surface/90 p-5 shadow-sm"
+          className="mt-6 rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface p-5 shadow-sm"
           data-testid="custom-dashboard-layout-editor"
         >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -333,7 +333,7 @@ function CustomDashboardContent() {
                 live under workbench view settings.
               </p>
             </div>
-            <div className="rounded-full border border-app-border bg-app-surface px-3 py-1.5 text-sm font-medium text-app-text">
+            <div className="rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-3 py-1.5 text-sm font-medium text-app-text">
               {editMode ? 'Editing enabled' : 'Read-only preview'}
             </div>
           </div>
@@ -344,7 +344,7 @@ function CustomDashboardContent() {
                 {currentDashboard.widgets.map((widget) => (
                   <div
                     key={widget.id}
-                    className="overflow-hidden rounded-2xl border border-app-border/70 bg-app-surface shadow-sm"
+                    className="overflow-hidden rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface shadow-sm"
                   >
                     {renderWidget(widget)}
                   </div>
@@ -370,7 +370,7 @@ function CustomDashboardContent() {
                   {currentDashboard.widgets.map((widget) => (
                     <div
                       key={widget.id}
-                      className="overflow-hidden rounded-2xl border border-app-border/70 bg-app-surface shadow-sm"
+                      className="overflow-hidden rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface shadow-sm"
                     >
                       {renderWidget(widget)}
                     </div>
@@ -384,7 +384,7 @@ function CustomDashboardContent() {
         {showAddWidget ? (
           <div className="app-popup-backdrop fixed inset-0 z-50 flex items-center justify-center">
             <div
-              className="mx-4 max-h-[80vh] w-full max-w-5xl overflow-y-auto rounded-3xl border border-app-border bg-app-surface shadow-xl"
+              className="mx-4 max-h-[80vh] w-full max-w-5xl overflow-y-auto rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface shadow-xl"
               role="dialog"
               aria-modal="true"
               aria-labelledby="dashboard-widget-picker-title"
@@ -411,7 +411,7 @@ function CustomDashboardContent() {
 
                   return (
                     <section key={category}>
-                      <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-app-text-subtle">
+                      <h3 className="text-sm font-semibold uppercase tracking-[0.1em] text-app-text-subtle">
                         {CATEGORY_LABELS[category]}
                       </h3>
                       <div className="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -424,10 +424,10 @@ function CustomDashboardContent() {
                               key={template.type}
                               onClick={() => handleAddWidget(template.type)}
                               disabled={alreadyAdded}
-                              className={`rounded-2xl border-2 p-4 text-left transition-all focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 ${
+                              className={`rounded-[var(--ui-radius-sm)] border p-4 text-left transition-all focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 ${
                                 alreadyAdded
-                                  ? 'cursor-not-allowed border-app-border bg-app-surface-muted opacity-50'
-                                  : 'border-app-border bg-app-surface hover:border-app-accent hover:bg-app-hover'
+                                  ? 'cursor-not-allowed border-app-border-muted bg-app-surface-muted opacity-50'
+                                  : 'border-app-border-muted bg-app-surface hover:border-app-accent hover:bg-app-hover'
                               }`}
                             >
                               <div className="mb-2 text-3xl">{template.icon}</div>
@@ -438,7 +438,7 @@ function CustomDashboardContent() {
                                 {template.description}
                               </p>
                               {alreadyAdded ? (
-                                <p className="mt-3 text-xs font-semibold uppercase tracking-[0.14em] text-app-text-subtle">
+                                <p className="mt-3 text-xs font-medium text-app-text-subtle">
                                   Already in layout
                                 </p>
                               ) : null}
@@ -454,7 +454,7 @@ function CustomDashboardContent() {
               <div className="flex justify-end border-t border-app-border p-6">
                 <button
                   onClick={() => setShowAddWidget(false)}
-                  className="rounded-xl border border-app-border bg-app-surface px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
+                  className="rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
                 >
                   Close
                 </button>

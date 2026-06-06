@@ -6,6 +6,7 @@
 import Navigation from './Navigation';
 import SkipLink from './SkipLink';
 import { AppShell } from './ui';
+import StaffSideNavigation from './navigation/StaffSideNavigation';
 import WorkspaceHeader from './workspace/WorkspaceHeader';
 import useMediaQuery from '../hooks/useMediaQuery';
 
@@ -21,6 +22,7 @@ const Layout = ({ children }: LayoutProps) => {
       <SkipLink />
       <AppShell
         topNav={<Navigation />}
+        sidebar={<StaffSideNavigation />}
         header={<WorkspaceHeader />}
         contentClassName={isMobileViewport ? 'pb-6' : 'pb-28 lg:pb-24'}
       >

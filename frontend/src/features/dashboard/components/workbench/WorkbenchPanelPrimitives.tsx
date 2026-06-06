@@ -2,11 +2,11 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import type { WorkbenchLink } from './types';
 
-export const workbenchPanelClassName = 'rounded-3xl border border-app-border/70 bg-app-surface/90 p-5 shadow-sm';
+export const workbenchPanelClassName = 'rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface p-5 shadow-sm';
 export const workbenchActionClassName =
-  'inline-flex items-center rounded-full border border-app-border bg-app-surface px-3 py-1.5 text-sm font-medium text-app-text transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2';
+  'inline-flex min-h-9 items-center rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-3 py-1.5 text-sm font-medium text-app-text transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2';
 export const workbenchInteractiveCardClassName =
-  'rounded-2xl border border-app-border bg-app-surface px-4 py-4 transition hover:-translate-y-0.5 hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2';
+  'rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-4 py-4 transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2';
 
 interface WorkbenchPanelHeaderProps {
   title: string;
@@ -34,9 +34,9 @@ interface SummaryMetricProps {
 
 export function SummaryMetric({ label, value, description }: SummaryMetricProps) {
   return (
-    <div className="rounded-2xl border border-app-border/70 bg-app-surface px-4 py-4 shadow-sm">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-app-text-subtle">{label}</p>
-      <p className="mt-2 text-3xl font-black uppercase leading-none text-app-text-heading">{value}</p>
+    <div className="rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-4 py-4 shadow-sm">
+      <p className="text-xs font-medium text-app-text-muted">{label}</p>
+      <p className="mt-2 text-2xl font-semibold leading-none text-app-text-heading">{value}</p>
       <p className="mt-2 text-sm leading-5 text-app-text-muted">{description}</p>
     </div>
   );
@@ -53,8 +53,8 @@ interface FocusCardProps {
 export function FocusCard({ label, value, detail, href, cta }: FocusCardProps) {
   return (
     <Link to={href} className={`${workbenchInteractiveCardClassName} shadow-sm`}>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-app-text-subtle">{label}</p>
-      <p className="mt-3 text-3xl font-black uppercase leading-none text-app-text-heading">{value}</p>
+      <p className="text-xs font-medium text-app-text-muted">{label}</p>
+      <p className="mt-3 text-2xl font-semibold leading-none text-app-text-heading">{value}</p>
       <p className="mt-2 text-sm leading-5 text-app-text-muted">{detail}</p>
       <p className="mt-3 text-sm font-semibold text-app-accent">{cta} →</p>
     </Link>
@@ -100,12 +100,12 @@ export function WorkstreamPanel({
             <Link
               key={item.id}
               to={item.path}
-              className="group rounded-2xl border border-app-border bg-app-surface px-4 py-3 transition hover:-translate-y-0.5 hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
+              className="group rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-4 py-3 transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
             >
               <div className="flex items-start gap-3">
                 <span
                   aria-hidden="true"
-                  className="mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-app-accent-soft text-lg text-app-accent-text"
+                  className="mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-[var(--ui-radius-sm)] bg-app-accent-soft text-lg text-app-accent-text"
                 >
                   {item.icon}
                 </span>
@@ -113,7 +113,7 @@ export function WorkstreamPanel({
                   <p className="truncate text-sm font-semibold text-app-text-heading">
                     {item.shortLabel ?? item.name}
                   </p>
-                  <p className="mt-1 text-xs font-medium uppercase tracking-[0.14em] text-app-text-subtle">
+                  <p className="mt-1 text-xs font-medium text-app-text-subtle">
                     {item.sectionLabel}
                   </p>
                 </div>
@@ -125,7 +125,7 @@ export function WorkstreamPanel({
           ))}
         </div>
       ) : (
-        <div className="mt-5 rounded-2xl border border-dashed border-app-border bg-app-surface-muted/60 px-4 py-4 text-sm text-app-text-muted">
+        <div className="mt-5 rounded-[var(--ui-radius-sm)] border border-dashed border-app-border-muted bg-app-surface-muted/60 px-4 py-4 text-sm text-app-text-muted">
           {emptyState}
         </div>
       )}

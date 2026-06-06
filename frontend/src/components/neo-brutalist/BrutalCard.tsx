@@ -1,6 +1,6 @@
 /**
- * BrutalCard - Neo-Brutalist Card Component
- * Hard borders, directional shadows, no blur
+ * Legacy card export kept for route compatibility.
+ * Renders as a Calm Ops panel with restrained borders and elevation.
  */
 
 import type { ReactNode } from 'react';
@@ -19,20 +19,20 @@ export default function BrutalCard({
     onClick
 }: BrutalCardProps) {
     const colorClasses = {
-        yellow: 'bg-loop-yellow text-[var(--app-brutal-ink)]',
-        green: 'bg-loop-green text-[var(--app-brutal-ink)]',
-        purple: 'bg-loop-purple text-[var(--app-brutal-ink)]',
-        pink: 'bg-loop-pink text-[var(--app-brutal-ink)]',
+        yellow: 'bg-loop-yellow text-app-text-heading',
+        green: 'bg-loop-green text-app-text-heading',
+        purple: 'bg-loop-purple text-app-text-heading',
+        pink: 'bg-loop-pink text-app-text-heading',
         white: 'bg-app-surface text-app-text',
-        black: 'bg-[var(--app-text-heading)] text-[var(--app-bg)]',
+        black: 'bg-app-surface-elevated text-app-text-heading',
     };
 
     return (
         <div
             className={`
-        border-brutal border-[var(--app-border)] shadow-brutal relative break-words
+        relative break-words rounded-[var(--ui-radius-sm)] border border-app-border-muted shadow-sm
         ${colorClasses[color]}
-        ${onClick ? 'cursor-pointer hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-brutal-sm transition-all z-10' : 'z-0'}
+        ${onClick ? 'z-10 cursor-pointer transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2' : 'z-0'}
         ${className}
       `}
             onClick={onClick}

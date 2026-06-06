@@ -51,12 +51,12 @@ export default function SurfaceContextBar({
 
   return (
     <section className="border-b border-app-border bg-app-surface shadow-sm">
-      <div className="mx-auto max-w-[1920px] px-3 py-1.5 sm:px-4 sm:py-3 lg:px-6">
-        <div className="space-y-1.5 md:hidden">
+      <div className="mx-auto max-w-[1920px] px-3 py-1 sm:px-4 sm:py-3 lg:px-6">
+        <div className="space-y-1 md:hidden">
           <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 space-y-2">
-              <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
-                <span className="rounded-full border border-app-border bg-app-surface-elevated px-2.5 py-1 text-app-text-heading shadow-sm">
+            <div className="min-w-0 space-y-1">
+              <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-app-text-subtle">
+                <span className="rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface-elevated px-2.5 py-0.5 text-app-text-heading shadow-sm">
                   {routeMeta.areaLabel}
                 </span>
                 <span>{routeMeta.surface === 'portal' ? 'Client portal' : 'Staff workspace'}</span>
@@ -151,14 +151,14 @@ export default function SurfaceContextBar({
             ) : (
               <nav
                 aria-label={browseLabel}
-                className="flex gap-2 overflow-x-auto rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated px-3 py-2 shadow-sm [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+                className="flex gap-2 overflow-x-auto rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated px-2 py-1.5 shadow-sm [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
               >
                 {routeMeta.localNavigation.map((item) => (
                   <Link
                     key={item.id}
                     to={item.href}
                     aria-current={item.isActive ? 'page' : undefined}
-                    className={`inline-flex shrink-0 items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition ${
+                    className={`inline-flex shrink-0 items-center gap-2 rounded-[var(--ui-radius-sm)] px-2.5 py-1.5 text-sm font-medium transition ${
                       item.isActive
                         ? 'app-accent-contrast-ink border border-app-accent bg-app-accent shadow-sm'
                         : 'border border-app-border bg-app-surface text-app-text hover:bg-app-surface-muted hover:text-app-text-heading'
@@ -176,8 +176,8 @@ export default function SurfaceContextBar({
         <div className="hidden md:block">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0 space-y-2">
-              <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
-                <span className="rounded-full border border-app-border bg-app-surface-elevated px-2.5 py-1 text-app-text-heading shadow-sm">
+              <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-app-text-subtle">
+                <span className="rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface-elevated px-2.5 py-1 text-app-text-heading shadow-sm">
                   {routeMeta.areaLabel}
                 </span>
                 <span>{routeMeta.surface === 'portal' ? 'Client portal' : 'Staff workspace'}</span>
@@ -237,7 +237,7 @@ export default function SurfaceContextBar({
             <div className="mt-3 space-y-3 border-t border-app-border pt-3">
               {showLocalNavigation && routeMeta.localNavigation.length > 0 ? (
                 <div className="flex flex-col gap-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-app-text-subtle">
                     {browseLabel}
                   </p>
                   <nav aria-label={browseLabel} className="flex flex-wrap gap-2">
@@ -245,7 +245,7 @@ export default function SurfaceContextBar({
                       <Link
                         key={item.id}
                         to={item.href}
-                        className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition ${
+                        className={`inline-flex items-center gap-2 rounded-[var(--ui-radius-sm)] px-3 py-2 text-sm font-medium transition ${
                           item.isActive
                             ? 'app-accent-contrast-ink border border-app-accent bg-app-accent shadow-sm'
                             : 'border border-app-border bg-app-surface-elevated text-app-text shadow-sm hover:bg-app-surface-muted hover:text-app-text-heading'
@@ -261,7 +261,7 @@ export default function SurfaceContextBar({
 
               {shortcuts.length > 0 ? (
                 <div className="flex flex-col gap-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-app-text-subtle">
                     {shortcutLabel}
                   </p>
                   <nav aria-label={shortcutLabel} className="flex flex-wrap gap-2">
@@ -270,7 +270,7 @@ export default function SurfaceContextBar({
                         key={item.id}
                         to={item.path}
                         aria-label={item.ariaLabel ?? item.label}
-                        className="inline-flex items-center gap-2 rounded-full border border-app-border bg-app-surface-elevated px-3 py-2 text-sm font-medium text-app-text shadow-sm transition hover:bg-app-surface-muted hover:text-app-text-heading"
+                        className="inline-flex items-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface-elevated px-3 py-2 text-sm font-medium text-app-text shadow-sm transition hover:bg-app-surface-muted hover:text-app-text-heading"
                       >
                         {item.icon ? <span aria-hidden="true">{item.icon}</span> : null}
                         <span>{item.label}</span>

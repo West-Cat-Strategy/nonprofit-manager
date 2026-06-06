@@ -206,18 +206,17 @@ test.describe("Theming and Design System", () => {
         .waitFor({ state: "hidden", timeout: 30000 })
         .catch(() => undefined);
 
-      const primaryNavigation = page.getByRole("navigation", {
-        name: /primary navigation/i,
+      const workspaceNavigation = page.getByRole("navigation", {
+        name: /primary workspace areas/i,
       });
-      await expect(primaryNavigation).toBeVisible({ timeout: 30000 });
+      await expect(workspaceNavigation).toBeVisible({ timeout: 30000 });
 
-      const homeLink = page
-        .getByRole("navigation", { name: /breadcrumb/i })
-        .getByText(/^home$/i)
+      const peopleLink = workspaceNavigation
+        .getByRole("link", { name: /^people$/i })
         .first();
-      await expect(homeLink).toBeVisible({ timeout: 30000 });
+      await expect(peopleLink).toBeVisible({ timeout: 30000 });
 
-      const navColors = await homeLink.evaluate((element) => {
+      const navColors = await peopleLink.evaluate((element) => {
         const resolveBackground = (node: Element | null): string => {
           let current: Element | null = node;
 
@@ -246,7 +245,7 @@ test.describe("Theming and Design System", () => {
       const background = parseCssColor(navColors.backgroundColor);
       expect(
         contrastRatio(foreground, background),
-        `primary nav contrast failed for theme=${theme} scheme=${scheme}`,
+        `workspace nav contrast failed for theme=${theme} scheme=${scheme}`,
       ).toBeGreaterThanOrEqual(4.5);
     }
   });

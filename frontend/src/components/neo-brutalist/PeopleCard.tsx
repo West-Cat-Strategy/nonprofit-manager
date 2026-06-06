@@ -1,5 +1,5 @@
 /**
- * PeopleCard - Reusable Neo-Brutalist People Card Component
+ * PeopleCard - Reusable people card component
  * 
  * This component is data-driven and can render ANY person data passed to it.
  * Color, status, and role are ALL driven by props, not hard-coded logic.
@@ -11,27 +11,25 @@ interface PeopleCardProps {
     person: AdaptedPerson;
 }
 
-// Color mapping for Neo-Brutalist design system
 const CARD_COLORS: Record<CardColor, string> = {
-    pink: 'bg-loop-pink text-[var(--app-brutal-ink)]',
-    cyan: 'bg-loop-cyan text-[var(--app-brutal-ink)]',
-    yellow: 'bg-loop-yellow text-[var(--app-brutal-ink)]',
+    pink: 'bg-loop-pink text-app-text-heading',
+    cyan: 'bg-loop-cyan text-app-text-heading',
+    yellow: 'bg-loop-yellow text-app-text-heading',
     gray: 'bg-app-surface-elevated text-app-text',
 };
 
 const STATUS_COLORS: Record<string, string> = {
-    active: 'bg-loop-green text-[var(--app-brutal-ink)] border-[var(--app-brutal-outline)]',
-    away: 'bg-app-surface text-app-text border-app-border',
-    inactive: 'bg-app-surface text-app-text border-app-border',
+    active: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    away: 'border-amber-200 bg-amber-50 text-amber-700',
+    inactive: 'border-app-border-muted bg-app-surface-muted text-app-text-muted',
 };
 
 export default function PeopleCard({ person }: PeopleCardProps) {
     // Get card background color from data, fallback to white
     const cardBg = person.cardColor ? CARD_COLORS[person.cardColor] : 'bg-app-surface text-app-text';
-    const usesLoopSurface = person.cardColor !== undefined && person.cardColor !== 'gray';
-    const headingTextClass = usesLoopSurface ? 'text-black' : 'text-app-text-heading';
-    const initialsTextClass = usesLoopSurface ? 'text-black' : 'text-app-text-heading';
-    const secondaryTextClass = usesLoopSurface ? 'text-black/80' : 'text-app-text';
+    const headingTextClass = 'text-app-text-heading';
+    const initialsTextClass = 'text-app-text-heading';
+    const secondaryTextClass = 'text-app-text-muted';
 
     // Get status badge color
     const statusColor = STATUS_COLORS[person.status?.toLowerCase() || 'active'] || STATUS_COLORS.active;
@@ -43,27 +41,27 @@ export default function PeopleCard({ person }: PeopleCardProps) {
     const fullName = person.fullName?.trim() || `${firstName} ${lastName}`.trim();
 
     return (
-        <div className={`${cardBg} border-2 border-app-border shadow-[4px_4px_0px_0px_var(--shadow-color)] p-6 flex flex-col items-center`}>
+        <div className={`${cardBg} flex flex-col items-center rounded-[var(--ui-radius-sm)] border border-app-border-muted p-5 shadow-sm`}>
             {/* Profile Photo Area - White circle with initials */}
-            <div className="w-20 h-20 bg-app-surface-elevated border-2 border-app-border rounded-full flex items-center justify-center mb-4 overflow-hidden">
-                <span className={`text-2xl font-black ${initialsTextClass}`}>
+            <div className="mb-4 flex h-16 w-16 items-center justify-center overflow-hidden rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface-elevated">
+                <span className={`text-xl font-semibold ${initialsTextClass}`}>
                     {initials}
                 </span>
             </div>
 
             {/* Name - Truncate to prevent overflow */}
-            <h3 className={`font-black text-lg mb-1 text-center truncate w-full max-w-full px-2 ${headingTextClass}`}>
+            <h3 className={`mb-1 w-full max-w-full truncate px-2 text-center text-lg font-semibold ${headingTextClass}`}>
                 {fullName}
             </h3>
 
             {/* Role/Title - Truncate to prevent overflow */}
-            <p className={`text-xs mb-3 uppercase font-bold tracking-wide text-center truncate w-full max-w-full px-2 ${secondaryTextClass}`}>
+            <p className={`mb-3 w-full max-w-full truncate px-2 text-center text-xs font-medium ${secondaryTextClass}`}>
                 {person.title || person.role}
             </p>
 
             {/* Status Badge */}
             <div className="mb-4">
-                <span className={`text-xs font-bold uppercase px-3 py-1 border-2 ${statusColor}`}>
+                <span className={`inline-flex items-center rounded-[var(--ui-radius-sm)] border px-2 py-0.5 text-xs font-semibold ${statusColor}`}>
                     {person.status || 'ACTIVE'}
                 </span>
             </div>

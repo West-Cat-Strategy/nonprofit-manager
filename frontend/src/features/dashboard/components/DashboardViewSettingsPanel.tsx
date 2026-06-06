@@ -19,7 +19,7 @@ const CheckboxItem = memo(function CheckboxItem({
   return (
     <label
       htmlFor={id}
-      className="flex cursor-pointer items-start gap-3 rounded-2xl border border-app-border/70 bg-app-surface px-4 py-3 transition hover:bg-app-hover"
+      className="flex cursor-pointer items-start gap-3 rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-4 py-3 transition hover:bg-app-hover"
     >
       <input
         id={id}
@@ -56,16 +56,16 @@ function DashboardViewSettingsPanel({
 
   return (
     <section
-      className="rounded-3xl border border-app-border/70 bg-app-surface/90 p-5 shadow-sm"
+      className="rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface p-5 shadow-sm"
       role="region"
       aria-label="Dashboard view settings"
     >
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
+          <p className="text-xs font-semibold uppercase tracking-[0.1em] text-app-text-subtle">
             View Settings
           </p>
-          <h2 className="mt-2 text-xl font-black uppercase tracking-[0.03em] text-app-text-heading">
+          <h2 className="mt-2 text-xl font-semibold text-app-text-heading">
             Choose what appears on the workbench
           </h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-app-text-muted">
@@ -75,7 +75,7 @@ function DashboardViewSettingsPanel({
         <button
           type="button"
           onClick={onReset}
-          className="inline-flex items-center justify-center rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
+          className="inline-flex min-h-10 items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
         >
           Reset defaults
         </button>

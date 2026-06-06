@@ -1,6 +1,6 @@
 /**
- * BrutalButton - Neo-Brutalist Button Component
- * Hard borders, brutal shadows, bold text
+ * Legacy button export kept for route compatibility.
+ * Renders with the Calm Ops interaction style.
  */
 
 import type { ReactNode } from 'react';
@@ -25,17 +25,17 @@ export default function BrutalButton({
     disabled = false,
 }: BrutalButtonProps) {
     const variantClasses = {
-        primary: 'bg-[var(--app-text-heading)] text-[var(--app-bg)] hover:opacity-90',
-        secondary: 'brutal-button-secondary',
-        success: 'bg-[var(--loop-green)] text-[var(--app-brutal-ink)] hover:opacity-90',
-        danger: 'bg-app-accent text-[var(--app-accent-foreground)] hover:bg-app-accent-hover',
+        primary: 'border-app-accent bg-app-accent text-[var(--app-accent-foreground)] hover:bg-app-accent-hover hover:border-app-accent-hover',
+        secondary: 'border-app-border-muted bg-app-surface text-app-text hover:bg-app-hover hover:text-app-text-heading',
+        success: 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100',
+        danger: 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100',
     };
     const disabledClasses = 'bg-app-surface-muted text-app-text-muted border-app-border-muted shadow-none';
 
     const sizeClasses = {
-        sm: 'px-3 py-1.5 text-sm',
-        md: 'px-4 py-2 text-base',
-        lg: 'px-6 py-3 text-lg',
+        sm: 'min-h-9 px-3 py-1.5 text-sm',
+        md: 'min-h-10 px-4 py-2 text-sm',
+        lg: 'min-h-11 px-5 py-2.5 text-base',
     };
 
     return (
@@ -45,11 +45,10 @@ export default function BrutalButton({
             disabled={disabled}
             aria-disabled={disabled}
             className={`
-        border-2 border-[var(--app-border)] shadow-[6px_6px_0px_var(--shadow-color)] font-bold uppercase
-        hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_var(--shadow-color)]
-        focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg)]
+        inline-flex items-center justify-center gap-2 rounded-[var(--ui-radius-sm)] border font-semibold shadow-sm
+        focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg)]
         transition-all
-        disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0
+        disabled:cursor-not-allowed
         ${variantClasses[variant]}
         ${disabled ? disabledClasses : ''}
         ${sizeClasses[size]}

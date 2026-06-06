@@ -165,7 +165,7 @@ export default function MobileNavigationDrawer({
       <div className="space-y-5 px-4 py-5">
         {primaryItems.length > 0 ? (
           <section>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
+            <p className="text-xs font-semibold uppercase tracking-[0.1em] text-app-text-subtle">
               Primary
             </p>
             <div className="mt-3 space-y-2">
@@ -176,7 +176,7 @@ export default function MobileNavigationDrawer({
                   onClick={onClose}
                   aria-current={isNavItemActive(item.id, item.path) ? 'page' : undefined}
                   className={classNames(
-                    'flex items-center gap-3 rounded-[var(--ui-radius-md)] border px-3 py-3 text-sm font-medium transition',
+                    'flex items-center gap-3 rounded-[var(--ui-radius-sm)] border px-3 py-3 text-sm font-medium transition',
                     isNavItemActive(item.id, item.path)
                       ? 'border-app-accent bg-app-accent-soft text-app-accent-text'
                       : 'border-app-border-muted bg-app-surface text-app-text hover:bg-app-hover'
@@ -192,7 +192,7 @@ export default function MobileNavigationDrawer({
 
         {secondaryItems.length > 0 ? (
           <section>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
+            <p className="text-xs font-semibold uppercase tracking-[0.1em] text-app-text-subtle">
               More modules
             </p>
             <div className="mt-3 space-y-2">
@@ -203,7 +203,7 @@ export default function MobileNavigationDrawer({
                   onClick={onClose}
                   aria-current={isNavItemActive(item.id, item.path) ? 'page' : undefined}
                   className={classNames(
-                    'flex items-center gap-3 rounded-[var(--ui-radius-md)] border px-3 py-3 text-sm font-medium transition',
+                    'flex items-center gap-3 rounded-[var(--ui-radius-sm)] border px-3 py-3 text-sm font-medium transition',
                     isNavItemActive(item.id, item.path)
                       ? 'border-app-accent bg-app-accent-soft text-app-accent-text'
                       : 'border-app-border-muted bg-app-surface text-app-text hover:bg-app-hover'
@@ -218,7 +218,7 @@ export default function MobileNavigationDrawer({
         ) : null}
 
         <section>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
+          <p className="text-xs font-semibold uppercase tracking-[0.1em] text-app-text-subtle">
             Utilities
           </p>
           <div className="mt-3 space-y-2">
@@ -227,7 +227,7 @@ export default function MobileNavigationDrawer({
                 key={link.id}
                 to={link.path}
                 onClick={onClose}
-                className="flex items-center gap-3 rounded-[var(--ui-radius-md)] border border-app-border-muted bg-app-surface px-3 py-3 text-sm font-medium text-app-text transition hover:bg-app-hover"
+              className="flex items-center gap-3 rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-3 py-3 text-sm font-medium text-app-text transition hover:bg-app-hover"
               >
                 <span aria-hidden="true">{link.icon}</span>
                 <span>{link.label}</span>
@@ -236,7 +236,7 @@ export default function MobileNavigationDrawer({
             <button
               type="button"
               onClick={onToggleDarkMode}
-              className="flex w-full items-center gap-3 rounded-[var(--ui-radius-md)] border border-app-border-muted bg-app-surface px-3 py-3 text-left text-sm font-medium text-app-text transition hover:bg-app-hover"
+              className="flex w-full items-center gap-3 rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-3 py-3 text-left text-sm font-medium text-app-text transition hover:bg-app-hover"
             >
               <span>{isDarkMode ? '☀️' : '🌙'}</span>
               <span>{isDarkMode ? 'Switch to Light' : 'Switch to Dark'}</span>
@@ -244,7 +244,7 @@ export default function MobileNavigationDrawer({
           </div>
           {favoriteItems.length > 0 ? (
             <div className="mt-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-app-text-subtle">
                 Pinned shortcuts
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -255,7 +255,7 @@ export default function MobileNavigationDrawer({
                     onClick={onClose}
                     aria-current={isNavItemActive(item.id, item.path) ? 'page' : undefined}
                     className={classNames(
-                      'inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition',
+                      'inline-flex items-center gap-2 rounded-[var(--ui-radius-sm)] border px-3 py-2 text-sm font-medium transition',
                       isNavItemActive(item.id, item.path)
                         ? 'border-app-accent bg-app-accent-soft text-app-accent-text'
                         : 'border-app-border bg-app-surface text-app-text hover:bg-app-hover'
@@ -272,10 +272,10 @@ export default function MobileNavigationDrawer({
       </div>
 
       <div className="mt-auto border-t border-app-border px-4 py-4">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.1em] text-app-text-subtle">
           Account
         </p>
-        <div className="flex items-center gap-3 rounded-[var(--ui-radius-md)] bg-app-surface-muted px-3 py-3">
+        <div className="flex items-center gap-3 rounded-[var(--ui-radius-sm)] bg-app-surface-muted px-3 py-3">
           <Avatar
             src={user?.profilePicture}
             firstName={user?.firstName ?? undefined}

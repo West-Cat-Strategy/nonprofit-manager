@@ -1,5 +1,5 @@
 /**
- * Neo-brutalist Form Textarea Component
+ * Legacy form textarea export kept for route compatibility.
  */
 
 import React from 'react';
@@ -27,7 +27,7 @@ export const BrutalFormTextarea = React.forwardRef<
     return (
       <div className="space-y-1">
         {label && (
-          <label className="block text-sm font-bold text-app-text">
+          <label className="block text-sm font-medium text-app-text-label">
             {label}
             {required && <span className="text-app-accent ml-1">*</span>}
           </label>
@@ -35,17 +35,17 @@ export const BrutalFormTextarea = React.forwardRef<
         <textarea
           ref={ref}
           value={value}
-          className={`w-full px-3 py-2 border-2 border-app-text bg-app-surface text-app-text font-mono
-            placeholder:text-app-text-subtle focus:outline-none focus:border-app-accent focus:ring-0
+          className={`min-h-[120px] w-full rounded-[var(--ui-radius-sm)] border bg-app-input-bg px-3 py-2 text-sm text-app-text shadow-sm
+            placeholder:text-app-text-subtle focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 focus:ring-offset-[var(--app-bg)]
             disabled:bg-app-surface-muted disabled:cursor-not-allowed resize-none
-            ${error || isOverLimit ? 'border-app-accent' : 'border-app-text'}
+            ${error || isOverLimit ? 'border-app-accent' : 'border-app-input-border'}
             ${className}`}
           {...props}
         />
         <div className="flex justify-between items-start">
           <div>
             {error && (
-              <p className="text-xs font-bold text-app-accent">{error}</p>
+              <p className="text-xs font-medium text-red-600">{error}</p>
             )}
             {hint && !error && (
               <p className="text-xs text-app-text-muted">{hint}</p>
@@ -53,8 +53,8 @@ export const BrutalFormTextarea = React.forwardRef<
           </div>
           {charLimit && (
             <p
-              className={`text-xs font-mono ${
-                isOverLimit ? 'text-app-accent font-bold' : 'text-app-text-muted'
+              className={`text-xs ${
+                isOverLimit ? 'font-medium text-red-600' : 'text-app-text-muted'
               }`}
             >
               {charCount}/{charLimit}

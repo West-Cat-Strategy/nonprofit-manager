@@ -28,7 +28,7 @@ export default function WorkspaceSummaryPanel({
   const assignedCasesCount = assignedCasesLane?.assignedCasesTotal ?? 0;
 
   return (
-    <section className="mt-6 rounded-3xl border border-app-border/70 bg-app-surface/90 p-5 shadow-sm">
+    <section className="mt-6 rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface p-5 shadow-sm">
       <WorkbenchPanelHeader
         title="Workspace Summary"
         description="A fast pulse on the shortcuts you rely on and the workload already waiting behind them."

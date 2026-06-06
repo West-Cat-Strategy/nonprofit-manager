@@ -1,5 +1,5 @@
 /**
- * Neo-brutalist Form Checkbox Component
+ * Legacy checkbox export kept for route compatibility.
  */
 
 import React from 'react';
@@ -21,14 +21,14 @@ export const BrutalFormCheckbox = React.forwardRef<
         <input
           ref={ref}
           type="checkbox"
-          className="w-5 h-5 border-2 border-app-text bg-app-surface accent-app-text focus:outline-none
-            cursor-pointer mt-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-0.5 h-5 w-5 rounded-[var(--ui-radius-xs)] border border-app-input-border bg-app-input-bg accent-app-accent focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2
+            cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
           {...props}
         />
         {label && (
           <span
             className={`text-sm font-medium text-app-text leading-relaxed ${
-              error ? 'text-app-accent font-bold' : ''
+              error ? 'font-medium text-red-600' : ''
             }`}
           >
             {label}
@@ -36,7 +36,7 @@ export const BrutalFormCheckbox = React.forwardRef<
         )}
       </label>
       {error && (
-        <p className="text-xs font-bold text-app-accent ml-7">{error}</p>
+        <p className="text-xs font-medium text-red-600 ml-7">{error}</p>
       )}
       {hint && !error && (
         <p className="text-xs text-app-text-muted ml-7">{hint}</p>
