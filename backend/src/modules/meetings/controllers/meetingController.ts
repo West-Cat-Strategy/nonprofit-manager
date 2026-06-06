@@ -1,15 +1,28 @@
 import { Response, NextFunction } from 'express';
 import type { AuthRequest } from '@middleware/auth';
 import { meetingService } from '../services/meetingService';
-import { notFoundMessage, unauthorized } from '@utils/responseHelpers';
+import { forbidden, notFoundMessage, unauthorized } from '@utils/responseHelpers';
+
+const requireOrganizationId = (req: AuthRequest, res: Response): string | null => {
+  if (!req.user) {
+    unauthorized(res, 'Unauthorized');
+    return null;
+  }
+
+  if (!req.organizationId) {
+    forbidden(res, 'Active organization context required');
+    return null;
+  }
+
+  return req.organizationId;
+};
 
 export const listCommittees = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    if (!req.user) {
-      unauthorized(res, 'Unauthorized');
-      return;
-    }
-    const committees = await meetingService.listCommittees();
+    const organizationId = requireOrganizationId(req, res);
+    if (!organizationId) return;
+
+    const committees = await meetingService.listCommittees(organizationId);
     res.json({ committees });
   } catch (error) {
     next(error);
@@ -18,10 +31,9 @@ export const listCommittees = async (req: AuthRequest, res: Response, next: Next
 
 export const listMeetings = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    if (!req.user) {
-      unauthorized(res, 'Unauthorized');
-      return;
-    }
+    const organizationId = requireOrganizationId(req, res);
+    if (!organizationId) return;
+
     const query = (req.validatedQuery ?? req.query) as {
       committee_id?: string;
       status?: string;
@@ -34,6 +46,7 @@ export const listMeetings = async (req: AuthRequest, res: Response, next: NextFu
         ? query.limit
         : parseInt(String(query.limit ?? ''), 10);
     const meetings = await meetingService.listMeetings({
+      organizationId,
       committee_id: query.committee_id,
       status: query.status,
       from: query.from,
@@ -48,11 +61,10 @@ export const listMeetings = async (req: AuthRequest, res: Response, next: NextFu
 
 export const getMeetingDetail = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    if (!req.user) {
-      unauthorized(res, 'Unauthorized');
-      return;
-    }
-    const detail = await meetingService.getMeetingDetail(req.params.id);
+    const organizationId = requireOrganizationId(req, res);
+    if (!organizationId) return;
+
+    const detail = await meetingService.getMeetingDetail(req.params.id, organizationId);
     if (!detail) {
       notFoundMessage(res, 'Meeting not found');
       return;
@@ -65,10 +77,8 @@ export const getMeetingDetail = async (req: AuthRequest, res: Response, next: Ne
 
 export const createMeeting = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    if (!req.user) {
-      unauthorized(res, 'Unauthorized');
-      return;
-    }
+    const organizationId = requireOrganizationId(req, res);
+    if (!organizationId) return;
 
     const meeting = await meetingService.createMeeting(
       {
@@ -81,8 +91,13 @@ export const createMeeting = async (req: AuthRequest, res: Response, next: NextF
         presiding_contact_id: req.body.presiding_contact_id ?? null,
         secretary_contact_id: req.body.secretary_contact_id ?? null,
       },
-      req.user.id
+      req.user!.id,
+      organizationId
     );
+    if (!meeting) {
+      notFoundMessage(res, 'Meeting committee not found');
+      return;
+    }
 
     res.status(201).json({ meeting });
   } catch (error) {
@@ -92,12 +107,10 @@ export const createMeeting = async (req: AuthRequest, res: Response, next: NextF
 
 export const updateMeeting = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    if (!req.user) {
-      unauthorized(res, 'Unauthorized');
-      return;
-    }
+    const organizationId = requireOrganizationId(req, res);
+    if (!organizationId) return;
 
-    const meeting = await meetingService.updateMeeting(req.params.id, req.body, req.user.id);
+    const meeting = await meetingService.updateMeeting(req.params.id, req.body, req.user!.id, organizationId);
     if (!meeting) {
       notFoundMessage(res, 'Meeting not found');
       return;
@@ -110,10 +123,8 @@ export const updateMeeting = async (req: AuthRequest, res: Response, next: NextF
 
 export const addAgendaItem = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    if (!req.user) {
-      unauthorized(res, 'Unauthorized');
-      return;
-    }
+    const organizationId = requireOrganizationId(req, res);
+    if (!organizationId) return;
 
     const agendaItem = await meetingService.addAgendaItem(
       req.params.id,
@@ -124,8 +135,13 @@ export const addAgendaItem = async (req: AuthRequest, res: Response, next: NextF
         duration_minutes: req.body.duration_minutes ?? null,
         presenter_contact_id: req.body.presenter_contact_id ?? null,
       },
-      req.user.id
+      req.user!.id,
+      organizationId
     );
+    if (!agendaItem) {
+      notFoundMessage(res, 'Meeting not found');
+      return;
+    }
 
     res.status(201).json({ agendaItem });
   } catch (error) {
@@ -135,12 +151,19 @@ export const addAgendaItem = async (req: AuthRequest, res: Response, next: NextF
 
 export const reorderAgenda = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    if (!req.user) {
-      unauthorized(res, 'Unauthorized');
+    const organizationId = requireOrganizationId(req, res);
+    if (!organizationId) return;
+
+    const reordered = await meetingService.reorderAgendaItems(
+      req.params.id,
+      req.body.orderedIds,
+      req.user!.id,
+      organizationId
+    );
+    if (!reordered) {
+      notFoundMessage(res, 'Meeting not found');
       return;
     }
-
-    await meetingService.reorderAgendaItems(req.params.id, req.body.orderedIds, req.user.id);
     res.status(204).send();
   } catch (error) {
     next(error);
@@ -149,10 +172,8 @@ export const reorderAgenda = async (req: AuthRequest, res: Response, next: NextF
 
 export const addMotion = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    if (!req.user) {
-      unauthorized(res, 'Unauthorized');
-      return;
-    }
+    const organizationId = requireOrganizationId(req, res);
+    if (!organizationId) return;
 
     const motion = await meetingService.addMotion(
       req.params.id,
@@ -163,8 +184,13 @@ export const addMotion = async (req: AuthRequest, res: Response, next: NextFunct
         moved_by_contact_id: req.body.moved_by_contact_id ?? null,
         seconded_by_contact_id: req.body.seconded_by_contact_id ?? null,
       },
-      req.user.id
+      req.user!.id,
+      organizationId
     );
+    if (!motion) {
+      notFoundMessage(res, 'Meeting not found');
+      return;
+    }
 
     res.status(201).json({ motion });
   } catch (error) {
@@ -174,12 +200,16 @@ export const addMotion = async (req: AuthRequest, res: Response, next: NextFunct
 
 export const updateMotion = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    if (!req.user) {
-      unauthorized(res, 'Unauthorized');
-      return;
-    }
+    const organizationId = requireOrganizationId(req, res);
+    if (!organizationId) return;
 
-    const motion = await meetingService.updateMotion(req.params.motionId, req.body, req.user.id);
+    const motion = await meetingService.updateMotion(
+      req.params.motionId,
+      req.body,
+      req.user!.id,
+      req.params.id,
+      organizationId
+    );
     if (!motion) {
       notFoundMessage(res, 'Motion not found');
       return;
@@ -192,10 +222,8 @@ export const updateMotion = async (req: AuthRequest, res: Response, next: NextFu
 
 export const createActionItem = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    if (!req.user) {
-      unauthorized(res, 'Unauthorized');
-      return;
-    }
+    const organizationId = requireOrganizationId(req, res);
+    if (!organizationId) return;
 
     const item = await meetingService.createActionItem(
       req.params.id,
@@ -206,8 +234,13 @@ export const createActionItem = async (req: AuthRequest, res: Response, next: Ne
         assigned_contact_id: req.body.assigned_contact_id ?? null,
         due_date: req.body.due_date ?? null,
       },
-      req.user.id
+      req.user!.id,
+      organizationId
     );
+    if (!item) {
+      notFoundMessage(res, 'Meeting not found');
+      return;
+    }
 
     res.status(201).json({ actionItem: item });
   } catch (error) {
@@ -217,11 +250,10 @@ export const createActionItem = async (req: AuthRequest, res: Response, next: Ne
 
 export const getMinutesDraft = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    if (!req.user) {
-      unauthorized(res, 'Unauthorized');
-      return;
-    }
-    const draft = await meetingService.generateMinutesDraft(req.params.id);
+    const organizationId = requireOrganizationId(req, res);
+    if (!organizationId) return;
+
+    const draft = await meetingService.generateMinutesDraft(req.params.id, organizationId);
     if (!draft) {
       notFoundMessage(res, 'Meeting not found');
       return;

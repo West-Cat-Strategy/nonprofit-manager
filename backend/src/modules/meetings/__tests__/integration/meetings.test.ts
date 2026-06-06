@@ -8,6 +8,7 @@ describe('Meetings API Integration Tests', () => {
   let testContactId: string;
   let testCommitteeId: string;
   let testMeetingId: string;
+  let creatorUserId: string;
   const sharedPassword = 'Test123!Strong';
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
@@ -65,7 +66,7 @@ describe('Meetings API Integration Tests', () => {
       'SELECT created_by FROM accounts WHERE id = $1',
       [testAccountId]
     );
-    const creatorUserId = accountOwnerResult.rows[0]?.created_by || '';
+    creatorUserId = accountOwnerResult.rows[0]?.created_by || '';
     expect(creatorUserId).toBeTruthy();
 
     await pool.query(
@@ -93,7 +94,7 @@ describe('Meetings API Integration Tests', () => {
 
   afterAll(async () => {
     if (testAccountId) {
-      await pool.query('DELETE FROM meetings WHERE committee_id IN (SELECT id FROM committees WHERE created_by IN (SELECT id FROM users WHERE email LIKE \'meeting-%\'))');
+      await pool.query('DELETE FROM meetings WHERE organization_id = $1', [testAccountId]);
       await pool.query('DELETE FROM contacts WHERE account_id = $1', [testAccountId]);
       await pool.query('DELETE FROM user_account_access WHERE account_id = $1', [testAccountId]);
       await pool.query('DELETE FROM accounts WHERE id = $1', [testAccountId]);
@@ -144,6 +145,42 @@ describe('Meetings API Integration Tests', () => {
 
       expect(response.body.meeting.title).toBe('Updated Meeting Title');
       expect(response.body.meeting.status).toBe('scheduled');
+    });
+
+    it('does not expose meetings from another organization context', async () => {
+      const otherAccountResult = await pool.query<{ id: string }>(
+        `INSERT INTO accounts (account_name, account_type, created_by, modified_by)
+         VALUES ($1, 'organization', $2, $2)
+         RETURNING id`,
+        [`Other Meeting Org ${unique()}`, creatorUserId]
+      );
+      const otherAccountId = otherAccountResult.rows[0].id;
+
+      const otherMeetingResult = await pool.query<{ id: string }>(
+        `INSERT INTO meetings (
+           organization_id, meeting_type, title, starts_at, location, created_by, modified_by
+         )
+         VALUES ($1, 'board', $2, $3, 'Other room', $4, $4)
+         RETURNING id`,
+        [otherAccountId, `Other Org Meeting ${unique()}`, new Date(Date.now() + 86400000).toISOString(), creatorUserId]
+      );
+      const otherMeetingId = otherMeetingResult.rows[0].id;
+
+      try {
+        await withAuthToken(adminAuthToken, request(app).get(`/api/v2/meetings/${otherMeetingId}`))
+          .expect(404);
+
+        await withAuthToken(adminAuthToken, request(app).patch(`/api/v2/meetings/${otherMeetingId}`))
+          .send({ title: 'Cross-tenant edit' })
+          .expect(404);
+
+        const listResponse = await withAuthToken(adminAuthToken, request(app).get('/api/v2/meetings'))
+          .expect(200);
+        expect(listResponse.body.meetings.map((meeting: { id: string }) => meeting.id)).not.toContain(otherMeetingId);
+      } finally {
+        await pool.query('DELETE FROM meetings WHERE id = $1', [otherMeetingId]);
+        await pool.query('DELETE FROM accounts WHERE id = $1', [otherAccountId]);
+      }
     });
   });
 

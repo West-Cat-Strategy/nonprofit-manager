@@ -96,7 +96,7 @@ describe('createPendingRegistration', () => {
       expect.objectContaining({
         to: 'admin@example.com',
         text: expect.stringContaining(
-          'Approve request: https://app.example.com/admin-registration-review/'
+          'Approve request: https://app.example.com/admin-registration-review#'
         ),
         html: expect.stringContaining('Approve request'),
       })
@@ -104,12 +104,12 @@ describe('createPendingRegistration', () => {
 
     const emailPayload = sendMailMock.mock.calls[0][0];
     expect(emailPayload.text).toContain(
-      'Reject request: https://app.example.com/admin-registration-review/'
+      'Reject request: https://app.example.com/admin-registration-review#'
     );
     expect(emailPayload.text).not.toContain('?mode=complete');
     expect(emailPayload.html).toContain('Reject request');
-    expect(emailPayload.html).toContain('/admin-registration-review/');
-    expect(emailPayload.html).toContain('?mode=complete');
+    expect(emailPayload.html).toContain('/admin-registration-review#');
+    expect(emailPayload.html).not.toContain('?mode=complete');
   });
 
   it('surfaces passkey setup as unavailable when pending passkey staging is missing', async () => {

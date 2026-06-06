@@ -24,30 +24,6 @@
     <!-- Additional SEO -->
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
-    <script>
-      (function () {
-        var legacyPathRedirects = {
-          '/email-marketing': '/settings/communications',
-          '/settings/admin': '/settings/admin/dashboard',
-          '/settings/admin/email': '/settings/communications',
-          '/settings/admin/portal': '/settings/admin/portal/access',
-          '/settings/organization': '/settings/admin/organization',
-          '/admin/audit-logs': '/settings/admin/audit_logs',
-        };
-        var pathname = window.location.pathname;
-        var nextPath = legacyPathRedirects[pathname];
-
-        if (!nextPath) {
-          return;
-        }
-
-        window.history.replaceState(
-          null,
-          '',
-          nextPath + window.location.search + window.location.hash
-        );
-      })();
-    </script>
   </head>
   <body>
     <div id="root"></div>

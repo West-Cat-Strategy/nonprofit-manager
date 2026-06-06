@@ -7,13 +7,7 @@ source "$SCRIPT_DIR/lib/common.sh"
 GITLEAKS_DOCKER_IMAGE="${GITLEAKS_DOCKER_IMAGE:-ghcr.io/gitleaks/gitleaks:latest@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f}"
 
 scan_audit() {
-  local dir="$1"
-  if [[ -d "$dir" ]]; then
-    if run bash -lc "cd '$dir' && npm audit --omit=dev --audit-level=moderate"; then
-      return 0
-    fi
-    return 1
-  fi
+  run npm run audit:prod
 }
 
 create_gitleaks_scan_root() {
@@ -99,11 +93,7 @@ cd "$PROJECT_ROOT"
 
 overall_status=0
 
-if ! scan_audit backend; then
-  overall_status=1
-fi
-
-if ! scan_audit frontend; then
+if ! scan_audit; then
   overall_status=1
 fi
 

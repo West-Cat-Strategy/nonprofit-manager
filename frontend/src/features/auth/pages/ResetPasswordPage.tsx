@@ -3,11 +3,13 @@ import type { FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../../../services/api';
 import { AuthHeroShell, FormField, PrimaryButton } from '../../../components/ui';
+import { useTokenizedRouteToken } from '../../../utils/tokenizedRouteToken';
 
 type Status = 'loading' | 'valid' | 'invalid' | 'success' | 'error';
 
 export default function ResetPassword() {
-  const { token } = useParams<{ token: string }>();
+  const { token: routeToken } = useParams<{ token: string }>();
+  const token = useTokenizedRouteToken(routeToken, { scrubPath: '/reset-password' });
   const [status, setStatus] = useState<Status>('loading');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');

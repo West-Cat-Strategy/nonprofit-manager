@@ -33,8 +33,11 @@ export function createPortalPublicRoutes() {
       <Route path="/portal/login" element={<PortalLogin />} />
       <Route path="/portal/signup" element={<PortalSignup />} />
       <Route path="/portal/forgot-password" element={<PortalForgotPassword />} />
+      <Route path="/portal/reset-password" element={<PortalResetPassword />} />
       <Route path="/portal/reset-password/:token" element={<PortalResetPassword />} />
+      <Route path="/portal/accept-invitation" element={<PortalAcceptInvitation />} />
       <Route path="/portal/accept-invitation/:token" element={<PortalAcceptInvitation />} />
+      <Route path="/public/case-forms" element={<PublicCaseForm />} />
       <Route path="/public/case-forms/:token" element={<PublicCaseForm />} />
     </>
   );

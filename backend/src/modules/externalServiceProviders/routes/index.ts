@@ -1,8 +1,10 @@
 import express from 'express';
 import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
+import { requirePermission } from '@middleware/permissions';
 import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
+import { Permission } from '@utils/permissions';
 import { uuidSchema, optionalStrictBooleanSchema } from '@validations/shared';
 import * as externalServiceProviderController from '../controllers';
 
@@ -56,17 +58,20 @@ router.get(
 );
 router.post(
   '/',
+  requirePermission(Permission.ADMIN_SETTINGS),
   validateBody(createExternalServiceProviderSchema),
   externalServiceProviderController.createExternalServiceProvider
 );
 router.put(
   '/:id',
+  requirePermission(Permission.ADMIN_SETTINGS),
   validateParams(externalServiceProviderIdParamsSchema),
   validateBody(updateExternalServiceProviderSchema),
   externalServiceProviderController.updateExternalServiceProvider
 );
 router.delete(
   '/:id',
+  requirePermission(Permission.ADMIN_SETTINGS),
   validateParams(externalServiceProviderIdParamsSchema),
   externalServiceProviderController.deleteExternalServiceProvider
 );

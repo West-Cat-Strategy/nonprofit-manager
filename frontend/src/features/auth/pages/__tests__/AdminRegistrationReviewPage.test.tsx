@@ -37,6 +37,7 @@ const renderReviewPage = (
 ) =>
   renderWithProviders(
     <Routes>
+      <Route path="/admin-registration-review" element={<AdminRegistrationReviewPage />} />
       <Route path="/admin-registration-review/:token" element={<AdminRegistrationReviewPage />} />
     </Routes>,
     { route, preloadedState }
@@ -77,38 +78,14 @@ describe('AdminRegistrationReviewPage', () => {
     confirmAdminRegistrationReviewMock.mockReset();
   });
 
-  it('auto-confirms the review action when mode=complete is present', async () => {
+  it('does not auto-confirm the review action when mode=complete is present', async () => {
     getAdminRegistrationReviewPreviewMock.mockResolvedValue(previewPayload);
-    confirmAdminRegistrationReviewMock.mockResolvedValue({
-      status: 'completed',
-      action: 'approve',
-      message: 'Registration approved successfully.',
-      review: {
-        ...previewPayload,
-        canConfirm: false,
-        currentReview: {
-          status: 'approved',
-          reviewedAt: '2026-04-16T12:15:00.000Z',
-          rejectionReason: null,
-          reviewedBy: {
-            id: 'admin-1',
-            email: 'admin@example.com',
-            firstName: 'Ada',
-            lastName: 'Admin',
-            displayName: 'Ada Admin',
-          },
-        },
-      },
-    });
 
     renderReviewPage('/admin-registration-review/review.token.value?mode=complete');
 
-    await waitFor(() => {
-      expect(confirmAdminRegistrationReviewMock).toHaveBeenCalledWith('review.token.value');
-    });
-    expect(
-      await screen.findByText('Registration approved successfully.')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Pending Person')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /confirm approve/i })).toBeInTheDocument();
+    expect(confirmAdminRegistrationReviewMock).not.toHaveBeenCalled();
   });
 
   it('keeps the plain route on the manual confirm flow', async () => {

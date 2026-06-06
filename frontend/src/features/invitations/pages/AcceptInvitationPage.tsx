@@ -13,6 +13,7 @@ import ErrorBanner from '../../../components/ErrorBanner';
 import { validatePassword } from '../../../utils/validation';
 import { AuthHeroShell, FormField, PrimaryButton } from '../../../components/ui';
 import { primeStaffSession } from '../../auth/utils/primeStaffSession';
+import { useTokenizedRouteToken } from '../../../utils/tokenizedRouteToken';
 
 interface InvitationInfo {
   email: string;
@@ -26,7 +27,8 @@ const isLikelyInvitationToken = (value: string | undefined): boolean =>
   Boolean(value && value.length >= 20 && /^[A-Za-z0-9._-]+$/.test(value));
 
 export default function AcceptInvitation() {
-  const { token } = useParams<{ token: string }>();
+  const { token: routeToken } = useParams<{ token: string }>();
+  const token = useTokenizedRouteToken(routeToken, { scrubPath: '/accept-invitation' });
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 

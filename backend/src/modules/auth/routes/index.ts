@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { validateBody, validateParams } from '@middleware/zodValidation';
 import { getCsrfToken } from '@middleware/domains/security';
 import { authenticate } from '@middleware/domains/auth';
+import { requireJsonRequest } from '@middleware/requireJsonRequest';
 import {
   authLimiterMiddleware,
   passwordResetLimiterMiddleware,
@@ -75,6 +76,7 @@ export const createAuthRoutes = (): Router => {
 
   router.post(
     '/register',
+    requireJsonRequest,
     registrationLimiterMiddleware,
     aliasUsageTelemetry({
       route: '/api/v2/auth/register',
@@ -86,6 +88,7 @@ export const createAuthRoutes = (): Router => {
 
   router.post(
     '/login',
+    requireJsonRequest,
     authLimiterMiddleware,
     checkAccountLockout,
     validateBody(loginSchema),
@@ -94,6 +97,7 @@ export const createAuthRoutes = (): Router => {
 
   router.post(
     '/login/2fa',
+    requireJsonRequest,
     authLimiterMiddleware,
     checkAccountLockout,
     validateBody(twoFactorVerifySchema.extend({
@@ -164,11 +168,13 @@ export const createAuthRoutes = (): Router => {
   );
   router.post(
     '/admin-registration-review/:token/confirm',
+    requireJsonRequest,
     validateParams(adminRegistrationReviewTokenParamsSchema),
     confirmAdminRegistrationReviewHandler
   );
   router.post(
     '/reset-password',
+    requireJsonRequest,
     passwordResetLimiterMiddleware,
     validateBody(passwordResetConfirmSchema),
     resetPassword
@@ -206,24 +212,28 @@ export const createAuthRoutes = (): Router => {
   );
   router.post(
     '/passkeys/pending/options',
+    requireJsonRequest,
     registrationLimiterMiddleware,
     validateBody(pendingPasskeyRegistrationOptionsSchema),
     pendingPasskeyRegistrationOptions
   );
   router.post(
     '/passkeys/pending/verify',
+    requireJsonRequest,
     registrationLimiterMiddleware,
     validateBody(pendingPasskeyRegistrationVerifySchema),
     pendingPasskeyRegistrationVerify
   );
   router.post(
     '/passkeys/login/options',
+    requireJsonRequest,
     authLimiterMiddleware,
     validateBody(passkeyLoginOptionsSchema),
     passkeyLoginOptions
   );
   router.post(
     '/passkeys/login/verify',
+    requireJsonRequest,
     authLimiterMiddleware,
     validateBody(passkeyLoginVerifySchema),
     passkeyLoginVerify
@@ -234,6 +244,7 @@ export const createAuthRoutes = (): Router => {
 
   router.post(
     '/setup',
+    requireJsonRequest,
     registrationLimiterMiddleware,
     aliasUsageTelemetry({
       route: '/api/v2/auth/setup',

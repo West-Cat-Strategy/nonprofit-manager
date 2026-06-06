@@ -52,8 +52,14 @@ class PublicCaseFormsApiClient {
     return unwrapApiData(response.data);
   }
 
-  getResponsePacketDownloadUrl(token: string): string {
-    return `/api/v2/public/case-forms/${token}/response-packet`;
+  async downloadResponsePacket(token: string): Promise<BlobPart> {
+    const response = await publicApi.get<BlobPart>(
+      `/v2/public/case-forms/${token}/response-packet`,
+      {
+        responseType: 'blob',
+      }
+    );
+    return response.data;
   }
 }
 

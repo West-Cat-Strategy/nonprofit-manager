@@ -7,8 +7,19 @@ export interface ExcelParseOptions {
   name?: string;
   sheetName?: string;
   maxRows?: number;
+  maxColumns?: number;
+  maxCells?: number;
+  maxCellLength?: number;
+  maxWorksheets?: number;
   hasHeader?: boolean | 'auto';
+  rejectOverLimit?: boolean;
 }
+
+const createExcelValidationError = (message: string): Error =>
+  Object.assign(new Error(message), {
+    statusCode: 400,
+    code: 'validation_error',
+  });
 
 function looksLikeHeader(first: unknown[], second?: unknown[]): boolean {
   const a = first.map((v) => (v === null || v === undefined ? '' : String(v).trim()));
@@ -80,6 +91,10 @@ export async function parseExcelToDatasets(buffer: Buffer, options: ExcelParseOp
   // ExcelJS load accepts Buffer in Node.js environments
   await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
 
+  if (options.maxWorksheets !== undefined && workbook.worksheets.length > options.maxWorksheets) {
+    throw createExcelValidationError(`XLSX imports cannot contain more than ${options.maxWorksheets} worksheets`);
+  }
+
   const sheetNames =
     options.sheetName && workbook.worksheets.some(ws => ws.name === options.sheetName)
       ? [options.sheetName]
@@ -91,16 +106,45 @@ export async function parseExcelToDatasets(buffer: Buffer, options: ExcelParseOp
     const sheet = workbook.getWorksheet(sheetName);
     if (!sheet) continue;
 
+    if (options.maxColumns !== undefined && sheet.actualColumnCount > options.maxColumns) {
+      throw createExcelValidationError(`XLSX imports cannot contain more than ${options.maxColumns} columns`);
+    }
+
     // Convert worksheet to array of arrays
     const rows: unknown[][] = [];
+    let observedCells = 0;
     sheet.eachRow({ includeEmpty: false }, (row) => {
+      if (options.rejectOverLimit && rows.length > maxRows) {
+        throw createExcelValidationError(`XLSX imports cannot contain more than ${maxRows - 1} data rows`);
+      }
+
       const rowValues: unknown[] = [];
       row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        if (options.maxColumns !== undefined && colNumber > options.maxColumns) {
+          throw createExcelValidationError(`XLSX imports cannot contain more than ${options.maxColumns} columns`);
+        }
+
+        observedCells += 1;
+        if (options.maxCells !== undefined && observedCells > options.maxCells) {
+          throw createExcelValidationError(`XLSX imports cannot contain more than ${options.maxCells} cells`);
+        }
+
         // Ensure we fill in gaps for empty cells
         while (rowValues.length < colNumber - 1) {
           rowValues.push(null);
         }
-        rowValues.push(getCellValue(cell));
+        const value = getCellValue(cell);
+        if (
+          options.maxCellLength !== undefined &&
+          value !== null &&
+          value !== undefined &&
+          String(value).length > options.maxCellLength
+        ) {
+          throw createExcelValidationError(
+            `XLSX cell values cannot exceed ${options.maxCellLength} characters`
+          );
+        }
+        rowValues.push(value);
       });
       rows.push(rowValues);
     });
@@ -126,6 +170,12 @@ export async function parseExcelToDatasets(buffer: Buffer, options: ExcelParseOp
     const firstRow = nonEmptyRows[0];
     const secondRow = nonEmptyRows[1];
     const hasHeader = headerMode === 'auto' ? looksLikeHeader(firstRow, secondRow) : headerMode;
+    const dataRowCount = Math.max(0, nonEmptyRows.length - (hasHeader ? 1 : 0));
+    if (options.rejectOverLimit && dataRowCount > maxRows - (hasHeader ? 1 : 0)) {
+      throw createExcelValidationError(
+        `XLSX imports cannot contain more than ${maxRows - (hasHeader ? 1 : 0)} data rows`
+      );
+    }
 
     const headers = hasHeader
       ? firstRow.map((h, i) => {
@@ -192,4 +242,3 @@ export async function parseExcelToDatasets(buffer: Buffer, options: ExcelParseOp
 
   return datasets;
 }
-

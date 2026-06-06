@@ -5,7 +5,7 @@ import { logger } from '@config/logger';
 import { AuthRequest } from '@middleware/auth';
 import { trackLoginAttempt } from '@middleware/accountLockout';
 import { decrypt, encrypt } from '@utils/encryption';
-import { badRequest, conflict, notFoundMessage, unauthorized } from '@utils/responseHelpers';
+import { badRequest, conflict, forbidden, notFoundMessage, unauthorized } from '@utils/responseHelpers';
 import { setAuthCookie } from '@utils/cookieHelper';
 import { buildAuthTokenResponse, generateAuthSessionCsrfToken } from '@utils/authResponse';
 import { sendSuccess } from '@modules/shared/http/envelope';
@@ -294,9 +294,19 @@ export const completeTotpLogin = async (
       return unauthorized(res, 'Invalid authentication code');
     }
 
+    const organizationId = await getAuthenticatedOrganizationId(user.id);
+    if (!organizationId) {
+      await trackLoginAttempt(email, false, user.id, clientIp);
+      logger.warn('MFA verification blocked: user has no active organization access', {
+        userId: user.id,
+        email,
+        ip: clientIp,
+      });
+      return forbidden(res, 'No active organization access');
+    }
+
     await trackLoginAttempt(email, true, user.id, clientIp);
 
-    const organizationId = await getAuthenticatedOrganizationId(user.id);
     const token = issueAuthTokens(user, organizationId);
     setAuthCookie(res, token);
     const csrfToken = generateAuthSessionCsrfToken(req, res, token);

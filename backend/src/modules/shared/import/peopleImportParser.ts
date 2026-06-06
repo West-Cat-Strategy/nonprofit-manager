@@ -41,6 +41,21 @@ const EXCEL_MIME_TYPES = new Set([
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 ]);
 
+export const PEOPLE_IMPORT_LIMITS = {
+  maxRows: 10_000,
+  maxColumns: 100,
+  maxCells: 250_000,
+  maxCellLength: 5_000,
+  maxXlsxExpandedBytes: 25 * 1024 * 1024,
+  maxXlsxWorksheets: 10,
+} as const;
+
+const createImportValidationError = (message: string): Error =>
+  Object.assign(new Error(message), {
+    statusCode: 400,
+    code: 'validation_error',
+  });
+
 const loadExcelJs = async (): Promise<typeof import('exceljs')> => import('exceljs');
 
 const normalizeImportFormat = (
@@ -63,6 +78,22 @@ const normalizeImportFormat = (
   }
 
   throw new Error('Only CSV and XLSX files are supported for people imports');
+};
+
+const assertColumnBudget = (columnCount: number): void => {
+  if (columnCount > PEOPLE_IMPORT_LIMITS.maxColumns) {
+    throw createImportValidationError(
+      `People import files cannot contain more than ${PEOPLE_IMPORT_LIMITS.maxColumns} columns`
+    );
+  }
+};
+
+const assertCellLengthBudget = (value: string): void => {
+  if (value.length > PEOPLE_IMPORT_LIMITS.maxCellLength) {
+    throw createImportValidationError(
+      `People import cell values cannot exceed ${PEOPLE_IMPORT_LIMITS.maxCellLength} characters`
+    );
+  }
 };
 
 const parseCsvLine = (line: string, delimiter: string): string[] => {
@@ -110,10 +141,20 @@ const detectDelimiter = (csvText: string): string => {
   ).delimiter;
 };
 
-const splitCsvRecords = (text: string): string[] => {
+const splitCsvRecords = (text: string, maxRecords?: number): string[] => {
   const records: string[] = [];
   let current = '';
   let inQuotes = false;
+
+  const pushRecord = () => {
+    records.push(current);
+    if (maxRecords !== undefined && records.length > maxRecords) {
+      throw createImportValidationError(
+        `People import files cannot contain more than ${PEOPLE_IMPORT_LIMITS.maxRows} data rows`
+      );
+    }
+    current = '';
+  };
 
   for (let index = 0; index < text.length; index += 1) {
     const character = text[index];
@@ -133,8 +174,7 @@ const splitCsvRecords = (text: string): string[] => {
     }
 
     if (character === '\n' && !inQuotes) {
-      records.push(current);
-      current = '';
+      pushRecord();
       continue;
     }
 
@@ -142,10 +182,106 @@ const splitCsvRecords = (text: string): string[] => {
   }
 
   if (current.length > 0) {
-    records.push(current);
+    pushRecord();
   }
 
   return records;
+};
+
+const validateCsvImportBudgets = (buffer: Buffer): void => {
+  const text = buffer.toString('utf8').replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const delimiter = detectDelimiter(text);
+  const rawRecords = splitCsvRecords(text, PEOPLE_IMPORT_LIMITS.maxRows + 1)
+    .filter((record) => record.length > 0);
+  let totalCells = 0;
+
+  rawRecords.forEach((record) => {
+    const values = parseCsvLine(record, delimiter);
+    assertColumnBudget(values.length);
+    totalCells += values.length;
+    if (totalCells > PEOPLE_IMPORT_LIMITS.maxCells) {
+      throw createImportValidationError(
+        `People import files cannot contain more than ${PEOPLE_IMPORT_LIMITS.maxCells} cells`
+      );
+    }
+    values.forEach(assertCellLengthBudget);
+  });
+};
+
+const readZipCentralDirectoryExpandedSize = (buffer: Buffer): number | null => {
+  const minEocdSize = 22;
+  const maxCommentLength = 0xffff;
+  const searchStart = Math.max(0, buffer.length - minEocdSize - maxCommentLength);
+  let eocdOffset = -1;
+
+  for (let offset = buffer.length - minEocdSize; offset >= searchStart; offset -= 1) {
+    if (buffer.readUInt32LE(offset) === 0x06054b50) {
+      eocdOffset = offset;
+      break;
+    }
+  }
+
+  if (eocdOffset === -1) {
+    return null;
+  }
+
+  const entryCount = buffer.readUInt16LE(eocdOffset + 10);
+  const centralDirectorySize = buffer.readUInt32LE(eocdOffset + 12);
+  const centralDirectoryOffset = buffer.readUInt32LE(eocdOffset + 16);
+  const centralDirectoryEnd = centralDirectoryOffset + centralDirectorySize;
+  if (centralDirectoryEnd > buffer.length) {
+    return null;
+  }
+
+  let offset = centralDirectoryOffset;
+  let expandedSize = 0;
+  let entriesSeen = 0;
+
+  while (offset < centralDirectoryEnd && entriesSeen < entryCount) {
+    if (buffer.readUInt32LE(offset) !== 0x02014b50) {
+      return null;
+    }
+
+    const uncompressedSize = buffer.readUInt32LE(offset + 24);
+    if (uncompressedSize === 0xffffffff) {
+      throw createImportValidationError('ZIP64 XLSX imports are not supported by the people import safety budget');
+    }
+
+    expandedSize += uncompressedSize;
+    if (expandedSize > PEOPLE_IMPORT_LIMITS.maxXlsxExpandedBytes) {
+      return expandedSize;
+    }
+
+    const fileNameLength = buffer.readUInt16LE(offset + 28);
+    const extraLength = buffer.readUInt16LE(offset + 30);
+    const commentLength = buffer.readUInt16LE(offset + 32);
+    offset += 46 + fileNameLength + extraLength + commentLength;
+    entriesSeen += 1;
+  }
+
+  return expandedSize;
+};
+
+const validateXlsxArchiveBudget = (buffer: Buffer): void => {
+  const expandedSize = readZipCentralDirectoryExpandedSize(buffer);
+  if (expandedSize === null) {
+    return;
+  }
+
+  if (expandedSize > PEOPLE_IMPORT_LIMITS.maxXlsxExpandedBytes) {
+    throw createImportValidationError(
+      `Expanded XLSX imports cannot exceed ${PEOPLE_IMPORT_LIMITS.maxXlsxExpandedBytes} bytes`
+    );
+  }
+};
+
+const validateImportBudgets = (buffer: Buffer, format: SupportedImportFileFormat): void => {
+  if (format === 'csv') {
+    validateCsvImportBudgets(buffer);
+    return;
+  }
+
+  validateXlsxArchiveBudget(buffer);
 };
 
 const parseCsvRows = (
@@ -158,12 +294,20 @@ const parseCsvRows = (
   const rawRecords = splitCsvRecords(text).filter((record) => record.length > 0);
   const dataLines = hasHeader ? rawRecords.slice(1) : rawRecords;
 
+  if (dataLines.length > PEOPLE_IMPORT_LIMITS.maxRows) {
+    throw createImportValidationError(
+      `People import files cannot contain more than ${PEOPLE_IMPORT_LIMITS.maxRows} data rows`
+    );
+  }
+
   return dataLines
     .map((line) => parseCsvLine(line, delimiter))
     .map((values) => {
+      assertColumnBudget(Math.max(headers.length, values.length));
       const row: Record<string, string | null> = {};
       headers.forEach((header, index) => {
         const value = values[index]?.trim() ?? '';
+        assertCellLengthBudget(value);
         row[header] = value.length > 0 ? value : null;
       });
       return row;
@@ -181,19 +325,43 @@ const parseExcelRows = async (
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
 
+  if (workbook.worksheets.length > PEOPLE_IMPORT_LIMITS.maxXlsxWorksheets) {
+    throw createImportValidationError(
+      `XLSX people imports cannot contain more than ${PEOPLE_IMPORT_LIMITS.maxXlsxWorksheets} worksheets`
+    );
+  }
+
   const worksheet =
     (sheetName ? workbook.getWorksheet(sheetName) : undefined) ?? workbook.worksheets[0];
   if (!worksheet) {
     return [];
   }
 
+  assertColumnBudget(Math.max(headers.length, worksheet.actualColumnCount));
+
   const rows: Array<Record<string, string | null>> = [];
   let sourceRowNumber = 0;
+  let dataRowCount = 0;
+  let totalCells = 0;
 
   worksheet.eachRow({ includeEmpty: false }, (row) => {
     sourceRowNumber += 1;
     if (hasHeader && sourceRowNumber === 1) {
       return;
+    }
+
+    dataRowCount += 1;
+    if (dataRowCount > PEOPLE_IMPORT_LIMITS.maxRows) {
+      throw createImportValidationError(
+        `People import files cannot contain more than ${PEOPLE_IMPORT_LIMITS.maxRows} data rows`
+      );
+    }
+
+    totalCells += headers.length;
+    if (totalCells > PEOPLE_IMPORT_LIMITS.maxCells) {
+      throw createImportValidationError(
+        `People import files cannot contain more than ${PEOPLE_IMPORT_LIMITS.maxCells} cells`
+      );
     }
 
     const output: Record<string, string | null> = {};
@@ -207,11 +375,15 @@ const parseExcelRows = async (
 
       if (typeof rawValue === 'object' && 'result' in rawValue) {
         const result = rawValue.result;
-        output[header] = result === null || result === undefined ? null : String(result).trim() || null;
+        const value = result === null || result === undefined ? '' : String(result).trim();
+        assertCellLengthBudget(value);
+        output[header] = value || null;
         return;
       }
 
-      output[header] = String(rawValue).trim() || null;
+      const value = String(rawValue).trim();
+      assertCellLengthBudget(value);
+      output[header] = value || null;
     });
 
     if (Object.values(output).some((value) => value !== null)) {
@@ -257,10 +429,20 @@ const buildCandidatesForEntity = async (
   mappingCandidates: Record<string, ImportFieldCandidate[]>;
   warnings: string[];
 }> => {
+  const format = normalizeImportFormat(originalName, mimeType);
+  validateImportBudgets(buffer, format);
+
   const preview = await ingestPreviewFromBuffer({
     buffer,
     filename: originalName,
     mimeType,
+    importLimits: {
+      maxRows: PEOPLE_IMPORT_LIMITS.maxRows + 1,
+      maxColumns: PEOPLE_IMPORT_LIMITS.maxColumns,
+      maxCells: PEOPLE_IMPORT_LIMITS.maxCells,
+      maxCellLength: PEOPLE_IMPORT_LIMITS.maxCellLength,
+      maxWorksheets: PEOPLE_IMPORT_LIMITS.maxXlsxWorksheets,
+    },
   });
 
   const dataset = preview.datasets[0];
@@ -300,7 +482,7 @@ const buildCandidatesForEntity = async (
 
   return {
     dataset,
-    format: normalizeImportFormat(originalName, mimeType),
+    format,
     autoMapping,
     mappingCandidates,
     warnings,

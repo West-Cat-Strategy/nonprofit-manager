@@ -75,4 +75,22 @@ test.describe('Admin Bootstrap Contract', () => {
       })
     ).toBe(true);
   });
+
+  test('matching cached credentials are rejected when the cached session is not admin-capable', () => {
+    const hostContract = {
+      email: 'admin@example.com',
+      password: 'Admin123!@#',
+    };
+
+    expect(
+      isCompatibleAdminAuthBootstrapCache(hostContract, {
+        admin: { email: 'admin@example.com', password: 'Admin123!@#' },
+        session: {
+          email: 'admin@example.com',
+          password: 'Admin123!@#',
+          user: { role: 'staff' },
+        },
+      })
+    ).toBe(false);
+  });
 });

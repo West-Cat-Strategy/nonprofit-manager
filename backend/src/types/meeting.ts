@@ -1,5 +1,6 @@
 export interface Committee {
   id: string;
+  organization_id: string | null;
   name: string;
   description: string | null;
   is_system: boolean;
@@ -9,6 +10,7 @@ export interface Committee {
 
 export interface Meeting {
   id: string;
+  organization_id: string;
   committee_id: string | null;
   meeting_type: 'board' | 'agm' | 'committee';
   title: string;
@@ -74,4 +76,3 @@ export interface MeetingDetail {
   motions: MeetingMotion[];
   action_items: MeetingActionItem[];
 }
-

@@ -174,6 +174,9 @@ describe('auth middleware', () => {
               is_active: true,
             },
           ],
+        })
+        .mockResolvedValueOnce({
+          rows: [{ id: 'access-1' }],
         });
       getAuthenticatedOrganizationId.mockResolvedValueOnce('org-1');
 
@@ -226,6 +229,9 @@ describe('auth middleware', () => {
               is_active: true,
             },
           ],
+        })
+        .mockResolvedValueOnce({
+          rows: [{ id: 'access-1' }],
         });
 
       await authenticate(req, res, next);
@@ -238,9 +244,115 @@ describe('auth middleware', () => {
       expect(req.organizationContextValidated).toEqual({
         organizationId: 'org-1',
         isActive: true,
-        accessValidated: false,
+        accessValidated: true,
       });
       expect(next).toHaveBeenCalled();
+    });
+
+    it('rejects token-bound organization context when live access is missing', async () => {
+      const req = {
+        headers: { authorization: 'Bearer org-token' },
+      } as AuthRequest;
+      const res = createMockResponse() as unknown as Response;
+      const next = jest.fn();
+
+      verifyTokenWithOptionalIssuer.mockReturnValue({
+        id: 'user-1',
+        email: 'token@example.com',
+        role: 'admin',
+        type: 'app',
+        authRevision: 1,
+        organizationId: 'org-2',
+      });
+      pool.query
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 'user-1',
+              email: 'db@example.com',
+              role: 'admin',
+              is_active: true,
+              auth_revision: 1,
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 'org-2',
+              is_active: true,
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          rows: [],
+        });
+
+      await authenticate(req, res, next);
+
+      expect(pool.query).toHaveBeenNthCalledWith(
+        3,
+        expect.stringContaining('FROM user_account_access'),
+        ['user-1', 'org-2']
+      );
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: false,
+          error: expect.objectContaining({
+            code: 'forbidden',
+            message: 'You do not have access to this organization',
+          }),
+        })
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('rejects admin explicit organization switches without membership', async () => {
+      const req = {
+        headers: { authorization: 'Bearer org-token' },
+        requestedOrganizationId: 'org-2',
+        requestedOrganizationSource: 'header',
+      } as AuthRequest;
+      const res = createMockResponse() as unknown as Response;
+      const next = jest.fn();
+
+      verifyTokenWithOptionalIssuer.mockReturnValue({
+        id: 'user-1',
+        email: 'token@example.com',
+        role: 'admin',
+        type: 'app',
+        authRevision: 1,
+        organizationId: 'org-1',
+      });
+      pool.query
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 'user-1',
+              email: 'db@example.com',
+              role: 'admin',
+              is_active: true,
+              auth_revision: 1,
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 'org-2',
+              is_active: true,
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          rows: [],
+        });
+
+      await authenticate(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(next).not.toHaveBeenCalled();
     });
   });
 

@@ -8,6 +8,7 @@ import PublicCaseFormPage from '../PublicCaseFormPage';
 const getFormMock = vi.fn();
 const saveDraftMock = vi.fn();
 const submitMock = vi.fn();
+const downloadResponsePacketMock = vi.fn();
 const showSuccessMock = vi.fn();
 const showErrorMock = vi.fn();
 
@@ -17,7 +18,7 @@ vi.mock('../../api/publicCaseFormsApiClient', () => ({
     uploadAsset: vi.fn(),
     saveDraft: (...args: unknown[]) => saveDraftMock(...args),
     submit: (...args: unknown[]) => submitMock(...args),
-    getResponsePacketDownloadUrl: vi.fn((token: string) => `/api/v2/public/case-forms/${token}/response-packet`),
+    downloadResponsePacket: (...args: unknown[]) => downloadResponsePacketMock(...args),
   },
 }));
 
@@ -105,6 +106,7 @@ describe('PublicCaseFormPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getFormMock.mockImplementation(async () => buildSentDetail());
+    downloadResponsePacketMock.mockResolvedValue(new Blob(['packet'], { type: 'application/pdf' }));
   });
 
   it('submits the secure-link form and shows the receipt state afterward', async () => {
@@ -131,10 +133,8 @@ describe('PublicCaseFormPage', () => {
     await waitFor(() => {
       expect(screen.getByText(/submission received/i)).toBeInTheDocument();
     });
-    expect(screen.getByRole('link', { name: /download submission packet/i })).toHaveAttribute(
-      'href',
-      '/api/v2/public/case-forms/token-1/response-packet'
-    );
+    expect(screen.getByRole('button', { name: /download submission packet/i })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /download submission packet/i })).not.toBeInTheDocument();
     expect(
       screen.getByText(/you can still update this secure form and resubmit it until staff finish reviewing the submission/i)
     ).toBeInTheDocument();

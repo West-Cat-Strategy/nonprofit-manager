@@ -65,8 +65,6 @@ export interface AuthRequest
   };
 }
 
-const shouldValidateOrganizationContext = () => process.env.ORG_CONTEXT_VALIDATE !== 'false';
-
 const clearOrganizationContext = (req: AuthRequest, userId?: string): void => {
   delete req.organizationId;
   delete req.accountId;
@@ -141,7 +139,7 @@ const validateResolvedOrganization = async (
     }
 
     const shouldValidateAccess = input.validateAccess === true;
-    if (shouldValidateAccess && input.userRole !== 'admin') {
+    if (shouldValidateAccess) {
       const accessResult = await pool.query(
         `SELECT id
          FROM user_account_access
@@ -166,7 +164,7 @@ const validateResolvedOrganization = async (
     req.organizationContextValidated = {
       organizationId: input.organizationId,
       isActive: true,
-      accessValidated: input.userRole === 'admin' || shouldValidateAccess,
+      accessValidated: shouldValidateAccess,
     };
 
     return true;
@@ -248,37 +246,34 @@ const resolveAuthenticatedOrganizationContext = async (
 ): Promise<string | undefined | typeof ORGANIZATION_RESOLUTION_FAILED> => {
   const tokenOrganizationId = req.user?.organizationId || req.user?.organization_id;
   const requestedOrganizationId = getRequestedOrganizationId(req);
-  const shouldValidateResolvedContext = shouldValidateOrganizationContext();
 
   if (requestedOrganizationId) {
     const usingExplicitOrganizationSwitch =
       !tokenOrganizationId || requestedOrganizationId !== tokenOrganizationId;
 
-    if (usingExplicitOrganizationSwitch || shouldValidateResolvedContext) {
-      const isValid = await validateResolvedOrganization(req, res, {
-        organizationId: requestedOrganizationId,
-        userId: sessionUser.id,
-        userRole: normalizedRole,
-        source: usingExplicitOrganizationSwitch
-          ? req.requestedOrganizationSource || 'header'
-          : 'token',
-        validateAccess: usingExplicitOrganizationSwitch,
-      });
-      if (!isValid) {
-        return ORGANIZATION_RESOLUTION_FAILED;
-      }
+    const isValid = await validateResolvedOrganization(req, res, {
+      organizationId: requestedOrganizationId,
+      userId: sessionUser.id,
+      userRole: normalizedRole,
+      source: usingExplicitOrganizationSwitch
+        ? req.requestedOrganizationSource || 'header'
+        : 'token',
+      validateAccess: true,
+    });
+    if (!isValid) {
+      return ORGANIZATION_RESOLUTION_FAILED;
     }
 
     return usingExplicitOrganizationSwitch ? requestedOrganizationId : tokenOrganizationId;
   }
 
-  if (tokenOrganizationId && shouldValidateResolvedContext) {
+  if (tokenOrganizationId) {
     const isValid = await validateResolvedOrganization(req, res, {
       organizationId: tokenOrganizationId,
       userId: sessionUser.id,
       userRole: normalizedRole,
       source: 'token',
-      validateAccess: false,
+      validateAccess: true,
     });
     if (!isValid) {
       return ORGANIZATION_RESOLUTION_FAILED;
@@ -290,17 +285,23 @@ const resolveAuthenticatedOrganizationContext = async (
   }
 
   const fallbackOrganizationId = await getAuthenticatedOrganizationId(sessionUser.id);
-  if (fallbackOrganizationId && shouldValidateResolvedContext) {
-    const isValid = await validateResolvedOrganization(req, res, {
-      organizationId: fallbackOrganizationId,
+  if (!fallbackOrganizationId) {
+    logger.warn('Authenticated user has no active organization access', {
       userId: sessionUser.id,
-      userRole: normalizedRole,
-      source: 'token',
-      validateAccess: false,
     });
-    if (!isValid) {
-      return ORGANIZATION_RESOLUTION_FAILED;
-    }
+    forbidden(res, 'No active organization access');
+    return ORGANIZATION_RESOLUTION_FAILED;
+  }
+
+  const isValid = await validateResolvedOrganization(req, res, {
+    organizationId: fallbackOrganizationId,
+    userId: sessionUser.id,
+    userRole: normalizedRole,
+    source: 'token',
+    validateAccess: true,
+  });
+  if (!isValid) {
+    return ORGANIZATION_RESOLUTION_FAILED;
   }
 
   return fallbackOrganizationId ?? undefined;

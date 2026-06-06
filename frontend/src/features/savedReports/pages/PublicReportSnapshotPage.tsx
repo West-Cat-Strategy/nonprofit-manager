@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { savedReportsApiClient } from '../api/savedReportsApiClient';
 import type { PublicReportSnapshotMeta } from '../../../types/savedReport';
 import { AuthHeroShell, PrimaryButton, SecondaryButton } from '../../../components/ui';
+import { useTokenizedRouteToken } from '../../../utils/tokenizedRouteToken';
 
 const LIFECYCLE_LABELS: Record<string, string> = {
   active: 'Active',
@@ -12,7 +13,8 @@ const LIFECYCLE_LABELS: Record<string, string> = {
 };
 
 export default function PublicReportSnapshotPage() {
-  const { token } = useParams<{ token: string }>();
+  const { token: routeToken } = useParams<{ token: string }>();
+  const token = useTokenizedRouteToken(routeToken, { scrubPath: '/public/reports' });
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState<'csv' | 'xlsx' | null>(null);
   const [error, setError] = useState<string | null>(null);

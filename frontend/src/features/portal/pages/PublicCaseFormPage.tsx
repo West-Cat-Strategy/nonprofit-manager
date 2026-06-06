@@ -17,6 +17,7 @@ import type {
 import CaseFormRenderer from '../../cases/components/CaseFormRenderer';
 import { publicCaseFormsApiClient } from '../api/publicCaseFormsApiClient';
 import { formatPortalDateTime } from '../utils/dateDisplay';
+import { useTokenizedRouteToken } from '../../../utils/tokenizedRouteToken';
 
 const SUBMISSION_RECEIPT_STATUSES = new Set(['submitted', 'reviewed']);
 const LOCKED_RECEIPT_STATUSES = new Set(['reviewed']);
@@ -52,10 +53,12 @@ const getUnavailableCopy = (status: string | null | undefined) => {
 };
 
 export default function PublicCaseFormPage() {
-  const { token } = useParams<{ token: string }>();
+  const { token: routeToken } = useParams<{ token: string }>();
+  const token = useTokenizedRouteToken(routeToken, { scrubPath: '/public/case-forms' });
   const { showSuccess, showError } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [packetDownloading, setPacketDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<CaseFormAssignmentDetail | null>(null);
   const [draftAnswers, setDraftAnswers] = useState<Record<string, unknown>>({});
@@ -190,10 +193,7 @@ export default function PublicCaseFormPage() {
       ? formatPortalDateTime(assignment.latest_submission.created_at)
       : null;
   const dueAtLabel = assignment?.due_at ? formatPortalDateTime(assignment.due_at) : null;
-  const packetDownloadUrl =
-    assignment?.latest_submission?.response_packet_download_url && token
-      ? publicCaseFormsApiClient.getResponsePacketDownloadUrl(token)
-      : null;
+  const canDownloadPacket = Boolean(assignment?.latest_submission?.response_packet_download_url && token);
   const unavailableCopy =
     isUnavailableState || (!loading && error)
       ? getUnavailableCopy(assignmentStatus)
@@ -229,6 +229,29 @@ export default function PublicCaseFormPage() {
     return () => window.clearTimeout(timeout);
   }, [assignment, draftAnswers, isLockedReceiptState, isUnavailableState, saving, token]);
 
+  const handleDownloadPacket = async (): Promise<void> => {
+    if (!token || !assignment) return;
+    setPacketDownloading(true);
+    try {
+      const blobPart = await publicCaseFormsApiClient.downloadResponsePacket(token);
+      const blob = new Blob([blobPart], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${assignment.id}_response_packet.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (downloadError) {
+      showError(
+        downloadError instanceof Error ? downloadError.message : 'Failed to download submission packet'
+      );
+    } finally {
+      setPacketDownloading(false);
+    }
+  };
+
   return (
     <PublicPageShell
       badge="Secure case form"
@@ -238,15 +261,15 @@ export default function PublicCaseFormPage() {
         'Complete the secure form shared with you and submit it directly to the organization.'
       }
       actions={
-        packetDownloadUrl ? (
-          <a
-            href={packetDownloadUrl}
-            target="_blank"
-            rel="noreferrer"
+        canDownloadPacket ? (
+          <button
+            type="button"
+            onClick={() => void handleDownloadPacket()}
+            disabled={packetDownloading}
             className="inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface px-4 py-2 text-sm font-semibold text-app-text shadow-sm transition hover:bg-app-surface-muted"
           >
-            Download Submission Packet
-          </a>
+            {packetDownloading ? 'Downloading Packet...' : 'Download Submission Packet'}
+          </button>
         ) : null
       }
     >

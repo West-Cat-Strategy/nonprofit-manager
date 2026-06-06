@@ -52,38 +52,96 @@ env_file_var_names() {
   ' "$file"
 }
 
-load_env_file_defaults() {
-  local file="${1:-}"
+trim_env_value() {
+  local value="${1:-}"
+  value="${value#"${value%%[![:space:]]*}"}"
+  value="${value%"${value##*[![:space:]]}"}"
+  printf '%s' "$value"
+}
+
+parse_env_file_entry() {
+  local line="${1:-}"
+  local line_no="${2:-0}"
   local key
-  local entry
   local value
-  local env_keys=$'\n'
 
-  require_env_file "$file" || return 1
+  line="${line%$'\r'}"
+  line="$(trim_env_value "$line")"
 
-  while IFS= read -r key; do
-    if [[ -n "$key" ]]; then
-      env_keys+="${key}"$'\n'
-    fi
-  done < <(env_file_var_names "$file")
-
-  if [[ "$env_keys" == $'\n' ]]; then
-    return 0
-  fi
-
-  if ! bash -lc 'set -a; source "$1" >/dev/null 2>&1' _ "$file"; then
-    echo "Unable to load env file: $file" >&2
+  if [[ -z "$line" || "${line:0:1}" == "#" ]]; then
     return 1
   fi
 
-  while IFS= read -r -d '' entry; do
-    key="${entry%%=*}"
-    value="${entry#*=}"
+  if [[ "$line" == export[[:space:]]* ]]; then
+    line="${line#export}"
+    line="$(trim_env_value "$line")"
+  fi
 
-    if [[ "$env_keys" == *$'\n'"$key"$'\n'* && -z "${!key+x}" ]]; then
+  if [[ "$line" != *=* ]]; then
+    echo "Invalid env file entry at line $line_no" >&2
+    return 2
+  fi
+
+  key="$(trim_env_value "${line%%=*}")"
+  value="${line#*=}"
+  value="${value#"${value%%[![:space:]]*}"}"
+
+  if [[ ! "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+    echo "Invalid env variable name at line $line_no: $key" >&2
+    return 2
+  fi
+
+  if [[ "$value" == *'$('* || "$value" == *'`'* ]]; then
+    echo "Unsafe env value rejected at line $line_no: $key" >&2
+    return 2
+  fi
+
+  if [[ "$value" == \"*\" && "$value" == *\" ]]; then
+    value="${value:1:${#value}-2}"
+  elif [[ "$value" == \'*\' && "$value" == *\' ]]; then
+    value="${value:1:${#value}-2}"
+  else
+    value="$(trim_env_value "$value")"
+  fi
+
+  printf '%s=%s\n' "$key" "$value"
+}
+
+load_env_file_defaults() {
+  local file="${1:-}"
+  local key
+  local value
+  local parsed
+  local raw_line
+  local line_no=0
+
+  require_env_file "$file" || return 1
+
+  while IFS= read -r raw_line || [[ -n "$raw_line" ]]; do
+    line_no=$((line_no + 1))
+    local parse_status
+    if parsed="$(parse_env_file_entry "$raw_line" "$line_no")"; then
+      parse_status=0
+    else
+      parse_status=$?
+    fi
+
+    if [[ "$parse_status" == "1" ]]; then
+      continue
+    fi
+
+    if [[ "$parse_status" != "0" ]]; then
+      echo "Unable to load env file: $file" >&2
+      return 1
+    fi
+
+    key="${parsed%%=*}"
+    value="${parsed#*=}"
+
+    if [[ -z "${!key+x}" ]]; then
       export "$key=$value"
     fi
-  done < <(bash -lc 'set -a; source "$1" >/dev/null 2>&1; env -0' _ "$file")
+  done < "$file"
 }
 
 validate_production_db_at_rest_contract() {

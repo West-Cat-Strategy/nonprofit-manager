@@ -11,39 +11,6 @@ describe('Auth API Integration Tests', () => {
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const testEmail = `auth-test-${unique()}@example.com`;
   const testPassword = 'StrongPassword123!';
-  const ensureDefaultOrganizationId = async (): Promise<string> => {
-    const existing = await pool.query<{ id: string }>(
-      `SELECT id
-       FROM accounts
-       WHERE account_type = 'organization'
-         AND COALESCE(is_active, true) = true
-       ORDER BY created_at ASC
-       LIMIT 1`
-    );
-
-    if (existing.rows[0]?.id) {
-      return existing.rows[0].id;
-    }
-
-    const userResult = await pool.query<{ id: string }>(
-      'SELECT id FROM users WHERE email = $1',
-      [testEmail]
-    );
-
-    const userId = userResult.rows[0]?.id;
-    if (!userId) {
-      throw new Error('Test user must exist before creating a fallback organization');
-    }
-
-    const created = await pool.query<{ id: string }>(
-      `INSERT INTO accounts (account_name, account_type, created_by, modified_by)
-       VALUES ($1, 'organization', $2, $2)
-       RETURNING id`,
-      [`Auth Test Org ${unique()}`, userId]
-    );
-
-    return created.rows[0].id;
-  };
   const ensureOrganizationAccessForUser = async (email: string): Promise<string> => {
     const userResult = await pool.query<{ id: string }>(
       'SELECT id FROM users WHERE email = $1',
@@ -303,6 +270,20 @@ describe('Auth API Integration Tests', () => {
       expect(response.body.error.message).toMatch(/invalid.*credentials/i);
     });
 
+    it('rejects form-encoded login requests before setting cookies', async () => {
+      const response = await request(app)
+        .post('/api/v2/auth/login')
+        .type('form')
+        .send({
+          email: testEmail,
+          password: testPassword,
+        })
+        .expect(415);
+
+      expect(response.body.error.code).toBe('unsupported_media_type');
+      expect(response.headers['set-cookie']).toBeUndefined();
+    });
+
     it('should reject non-existent user', async () => {
       const response = await request(app)
         .post('/api/v2/auth/login')
@@ -336,6 +317,30 @@ describe('Auth API Integration Tests', () => {
       expect(token.split('.')).toHaveLength(3);
     });
 
+    it('rejects valid credentials when active organization access has been revoked', async () => {
+      const userResult = await pool.query<{ id: string }>(
+        'SELECT id FROM users WHERE email = $1',
+        [testEmail]
+      );
+      const userId = userResult.rows[0]?.id;
+      if (!userId) {
+        throw new Error('Expected auth test user to exist');
+      }
+
+      const response = await withClearedOrganizationAccess(userId, () =>
+        request(app)
+          .post('/api/v2/auth/login')
+          .send({
+            email: testEmail,
+            password: testPassword,
+          })
+          .expect(403)
+      );
+
+      expect(response.body.error.code).toBe('forbidden');
+      expect(response.body.error.message).toMatch(/no active organization access/i);
+    });
+
   });
 
   describe('GET /api/v2/auth/me', () => {
@@ -351,8 +356,7 @@ describe('Auth API Integration Tests', () => {
       expect(response.body).not.toHaveProperty('password_hash');
     });
 
-    it('should backfill organizationId for legacy tokens without an org claim', async () => {
-      const expectedOrganizationId = await ensureDefaultOrganizationId();
+    it('rejects legacy tokens without an org claim when the user has no active access rows', async () => {
       const userResult = await pool.query<{ id: string; role: string }>(
         'SELECT id, role FROM users WHERE email = $1',
         [testEmail]
@@ -373,11 +377,11 @@ describe('Auth API Integration Tests', () => {
         return request(app)
           .get('/api/v2/auth/me')
           .set('Authorization', `Bearer ${legacyToken}`)
-          .expect(200);
+          .expect(403);
       });
 
-      expect(response.body.organizationId).toBe(expectedOrganizationId);
-      expect(response.body.data.organizationId).toBe(expectedOrganizationId);
+      expect(response.body.error.code).toBe('forbidden');
+      expect(response.body.error.message).toMatch(/no active organization access/i);
     });
 
     it('should reject request without token', async () => {
@@ -595,8 +599,7 @@ describe('Auth API Integration Tests', () => {
       expect(response.body.data.preferences).not.toHaveProperty('notifications');
     });
 
-    it('backfills bootstrap organizationId for legacy tokens without active access rows', async () => {
-      const expectedOrganizationId = await ensureDefaultOrganizationId();
+    it('rejects bootstrap for legacy tokens without active access rows', async () => {
       const userResult = await pool.query<{ id: string; role: string }>(
         'SELECT id, role FROM users WHERE email = $1',
         [testEmail]
@@ -617,10 +620,11 @@ describe('Auth API Integration Tests', () => {
         return request(app)
           .get('/api/v2/auth/bootstrap')
           .set('Authorization', `Bearer ${legacyToken}`)
-          .expect(200);
+          .expect(403);
       });
 
-      expect(response.body.data.organizationId).toBe(expectedOrganizationId);
+      expect(response.body.error.code).toBe('forbidden');
+      expect(response.body.error.message).toMatch(/no active organization access/i);
     });
 
     it('requires authentication', async () => {

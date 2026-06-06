@@ -83,10 +83,14 @@ const AppRoutes = () => {
         <Route path="/setup" element={<Setup />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/accept-invitation" element={<AcceptInvitation />} />
         <Route path="/accept-invitation/:token" element={<AcceptInvitation />} />
+        <Route path="/admin-registration-review" element={<AdminRegistrationReview />} />
         <Route path="/admin-registration-review/:token" element={<AdminRegistrationReview />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
+        <Route path="/public/reports" element={<PublicReportSnapshot />} />
         <Route path="/public/reports/:token" element={<PublicReportSnapshot />} />
         <Route path="/public/events/:site" element={<PublicEventsPage />} />
         <Route path="/event-check-in/:id" element={<PublicEventCheckInPage />} />

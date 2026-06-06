@@ -6,7 +6,9 @@ const isSetupGateRoute = (pathname: string): boolean =>
   pathname === '/login' ||
   pathname === '/register' ||
   pathname === '/forgot-password' ||
+  pathname === '/accept-invitation' ||
   pathname.startsWith('/accept-invitation/') ||
+  pathname === '/reset-password' ||
   pathname.startsWith('/reset-password/');
 
 const shouldEnableSetupCheck = (pathname: string): boolean => isSetupGateRoute(pathname);
