@@ -12,6 +12,17 @@ const IV_LENGTH = 16; // 128 bits
 const AUTH_TAG_LENGTH = 16; // 128 bits
 const KEY_LENGTH = 32; // 256 bits
 
+const decodeBase64Key = (value: string): Buffer | null => {
+  try {
+    const decoded = Buffer.from(value, 'base64');
+    return decoded.length === KEY_LENGTH && decoded.toString('base64') === value
+      ? decoded
+      : null;
+  } catch {
+    return null;
+  }
+};
+
 /**
  * Get encryption key from environment variable
  * Falls back to a derived key for development only
@@ -21,12 +32,18 @@ function getEncryptionKey(): Buffer {
 
   if (envKey) {
     // If key is provided as hex string
-    if (envKey.length === 64) {
+    if (/^[0-9a-f]{64}$/i.test(envKey)) {
       return Buffer.from(envKey, 'hex');
     }
     // If key is base64 encoded
-    if (envKey.length === 44) {
-      return Buffer.from(envKey, 'base64');
+    const base64Key = decodeBase64Key(envKey);
+    if (base64Key) {
+      return base64Key;
+    }
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(
+        'ENCRYPTION_KEY must be 32 bytes encoded as 64 hexadecimal characters or base64 in production'
+      );
     }
     // Derive key from passphrase
     return crypto.scryptSync(envKey, 'nonprofit-manager-salt', KEY_LENGTH);

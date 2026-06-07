@@ -1,6 +1,15 @@
 import express, { type NextFunction, type Request, type Response } from 'express';
 import request from 'supertest';
 
+const legacyToken = 'a'.repeat(32);
+const mockCaseFormsUseCase = {
+  getAssignmentDetailByToken: jest.fn().mockResolvedValue({ id: 'assignment-1' }),
+  uploadAssetByToken: jest.fn(),
+  saveDraftByToken: jest.fn(),
+  submitByToken: jest.fn(),
+  getResponsePacketByToken: jest.fn(),
+};
+
 jest.mock('@middleware/domains/platform', () => ({
   documentUpload: {
     single: jest.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
@@ -55,13 +64,7 @@ jest.mock('../../repositories/caseFormsRepository', () => ({
 }));
 
 jest.mock('../../usecases/caseForms.usecase', () => ({
-  CaseFormsUseCase: jest.fn().mockImplementation(() => ({
-    getAssignmentDetailByToken: jest.fn(),
-    uploadAssetByToken: jest.fn(),
-    saveDraftByToken: jest.fn(),
-    submitByToken: jest.fn(),
-    getResponsePacketByToken: jest.fn(),
-  })),
+  CaseFormsUseCase: jest.fn().mockImplementation(() => mockCaseFormsUseCase),
 }));
 
 const buildApp = async () => {
@@ -75,6 +78,49 @@ const buildApp = async () => {
 describe('public case-form route rate limits', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockCaseFormsUseCase.getAssignmentDetailByToken.mockResolvedValue({ id: 'assignment-1' });
+  });
+
+  it('keeps Bearer-token form reads on the supported root route', async () => {
+    await request(await buildApp())
+      .get('/api/v2/public/case-forms')
+      .set('Authorization', 'Bearer supported-token')
+      .expect(200);
+
+    expect(mockCaseFormsUseCase.getAssignmentDetailByToken).toHaveBeenCalledWith(
+      'supported-token'
+    );
+  });
+
+  it('rejects legacy path-token form reads before data handlers run', async () => {
+    await request(await buildApp())
+      .get(`/api/v2/public/case-forms/${legacyToken}`)
+      .expect(410)
+      .expect(({ body }) => {
+        expect(body.error.code).toBe('legacy_token_path_disabled');
+      });
+
+    expect(mockCaseFormsUseCase.getAssignmentDetailByToken).not.toHaveBeenCalled();
+  });
+
+  it('rejects legacy path-token draft and submit writes before use-case mutations run', async () => {
+    await request(await buildApp())
+      .post(`/api/v2/public/case-forms/${legacyToken}/draft`)
+      .send({ answers: {} })
+      .expect(410)
+      .expect(({ body }) => {
+        expect(body.error.code).toBe('legacy_token_path_disabled');
+      });
+    await request(await buildApp())
+      .post(`/api/v2/public/case-forms/${legacyToken}/submit`)
+      .send({ answers: {} })
+      .expect(410)
+      .expect(({ body }) => {
+        expect(body.error.code).toBe('legacy_token_path_disabled');
+      });
+
+    expect(mockCaseFormsUseCase.saveDraftByToken).not.toHaveBeenCalled();
+    expect(mockCaseFormsUseCase.submitByToken).not.toHaveBeenCalled();
   });
 
   it('applies the asset limiter before upload handling', async () => {

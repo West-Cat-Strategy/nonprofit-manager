@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import type { Response, NextFunction, Request } from 'express';
 import { setRequestContext } from '@config/requestContext';
 import type { AuthRequest } from '@middleware/auth';
@@ -22,6 +23,39 @@ const normalizeLimit = (value: unknown, fallback: number): number => {
     return fallback;
   }
   return parsed;
+};
+
+const INLINE_SCRIPT_REGEX = /<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi;
+
+export const buildPublicSiteContentSecurityPolicy = (html: string): string => {
+  const scriptHashes = Array.from(html.matchAll(INLINE_SCRIPT_REGEX), (match) => {
+    const hash = createHash('sha256').update(match[1] || '', 'utf8').digest('base64');
+    return `'sha256-${hash}'`;
+  });
+  const scriptSrc = ["'self'", 'https://www.googletagmanager.com', ...scriptHashes];
+  const directives = [
+    "default-src 'self'",
+    `script-src ${scriptSrc.join(' ')}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: https:",
+    "font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com",
+    "connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com",
+    "frame-src 'none'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ];
+
+  if (process.env.CSP_REPORT_URI) {
+    directives.push(`report-uri ${process.env.CSP_REPORT_URI}`);
+  }
+
+  return directives.join('; ');
+};
+
+const setPublishedSiteHtmlHeaders = (res: Response, html: string): void => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Content-Security-Policy', buildPublicSiteContentSecurityPolicy(html));
 };
 
 const mapKnownError = (error: unknown, res: Response): boolean => {
@@ -687,7 +721,7 @@ export const renderPublishedWebsite = async (
     }
 
     if (cachedEntry) {
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      setPublishedSiteHtmlHeaders(res, cachedEntry.data);
       res.status(200).send(cachedEntry.data);
       return;
     }
@@ -704,7 +738,7 @@ export const renderPublishedWebsite = async (
     });
     res.setHeader('ETag', stored.etag);
     res.setHeader('Last-Modified', new Date(stored.createdAt).toUTCString());
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    setPublishedSiteHtmlHeaders(res, html);
     res.status(200).send(html);
   } catch (error) {
     next(error);

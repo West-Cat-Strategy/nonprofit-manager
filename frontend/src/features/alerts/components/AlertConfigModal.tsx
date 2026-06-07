@@ -99,12 +99,12 @@ export default function AlertConfigModal({ config, onClose, onSuccess }: AlertCo
 
     if (
       (formData.condition === 'exceeds' || formData.condition === 'drops_below') &&
-      formData.threshold === undefined
+      formData.threshold == null
     ) {
       newErrors.threshold = 'Add the value that should trigger this alert rule';
     }
 
-    if (formData.condition === 'changes_by' && formData.percentage_change === undefined) {
+    if (formData.condition === 'changes_by' && formData.percentage_change == null) {
       newErrors.percentage_change = 'Add the percentage change that should trigger this alert rule';
     }
 

@@ -22,6 +22,7 @@ export type {
 export interface AlertConfig extends Omit<AlertConfigFields, 'filters'> {
   id: string;
   user_id: string;
+  organization_id: string;
   filters?: Record<string, unknown>;
   created_by: string;
   created_at: Date;
@@ -49,6 +50,7 @@ export interface AlertInstance {
 
 export interface CreateAlertDTO extends Omit<AlertCreateConfigRequest, 'filters'> {
   user_id: string;
+  organization_id: string;
   filters?: Record<string, unknown>;
 }
 
@@ -62,6 +64,7 @@ export type AlertStats = AlertStatsContract;
 
 export interface AlertInstanceFilters {
   userId: string;
+  organizationId: string;
   status?: string;
   severity?: string;
   limit?: number;
@@ -84,15 +87,15 @@ export interface AlertStatsSnapshot {
 }
 
 export interface AlertsRepositoryPort {
-  getUserAlerts(userId: string): Promise<AlertConfig[]>;
-  getAlert(id: string, userId: string): Promise<AlertConfig | null>;
+  getUserAlerts(userId: string, organizationId: string): Promise<AlertConfig[]>;
+  getAlert(id: string, userId: string, organizationId: string): Promise<AlertConfig | null>;
   createAlert(data: CreateAlertDTO): Promise<AlertConfig>;
-  updateAlert(id: string, userId: string, data: UpdateAlertDTO): Promise<AlertConfig | null>;
-  deleteAlert(id: string, userId: string): Promise<boolean>;
-  toggleAlert(id: string, userId: string): Promise<AlertConfig | null>;
-  getCurrentMetricValue(metricType: AlertMetricType, filters: Record<string, unknown>): Promise<number>;
+  updateAlert(id: string, userId: string, organizationId: string, data: UpdateAlertDTO): Promise<AlertConfig | null>;
+  deleteAlert(id: string, userId: string, organizationId: string): Promise<boolean>;
+  toggleAlert(id: string, userId: string, organizationId: string): Promise<AlertConfig | null>;
+  getCurrentMetricValue(metricType: AlertMetricType, filters: Record<string, unknown>, organizationId: string): Promise<number>;
   getAlertInstances(filters: AlertInstanceFilters): Promise<AlertInstance[]>;
-  acknowledgeAlert(id: string, userId: string): Promise<AlertInstance | null>;
-  resolveAlert(id: string, userId: string): Promise<AlertInstance | null>;
-  getAlertStatsSnapshot(userId: string): Promise<AlertStatsSnapshot>;
+  acknowledgeAlert(id: string, userId: string, organizationId: string): Promise<AlertInstance | null>;
+  resolveAlert(id: string, userId: string, organizationId: string): Promise<AlertInstance | null>;
+  getAlertStatsSnapshot(userId: string, organizationId: string): Promise<AlertStatsSnapshot>;
 }

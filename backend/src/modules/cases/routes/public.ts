@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Request, type Response } from 'express';
 import {
   documentUpload,
   handleMulterError,
@@ -22,6 +22,16 @@ export const createPublicCaseFormsRoutes = (): Router => {
   const controller = createPublicCaseFormsController(
     new CaseFormsUseCase(new CaseFormsRepository())
   );
+  const legacyPathTokenDisabled = (_req: Request, res: Response): void => {
+    res.status(410).json({
+      success: false,
+      error: {
+        code: 'legacy_token_path_disabled',
+        message:
+          'Public case-form path-token access is no longer supported. Use a Bearer token from a fragment-based public link.',
+      },
+    });
+  };
 
   router.get('/', controller.getForm);
   router.post(
@@ -46,34 +56,29 @@ export const createPublicCaseFormsRoutes = (): Router => {
   );
   router.get('/response-packet', controller.downloadResponsePacket);
 
-  router.get('/:token', validateParams(caseFormTokenParamsSchema), controller.getForm);
+  router.get('/:token', validateParams(caseFormTokenParamsSchema), legacyPathTokenDisabled);
   router.post(
     '/:token/assets',
     publicCaseFormAssetLimiterMiddleware,
     validateParams(caseFormTokenParamsSchema),
-    documentUpload.single('file'),
-    handleMulterError,
-    validateBody(caseFormAssetUploadSchema),
-    controller.uploadAsset
+    legacyPathTokenDisabled
   );
   router.post(
     '/:token/draft',
     publicCaseFormDraftLimiterMiddleware,
     validateParams(caseFormTokenParamsSchema),
-    validateBody(caseFormDraftSchema),
-    controller.saveDraft
+    legacyPathTokenDisabled
   );
   router.post(
     '/:token/submit',
     publicCaseFormSubmitLimiterMiddleware,
     validateParams(caseFormTokenParamsSchema),
-    validateBody(caseFormSubmitSchema),
-    controller.submit
+    legacyPathTokenDisabled
   );
   router.get(
     '/:token/response-packet',
     validateParams(caseFormTokenParamsSchema),
-    controller.downloadResponsePacket
+    legacyPathTokenDisabled
   );
 
   return router;

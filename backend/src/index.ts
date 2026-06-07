@@ -108,8 +108,7 @@ app.use(
       directives: {
         // Default to self for anything not explicitly allowed
         defaultSrc: ["'self'"],
-        // Generated public-site pages ship small inline runtime scripts/styles.
-        scriptSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'", 'https://www.googletagmanager.com'],
         styleSrc: ["'self'", "'unsafe-inline'"],
         // Images: self, data URIs (for small inlined images), and https:// 
         imgSrc: ["'self'", 'data:', 'https:'],

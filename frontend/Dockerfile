@@ -34,6 +34,7 @@ COPY src ./src
 # Keep the shared contracts package available for type-checking without
 # widening the frontend build context itself.
 COPY --from=workspace /contracts/package.json ./node_modules/@nonprofit-manager/contracts/package.json
+COPY --from=workspace /contracts/alerts.d.ts ./node_modules/@nonprofit-manager/contracts/alerts.d.ts
 COPY --from=workspace /contracts/index.d.ts ./node_modules/@nonprofit-manager/contracts/index.d.ts
 COPY --from=workspace /contracts/messaging.d.ts ./node_modules/@nonprofit-manager/contracts/messaging.d.ts
 COPY --from=workspace /contracts/websiteBuilder.d.ts ./node_modules/@nonprofit-manager/contracts/websiteBuilder.d.ts

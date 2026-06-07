@@ -44,8 +44,7 @@ export const createPublicCaseFormsController = (useCase: CaseFormsUseCase) => {
       return body.public_token.trim();
     }
 
-    const value = req.params.token;
-    return Array.isArray(value) ? value[0] || '' : value || '';
+    return '';
   };
 
   const getForm = async (req: Request, res: Response, next: NextFunction): Promise<void> => {

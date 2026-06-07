@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { validateParams, validateQuery } from '@middleware/zodValidation';
 import { publicReportTokenLimiterMiddleware } from '@middleware/domains/platform';
@@ -19,6 +19,16 @@ const publicDownloadQuerySchema = z
   })
   .strict();
 
+const legacyPathTokenDisabled = (_req: Request, res: Response): void => {
+  res.status(410).json({
+    success: false,
+    error: {
+      code: 'legacy_token_path_disabled',
+      message: 'Public report path-token access is no longer supported. Use a Bearer token from a fragment-based public link.',
+    },
+  });
+};
+
 router.get('/', publicReportTokenLimiterMiddleware, getReportByPublicToken);
 router.get(
   '/download',
@@ -30,14 +40,14 @@ router.get(
   '/:token',
   publicReportTokenLimiterMiddleware,
   validateParams(publicTokenParamsSchema),
-  getReportByPublicToken
+  legacyPathTokenDisabled
 );
 router.get(
   '/:token/download',
   publicReportTokenLimiterMiddleware,
   validateParams(publicTokenParamsSchema),
   validateQuery(publicDownloadQuerySchema),
-  downloadPublicReportByToken
+  legacyPathTokenDisabled
 );
 
 export default router;

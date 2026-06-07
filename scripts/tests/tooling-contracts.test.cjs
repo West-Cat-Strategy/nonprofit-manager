@@ -94,6 +94,22 @@ test('check selector routes frontend bundle tooling to build and bundle-budget p
   assert(commands.includes('node scripts/check-frontend-bundle-size.js'));
 });
 
+test('check selector routes policy baseline changes to lint and tooling proof', () => {
+  const result = run('bash', [
+    'scripts/select-checks.sh',
+    '--files',
+    'scripts/baselines/modularization-boundaries.json',
+    '--mode',
+    'fast',
+  ]);
+
+  assert.equal(result.status, 0, result.stderr);
+  const commands = result.stdout.trim().split('\n');
+
+  assert(commands.includes('make lint'));
+  assert(commands.includes('make test-tooling'));
+});
+
 function writeMigrationPolicyFixture(root, { manifestRows, migrationFiles, includeFiles, tuples }) {
   const migrationsDir = path.join(root, 'database/migrations');
   const initdbDir = path.join(root, 'database/initdb');

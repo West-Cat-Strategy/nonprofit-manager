@@ -20,19 +20,11 @@ export type {
 type AlertConfigFilters = Pick<AlertFilters, 'account_type' | 'category' | 'date_range'>;
 
 export interface AlertConfig
-  extends Omit<
-    AlertConfigContract,
-    'filters' | 'percentage_change' | 'sensitivity' | 'threshold'
-  > {
-  threshold?: number;
-  percentage_change?: number;
-  sensitivity?: number;
+  extends Omit<AlertConfigContract, 'filters'> {
   filters?: AlertConfigFilters;
 }
 
-export interface AlertInstance extends Omit<AlertInstanceContract, 'threshold_value'> {
-  threshold_value?: number;
-}
+export type AlertInstance = AlertInstanceContract;
 
 export interface AlertHistory {
   alert_config_id: string;

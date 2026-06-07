@@ -147,6 +147,18 @@ describe('DonationService', () => {
       expect(result.pagination.limit).toBe(10);
       expect(result.pagination.total_pages).toBe(5);
     });
+
+    it('applies active organization scope to donation list queries', async () => {
+      mockQuery
+        .mockResolvedValueOnce({ rows: [{ total: '1', total_amount: '100.00', average_amount: '100.00' }] })
+        .mockResolvedValueOnce({ rows: [] });
+
+      await donationService.getDonations({}, {}, 'org-1');
+
+      const summaryCall = mockQuery.mock.calls[0];
+      expect(summaryCall[0]).toContain('COALESCE(d.account_id, c.account_id) = $1');
+      expect(summaryCall[1][0]).toBe('org-1');
+    });
   });
 
   describe('getDonationById', () => {
@@ -172,6 +184,17 @@ describe('DonationService', () => {
       const result = await donationService.getDonationById('nonexistent');
 
       expect(result).toBeNull();
+    });
+
+    it('applies active organization scope to donation lookup', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      await donationService.getDonationById('donation-1', 'org-1');
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        expect.stringContaining('COALESCE(d.account_id, c.account_id) = $2'),
+        ['donation-1', 'org-1']
+      );
     });
   });
 
@@ -202,6 +225,20 @@ describe('DonationService', () => {
         eventType: 'donation.created',
         data: mockCreatedDonation,
       });
+    });
+
+    it('rejects explicit donation accounts outside the active organization', async () => {
+      await expect(
+        donationService.createDonation(
+          {
+            account_id: 'other-org',
+            amount: 100,
+            donation_date: '2024-03-15',
+          },
+          'user-123',
+          'org-1'
+        )
+      ).rejects.toThrow('Donation account is outside the active organization');
     });
 
     it('should create donation with contact_id', async () => {
@@ -356,10 +393,15 @@ describe('DonationService', () => {
       const result = await donationService.updateDonation(
         '123',
         { amount: 150, payment_status: 'completed' },
-        'user-123'
+        'user-123',
+        'org-1'
       );
 
       expect(result).toEqual(mockUpdatedDonation);
+      expect(mockQuery).toHaveBeenCalledWith(
+        expect.stringContaining('COALESCE(account_id, (SELECT account_id FROM contacts'),
+        expect.arrayContaining(['org-1'])
+      );
     });
 
     it('should throw error when no fields to update', async () => {
@@ -383,10 +425,10 @@ describe('DonationService', () => {
     it('should delete donation successfully', async () => {
       mockQuery.mockResolvedValueOnce({ rowCount: 1 });
 
-      const result = await donationService.deleteDonation('123');
+      const result = await donationService.deleteDonation('123', 'org-1');
 
       expect(result).toBe(true);
-      expect(mockQuery).toHaveBeenCalledWith(expect.stringContaining('DELETE'), ['123']);
+      expect(mockQuery).toHaveBeenCalledWith(expect.stringContaining('DELETE'), ['123', 'org-1']);
     });
 
     it('should return false when donation not found', async () => {

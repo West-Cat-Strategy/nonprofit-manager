@@ -14,34 +14,35 @@ import type {
 export class AlertsUseCase {
   constructor(private readonly repository: AlertsRepositoryPort) {}
 
-  getUserAlerts(userId: string) {
-    return this.repository.getUserAlerts(userId);
+  getUserAlerts(userId: string, organizationId: string) {
+    return this.repository.getUserAlerts(userId, organizationId);
   }
 
-  getAlert(id: string, userId: string) {
-    return this.repository.getAlert(id, userId);
+  getAlert(id: string, userId: string, organizationId: string) {
+    return this.repository.getAlert(id, userId, organizationId);
   }
 
   createAlert(data: CreateAlertDTO) {
     return this.repository.createAlert(data);
   }
 
-  updateAlert(id: string, userId: string, data: UpdateAlertDTO) {
-    return this.repository.updateAlert(id, userId, data);
+  updateAlert(id: string, userId: string, organizationId: string, data: UpdateAlertDTO) {
+    return this.repository.updateAlert(id, userId, organizationId, data);
   }
 
-  deleteAlert(id: string, userId: string) {
-    return this.repository.deleteAlert(id, userId);
+  deleteAlert(id: string, userId: string, organizationId: string) {
+    return this.repository.deleteAlert(id, userId, organizationId);
   }
 
-  toggleAlert(id: string, userId: string) {
-    return this.repository.toggleAlert(id, userId);
+  toggleAlert(id: string, userId: string, organizationId: string) {
+    return this.repository.toggleAlert(id, userId, organizationId);
   }
 
   async testAlert(data: CreateAlertDTO): Promise<AlertTestResult> {
     const currentValue = await this.repository.getCurrentMetricValue(
       data.metric_type,
-      data.filters || {}
+      data.filters || {},
+      data.organization_id
     );
 
     let wouldTrigger = false;
@@ -86,20 +87,26 @@ export class AlertsUseCase {
     };
   }
 
-  async getAlertInstances(userId: string, filters?: AlertInstanceFiltersInput): Promise<AlertInstance[]> {
-    return this.repository.getAlertInstances(this.normalizeInstanceFilters(userId, filters));
+  async getAlertInstances(
+    userId: string,
+    organizationId: string,
+    filters?: AlertInstanceFiltersInput
+  ): Promise<AlertInstance[]> {
+    return this.repository.getAlertInstances(
+      this.normalizeInstanceFilters(userId, organizationId, filters)
+    );
   }
 
-  acknowledgeAlert(id: string, userId: string) {
-    return this.repository.acknowledgeAlert(id, userId);
+  acknowledgeAlert(id: string, userId: string, organizationId: string) {
+    return this.repository.acknowledgeAlert(id, userId, organizationId);
   }
 
-  resolveAlert(id: string, userId: string) {
-    return this.repository.resolveAlert(id, userId);
+  resolveAlert(id: string, userId: string, organizationId: string) {
+    return this.repository.resolveAlert(id, userId, organizationId);
   }
 
-  async getAlertStats(userId: string): Promise<AlertStats> {
-    const snapshot = await this.repository.getAlertStatsSnapshot(userId);
+  async getAlertStats(userId: string, organizationId: string): Promise<AlertStats> {
+    const snapshot = await this.repository.getAlertStatsSnapshot(userId, organizationId);
     const bySeverity: Record<AlertSeverity, number> = {
       low: 0,
       medium: 0,
@@ -129,10 +136,11 @@ export class AlertsUseCase {
 
   private normalizeInstanceFilters(
     userId: string,
+    organizationId: string,
     filters?: AlertInstanceFiltersInput
   ): AlertInstanceFilters {
     if (!filters) {
-      return { userId };
+      return { userId, organizationId };
     }
 
     const parsedLimit =
@@ -142,6 +150,7 @@ export class AlertsUseCase {
 
     return {
       userId,
+      organizationId,
       status: filters.status,
       severity: filters.severity,
       limit: Number.isFinite(parsedLimit) ? parsedLimit : undefined,

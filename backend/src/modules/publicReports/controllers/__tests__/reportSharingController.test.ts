@@ -62,11 +62,19 @@ const createResponse = (): Response =>
 
 const createRequest = (
   overrides: Partial<Request> = {}
-): Partial<Request> & { validatedQuery?: Record<string, unknown> } => ({
-  params: {},
-  query: {},
-  ...overrides,
-});
+): Partial<Request> & { validatedQuery?: Record<string, unknown> } => {
+  const headers = (overrides.headers || {}) as Record<string, string | string[] | undefined>;
+  return {
+    params: {},
+    query: {},
+    ...overrides,
+    headers,
+    get: jest.fn((name: string) => {
+      const value = headers[name.toLowerCase()];
+      return typeof value === 'string' ? value : undefined;
+    }),
+  };
+};
 
 describe('publicReports reportSharingController facade', () => {
   let res: Response;
@@ -85,7 +93,7 @@ describe('publicReports reportSharingController facade', () => {
 
   describe('getReportByPublicToken', () => {
     it('rejects missing public tokens', async () => {
-      const req = createRequest({ params: { token: '' } });
+      const req = createRequest();
 
       await getReportByPublicToken(req as Request, res, next);
 
@@ -97,7 +105,9 @@ describe('publicReports reportSharingController facade', () => {
     it('maps missing public reports to not found', async () => {
       mockPublicReportSnapshotService.getPublicSnapshotMeta.mockResolvedValueOnce(null as never);
 
-      const req = createRequest({ params: { token: 'token-123' } });
+      const req = createRequest({
+        headers: { authorization: 'Bearer token-123' },
+      });
 
       await getReportByPublicToken(req as Request, res, next);
 
@@ -121,7 +131,9 @@ describe('publicReports reportSharingController facade', () => {
         report as never
       );
 
-      const req = createRequest({ params: { token: 'token-123' } });
+      const req = createRequest({
+        headers: { authorization: 'Bearer token-123' },
+      });
 
       await getReportByPublicToken(req as Request, res, next);
 
@@ -133,7 +145,7 @@ describe('publicReports reportSharingController facade', () => {
   describe('downloadPublicReportByToken', () => {
     it('rejects invalid download formats before calling the snapshot service', async () => {
       const req = createRequest({
-        params: { token: 'token-123' },
+        headers: { authorization: 'Bearer token-123' },
         query: { format: 'pdf' },
       });
 
@@ -150,7 +162,7 @@ describe('publicReports reportSharingController facade', () => {
       );
 
       const req = createRequest({
-        params: { token: 'token-123' },
+        headers: { authorization: 'Bearer token-123' },
         validatedQuery: { format: 'csv' },
       });
 
@@ -173,7 +185,7 @@ describe('publicReports reportSharingController facade', () => {
       } as never);
 
       const req = createRequest({
-        params: { token: 'token-123' },
+        headers: { authorization: 'Bearer token-123' },
         validatedQuery: { format: 'csv' },
       });
 

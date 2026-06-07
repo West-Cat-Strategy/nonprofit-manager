@@ -238,6 +238,10 @@ for file in "${changed_files[@]}"; do
       has_frontend_bundle_tooling=1
       has_tooling_contracts=1
       ;;
+    scripts/baselines/*.json)
+      has_policy_tooling=1
+      has_tooling_contracts=1
+      ;;
     scripts/check-*.ts|scripts/check-*.mjs|scripts/ui-audit.ts)
       has_policy_tooling=1
       has_tooling_contracts=1

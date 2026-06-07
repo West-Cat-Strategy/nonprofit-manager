@@ -28,7 +28,9 @@ const getSquareConfig = (): PaymentProviderConfig => ({
   configured: Boolean(getEnv('SQUARE_ACCESS_TOKEN') && getEnv('SQUARE_LOCATION_ID')),
   applicationId: getEnv('SQUARE_APPLICATION_ID'),
   locationId: getEnv('SQUARE_LOCATION_ID'),
-  webhookConfigured: Boolean(getEnv('SQUARE_WEBHOOK_SIGNATURE_KEY')),
+  webhookConfigured: Boolean(
+    getEnv('SQUARE_WEBHOOK_SIGNATURE_KEY') && getEnv('SQUARE_WEBHOOK_NOTIFICATION_URL')
+  ),
 });
 
 const getSquareHeaders = (): Record<string, string> => {
@@ -42,6 +44,27 @@ const getSquareHeaders = (): Record<string, string> => {
     'Content-Type': 'application/json',
     'Square-Version': '2025-03-19',
   };
+};
+
+const verifySquareWebhookSignature = (
+  rawBody: Buffer,
+  signature: string,
+  signatureKey: string,
+  notificationUrl: string
+): boolean => {
+  const expected = crypto
+    .createHmac('sha256', signatureKey)
+    .update(notificationUrl, 'utf8')
+    .update(rawBody)
+    .digest('base64');
+  const expectedBuffer = Buffer.from(expected, 'base64');
+  const signatureBuffer = Buffer.from(signature, 'base64');
+
+  if (expectedBuffer.length !== signatureBuffer.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(expectedBuffer, signatureBuffer);
 };
 
 export const createSquarePaymentProviderAdapter = (): PaymentProviderAdapter => {
@@ -327,8 +350,12 @@ export const createSquarePaymentProviderAdapter = (): PaymentProviderAdapter => 
         throw new Error('Square webhook signature key is not configured');
       }
 
-      const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('base64');
-      if (expected !== signature) {
+      const notificationUrl = getEnv('SQUARE_WEBHOOK_NOTIFICATION_URL');
+      if (!notificationUrl) {
+        throw new Error('Square webhook notification URL is not configured');
+      }
+
+      if (!verifySquareWebhookSignature(rawBody, signature, secret, notificationUrl)) {
         throw new Error('Square webhook signature verification failed');
       }
 

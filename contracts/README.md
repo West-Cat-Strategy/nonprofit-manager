@@ -1,6 +1,6 @@
 # Contracts Package
 
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-06-06
 
 This directory contains the shared type-only package published inside the monorepo as `@nonprofit-manager/contracts`.
 
@@ -9,6 +9,7 @@ Use it for small, stable contracts that both frontend and backend need without i
 ## Current Exports
 
 - [package.json](package.json) defines the package name and exported entrypoints.
+- [alerts.d.ts](alerts.d.ts) contains shared alert configuration, instance, stats, and test-result types.
 - [index.d.ts](index.d.ts) re-exports the public type surface.
 - [messaging.d.ts](messaging.d.ts) contains shared messaging types.
 - [websiteBuilder.d.ts](websiteBuilder.d.ts) contains the canonical website-builder and site-theme types.
@@ -24,5 +25,5 @@ Use it for small, stable contracts that both frontend and backend need without i
 This package is verified with a lightweight export/type smoke check rather than runtime tests or coverage.
 
 - Run `npm run type-check --workspace contracts` from the repo root, or `npm run type-check` inside `contracts/`.
-- The smoke check compiles [export-smoke.d.ts](export-smoke.d.ts) with [tsconfig.verify.json](tsconfig.verify.json) and imports the package root plus the `./messaging` and `./websiteBuilder` subpath exports.
+- The smoke check compiles [export-smoke.d.ts](export-smoke.d.ts) with [tsconfig.verify.json](tsconfig.verify.json) and imports the package root plus the `./alerts`, `./messaging`, and `./websiteBuilder` subpath exports.
 - When you add or reorganize public exports, keep the smoke check aligned so the package export map stays verifiable without introducing runtime code.

@@ -13,6 +13,17 @@ const INSECURE_EXAMPLE_ENCRYPTION_KEYS = new Set([
 const isAbsolutePath = (value: string): boolean => value.startsWith('/');
 const hasPlaceholderValue = (value: string): boolean =>
   /change|changeme|default|dev|example|placeholder|test|your_|not-for-production/i.test(value);
+const isValidBase64EncryptionKey = (value: string): boolean => {
+  try {
+    const decoded = Buffer.from(value, 'base64');
+    return decoded.length === 32 && decoded.toString('base64') === value;
+  } catch {
+    return false;
+  }
+};
+
+const isValidProductionEncryptionKey = (value: string): boolean =>
+  /^[0-9a-f]{64}$/i.test(value) || isValidBase64EncryptionKey(value);
 
 const validateRequiredSecret = (
   env: NodeJS.ProcessEnv,
@@ -64,6 +75,54 @@ const validateOptionalStripeConfig = (
   }
 };
 
+const validateOptionalSquareConfig = (
+  env: NodeJS.ProcessEnv,
+  warnings: string[],
+  fatalErrors: string[]
+): void => {
+  const accessToken = (env.SQUARE_ACCESS_TOKEN || '').trim();
+  const locationId = (env.SQUARE_LOCATION_ID || '').trim();
+  const webhookSignatureKey = (env.SQUARE_WEBHOOK_SIGNATURE_KEY || '').trim();
+  const webhookNotificationUrl = (env.SQUARE_WEBHOOK_NOTIFICATION_URL || '').trim();
+
+  if (!accessToken || !locationId) {
+    warnings.push(
+      'SQUARE_ACCESS_TOKEN and SQUARE_LOCATION_ID are not configured; Square payments will be disabled'
+    );
+  }
+
+  if (!webhookSignatureKey && !webhookNotificationUrl) {
+    warnings.push(
+      'SQUARE_WEBHOOK_SIGNATURE_KEY and SQUARE_WEBHOOK_NOTIFICATION_URL are not configured; Square webhook handling will be disabled'
+    );
+    return;
+  }
+
+  if (!webhookSignatureKey || hasPlaceholderValue(webhookSignatureKey)) {
+    fatalErrors.push(
+      'SQUARE_WEBHOOK_SIGNATURE_KEY must be an actual Square webhook signature key when Square webhooks are configured in production'
+    );
+  }
+
+  if (!webhookNotificationUrl || hasPlaceholderValue(webhookNotificationUrl)) {
+    fatalErrors.push(
+      'SQUARE_WEBHOOK_NOTIFICATION_URL must be the exact production Square webhook notification URL'
+    );
+    return;
+  }
+
+  try {
+    const parsed = new URL(webhookNotificationUrl);
+    if (parsed.protocol !== 'https:') {
+      fatalErrors.push(
+        'SQUARE_WEBHOOK_NOTIFICATION_URL must use https in production'
+      );
+    }
+  } catch {
+    fatalErrors.push('SQUARE_WEBHOOK_NOTIFICATION_URL must be a valid absolute URL');
+  }
+};
+
 export function validateProductionSecurityConfig(
   env: NodeJS.ProcessEnv
 ): ProductionSecurityValidationResult {
@@ -104,24 +163,16 @@ export function validateProductionSecurityConfig(
     );
   }
 
-  if (!env.SQUARE_ACCESS_TOKEN || !env.SQUARE_LOCATION_ID) {
-    warnings.push(
-      'SQUARE_ACCESS_TOKEN and SQUARE_LOCATION_ID are not configured; Square payments will be disabled'
-    );
-  }
+  validateOptionalSquareConfig(env, warnings, fatalErrors);
 
-  if (!env.SQUARE_WEBHOOK_SIGNATURE_KEY) {
-    warnings.push(
-      'SQUARE_WEBHOOK_SIGNATURE_KEY is not configured; Square webhook handling will be disabled'
+  const encryptionKey = (env.ENCRYPTION_KEY || '').trim();
+  if (!encryptionKey || !isValidProductionEncryptionKey(encryptionKey)) {
+    fatalErrors.push(
+      'ENCRYPTION_KEY must be 32 bytes of key material encoded as 64 hexadecimal characters or base64 in production'
     );
-  }
-
-  const encryptionKey = env.ENCRYPTION_KEY || '';
-  if (!/^[0-9a-f]{64}$/i.test(encryptionKey)) {
-    errors.push('ENCRYPTION_KEY must be exactly 64 hexadecimal characters in production');
   } else if (INSECURE_EXAMPLE_ENCRYPTION_KEYS.has(encryptionKey.toLowerCase())) {
-    errors.push(
-      'ENCRYPTION_KEY is set to the tracked example key; generate a unique 64-character hex key for production'
+    fatalErrors.push(
+      'ENCRYPTION_KEY is set to the tracked example key; generate a unique 32-byte key for production'
     );
   }
 

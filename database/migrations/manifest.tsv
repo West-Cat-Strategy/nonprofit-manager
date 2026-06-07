@@ -134,3 +134,4 @@
 134	134_audit_request_context_metadata.sql
 135	135_meeting_tenant_scope.sql
 136	136_organization_branding_tenant_scope.sql
+137	137_code_review_remediation_security_scope.sql

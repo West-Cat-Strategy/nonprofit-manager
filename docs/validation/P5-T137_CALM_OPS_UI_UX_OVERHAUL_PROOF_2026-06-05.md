@@ -40,7 +40,7 @@ Backend:
 
 - No production backend behavior or `/api/v2` response contract was changed.
 - Backend edits are test-only date-stability updates in the portal-auth controller test.
-- Dependency hardening reduced production audit findings by updating the lockfile-resolved `qs` and `tmp` transitive versions. The remaining `exceljs -> uuid@8` advisory requires a broader export-library decision; see Residual Risks.
+- Dependency hardening reduced production audit findings by updating the lockfile-resolved `qs` and `tmp` transitive versions. Supersession update, 2026-06-06: the current root override keeps `exceljs@4.4.0` while resolving `uuid@11.1.1`, and the production audit is green.
 
 Test/bootstrap repair:
 
@@ -80,7 +80,7 @@ Root gates and broad checks:
 - Pass: `make test` completed the full host/mobile/Docker gate. Backend Jest passed 286 suites / 2315 tests; frontend Vitest passed 253 files / 1398 tests; host Playwright passed with 992 passed, 15 skipped, and 1 retry-passed Firefox dynamic-import flake in `tests/ux-regression.spec.ts`; integrated Mobile Chrome passed 3 tests; integrated Docker-backed Playwright smoke passed 4 tests after HTTP readiness on ports 18004/18005/18006. The prior admin bootstrap cascade did not recur.
 - Pass, earlier clean reduced reproduction of the prior E2E failure point: `CI=1 E2E_RUNNER_MAX_ATTEMPTS=1 bash scripts/e2e-playwright.sh host ../node_modules/.bin/playwright test --project=chromium tests/link-health.spec.ts tests/navigation-links.spec.ts tests/opportunities.spec.ts` (92 tests).
 - Pass, earlier standalone Docker smoke: `make test-e2e-docker-smoke` (Docker-backed Playwright smoke, 4 tests). The final `make test` run also executed this Docker smoke subgate, so no separate closeout rerun was required.
-- Expected fail, reduced from four advisories to two: `make security-audit` / `npm audit --omit=dev --workspaces --include-workspace-root --audit-level=moderate`. Remaining advisory is `exceljs >=3.5.0 -> uuid <11.1.1`; npm's available fix proposes `npm audit fix --force` with `exceljs@3.4.0`, a breaking downgrade. `qs` was updated from `6.15.1` to `6.15.2`; `tmp` was updated from `0.2.5` to `0.2.7`.
+- Historical snapshot, superseded on 2026-06-06: the original UI/UX overhaul closeout expected `make security-audit` / `npm audit --omit=dev --workspaces --include-workspace-root --audit-level=moderate` to fail on `exceljs >=3.5.0 -> uuid <11.1.1` after reducing the audit from four advisories to two. The current checkout now resolves `uuid@11.1.1` for `exceljs@4.4.0`, and `make security-audit` reports `found 0 vulnerabilities`.
 
 Host admin bootstrap repair closeout:
 
@@ -132,6 +132,6 @@ IAB used the system dark color scheme and did not expose localStorage for theme 
 ## Residual Risks And Follow-Ups
 
 - `make test` now completes as a single command including backend Jest, frontend Vitest, host Playwright, Mobile Chrome, and Docker-backed public smoke. The host Playwright matrix recorded one retry-passed Firefox dynamic-import flake for `StaffNavigationQuickLookupDialog-ConvgCeE.js`; it did not fail the gate, but it should be watched if Firefox/Vite chunk-loading flakes recur.
-- `make security-audit` remains red on the `exceljs -> uuid@8` advisory. The non-breaking audit fix path cleared `qs` and `tmp`; the remaining npm-proposed fix is a breaking `exceljs@3.4.0` downgrade and should be handled as a dependency/export-library follow-up, not hidden inside the UI overhaul.
+- The stale `exceljs -> uuid@8` audit caveat is resolved in the current checkout: `make security-audit` reports `found 0 vulnerabilities`, `npm explain uuid --workspaces --include-workspace-root` reports `uuid@11.1.1`, and the lockfile keeps `exceljs@4.4.0`. `npm ls exceljs uuid --workspaces --include-workspace-root --depth=10` still exits with `ELSPROBLEMS` because the deliberate override places `uuid@11.1.1` outside ExcelJS's declared `^8.3.0` range; treat that as an override-shape caveat, not an active production audit vulnerability.
 - Browser/IAB proof was performed on demo/public routes rather than a real authenticated IAB session. Authenticated shell behavior is covered by component tests and Playwright route-health/navigation E2E.
 - The dashboard content remains the existing workbench experience rather than a wholesale replacement with the concept's exact dense table/right-action-rail composition. This preserves working flows while landing the shared Calm Ops system.
