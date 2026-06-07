@@ -917,7 +917,9 @@ test.describe('Contacts Module', () => {
     await authenticatedPage.getByRole('tab', { name: /follow-ups/i }).click();
     const followUpsPanel = authenticatedPage.locator('#tabpanel-followups');
     await expect(followUpsPanel).toBeVisible();
-    await followUpsPanel.getByTestId('contact-followup-toggle').click();
+    const followUpToggle = followUpsPanel.getByTestId('contact-followup-toggle');
+    await followUpToggle.focus();
+    await followUpToggle.press('Enter');
 
     const followUpForm = followUpsPanel.getByTestId('contact-followup-form');
     await expect(followUpForm).toBeVisible({ timeout: 30000 });
@@ -979,7 +981,10 @@ test.describe('Contacts Module', () => {
     await waitForContactDetailReady(authenticatedPage);
 
     await authenticatedPage.getByRole('tab', { name: /tasks/i }).click();
-    await authenticatedPage.getByRole('button', { name: /new task/i }).click();
+    const newTaskButton = authenticatedPage.getByRole('button', { name: /new task/i });
+    await expect(newTaskButton).toBeVisible();
+    await newTaskButton.focus();
+    await newTaskButton.press('Enter');
     await authenticatedPage.getByLabel(/subject/i).fill(taskSubject);
     await authenticatedPage.getByLabel(/details/i).fill('Created from the contact detail tab');
     await authenticatedPage.getByLabel(/due date/i).fill('2026-03-16T09:30');

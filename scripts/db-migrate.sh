@@ -24,6 +24,7 @@ TEST_CONTAINER_NAME="${DB_TEST_CONTAINER_NAME:-nonprofit-manager-test-postgres}"
 TEST_VOLUME_NAME="${DB_TEST_VOLUME_NAME:-nonprofit-manager-test-postgres-data}"
 TEST_IMAGE="${DB_TEST_IMAGE:-postgres:18-alpine@sha256:54451ecb8ab38c24c3ec123f2fd501303a3a1856a5c66e98cecf2460d5e1e9d7}"
 STATUS_ONLY=0
+WAIT_READY_ONLY=0
 DEV_COMPOSE_PROJECT="${COMPOSE_PROJECT_DEV}"
 DEV_COMPOSE_FILE="$PROJECT_ROOT/docker-compose.dev.yml"
 
@@ -31,9 +32,14 @@ dev_compose() {
   compose_with_project_files "$DEV_COMPOSE_PROJECT" "$DEV_COMPOSE_FILE" -- "$@"
 }
 
-if [[ "${1:-}" == "--status" ]]; then
-  STATUS_ONLY=1
-fi
+case "${1:-}" in
+  --status)
+    STATUS_ONLY=1
+    ;;
+  --wait-ready)
+    WAIT_READY_ONLY=1
+    ;;
+esac
 
 is_test_db() {
   [[ "$DB_PORT" == "8012" || "$DB_NAME" == "nonprofit_manager_test" || "$MODE" == "ci" ]]
@@ -135,6 +141,33 @@ wait_for_host_connection() {
   done
 }
 
+wait_for_test_database_final_start() {
+  local container="$1"
+  local require_final_marker="${2:-0}"
+  local attempt=1
+  local max_attempts=60
+  local container_logs
+
+  while true; do
+    container_logs="$(docker logs "$container" 2>&1 || true)"
+    if grep -q 'PostgreSQL init process complete; ready for start up.' <<<"$container_logs"; then
+      return 0
+    fi
+    if [[ "$require_final_marker" != "1" ]] && ! grep -q 'running /docker-entrypoint-initdb.d/' <<<"$container_logs"; then
+      return 0
+    fi
+
+    if [[ "$attempt" -ge "$max_attempts" ]]; then
+      log_error "Timed out waiting for PostgreSQL init completion in $container on port $DB_PORT."
+      docker logs "$container" --tail 100 >&2 || true
+      return 1
+    fi
+
+    sleep 1
+    attempt=$((attempt + 1))
+  done
+}
+
 host_connection_ready() {
   PGPASSWORD="$DB_ADMIN_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_ADMIN_USER" -d "$DB_NAME" -Atqc 'SELECT 1;' >/dev/null 2>&1
 }
@@ -149,11 +182,30 @@ host_schema_migration_filenames() {
     "$(schema_migration_filenames_query)" 2>/dev/null || true
 }
 
+current_test_container_id() {
+  docker ps --filter "name=^/${TEST_CONTAINER_NAME}$" --format '{{.ID}}' | head -n 1
+}
+
+wait_for_ready_test_database() {
+  local require_final_marker="${1:-0}"
+  local container
+  container="$(current_test_container_id)"
+  if [[ -z "$container" ]]; then
+    log_error "Unable to locate the isolated test database container $TEST_CONTAINER_NAME."
+    return 1
+  fi
+
+  wait_for_schema_migrations "$container"
+  wait_for_test_database_final_start "$container" "$require_final_marker"
+  wait_for_host_connection "$DB_HOST" "$DB_PORT"
+}
+
 reuse_ready_test_database() {
   local expected_count
   local expected_filenames
   local observed_count
   local observed_filenames
+  local container
 
   if [[ "$DB_REUSE_IF_READY" != "1" ]]; then
     return 1
@@ -169,6 +221,11 @@ reuse_ready_test_database() {
   observed_filenames="$(host_schema_migration_filenames)"
 
   if [[ "$observed_count" =~ ^[0-9]+$ ]] && [[ "$observed_count" -eq "$expected_count" ]] && [[ "$observed_filenames" == "$expected_filenames" ]]; then
+    container="$(current_test_container_id)"
+    if [[ -n "$container" ]]; then
+      wait_for_test_database_final_start "$container"
+      wait_for_host_connection "$DB_HOST" "$DB_PORT"
+    fi
     log_info "Reusing existing isolated test database on ${DB_HOST}:${DB_PORT}/${DB_NAME} (${observed_count}/${expected_count} exact manifest migrations detected)."
     return 0
   fi
@@ -224,8 +281,7 @@ ensure_test_database() {
       -v "$PROJECT_ROOT/database/seeds:/seeds:ro" \
       "$TEST_IMAGE" >"$run_log" 2>&1; then
       rm -f "$run_log"
-      wait_for_schema_migrations "$TEST_CONTAINER_NAME"
-      wait_for_host_connection "$DB_HOST" "$DB_PORT"
+      wait_for_ready_test_database 1
       log_success "Isolated test database is ready on ${DB_HOST}:${DB_PORT}/${DB_NAME}."
       return 0
     fi
@@ -276,6 +332,18 @@ show_status() {
 main() {
   if [[ "$STATUS_ONLY" -eq 1 ]]; then
     show_status
+    return $?
+  fi
+
+  if [[ "$WAIT_READY_ONLY" -eq 1 ]]; then
+    if ! is_test_db; then
+      log_error "--wait-ready is only available for the isolated test database contract."
+      return 1
+    fi
+
+    "$PROJECT_ROOT/scripts/validation-preflight.sh" isolated-test-db --context "scripts/db-migrate.sh --wait-ready"
+    wait_for_ready_test_database
+    log_success "Isolated test database is ready on ${DB_HOST}:${DB_PORT}/${DB_NAME}."
     return $?
   fi
 

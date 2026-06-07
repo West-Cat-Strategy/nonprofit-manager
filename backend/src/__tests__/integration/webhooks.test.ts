@@ -1,9 +1,13 @@
-import { randomUUID } from 'crypto';
-import jwt from 'jsonwebtoken';
 import request from 'supertest';
 import app from '../../index';
 import pool from '../../config/database';
-import { getJwtSecret } from '../../config/jwt';
+import {
+  createIntegrationOrganization,
+  createIntegrationUser,
+  deleteIntegrationAuthFixtures,
+  grantIntegrationOrganizationAccess,
+  issueIntegrationAppToken,
+} from './helpers/authFixtures';
 
 describe('Webhooks API Integration', () => {
   let userId: string;
@@ -24,61 +28,54 @@ describe('Webhooks API Integration', () => {
     request(app)[method](path).set('Authorization', `Bearer ${token}`);
 
   beforeAll(async () => {
-    userId = randomUUID();
-    organizationId = randomUUID();
     const email = `webhooks-int-${Date.now()}@example.com`;
-
-    await pool.query(
-      `INSERT INTO users (id, email, password_hash, first_name, last_name, role, is_active, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, TRUE, NOW(), NOW())`,
-      [userId, email, 'integration-test-hash', 'Webhook', 'Tester', 'admin']
-    );
-
-    managerUserId = randomUUID();
     const managerEmail = `webhooks-manager-${Date.now()}@example.com`;
-    await pool.query(
-      `INSERT INTO users (id, email, password_hash, first_name, last_name, role, is_active, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, TRUE, NOW(), NOW())`,
-      [managerUserId, managerEmail, 'integration-test-hash', 'Webhook', 'Manager', 'manager']
-    );
+    const adminUser = await createIntegrationUser({
+      email,
+      firstName: 'Webhook',
+      lastName: 'Tester',
+      role: 'admin',
+    });
+    const managerUser = await createIntegrationUser({
+      email: managerEmail,
+      firstName: 'Webhook',
+      lastName: 'Manager',
+      role: 'manager',
+    });
+    const organization = await createIntegrationOrganization({
+      accountName: 'Webhook Integration Org',
+      createdBy: adminUser.id,
+    });
 
-    await pool.query(
-      `INSERT INTO accounts (
-         id,
-         account_number,
-         account_name,
-         account_type,
-         is_active,
-         created_by,
-         modified_by,
-         created_at,
-         updated_at
-       )
-       VALUES ($1, $2, $3, 'organization', TRUE, $4, $4, NOW(), NOW())`,
-      [organizationId, `ORG-${Date.now()}`, 'Webhook Integration Org', userId]
-    );
+    userId = adminUser.id;
+    managerUserId = managerUser.id;
+    organizationId = organization.id;
 
-    authToken = jwt.sign(
-      {
-        id: userId,
-        email,
-        role: 'admin',
-        organizationId,
-      },
-      getJwtSecret(),
-      { expiresIn: '1h' }
-    );
+    await grantIntegrationOrganizationAccess({
+      userId,
+      organizationId,
+      role: 'admin',
+      grantedBy: userId,
+    });
+    await grantIntegrationOrganizationAccess({
+      userId: managerUserId,
+      organizationId,
+      role: 'manager',
+      grantedBy: userId,
+    });
 
-    managerAuthToken = jwt.sign(
-      {
-        id: managerUserId,
-        email: managerEmail,
-        role: 'manager',
-        organizationId,
-      },
-      getJwtSecret(),
-      { expiresIn: '1h' }
-    );
+    authToken = issueIntegrationAppToken({
+      userId,
+      email,
+      role: 'admin',
+      organizationId,
+    });
+    managerAuthToken = issueIntegrationAppToken({
+      userId: managerUserId,
+      email: managerEmail,
+      role: 'manager',
+      organizationId,
+    });
   });
 
   afterAll(async () => {
@@ -96,9 +93,10 @@ describe('Webhooks API Integration', () => {
       [organizationId]
     );
     await safeDelete('DELETE FROM webhook_endpoints WHERE organization_id = $1', [organizationId]);
-    await safeDelete('DELETE FROM accounts WHERE id = $1', [organizationId]);
-    await safeDelete('DELETE FROM users WHERE id = $1', [managerUserId]);
-    await safeDelete('DELETE FROM users WHERE id = $1', [userId]);
+    await deleteIntegrationAuthFixtures({
+      userIds: [managerUserId, userId],
+      organizationIds: [organizationId],
+    });
   });
 
   it('requires authentication for webhook endpoints', async () => {

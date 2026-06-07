@@ -262,12 +262,16 @@ const routeParentIds: Record<string, string> = {
   'website-builder-editor': 'website-builder',
   websites: 'websites',
   'portal-case-detail': 'portal-cases',
+  'accept-invitation-fragment': 'login',
   'accept-invitation': 'login',
   'forgot-password': 'login',
+  'reset-password-fragment': 'login',
   'reset-password': 'login',
   'portal-signup': 'portal-login',
   'portal-forgot-password': 'portal-login',
+  'portal-reset-password-fragment': 'portal-login',
   'portal-reset-password': 'portal-login',
+  'portal-accept-invitation-fragment': 'portal-login',
   'portal-accept-invitation': 'portal-login',
 };
 

@@ -1,7 +1,11 @@
-import request from 'supertest';
+import request, { type Test } from 'supertest';
 import * as zlib from 'zlib';
 import app from '../../index';
 import pool from '../../config/database';
+import {
+  createIntegrationAuthContext,
+  deleteIntegrationAuthFixtures,
+} from './helpers/authFixtures';
 
 jest.setTimeout(120000);
 
@@ -15,11 +19,22 @@ describe('Backup Export API', () => {
   let adminToken = '';
   let userToken = '';
   let adminEmail = '';
-  let userEmail = '';
+  let adminUserId = '';
+  let userId = '';
+  let adminOrganizationId = '';
+  let userOrganizationId = '';
   let previousExcludedTables: string | undefined;
   let previousSecretExportEnabled: string | undefined;
 
-  const password = 'Test123!Strong';
+  const withAdminAuth = (req: Test): Test =>
+    req
+      .set('Authorization', `Bearer ${adminToken}`)
+      .set('X-Organization-Id', adminOrganizationId);
+
+  const withUserAuth = (req: Test): Test =>
+    req
+      .set('Authorization', `Bearer ${userToken}`)
+      .set('X-Organization-Id', userOrganizationId);
 
   beforeAll(async () => {
     await pool.query('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"');
@@ -67,44 +82,32 @@ describe('Backup Export API', () => {
       .filter((tableName) => !allowedTables.has(tableName));
     process.env.BACKUP_EXCLUDED_TABLES = excludedTables.join(',');
 
-    // Create admin user (register -> promote -> login to get admin role in JWT)
-    adminEmail = `backup-admin-${Date.now()}@example.com`;
-    const adminRegister = await request(app).post('/api/v2/auth/register').send({
-      email: adminEmail,
-      password,
-      password_confirm: password,
-      first_name: 'Backup',
-      last_name: 'Admin',
+    const adminContext = await createIntegrationAuthContext({
+      emailPrefix: 'backup-admin',
+      accountName: `Backup Admin Org ${Date.now()}`,
+      role: 'admin',
     });
-    const adminUserId = adminRegister.body?.user?.user_id;
-    await pool.query("UPDATE users SET role = 'admin' WHERE id = $1", [adminUserId]);
+    adminEmail = adminContext.email;
+    adminUserId = adminContext.userId;
+    adminOrganizationId = adminContext.organizationId;
+    adminToken = adminContext.authToken;
 
-    const adminLogin = await request(app).post('/api/v2/auth/login').send({
-      email: adminEmail,
-      password,
+    const userContext = await createIntegrationAuthContext({
+      emailPrefix: 'backup-user',
+      accountName: `Backup User Org ${Date.now()}`,
+      role: 'user',
     });
-    adminToken = adminLogin.body?.token;
-
-    // Create regular user
-    userEmail = `backup-user-${Date.now()}@example.com`;
-    await request(app).post('/api/v2/auth/register').send({
-      email: userEmail,
-      password,
-      password_confirm: password,
-      first_name: 'Backup',
-      last_name: 'User',
-    });
-    const userLogin = await request(app).post('/api/v2/auth/login').send({
-      email: userEmail,
-      password,
-    });
-    userToken = userLogin.body?.token;
+    userId = userContext.userId;
+    userOrganizationId = userContext.organizationId;
+    userToken = userContext.authToken;
   });
 
   afterAll(async () => {
     try {
-      if (adminEmail) await pool.query('DELETE FROM users WHERE email = $1', [adminEmail]);
-      if (userEmail) await pool.query('DELETE FROM users WHERE email = $1', [userEmail]);
+      await deleteIntegrationAuthFixtures({
+        userIds: [adminUserId, userId].filter(Boolean),
+        organizationIds: [adminOrganizationId, userOrganizationId].filter(Boolean),
+      });
     } catch {
       // ignore
     }
@@ -129,18 +132,14 @@ describe('Backup Export API', () => {
   });
 
   it('rejects non-admin export', async () => {
-    const response = await request(app)
-      .post('/api/v2/backup/export')
-      .set('Authorization', `Bearer ${userToken}`)
+    const response = await withUserAuth(request(app).post('/api/v2/backup/export'))
       .send({ include_secrets: false });
 
     expect(response.status).toBe(403);
   });
 
   it('exports a redacted backup by default', async () => {
-    const response = await request(app)
-      .post('/api/v2/backup/export')
-      .set('Authorization', `Bearer ${adminToken}`)
+    const response = await withAdminAuth(request(app).post('/api/v2/backup/export'))
       .send({ include_secrets: false, compress: true })
       .buffer(true)
       .parse(parseBinaryResponse);
@@ -163,17 +162,13 @@ describe('Backup Export API', () => {
   it('rejects secret-bearing exports unless the environment gate and confirmation are both present', async () => {
     delete process.env.BACKUP_INCLUDE_SECRETS_ENABLED;
 
-    await request(app)
-      .post('/api/v2/backup/export')
-      .set('Authorization', `Bearer ${adminToken}`)
+    await withAdminAuth(request(app).post('/api/v2/backup/export'))
       .send({ include_secrets: true, confirm_secrets_export: 'EXPORT_UNREDACTED_BACKUP' })
       .expect(403);
 
     process.env.BACKUP_INCLUDE_SECRETS_ENABLED = 'true';
 
-    const response = await request(app)
-      .post('/api/v2/backup/export')
-      .set('Authorization', `Bearer ${adminToken}`)
+    const response = await withAdminAuth(request(app).post('/api/v2/backup/export'))
       .send({ include_secrets: true, confirm_secrets_export: 'export_unredacted_backup' });
 
     expect(response.status).toBe(400);
@@ -182,9 +177,7 @@ describe('Backup Export API', () => {
   it('can export an unredacted (full) backup when explicitly gated and confirmed', async () => {
     process.env.BACKUP_INCLUDE_SECRETS_ENABLED = 'true';
 
-    const response = await request(app)
-      .post('/api/v2/backup/export')
-      .set('Authorization', `Bearer ${adminToken}`)
+    const response = await withAdminAuth(request(app).post('/api/v2/backup/export'))
       .send({ include_secrets: true, confirm_secrets_export: 'EXPORT_UNREDACTED_BACKUP', compress: true })
       .buffer(true)
       .parse(parseBinaryResponse);

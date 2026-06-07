@@ -5,6 +5,10 @@ import app from '../../index';
 import pool from '../../config/database';
 import { getJwtSecret } from '../../config/jwt';
 import fileStorage from '../../services/fileStorageService';
+import {
+  grantIntegrationOrganizationAccess,
+  issueIntegrationAppToken,
+} from './helpers/authFixtures';
 
 describe('Case Management Visibility Integration', () => {
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -63,9 +67,6 @@ describe('Case Management Visibility Integration', () => {
     );
     adminUserId = userResult.rows[0].id as string;
     createdUserIds.push(adminUserId);
-    adminToken = jwt.sign({ id: adminUserId, email: adminEmail, role: 'admin' }, getJwtSecret(), {
-      expiresIn: '1h',
-    });
 
     const orgResult = await pool.query(
       `INSERT INTO accounts (account_name, account_type, is_active, created_by, modified_by, created_at, updated_at)
@@ -75,6 +76,12 @@ describe('Case Management Visibility Integration', () => {
     );
     organizationId = orgResult.rows[0].id as string;
     createdAccountIds.push(organizationId);
+    await grantIntegrationOrganizationAccess({
+      userId: adminUserId,
+      organizationId,
+      role: 'admin',
+      grantedBy: adminUserId,
+    });
 
     const orgBResult = await pool.query(
       `INSERT INTO accounts (account_name, account_type, is_active, created_by, modified_by, created_at, updated_at)
@@ -85,11 +92,12 @@ describe('Case Management Visibility Integration', () => {
     organizationBId = orgBResult.rows[0].id as string;
     createdAccountIds.push(organizationBId);
 
-    adminToken = jwt.sign(
-      { id: adminUserId, email: adminEmail, role: 'admin', organizationId },
-      getJwtSecret(),
-      { expiresIn: '1h' }
-    );
+    adminToken = issueIntegrationAppToken({
+      userId: adminUserId,
+      email: adminEmail,
+      role: 'admin',
+      organizationId,
+    });
 
     const caseTypeResult = await pool.query(
       `INSERT INTO case_types (name, description, created_at, updated_at)
@@ -284,7 +292,15 @@ describe('Case Management Visibility Integration', () => {
     if (createdContactIds.length > 0) {
       await pool.query('DELETE FROM contacts WHERE id = ANY($1)', [createdContactIds]);
     }
+    if (createdUserIds.length > 0) {
+      await pool.query('DELETE FROM user_account_access WHERE user_id = ANY($1::uuid[])', [
+        createdUserIds,
+      ]);
+    }
     if (createdAccountIds.length > 0) {
+      await pool.query('DELETE FROM user_account_access WHERE account_id = ANY($1::uuid[])', [
+        createdAccountIds,
+      ]);
       await pool.query('DELETE FROM accounts WHERE id = ANY($1)', [createdAccountIds]);
     }
     if (createdStatusIds.length > 0) {

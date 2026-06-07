@@ -38,6 +38,13 @@ describe('routeCatalog matching', () => {
     expect(matchRouteCatalogEntry('/admin-registration-review/a.b.c')?.id).toBe(
       'admin-registration-review'
     );
+    expect(matchRouteCatalogEntry('/accept-invitation')?.id).toBe(
+      'accept-invitation-fragment'
+    );
+    expect(matchRouteCatalogEntry('/reset-password')?.id).toBe('reset-password-fragment');
+    expect(matchRouteCatalogEntry('/portal/accept-invitation')?.id).toBe(
+      'portal-accept-invitation-fragment'
+    );
     expect(matchRouteCatalogEntry('/portal/reset-password/test-token')?.id).toBe(
       'portal-reset-password'
     );

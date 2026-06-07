@@ -1,6 +1,10 @@
 import request from 'supertest';
 import app from '../../index';
 import pool from '../../config/database';
+import {
+  createIntegrationOrganization,
+  grantIntegrationOrganizationAccess,
+} from './helpers/authFixtures';
 
 describe('Case API Integration Tests', () => {
   let authToken = '';
@@ -32,15 +36,6 @@ describe('Case API Integration Tests', () => {
 
     const value = body as { token?: string; data?: { token?: string } };
     return value.token || value.data?.token;
-  };
-
-  const accountIdFromResponse = (body: unknown): string | undefined => {
-    if (typeof body !== 'object' || body === null) {
-      return undefined;
-    }
-
-    const value = body as { account_id?: string; data?: { account_id?: string } };
-    return value.account_id || value.data?.account_id;
   };
 
   const withAuth = (req: ReturnType<typeof request>): ReturnType<typeof request> =>
@@ -202,34 +197,25 @@ describe('Case API Integration Tests', () => {
 
     await pool.query('UPDATE users SET role = $1 WHERE id = $2', ['admin', userId]);
 
+    const organization = await createIntegrationOrganization({
+      accountName: `Case Test Organization ${unique()}`,
+      createdBy: userId,
+    });
+    organizationId = organization.id;
+    expect(organizationId).toBeTruthy();
+    await grantIntegrationOrganizationAccess({
+      userId,
+      organizationId,
+      role: 'admin',
+      grantedBy: userId,
+    });
+
     const loginResponse = await request(app)
       .post('/api/v2/auth/login')
       .send({ email: testEmail, password: 'Test123!Strong' })
       .expect(200);
     authToken = tokenFromResponse(loginResponse.body) || '';
     expect(authToken).toBeTruthy();
-
-    const accountResponse = await request(app)
-      .post('/api/v2/accounts')
-      .set('Authorization', `Bearer ${authToken}`)
-      .send({
-        account_name: `Case Test Organization ${unique()}`,
-        account_type: 'organization',
-      })
-      .expect(201);
-
-    organizationId = accountIdFromResponse(accountResponse.body) || '';
-    expect(organizationId).toBeTruthy();
-
-    await pool.query(
-      `INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active)
-       VALUES ($1, $2, 'owner', $1, true)
-       ON CONFLICT (user_id, account_id) DO UPDATE
-       SET access_level = EXCLUDED.access_level,
-           granted_by = EXCLUDED.granted_by,
-           is_active = true`,
-      [userId, organizationId]
-    );
 
     const caseTypeResult = await pool.query<{ id: string }>(
       `SELECT id

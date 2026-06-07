@@ -19,10 +19,16 @@ const publicRoutes: RouteExpectation[] = [
   { route: '/', expectedLocation: ['/login', '/setup'] },
   { route: '/login', expectedLocation: ['/login', '/setup'] },
   { route: '/setup', expectedLocation: ['/setup', '/login'] },
-  { route: '/accept-invitation/test-token', expectedLocation: ['/accept-invitation/test-token', '/setup'] },
+  {
+    route: '/accept-invitation/test-token',
+    expectedLocation: ['/accept-invitation/test-token', '/accept-invitation', '/setup'],
+  },
   { route: '/portal/login' },
   { route: '/portal/signup' },
-  { route: '/portal/accept-invitation/test-token' },
+  {
+    route: '/portal/accept-invitation/test-token',
+    expectedLocation: ['/portal/accept-invitation/test-token', '/portal/accept-invitation'],
+  },
   { route: '/demo/dashboard' },
   { route: '/demo/linking' },
   { route: '/demo/operations' },

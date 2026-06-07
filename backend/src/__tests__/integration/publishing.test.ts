@@ -41,10 +41,15 @@ jest.mock('@services/mauticService', () => {
 });
 
 import request, { type Test } from 'supertest';
-import jwt from 'jsonwebtoken';
 import app from '../../index';
 import pool from '../../config/database';
-import { getJwtSecret } from '../../config/jwt';
+import {
+  createIntegrationAuthContext,
+  createIntegrationUser,
+  deleteIntegrationAuthFixtures,
+  grantIntegrationOrganizationAccess,
+  issueIntegrationAppToken,
+} from './helpers/authFixtures';
 
 type ApiEnvelope<T> = { data?: T } | T;
 
@@ -186,69 +191,34 @@ describe('Publishing API Integration', () => {
 
   beforeAll(async () => {
     const suffix = unique();
-    const userResult = await pool.query<{ id: string }>(
-      `INSERT INTO users (email, password_hash, first_name, last_name, role, created_at, updated_at)
-       VALUES ($1, $2, 'Publishing', 'Tester', 'admin', NOW(), NOW())
-       RETURNING id`,
-      [
-        `publishing-admin-${suffix}@example.com`,
-        '$2a$10$012345678901234567890uI6TTMsnx6Vf7hYhVJrV2N4mcoX8f6mG',
-      ]
-    );
-    adminUserId = userResult.rows[0].id;
-    authToken = jwt.sign(
-      { id: adminUserId, email: `publishing-admin-${suffix}@example.com`, role: 'admin' },
-      getJwtSecret(),
-      { expiresIn: '1h' }
-    );
+    const adminContext = await createIntegrationAuthContext({
+      emailPrefix: 'publishing-admin',
+      accountName: `Publishing Org ${suffix}`,
+      role: 'admin',
+    });
+    adminUserId = adminContext.userId;
+    accountId = adminContext.organizationId;
+    authToken = adminContext.authToken;
 
-    const staffResult = await pool.query<{ id: string }>(
-      `INSERT INTO users (email, password_hash, first_name, last_name, role, created_at, updated_at)
-       VALUES ($1, $2, 'Publishing', 'Staff', 'staff', NOW(), NOW())
-       RETURNING id`,
-      [
-        `publishing-staff-${suffix}@example.com`,
-        '$2a$10$012345678901234567890uI6TTMsnx6Vf7hYhVJrV2N4mcoX8f6mG',
-      ]
-    );
-    staffUserId = staffResult.rows[0].id;
-    staffAuthToken = jwt.sign(
-      { id: staffUserId, email: `publishing-staff-${suffix}@example.com`, role: 'staff' },
-      getJwtSecret(),
-      { expiresIn: '1h' }
-    );
-
-    const accountResult = await pool.query<{ id: string }>(
-      `INSERT INTO accounts (
-         account_name,
-         account_type,
-         email,
-         is_active,
-         created_at,
-         updated_at,
-         created_by,
-         modified_by
-       ) VALUES ($1, 'organization', $2, TRUE, NOW(), NOW(), $3, $3)
-       RETURNING id`,
-      [`Publishing Org ${suffix}`, `publishing-org-${suffix}@example.com`, adminUserId]
-    );
-    accountId = accountResult.rows[0].id;
-
-    await pool.query(
-      `INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active)
-       VALUES ($1, $2, 'admin', $1, TRUE)
-       ON CONFLICT (user_id, account_id)
-       DO UPDATE SET access_level = 'admin', is_active = TRUE`,
-      [adminUserId, accountId]
-    );
-
-    await pool.query(
-      `INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active)
-       VALUES ($1, $2, 'staff', $3, TRUE)
-       ON CONFLICT (user_id, account_id)
-       DO UPDATE SET access_level = 'staff', is_active = TRUE`,
-      [staffUserId, accountId, adminUserId]
-    );
+    const staffUser = await createIntegrationUser({
+      emailPrefix: 'publishing-staff',
+      firstName: 'Publishing',
+      lastName: 'Staff',
+      role: 'staff',
+    });
+    staffUserId = staffUser.id;
+    await grantIntegrationOrganizationAccess({
+      userId: staffUserId,
+      organizationId: accountId,
+      role: 'staff',
+      grantedBy: adminUserId,
+    });
+    staffAuthToken = issueIntegrationAppToken({
+      userId: staffUserId,
+      email: staffUser.email,
+      role: staffUser.role,
+      organizationId: accountId,
+    });
 
     const templateResult = await pool.query<{ id: string }>(
       `INSERT INTO templates (
@@ -435,24 +405,10 @@ describe('Publishing API Integration', () => {
       await pool.query('DELETE FROM templates WHERE id = $1', [templateId]);
     }
 
-    if (adminUserId && accountId) {
-      await pool.query('DELETE FROM user_account_access WHERE user_id = ANY($1::uuid[]) AND account_id = $2', [
-        [adminUserId, staffUserId].filter(Boolean),
-        accountId,
-      ]);
-    }
-
-    if (accountId) {
-      await pool.query('DELETE FROM accounts WHERE id = $1', [accountId]);
-    }
-
-    if (adminUserId) {
-      await pool.query('DELETE FROM users WHERE id = $1', [adminUserId]);
-    }
-
-    if (staffUserId) {
-      await pool.query('DELETE FROM users WHERE id = $1', [staffUserId]);
-    }
+    await deleteIntegrationAuthFixtures({
+      userIds: [adminUserId, staffUserId].filter(Boolean),
+      organizationIds: accountId ? [accountId] : [],
+    });
   });
 
   it('requires authentication for site search', async () => {

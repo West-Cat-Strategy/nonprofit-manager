@@ -19,7 +19,7 @@ export default function PortalShellRoute() {
     setAuthChecked(false);
     const verifyPortalSession = async () => {
       try {
-        await dispatch(portalFetchMe({ forceRefresh: true })).unwrap();
+        await dispatch(portalFetchMe()).unwrap();
       } catch {
         // Unauthenticated portal sessions are redirected below.
       } finally {

@@ -1,39 +1,31 @@
 import request from 'supertest';
-import jwt from 'jsonwebtoken';
 import app from '../../index';
-import pool from '../../config/database';
-import { getJwtSecret } from '../../config/jwt';
-
-import { randomUUID } from 'crypto';
+import {
+  createIntegrationAuthContext,
+  deleteIntegrationAuthFixtures,
+} from './helpers/authFixtures';
 
 let authToken = '';
-const TEST_USER_ID = randomUUID();
+let testUserId = '';
+let organizationId = '';
 
 describe('Alerts API Integration', () => {
   beforeAll(async () => {
-    const email = 'alerts-integration@example.com';
-    
-    // Create user in DB to satisfy session validation
-    await pool.query(
-      `INSERT INTO users (id, email, password_hash, first_name, last_name, role, is_active)
-       VALUES ($1, $2, $3, $4, $5, $6, true)
-       ON CONFLICT (id) DO UPDATE SET is_active = true`,
-      [TEST_USER_ID, email, 'hash', 'Alerts', 'Integration', 'user']
-    );
-
-    authToken = jwt.sign(
-      {
-        id: TEST_USER_ID,
-        email: email,
-        role: 'user',
-      },
-      getJwtSecret(),
-      { expiresIn: '1h' }
-    );
+    const context = await createIntegrationAuthContext({
+      role: 'viewer',
+      emailPrefix: 'alerts-integration',
+      accountName: 'Alerts Integration Org',
+    });
+    authToken = context.authToken;
+    testUserId = context.userId;
+    organizationId = context.organizationId;
   });
 
   afterAll(async () => {
-    await pool.query('DELETE FROM users WHERE id = $1', [TEST_USER_ID]);
+    await deleteIntegrationAuthFixtures({
+      userIds: [testUserId],
+      organizationIds: [organizationId],
+    });
   });
   it('rejects unauthenticated access', async () => {
     const response = await request(app).get('/api/v2/alerts/configs').expect(401);
