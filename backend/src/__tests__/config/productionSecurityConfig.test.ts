@@ -28,6 +28,8 @@ describe('validateProductionSecurityConfig', () => {
     SQUARE_ACCESS_TOKEN: 'square-access-token',
     SQUARE_LOCATION_ID: 'square-location-id',
     SQUARE_WEBHOOK_SIGNATURE_KEY: 'square-webhook-key',
+    SQUARE_WEBHOOK_NOTIFICATION_URL:
+      'https://secure.nonprofitmanager.org/api/v2/payments/webhooks/square',
   } satisfies NodeJS.ProcessEnv;
 
   it('passes for a valid managed configuration', () => {
@@ -56,9 +58,48 @@ describe('validateProductionSecurityConfig', () => {
       DB_AT_REST_VERIFIED: 'true',
     });
 
-    expect(result.errors).toContain(
-      'ENCRYPTION_KEY is set to the tracked example key; generate a unique 64-character hex key for production'
+    expect(result.fatalErrors).toContain(
+      'ENCRYPTION_KEY is set to the tracked example key; generate a unique 32-byte key for production'
     );
+  });
+
+  it('fails production when encryption key material is missing or passphrase-style', () => {
+    const missing = validateProductionSecurityConfig({
+      ...baseEnv,
+      ENCRYPTION_KEY: '',
+      DB_HOST: 'prod-db.example.com',
+      DB_AT_REST_ENCRYPTION_MODE: 'managed',
+      DB_AT_REST_PROVIDER: 'rds',
+      DB_AT_REST_VERIFIED: 'true',
+    });
+    const passphrase = validateProductionSecurityConfig({
+      ...baseEnv,
+      ENCRYPTION_KEY: 'a production passphrase is no longer accepted',
+      DB_HOST: 'prod-db.example.com',
+      DB_AT_REST_ENCRYPTION_MODE: 'managed',
+      DB_AT_REST_PROVIDER: 'rds',
+      DB_AT_REST_VERIFIED: 'true',
+    });
+
+    expect(missing.fatalErrors).toContain(
+      'ENCRYPTION_KEY must be 32 bytes of key material encoded as 64 hexadecimal characters or base64 in production'
+    );
+    expect(passphrase.fatalErrors).toContain(
+      'ENCRYPTION_KEY must be 32 bytes of key material encoded as 64 hexadecimal characters or base64 in production'
+    );
+  });
+
+  it('accepts 32-byte base64 encryption keys in production', () => {
+    const result = validateProductionSecurityConfig({
+      ...baseEnv,
+      ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
+      DB_HOST: 'prod-db.example.com',
+      DB_AT_REST_ENCRYPTION_MODE: 'managed',
+      DB_AT_REST_PROVIDER: 'rds',
+      DB_AT_REST_VERIFIED: 'true',
+    });
+
+    expect(result.fatalErrors).toEqual([]);
   });
 
   it('treats weak production JWT, CSRF, health, and metrics keys as fatal', () => {
@@ -229,6 +270,7 @@ describe('validateProductionSecurityConfig', () => {
       SQUARE_ACCESS_TOKEN: '',
       SQUARE_LOCATION_ID: '',
       SQUARE_WEBHOOK_SIGNATURE_KEY: '',
+      SQUARE_WEBHOOK_NOTIFICATION_URL: '',
     });
 
     expect(result.errors).toEqual([]);
@@ -238,8 +280,35 @@ describe('validateProductionSecurityConfig', () => {
         'PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET are not configured; PayPal payments will be disabled',
         'PAYPAL_WEBHOOK_ID is not configured; PayPal webhook handling will be disabled',
         'SQUARE_ACCESS_TOKEN and SQUARE_LOCATION_ID are not configured; Square payments will be disabled',
-        'SQUARE_WEBHOOK_SIGNATURE_KEY is not configured; Square webhook handling will be disabled',
+        'SQUARE_WEBHOOK_SIGNATURE_KEY and SQUARE_WEBHOOK_NOTIFICATION_URL are not configured; Square webhook handling will be disabled',
       ])
+    );
+  });
+
+  it('fails production when Square webhooks are partially configured or use non-https URLs', () => {
+    const missingUrl = validateProductionSecurityConfig({
+      ...baseEnv,
+      SQUARE_WEBHOOK_NOTIFICATION_URL: '',
+      DB_HOST: 'prod-db.example.com',
+      DB_AT_REST_ENCRYPTION_MODE: 'managed',
+      DB_AT_REST_PROVIDER: 'rds',
+      DB_AT_REST_VERIFIED: 'true',
+    });
+    const nonHttpsUrl = validateProductionSecurityConfig({
+      ...baseEnv,
+      SQUARE_WEBHOOK_NOTIFICATION_URL:
+        'http://secure.nonprofitmanager.org/api/v2/payments/webhooks/square',
+      DB_HOST: 'prod-db.example.com',
+      DB_AT_REST_ENCRYPTION_MODE: 'managed',
+      DB_AT_REST_PROVIDER: 'rds',
+      DB_AT_REST_VERIFIED: 'true',
+    });
+
+    expect(missingUrl.fatalErrors).toContain(
+      'SQUARE_WEBHOOK_NOTIFICATION_URL must be the exact production Square webhook notification URL'
+    );
+    expect(nonHttpsUrl.fatalErrors).toContain(
+      'SQUARE_WEBHOOK_NOTIFICATION_URL must use https in production'
     );
   });
 

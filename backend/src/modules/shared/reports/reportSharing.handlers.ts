@@ -46,8 +46,7 @@ const getPublicReportToken = (req: Request): string => {
     return headerToken;
   }
 
-  const value = req.params.token;
-  return Array.isArray(value) ? value[0] || '' : String(value || '');
+  return '';
 };
 
 export const getSharePrincipals = async (

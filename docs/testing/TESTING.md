@@ -1,6 +1,6 @@
 # Testing Guide
 
-**Last Updated:** 2026-06-05
+**Last Updated:** 2026-06-06
 
 This file is the active test command map for nonprofit-manager. Use [../../CONTRIBUTING.md](../../CONTRIBUTING.md) for contributor workflow and [../development/GETTING_STARTED.md](../development/GETTING_STARTED.md) for runtime setup and ports; use this file when you need to choose the right validation command.
 
@@ -134,7 +134,7 @@ The old `scripts/verify.sh` and `scripts/verify-pr.sh` entrypoints are retained 
 
 ## Security And Policy Checks
 
-- `make lint` runs package linting plus the shared policy gates, including route validation, auth guards, rate-limit key policy, migration manifest policy, route catalog drift, implementation-size, and deleted-path guards.
+- `make lint` runs package linting plus the shared policy gates, including route validation, auth guards, rate-limit key policy, migration manifest policy, route catalog drift, implementation-size, modularization-boundary ratchets, and deleted-path guards.
 - `make lint-openapi` validates `docs/api/openapi.yaml` locally for YAML parse errors, local `$ref` integrity, route path-parameter coverage, and basic operation/response shape.
 - `make security-audit` runs `npm run audit:prod`, the local production-dependency audit across the root and workspace packages.
 - `npm run audit` is the broader local dependency audit including dev dependencies.

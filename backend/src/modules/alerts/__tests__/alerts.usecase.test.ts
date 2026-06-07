@@ -31,7 +31,7 @@ describe('AlertsUseCase', () => {
   it('normalizes alert instance query filters before delegating to the repository', async () => {
     repository.getAlertInstances.mockResolvedValue([]);
 
-    await usecase.getAlertInstances('user-1', {
+    await usecase.getAlertInstances('user-1', 'org-1', {
       status: 'triggered',
       severity: 'critical',
       limit: '25',
@@ -39,6 +39,7 @@ describe('AlertsUseCase', () => {
 
     expect(repository.getAlertInstances).toHaveBeenCalledWith({
       userId: 'user-1',
+      organizationId: 'org-1',
       status: 'triggered',
       severity: 'critical',
       limit: 25,
@@ -48,17 +49,20 @@ describe('AlertsUseCase', () => {
   it('requires user scope for alert instance query filters', async () => {
     repository.getAlertInstances.mockResolvedValue([]);
 
-    await usecase.getAlertInstances('user-1');
+    await usecase.getAlertInstances('user-1', 'org-1');
 
-    expect(repository.getAlertInstances).toHaveBeenCalledWith({ userId: 'user-1' });
+    expect(repository.getAlertInstances).toHaveBeenCalledWith({
+      userId: 'user-1',
+      organizationId: 'org-1',
+    });
   });
 
-  it('passes user scope when resolving alert instances', async () => {
+  it('passes user and organization scope when resolving alert instances', async () => {
     repository.resolveAlert.mockResolvedValue(null);
 
-    await usecase.resolveAlert('instance-1', 'user-1');
+    await usecase.resolveAlert('instance-1', 'user-1', 'org-1');
 
-    expect(repository.resolveAlert).toHaveBeenCalledWith('instance-1', 'user-1');
+    expect(repository.resolveAlert).toHaveBeenCalledWith('instance-1', 'user-1', 'org-1');
   });
 
   it('aggregates alert stats snapshot rows into numeric response data', async () => {
@@ -79,7 +83,9 @@ describe('AlertsUseCase', () => {
     };
     repository.getAlertStatsSnapshot.mockResolvedValue(snapshot);
 
-    const result = await usecase.getAlertStats('user-1');
+    const result = await usecase.getAlertStats('user-1', 'org-1');
+
+    expect(repository.getAlertStatsSnapshot).toHaveBeenCalledWith('user-1', 'org-1');
 
     expect(result).toEqual({
       total_alerts: 5,
@@ -103,6 +109,7 @@ describe('AlertsUseCase', () => {
   it('evaluates threshold-based test alerts using repository metric values', async () => {
     const payload: CreateAlertDTO = {
       user_id: 'user-1',
+      organization_id: 'org-1',
       name: 'Donations threshold',
       metric_type: 'donations',
       condition: 'exceeds',
@@ -116,7 +123,7 @@ describe('AlertsUseCase', () => {
 
     const result = await usecase.testAlert(payload);
 
-    expect(repository.getCurrentMetricValue).toHaveBeenCalledWith('donations', {});
+    expect(repository.getCurrentMetricValue).toHaveBeenCalledWith('donations', {}, 'org-1');
     expect(result).toMatchObject({
       would_trigger: true,
       current_value: 15,

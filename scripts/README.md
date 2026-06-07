@@ -1,6 +1,6 @@
 # Script Index
 
-**Last Updated:** 2026-06-05
+**Last Updated:** 2026-06-06
 
 This directory contains the repo-local helpers used by the Makefile, deployment scripts, and docs workflow.
 Prefer the `make` targets when they exist. Call the scripts directly when you need the narrower entrypoint.
@@ -41,10 +41,10 @@ Prefer the `make` targets when they exist. Call the scripts directly when you ne
 
 The `check-*.ts` scripts are the repo policy gates that back `make lint`, `make quality-baseline`, and the static UI/security reports:
 
-- Backend policy gates: `check-rate-limit-key-policy.ts`, `check-success-envelope-policy.ts`, `check-route-validation-policy.ts`, `check-query-contract-policy.ts`, `check-express-validator-policy.ts`, `check-controller-sql-policy.ts`, `check-auth-guard-policy.ts`, `check-v2-route-auth-posture.ts`, `check-migration-manifest-policy.ts`, `check-duplicate-test-tree.ts`, `check-openapi-contract.ts`, `check-v2-module-ownership-policy.ts`, `check-module-boundary-policy.ts`, `check-module-route-proxy-policy.ts`, `check-canonical-module-import-policy.ts`, `check-implementation-size-policy.ts`, and the deleted-path guard `check-backend-legacy-controller-wrapper-policy.ts`.
+- Backend policy gates: `check-rate-limit-key-policy.ts`, `check-success-envelope-policy.ts`, `check-route-validation-policy.ts`, `check-query-contract-policy.ts`, `check-express-validator-policy.ts`, `check-controller-sql-policy.ts`, `check-auth-guard-policy.ts`, `check-v2-route-auth-posture.ts`, `check-migration-manifest-policy.ts`, `check-duplicate-test-tree.ts`, `check-openapi-contract.ts`, `check-v2-module-ownership-policy.ts`, `check-module-boundary-policy.ts`, `check-module-route-proxy-policy.ts`, `check-canonical-module-import-policy.ts`, `check-modularization-boundary-ratchet.ts`, `check-implementation-size-policy.ts`, and the deleted-path guard `check-backend-legacy-controller-wrapper-policy.ts`.
 - Frontend policy gates: `check-frontend-feature-boundary-policy.ts` plus the deleted-path guards `check-frontend-legacy-slice-import-policy.ts` and `check-frontend-legacy-page-path-policy.ts`.
 - Route and UI policy gates: `check-route-integrity.ts`, `check-route-catalog-drift.ts`, and `ui-audit.ts`.
-- Implementation-size ratchet data lives in `baselines/implementation-size.json`.
+- Ratchet data lives under `baselines/`, including `implementation-size.json` and `modularization-boundaries.json`; baseline-only changes route through selector policy/tooling proof.
 
 The three legacy deleted-path guards fail if `frontend/src/pages`, `frontend/src/store/slices`, or `backend/src/controllers` reappear at all, even as empty directories.
 

@@ -28,12 +28,43 @@ const donationBatchService = services.donationBatch;
 const donationDesignationService = services.donationDesignation;
 const taxReceiptService = services.taxReceipt;
 
+const sendGuardFailure = (
+  req: AuthRequest,
+  res: Response,
+  error: { code: string; message: string; statusCode: number }
+): void => {
+  sendError(
+    res,
+    error.code.toUpperCase(),
+    error.message,
+    error.statusCode,
+    undefined,
+    req.correlationId
+  );
+};
+
+const requireDonationOrganization = async (
+  req: AuthRequest,
+  res: Response
+): Promise<string | null> => {
+  const orgResult = await requireActiveOrganizationSafe(req);
+  if (!orgResult.ok) {
+    sendGuardFailure(req, res, orgResult.error);
+    return null;
+  }
+
+  return orgResult.data.organizationId;
+};
+
 export class DonationController {
   /**
    * Get all donations
    */
   async getDonations(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
+      const organizationId = await requireDonationOrganization(req, res);
+      if (!organizationId) return;
+
       const filters = {
         search: getString(req.query.search),
         account_id: getString(req.query.account_id),
@@ -52,7 +83,12 @@ export class DonationController {
       const pagination = extractPagination(req.query);
 
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
-      const result = await donationService.getDonations(filters, pagination, scope);
+      const result = await donationService.getDonations(
+        filters,
+        pagination,
+        organizationId,
+        scope
+      );
       sendSuccess(res, result);
     } catch (error) {
       next(error);
@@ -64,8 +100,15 @@ export class DonationController {
    */
   async getDonationById(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
+      const organizationId = await requireDonationOrganization(req, res);
+      if (!organizationId) return;
+
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
-      const donation = await donationService.getDonationById(req.params.id, scope);
+      const donation = await donationService.getDonationById(
+        req.params.id,
+        organizationId,
+        scope
+      );
       
       if (!donation) {
         notFound(res, 'Donation');
@@ -83,13 +126,16 @@ export class DonationController {
    */
   async createDonation(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
+      const organizationId = await requireDonationOrganization(req, res);
+      if (!organizationId) return;
+
       const donationData: CreateDonationDTO = req.body;
       const userId = req.user!.id;
 
       const donation = await donationService.createDonation(
         donationData,
         userId,
-        req.organizationId || req.accountId || req.tenantId || null
+        organizationId
       );
       sendSuccess(res, donation, 201);
     } catch (error) {
@@ -102,6 +148,9 @@ export class DonationController {
    */
   async updateDonation(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
+      const organizationId = await requireDonationOrganization(req, res);
+      if (!organizationId) return;
+
       const donationData: UpdateDonationDTO = req.body;
       const userId = req.user!.id;
 
@@ -109,7 +158,7 @@ export class DonationController {
         req.params.id,
         donationData,
         userId,
-        req.organizationId || req.accountId || req.tenantId || null
+        organizationId
       );
 
       if (!donation) {
@@ -128,7 +177,10 @@ export class DonationController {
    */
   async deleteDonation(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const deleted = await donationService.deleteDonation(req.params.id);
+      const organizationId = await requireDonationOrganization(req, res);
+      if (!organizationId) return;
+
+      const deleted = await donationService.deleteDonation(req.params.id, organizationId);
 
       if (!deleted) {
         notFound(res, 'Donation');
@@ -146,8 +198,19 @@ export class DonationController {
    */
   async markReceiptSent(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
+      const organizationId = await requireDonationOrganization(req, res);
+      if (!organizationId) return;
+
       const userId = req.user!.id;
-      const donation = await donationService.markReceiptSent(req.params.id, userId);
+      const donation = await donationService.markReceiptSent(
+        req.params.id,
+        userId,
+        organizationId
+      );
+      if (!donation) {
+        notFound(res, 'Donation');
+        return;
+      }
       sendSuccess(res, donation);
     } catch (error) {
       next(error);
@@ -159,6 +222,9 @@ export class DonationController {
    */
   async getDonationSummary(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
+      const organizationId = await requireDonationOrganization(req, res);
+      if (!organizationId) return;
+
       const filters = {
         account_id: getString(req.query.account_id),
         contact_id: getString(req.query.contact_id),
@@ -167,7 +233,7 @@ export class DonationController {
       };
 
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
-      const summary = await donationService.getDonationSummary(filters, scope);
+      const summary = await donationService.getDonationSummary(filters, organizationId, scope);
       sendSuccess(res, summary);
     } catch (error) {
       next(error);
@@ -178,14 +244,7 @@ export class DonationController {
     try {
       const orgResult = await requireActiveOrganizationSafe(req);
       if (!orgResult.ok) {
-        sendError(
-          res,
-          orgResult.error.code.toUpperCase(),
-          orgResult.error.message,
-          orgResult.error.statusCode,
-          undefined,
-          req.correlationId
-        );
+        sendGuardFailure(req, res, orgResult.error);
         return;
       }
 
@@ -204,14 +263,7 @@ export class DonationController {
     try {
       const orgResult = await requireActiveOrganizationSafe(req);
       if (!orgResult.ok) {
-        sendError(
-          res,
-          orgResult.error.code.toUpperCase(),
-          orgResult.error.message,
-          orgResult.error.statusCode,
-          undefined,
-          req.correlationId
-        );
+        sendGuardFailure(req, res, orgResult.error);
         return;
       }
 
@@ -226,14 +278,7 @@ export class DonationController {
     try {
       const orgResult = await requireActiveOrganizationSafe(req);
       if (!orgResult.ok) {
-        sendError(
-          res,
-          orgResult.error.code.toUpperCase(),
-          orgResult.error.message,
-          orgResult.error.statusCode,
-          undefined,
-          req.correlationId
-        );
+        sendGuardFailure(req, res, orgResult.error);
         return;
       }
 
@@ -256,14 +301,7 @@ export class DonationController {
     try {
       const orgResult = await requireActiveOrganizationSafe(req);
       if (!orgResult.ok) {
-        sendError(
-          res,
-          orgResult.error.code.toUpperCase(),
-          orgResult.error.message,
-          orgResult.error.statusCode,
-          undefined,
-          req.correlationId
-        );
+        sendGuardFailure(req, res, orgResult.error);
         return;
       }
 
@@ -286,14 +324,7 @@ export class DonationController {
     try {
       const orgResult = await requireActiveOrganizationSafe(req);
       if (!orgResult.ok) {
-        sendError(
-          res,
-          orgResult.error.code.toUpperCase(),
-          orgResult.error.message,
-          orgResult.error.statusCode,
-          undefined,
-          req.correlationId
-        );
+        sendGuardFailure(req, res, orgResult.error);
         return;
       }
 
@@ -348,14 +379,7 @@ export class DonationController {
     try {
       const orgResult = await requireActiveOrganizationSafe(req);
       if (!orgResult.ok) {
-        sendError(
-          res,
-          orgResult.error.code.toUpperCase(),
-          orgResult.error.message,
-          orgResult.error.statusCode,
-          undefined,
-          req.correlationId
-        );
+        sendGuardFailure(req, res, orgResult.error);
         return;
       }
 

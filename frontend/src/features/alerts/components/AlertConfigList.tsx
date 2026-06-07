@@ -114,12 +114,12 @@ export default function AlertConfigList({
                     <span className="font-medium">Condition:</span>{' '}
                     {getAlertConditionLabel(config.condition)}
                   </div>
-                  {config.threshold !== undefined ? (
+                  {config.threshold != null ? (
                     <div>
                       <span className="font-medium">Threshold:</span> {config.threshold}
                     </div>
                   ) : null}
-                  {config.percentage_change !== undefined ? (
+                  {config.percentage_change != null ? (
                     <div>
                       <span className="font-medium">Change:</span> {config.percentage_change}%
                     </div>

@@ -19,6 +19,7 @@ import {
   getAlertStats,
 } from '../controllers';
 import { authenticate } from '@middleware/domains/auth';
+import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import { uuidSchema, optionalStrictBooleanSchema } from '@validations/shared';
 
@@ -42,7 +43,10 @@ const alertConditionSchema = z.enum([
 ]);
 
 const alertFrequencySchema = z.enum(['real_time', 'daily', 'weekly', 'monthly']);
+const alertChannelSchema = z.enum(['email', 'in_app', 'slack', 'webhook']);
 const alertSeveritySchema = z.enum(['low', 'medium', 'high', 'critical']);
+const alertInstanceStatusSchema = z.enum(['triggered', 'resolved']);
+const alertRecipientSchema = z.string().trim().email().max(320);
 
 const alertIdParamsSchema = z.object({
   id: uuidSchema,
@@ -57,47 +61,34 @@ const createAlertConfigSchema = z.object({
   percentage_change: z.coerce.number().optional(),
   sensitivity: z.coerce.number().min(1).max(4).optional(),
   frequency: alertFrequencySchema,
-  channels: z.array(z.unknown()),
+  channels: z.array(alertChannelSchema).min(1),
   severity: alertSeveritySchema,
   enabled: optionalStrictBooleanSchema,
-  recipients: z.array(z.unknown()).optional(),
+  recipients: z.array(alertRecipientSchema).optional(),
   filters: z.record(z.string(), z.unknown()).optional(),
 });
 
-const updateAlertConfigSchema = z.object({
-  name: z.string().trim().min(1).optional(),
-  description: z.string().trim().optional(),
-  metric_type: z.string().optional(),
-  condition: z.string().optional(),
-  threshold: z.coerce.number().optional(),
-  percentage_change: z.coerce.number().optional(),
-  sensitivity: z.coerce.number().min(1).max(4).optional(),
-  frequency: z.string().optional(),
-  channels: z.array(z.unknown()).optional(),
-  severity: z.string().optional(),
-  enabled: optionalStrictBooleanSchema,
-  recipients: z.array(z.unknown()).optional(),
-  filters: z.record(z.string(), z.unknown()).optional(),
-});
+const updateAlertConfigSchema = createAlertConfigSchema.partial();
 
 const testAlertConfigSchema = z.object({
-  metric_type: z.string().min(1),
-  condition: z.string().min(1),
+  metric_type: alertMetricTypeSchema,
+  condition: alertConditionSchema,
   threshold: z.coerce.number().optional(),
   percentage_change: z.coerce.number().optional(),
   sensitivity: z.coerce.number().min(1).max(4).optional(),
+  filters: z.record(z.string(), z.unknown()).optional(),
 });
 
 const alertInstancesQuerySchema = z
   .object({
-    status: z.string().optional(),
-    severity: z.string().optional(),
+    status: alertInstanceStatusSchema.optional(),
+    severity: alertSeveritySchema.optional(),
     limit: z.coerce.number().int().min(1).max(100).optional(),
   })
   .strict();
 
 // All routes require authentication
-router.use(authenticate);
+router.use(authenticate, requireActiveOrganizationContext);
 
 /**
  * GET /api/alerts/configs

@@ -51,12 +51,12 @@ describe('AlertsUseCase', () => {
 
       mockPool.query.mockResolvedValue({ rows: mockAlerts } as any);
 
-      const result = await alertService.getUserAlerts('user-1');
+      const result = await alertService.getUserAlerts('user-1', 'org-1');
 
       expect(result).toEqual(mockAlerts);
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining('FROM alert_configs'),
-        ['user-1']
+        ['user-1', 'org-1']
       );
     });
   });
@@ -65,6 +65,7 @@ describe('AlertsUseCase', () => {
     it('should create a new alert configuration', async () => {
       const createData: CreateAlertDTO = {
         user_id: 'user-1',
+        organization_id: 'org-1',
         name: 'Test Alert',
         metric_type: 'donations',
         condition: 'exceeds',
@@ -91,6 +92,7 @@ describe('AlertsUseCase', () => {
         expect.stringContaining('INSERT INTO alert_configs'),
         expect.arrayContaining([
           'user-1',
+          'org-1',
           'Test Alert',
           expect.anything(), // description
           'donations',
@@ -105,6 +107,7 @@ describe('AlertsUseCase', () => {
     it('should test exceeds condition', async () => {
       const testData: CreateAlertDTO = {
         user_id: 'user-1',
+        organization_id: 'org-1',
         name: 'Test',
         metric_type: 'donations',
         condition: 'exceeds',
@@ -124,11 +127,16 @@ describe('AlertsUseCase', () => {
       expect(result.current_value).toBe(75);
       expect(result.threshold_value).toBe(50);
       expect(result.message).toContain('exceeds threshold');
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining('COALESCE(d.account_id, c.account_id) = $1'),
+        ['org-1']
+      );
     });
 
     it('should test drops_below condition', async () => {
       const testData: CreateAlertDTO = {
         user_id: 'user-1',
+        organization_id: 'org-1',
         name: 'Test',
         metric_type: 'donations',
         condition: 'drops_below',
@@ -152,6 +160,7 @@ describe('AlertsUseCase', () => {
     it('should not trigger when condition not met', async () => {
       const testData: CreateAlertDTO = {
         user_id: 'user-1',
+        organization_id: 'org-1',
         name: 'Test',
         metric_type: 'donations',
         condition: 'exceeds',
@@ -183,12 +192,12 @@ describe('AlertsUseCase', () => {
 
       mockPool.query.mockResolvedValue({ rows: [mockToggled] } as any);
 
-      const result = await alertService.toggleAlert('123', 'user-1');
+      const result = await alertService.toggleAlert('123', 'user-1', 'org-1');
 
       expect(result).toEqual(mockToggled);
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining('enabled = NOT enabled'),
-        ['123', 'user-1']
+        ['123', 'user-1', 'org-1']
       );
     });
   });
@@ -218,7 +227,7 @@ describe('AlertsUseCase', () => {
           ],
         } as any); // by metric
 
-      const result = await alertService.getAlertStats('user-1');
+      const result = await alertService.getAlertStats('user-1', 'org-1');
 
       expect(result).toEqual({
         total_alerts: 5,
@@ -253,12 +262,12 @@ describe('AlertsUseCase', () => {
 
       mockPool.query.mockResolvedValue({ rows: [mockAcknowledged] } as any);
 
-      const result = await alertService.acknowledgeAlert('123', 'user-1');
+      const result = await alertService.acknowledgeAlert('123', 'user-1', 'org-1');
 
       expect(result).toEqual(mockAcknowledged);
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining('acknowledged_by = $1'),
-        ['user-1', '123']
+        ['user-1', '123', 'org-1']
       );
     });
   });
@@ -273,12 +282,12 @@ describe('AlertsUseCase', () => {
 
       mockPool.query.mockResolvedValue({ rows: [mockResolved] } as any);
 
-      const result = await alertService.resolveAlert('123', 'user-1');
+      const result = await alertService.resolveAlert('123', 'user-1', 'org-1');
 
       expect(result).toEqual(mockResolved);
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining("status = 'resolved'"),
-        ['123', 'user-1']
+        ['123', 'user-1', 'org-1']
       );
     });
   });
@@ -287,19 +296,19 @@ describe('AlertsUseCase', () => {
     it('should delete an alert configuration', async () => {
       mockPool.query.mockResolvedValue({ rowCount: 1 } as any);
 
-      const result = await alertService.deleteAlert('123', 'user-1');
+      const result = await alertService.deleteAlert('123', 'user-1', 'org-1');
 
       expect(result).toBe(true);
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining('DELETE FROM alert_configs'),
-        ['123', 'user-1']
+        ['123', 'user-1', 'org-1']
       );
     });
 
     it('should return false if alert not found', async () => {
       mockPool.query.mockResolvedValue({ rowCount: 0 } as any);
 
-      const result = await alertService.deleteAlert('999', 'user-1');
+      const result = await alertService.deleteAlert('999', 'user-1', 'org-1');
 
       expect(result).toBe(false);
     });

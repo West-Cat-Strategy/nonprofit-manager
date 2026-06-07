@@ -83,7 +83,13 @@ describe('Legacy API tombstone contract', () => {
     async (endpoint) => {
       const response = await runV2Request(endpoint);
 
-      expect(response.status).not.toBe(410);
+      if (endpoint.v2Path === '/api/v2/public/reports/sample-token') {
+        expect(response.status).toBe(410);
+        expect(response.body).toHaveProperty('error.code', 'legacy_token_path_disabled');
+      } else {
+        expect(response.status).not.toBe(410);
+      }
+
       if (response.body?.error?.code) {
         expect(response.body.error.code).not.toBe('legacy_api_removed');
       }

@@ -11,9 +11,21 @@ import type {
   CreateAlertDTO,
   UpdateAlertDTO,
 } from '../types';
-import { notFoundMessage } from '@utils/responseHelpers';
+import { forbidden, notFoundMessage } from '@utils/responseHelpers';
 
 const alertService = services.alert;
+
+const requireAlertOrganization = (
+  req: AuthRequest,
+  res: Response
+): string | null => {
+  if (!req.organizationId) {
+    forbidden(res, 'Active organization context required');
+    return null;
+  }
+
+  return req.organizationId;
+};
 
 /**
  * GET /api/alerts/configs
@@ -25,7 +37,10 @@ export const getAlertConfigs = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const alerts = await alertService.getUserAlerts(req.user!.id);
+    const organizationId = requireAlertOrganization(req, res);
+    if (!organizationId) return;
+
+    const alerts = await alertService.getUserAlerts(req.user!.id, organizationId);
     res.json(alerts);
   } catch (error) {
     next(error);
@@ -42,8 +57,11 @@ export const getAlertConfig = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const organizationId = requireAlertOrganization(req, res);
+    if (!organizationId) return;
+
     const { id } = req.params;
-    const alert = await alertService.getAlert(id, req.user!.id);
+    const alert = await alertService.getAlert(id, req.user!.id, organizationId);
 
     if (!alert) {
       notFoundMessage(res, 'Alert configuration not found');
@@ -66,9 +84,13 @@ export const createAlertConfig = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const organizationId = requireAlertOrganization(req, res);
+    if (!organizationId) return;
+
     const data: CreateAlertDTO = {
       ...req.body,
       user_id: req.user!.id,
+      organization_id: organizationId,
     };
 
     const alert = await alertService.createAlert(data);
@@ -88,10 +110,13 @@ export const updateAlertConfig = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const organizationId = requireAlertOrganization(req, res);
+    if (!organizationId) return;
+
     const { id } = req.params;
     const data: UpdateAlertDTO = req.body;
 
-    const alert = await alertService.updateAlert(id, req.user!.id, data);
+    const alert = await alertService.updateAlert(id, req.user!.id, organizationId, data);
 
     if (!alert) {
       notFoundMessage(res, 'Alert configuration not found');
@@ -114,8 +139,11 @@ export const deleteAlertConfig = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const organizationId = requireAlertOrganization(req, res);
+    if (!organizationId) return;
+
     const { id } = req.params;
-    const deleted = await alertService.deleteAlert(id, req.user!.id);
+    const deleted = await alertService.deleteAlert(id, req.user!.id, organizationId);
 
     if (!deleted) {
       notFoundMessage(res, 'Alert configuration not found');
@@ -138,8 +166,11 @@ export const toggleAlertConfig = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const organizationId = requireAlertOrganization(req, res);
+    if (!organizationId) return;
+
     const { id } = req.params;
-    const alert = await alertService.toggleAlert(id, req.user!.id);
+    const alert = await alertService.toggleAlert(id, req.user!.id, organizationId);
 
     if (!alert) {
       notFoundMessage(res, 'Alert configuration not found');
@@ -162,9 +193,13 @@ export const testAlertConfig = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const organizationId = requireAlertOrganization(req, res);
+    if (!organizationId) return;
+
     const data: CreateAlertDTO = {
       ...req.body,
       user_id: req.user!.id,
+      organization_id: organizationId,
     };
 
     const result = await alertService.testAlert(data);
@@ -184,8 +219,12 @@ export const getAlertInstances = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const organizationId = requireAlertOrganization(req, res);
+    if (!organizationId) return;
+
     const instances = await alertService.getAlertInstances(
       req.user!.id,
+      organizationId,
       (req.validatedQuery ?? req.query) as AlertInstanceFiltersInput
     );
     res.json(instances);
@@ -204,8 +243,11 @@ export const acknowledgeAlert = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const organizationId = requireAlertOrganization(req, res);
+    if (!organizationId) return;
+
     const { id } = req.params;
-    const instance = await alertService.acknowledgeAlert(id, req.user!.id);
+    const instance = await alertService.acknowledgeAlert(id, req.user!.id, organizationId);
 
     if (!instance) {
       notFoundMessage(res, 'Alert instance not found');
@@ -228,8 +270,11 @@ export const resolveAlert = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const organizationId = requireAlertOrganization(req, res);
+    if (!organizationId) return;
+
     const { id } = req.params;
-    const instance = await alertService.resolveAlert(id, req.user!.id);
+    const instance = await alertService.resolveAlert(id, req.user!.id, organizationId);
 
     if (!instance) {
       notFoundMessage(res, 'Alert instance not found');
@@ -252,7 +297,10 @@ export const getAlertStats = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const stats = await alertService.getAlertStats(req.user!.id);
+    const organizationId = requireAlertOrganization(req, res);
+    if (!organizationId) return;
+
+    const stats = await alertService.getAlertStats(req.user!.id, organizationId);
     res.json(stats);
   } catch (error) {
     next(error);
