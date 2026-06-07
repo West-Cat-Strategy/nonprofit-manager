@@ -1,58 +1,60 @@
-import request from 'supertest';
+import request, { type Test } from 'supertest';
 import app from '../../index';
 import pool from '../../config/database';
+import {
+  createIntegrationAuthContext,
+  deleteIntegrationAuthFixtures,
+} from './helpers/authFixtures';
 
 describe('Account API Integration Tests', () => {
   let authToken: string;
-  let testAccountId: string;
+  let userId: string;
+  let organizationId: string;
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  const tokenFromResponse = (body: unknown): string | undefined => {
-    if (typeof body !== 'object' || body === null) {
-      return undefined;
-    }
-    const value = body as { token?: string; data?: { token?: string } };
-    return value.token || value.data?.token;
-  };
+  const withAuth = (req: Test): Test =>
+    req
+      .set('Authorization', `Bearer ${authToken}`)
+      .set('X-Organization-Id', organizationId);
 
   beforeAll(async () => {
-    // Register and login to get auth token
-    const email = `account-test-${unique()}@example.com`;
-    const registerResponse = await request(app)
-      .post('/api/v2/auth/register')
-      .send({
-        email,
-        password: 'Test123!Strong',
-        password_confirm: 'Test123!Strong',
-        first_name: 'Account',
-        last_name: 'Tester',
-      });
-
-    const registeredToken = tokenFromResponse(registerResponse.body);
-    expect(registeredToken).toBeTruthy();
-
-    await pool.query('UPDATE users SET role = $1 WHERE email = $2', ['admin', email.toLowerCase()]);
-
-    const loginResponse = await request(app)
-      .post('/api/v2/auth/login')
-      .send({ email, password: 'Test123!Strong' })
-      .expect(200);
-
-    authToken = tokenFromResponse(loginResponse.body) || '';
-    expect(authToken).toBeTruthy();
+    const authContext = await createIntegrationAuthContext({
+      emailPrefix: 'account-test',
+      accountName: `Account Test Organization ${unique()}`,
+      role: 'admin',
+    });
+    authToken = authContext.authToken;
+    userId = authContext.userId;
+    organizationId = authContext.organizationId;
   });
 
   afterAll(async () => {
-    // Clean up test data
-    if (testAccountId) {
-      await pool.query('DELETE FROM accounts WHERE id = $1', [testAccountId]);
+    if (userId) {
+      await pool.query(
+        `DELETE FROM user_account_access
+         WHERE account_id IN (
+           SELECT id
+           FROM accounts
+           WHERE created_by = $1
+              OR modified_by = $1
+         )`,
+        [userId]
+      );
+      await pool.query(
+        `DELETE FROM accounts
+         WHERE created_by = $1
+            OR modified_by = $1`,
+        [userId]
+      );
     }
+    await deleteIntegrationAuthFixtures({
+      userIds: userId ? [userId] : [],
+      organizationIds: organizationId ? [organizationId] : [],
+    });
   });
 
   describe('POST /api/v2/accounts', () => {
     it('should create a new account with valid data', async () => {
-      const response = await request(app)
-        .post('/api/v2/accounts')
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await withAuth(request(app).post('/api/v2/accounts'))
         .send({
           account_name: 'Test Organization',
           account_type: 'organization',
@@ -64,7 +66,6 @@ describe('Account API Integration Tests', () => {
       expect(response.body).toHaveProperty('account_id');
       expect(response.body.account_name).toBe('Test Organization');
       expect(response.body.account_type).toBe('organization');
-      testAccountId = response.body.account_id;
     });
 
     it('should require authentication', async () => {
@@ -78,9 +79,7 @@ describe('Account API Integration Tests', () => {
     });
 
     it('should require account_name field', async () => {
-      const response = await request(app)
-        .post('/api/v2/accounts')
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await withAuth(request(app).post('/api/v2/accounts'))
         .send({
           account_name: 'Required Field Test',
           account_type: 'organization',
@@ -94,9 +93,7 @@ describe('Account API Integration Tests', () => {
     // Note: Email validation may be handled at form level, not API level
     // The API currently accepts any email format
     it('should accept email field', async () => {
-      const response = await request(app)
-        .post('/api/v2/accounts')
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await withAuth(request(app).post('/api/v2/accounts'))
         .send({
           account_name: 'Email Test Account',
           account_type: 'individual',
@@ -110,9 +107,7 @@ describe('Account API Integration Tests', () => {
     // Note: Account type validation may be handled at form level
     // The API currently accepts any account_type value
     it('should accept account_type field', async () => {
-      const response = await request(app)
-        .post('/api/v2/accounts')
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await withAuth(request(app).post('/api/v2/accounts'))
         .send({
           account_name: 'Type Test Account',
           account_type: 'organization',
@@ -125,9 +120,7 @@ describe('Account API Integration Tests', () => {
 
   describe('GET /api/v2/accounts', () => {
     it('should return paginated list of accounts', async () => {
-      const response = await request(app)
-        .get('/api/v2/accounts')
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await withAuth(request(app).get('/api/v2/accounts'))
         .expect(200);
 
       const payload = response.body.data?.data ? response.body.data : response.body;
@@ -140,18 +133,14 @@ describe('Account API Integration Tests', () => {
     });
 
     it('should support search query', async () => {
-      const response = await request(app)
-        .get('/api/v2/accounts?search=Test')
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await withAuth(request(app).get('/api/v2/accounts?search=Test'))
         .expect(200);
 
       expect(response.body).toHaveProperty('data');
     });
 
     it('should support pagination parameters', async () => {
-      const response = await request(app)
-        .get('/api/v2/accounts?page=1&limit=5')
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await withAuth(request(app).get('/api/v2/accounts?page=1&limit=5'))
         .expect(200);
 
       const payload = response.body.data?.data ? response.body.data : response.body;
@@ -163,9 +152,7 @@ describe('Account API Integration Tests', () => {
     });
 
     it('should filter by account type', async () => {
-      const response = await request(app)
-        .get('/api/v2/accounts?account_type=organization')
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await withAuth(request(app).get('/api/v2/accounts?account_type=organization'))
         .expect(200);
 
       expect(response.body).toHaveProperty('data');
@@ -179,9 +166,7 @@ describe('Account API Integration Tests', () => {
   describe('GET /api/v2/accounts/:id', () => {
     it('should return a single account by ID', async () => {
       // First create an account
-      const createResponse = await request(app)
-        .post('/api/v2/accounts')
-        .set('Authorization', `Bearer ${authToken}`)
+      const createResponse = await withAuth(request(app).post('/api/v2/accounts'))
         .send({
           account_name: 'Single Account Test',
           account_type: 'individual',
@@ -189,9 +174,7 @@ describe('Account API Integration Tests', () => {
 
       const accountId = createResponse.body.account_id;
 
-      const response = await request(app)
-        .get(`/api/v2/accounts/${accountId}`)
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await withAuth(request(app).get(`/api/v2/accounts/${accountId}`))
         .expect(200);
 
       expect(response.body.account_id).toBe(accountId);
@@ -199,9 +182,7 @@ describe('Account API Integration Tests', () => {
     });
 
     it('should return 404 for non-existent account', async () => {
-      await request(app)
-        .get('/api/v2/accounts/00000000-0000-0000-0000-000000000000')
-        .set('Authorization', `Bearer ${authToken}`)
+      await withAuth(request(app).get('/api/v2/accounts/00000000-0000-0000-0000-000000000000'))
         .expect(404);
     });
 
@@ -213,9 +194,7 @@ describe('Account API Integration Tests', () => {
   describe('PUT /api/v2/accounts/:id', () => {
     it('should update an existing account', async () => {
       // Create account first
-      const createResponse = await request(app)
-        .post('/api/v2/accounts')
-        .set('Authorization', `Bearer ${authToken}`)
+      const createResponse = await withAuth(request(app).post('/api/v2/accounts'))
         .send({
           account_name: 'Original Name',
           account_type: 'organization',
@@ -224,9 +203,7 @@ describe('Account API Integration Tests', () => {
       const accountId = createResponse.body.account_id;
 
       // Update account
-      const response = await request(app)
-        .put(`/api/v2/accounts/${accountId}`)
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await withAuth(request(app).put(`/api/v2/accounts/${accountId}`))
         .send({
           account_name: 'Updated Name',
           email: 'updated@example.com',
@@ -238,9 +215,7 @@ describe('Account API Integration Tests', () => {
     });
 
     it('should return 404 for non-existent account', async () => {
-      await request(app)
-        .put('/api/v2/accounts/00000000-0000-0000-0000-000000000000')
-        .set('Authorization', `Bearer ${authToken}`)
+      await withAuth(request(app).put('/api/v2/accounts/00000000-0000-0000-0000-000000000000'))
         .send({
           account_name: 'Updated Name',
         })
@@ -248,9 +223,7 @@ describe('Account API Integration Tests', () => {
     });
 
     it('should allow updating email field', async () => {
-      const createResponse = await request(app)
-        .post('/api/v2/accounts')
-        .set('Authorization', `Bearer ${authToken}`)
+      const createResponse = await withAuth(request(app).post('/api/v2/accounts'))
         .send({
           account_name: 'Test Account',
           account_type: 'individual',
@@ -258,9 +231,7 @@ describe('Account API Integration Tests', () => {
 
       const accountId = createResponse.body.account_id;
 
-      const response = await request(app)
-        .put(`/api/v2/accounts/${accountId}`)
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await withAuth(request(app).put(`/api/v2/accounts/${accountId}`))
         .send({
           email: 'newemail@example.com',
         })
@@ -277,9 +248,7 @@ describe('Account API Integration Tests', () => {
   describe('DELETE /api/v2/accounts/:id', () => {
     it('should soft delete an account', async () => {
       // Create account
-      const createResponse = await request(app)
-        .post('/api/v2/accounts')
-        .set('Authorization', `Bearer ${authToken}`)
+      const createResponse = await withAuth(request(app).post('/api/v2/accounts'))
         .send({
           account_name: 'To Be Deleted',
           account_type: 'individual',
@@ -288,24 +257,18 @@ describe('Account API Integration Tests', () => {
       const accountId = createResponse.body.account_id;
 
       // Delete account - returns 204 No Content
-      await request(app)
-        .delete(`/api/v2/accounts/${accountId}`)
-        .set('Authorization', `Bearer ${authToken}`)
+      await withAuth(request(app).delete(`/api/v2/accounts/${accountId}`))
         .expect(204);
 
       // Verify it's marked as inactive
-      const response = await request(app)
-        .get(`/api/v2/accounts/${accountId}`)
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await withAuth(request(app).get(`/api/v2/accounts/${accountId}`))
         .expect(200);
 
       expect(response.body.is_active).toBe(false);
     });
 
     it('should return 404 for non-existent account', async () => {
-      await request(app)
-        .delete('/api/v2/accounts/00000000-0000-0000-0000-000000000000')
-        .set('Authorization', `Bearer ${authToken}`)
+      await withAuth(request(app).delete('/api/v2/accounts/00000000-0000-0000-0000-000000000000'))
         .expect(404);
     });
 

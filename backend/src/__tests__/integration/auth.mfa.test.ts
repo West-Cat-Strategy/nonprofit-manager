@@ -6,6 +6,10 @@ import pool from '../../config/database';
 import { encrypt } from '../../utils/encryption';
 import { getJwtSecret } from '../../config/jwt';
 import { enrollTotpSecret, generateTotpCodeForTest } from '../../modules/auth/lib/totp';
+import {
+  createIntegrationOrganization,
+  grantIntegrationOrganizationAccess,
+} from './helpers/authFixtures';
 
 describe('Auth MFA Integration Tests', () => {
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -13,6 +17,7 @@ describe('Auth MFA Integration Tests', () => {
   const mfaPassword = 'StrongPassword123!';
   const { secret: mfaSecret } = enrollTotpSecret(mfaEmail, 'Nonprofit Manager');
   let expectedOrganizationId: string;
+  let mfaUserId: string;
 
   beforeAll(async () => {
     const passwordHash = await bcrypt.hash(mfaPassword, 10);
@@ -34,40 +39,20 @@ describe('Auth MFA Integration Tests', () => {
       [mfaEmail, passwordHash, encrypt(mfaSecret)]
     );
 
-    const userId = userResult.rows[0].id;
+    mfaUserId = userResult.rows[0].id;
 
-    const existingOrganization = await pool.query<{ id: string }>(
-      `SELECT id
-       FROM accounts
-       WHERE account_type = 'organization'
-         AND COALESCE(is_active, true) = true
-       ORDER BY created_at ASC
-       LIMIT 1`
-    );
+    const organization = await createIntegrationOrganization({
+      accountName: `MFA Test Org ${unique()}`,
+      createdBy: mfaUserId,
+    });
+    expectedOrganizationId = organization.id;
 
-    if (existingOrganization.rows[0]?.id) {
-      expectedOrganizationId = existingOrganization.rows[0].id;
-    } else {
-      const createdOrganization = await pool.query<{ id: string }>(
-        `INSERT INTO accounts (account_name, account_type, created_by, modified_by)
-         VALUES ($1, 'organization', $2, $2)
-         RETURNING id`,
-        [`MFA Test Org ${unique()}`, userId]
-      );
-
-      expectedOrganizationId = createdOrganization.rows[0].id;
-    }
-
-    await pool.query(
-      `INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active)
-       VALUES ($1, $2, 'viewer', $1, TRUE)
-       ON CONFLICT (user_id, account_id)
-       DO UPDATE SET
-         access_level = EXCLUDED.access_level,
-         granted_by = EXCLUDED.granted_by,
-         is_active = TRUE`,
-      [userId, expectedOrganizationId]
-    );
+    await grantIntegrationOrganizationAccess({
+      userId: mfaUserId,
+      organizationId: expectedOrganizationId,
+      role: 'viewer',
+      grantedBy: mfaUserId,
+    });
   });
 
   afterAll(async () => {

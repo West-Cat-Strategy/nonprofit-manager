@@ -3,11 +3,13 @@ import { render, screen, waitFor } from '@testing-library/react';
 import PublicReportSnapshotPage from '../PublicReportSnapshotPage';
 import { savedReportsApiClient } from '../../api/savedReportsApiClient';
 
+const routeParams = vi.hoisted(() => ({ token: 'token-1' as string | undefined }));
+
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
     ...actual,
-    useParams: () => ({ token: 'token-1' }),
+    useParams: () => (routeParams.token ? { token: routeParams.token } : {}),
     useLocation: () => ({ pathname: '/public/reports', search: '', hash: window.location.hash }),
   };
 });
@@ -26,6 +28,7 @@ const mockSavedReportsApi = savedReportsApiClient as unknown as {
 describe('PublicReportSnapshotPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    routeParams.token = 'token-1';
     window.history.replaceState(null, '', '/');
   });
 
@@ -83,6 +86,7 @@ describe('PublicReportSnapshotPage', () => {
   });
 
   it('reads fragment tokens and scrubs the visible URL', async () => {
+    routeParams.token = undefined;
     window.history.replaceState(null, '', '/public/reports#fragment-token');
     mockSavedReportsApi.fetchPublicReportMetadata.mockResolvedValue({
       token: 'fragment-token',

@@ -155,7 +155,10 @@ test.describe('Firefox field typing stability', () => {
 
     await authenticatedPage.getByRole('tab', { name: /tasks/i }).click();
     const tasksPanel = authenticatedPage.locator('#tabpanel-tasks');
-    await tasksPanel.getByRole('button', { name: /new task/i }).click();
+    const newTaskButton = tasksPanel.getByRole('button', { name: /new task/i });
+    await expect(newTaskButton).toBeVisible();
+    await newTaskButton.focus();
+    await newTaskButton.press('Enter');
     await typeSequentiallyAndExpect(
       tasksPanel.getByLabel(/subject/i),
       `Firefox task ${suffix}`

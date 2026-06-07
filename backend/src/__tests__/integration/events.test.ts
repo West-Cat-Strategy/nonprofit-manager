@@ -3,6 +3,7 @@ import { Client } from 'pg';
 import app from '../../index';
 import pool from '../../config/database';
 import { issueAppSessionToken } from '../../utils/sessionTokens';
+import { grantIntegrationOrganizationAccess } from './helpers/authFixtures';
 
 describe('Event API Integration Tests', () => {
   let authToken: string;
@@ -201,6 +202,18 @@ describe('Event API Integration Tests', () => {
     secondaryOrganizationId = secondaryOrgResult.rows[0].id;
     createdAccountIds.push(secondaryOrganizationId);
 
+    await grantIntegrationOrganizationAccess({
+      userId: adminUserId,
+      organizationId,
+      role: 'admin',
+      grantedBy: adminUserId,
+    });
+    await grantIntegrationOrganizationAccess({
+      userId: managerUserId,
+      organizationId,
+      role: 'manager',
+      grantedBy: adminUserId,
+    });
   });
 
   beforeEach(async () => {
@@ -257,10 +270,16 @@ describe('Event API Integration Tests', () => {
     }
 
     if (createdAccountIds.length > 0) {
+      await pool.query('DELETE FROM user_account_access WHERE account_id = ANY($1::uuid[])', [
+        createdAccountIds,
+      ]);
       await pool.query('DELETE FROM accounts WHERE id = ANY($1::uuid[])', [createdAccountIds]);
     }
 
     if (createdUserIds.length > 0) {
+      await pool.query('DELETE FROM user_account_access WHERE user_id = ANY($1::uuid[])', [
+        createdUserIds,
+      ]);
       await pool.query('DELETE FROM users WHERE id = ANY($1::uuid[])', [createdUserIds]);
     }
 
@@ -268,6 +287,7 @@ describe('Event API Integration Tests', () => {
       await pool.query('DELETE FROM events WHERE created_by = $1 OR modified_by = $1', [
         adminUserId,
       ]);
+      await pool.query('DELETE FROM user_account_access WHERE user_id = $1', [adminUserId]);
       await pool.query('DELETE FROM users WHERE id = $1', [adminUserId]);
     }
   });
@@ -433,6 +453,7 @@ describe('Event API Integration Tests', () => {
       const response = await request(app)
         .post('/api/v2/events')
         .set('Authorization', `Bearer ${authToken}`)
+        .set('X-Organization-Id', organizationId)
         .send({
           event_name: 'Annual Fundraiser Gala',
           event_type: 'fundraiser',
@@ -2235,6 +2256,7 @@ describe('Event API Integration Tests', () => {
       const createEventResponse = await request(app)
         .post('/api/v2/events')
         .set('Authorization', `Bearer ${authToken}`)
+        .set('X-Organization-Id', organizationId)
         .send({
           event_name: 'Recurring Public Kiosk Event',
           event_type: 'community',
@@ -2254,6 +2276,7 @@ describe('Event API Integration Tests', () => {
       const detailResponse = await request(app)
         .get(`/api/v2/events/${eventId}`)
         .set('Authorization', `Bearer ${authToken}`)
+        .set('X-Organization-Id', organizationId)
         .expect(200);
       const detail = unwrap<{
         next_occurrence_id?: string | null;
@@ -2265,6 +2288,7 @@ describe('Event API Integration Tests', () => {
       const rotateResponse = await request(app)
         .post(`/api/v2/events/${eventId}/check-in/pin/rotate`)
         .set('Authorization', `Bearer ${authToken}`)
+        .set('X-Organization-Id', organizationId)
         .send({ occurrence_id: occurrenceId })
         .expect(200);
       const rotated = unwrap<{ pin: string }>(rotateResponse.body);

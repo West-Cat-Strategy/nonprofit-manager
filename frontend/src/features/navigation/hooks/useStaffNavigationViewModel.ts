@@ -140,7 +140,7 @@ export function useStaffNavigationViewModel() {
   }, []);
 
   const prefetchQuickLookupDialog = useCallback(() => {
-    void preloadStaffNavigationQuickLookupDialog();
+    void preloadStaffNavigationQuickLookupDialog().catch(() => undefined);
   }, []);
 
   const handleLogout = useCallback(() => {

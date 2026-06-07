@@ -2,6 +2,10 @@ import request from 'supertest';
 import app from '../../index';
 import pool from '../../config/database';
 import { ContactService } from '../../services/contactService';
+import {
+  createIntegrationOrganization,
+  grantIntegrationOrganizationAccess,
+} from './helpers/authFixtures';
 
 describe('Contact API Integration Tests', () => {
   let authToken: string;
@@ -24,13 +28,6 @@ describe('Contact API Integration Tests', () => {
     }
     const value = body as { token?: string; data?: { token?: string } };
     return value.token || value.data?.token;
-  };
-  const accountIdFromResponse = (body: unknown): string | undefined => {
-    if (typeof body !== 'object' || body === null) {
-      return undefined;
-    }
-    const value = body as { account_id?: string; data?: { account_id?: string } };
-    return value.account_id || value.data?.account_id;
   };
   const createAccountFixture = async (accountName: string): Promise<string> => {
     const result = await pool.query<{ id: string }>(
@@ -90,6 +87,18 @@ describe('Contact API Integration Tests', () => {
     creatorUserId = adminRoleResult.rows[0]?.id || '';
     expect(creatorUserId).toBeTruthy();
 
+    const organization = await createIntegrationOrganization({
+      accountName: 'Test Account for Contacts',
+      createdBy: creatorUserId,
+    });
+    testAccountId = organization.id;
+    await grantIntegrationOrganizationAccess({
+      userId: creatorUserId,
+      organizationId: testAccountId,
+      role: 'admin',
+      grantedBy: creatorUserId,
+    });
+
     const adminLoginResponse = await request(app)
       .post('/api/v2/auth/login')
       .send({ email, password: sharedPassword })
@@ -97,25 +106,6 @@ describe('Contact API Integration Tests', () => {
     authToken = tokenFromResponse(adminLoginResponse.body) || '';
     adminAuthToken = authToken;
     expect(adminAuthToken).toBeTruthy();
-
-    // Create a test account for contacts
-    const accountResponse = await request(app)
-      .post('/api/v2/accounts')
-      .set('Authorization', `Bearer ${authToken}`)
-      .send({
-        account_name: 'Test Account for Contacts',
-        account_type: 'organization',
-      });
-
-    testAccountId = accountIdFromResponse(accountResponse.body) || '';
-    expect(testAccountId).toBeTruthy();
-
-    const accountOwnerResult = await pool.query<{ created_by: string }>(
-      'SELECT created_by FROM accounts WHERE id = $1',
-      [testAccountId]
-    );
-    creatorUserId = accountOwnerResult.rows[0]?.created_by || '';
-    expect(creatorUserId).toBeTruthy();
 
     const staffEmail = `contact-staff-${unique()}@example.com`;
     await request(app)
@@ -135,6 +125,12 @@ describe('Contact API Integration Tests', () => {
     );
     staffUserId = staffRoleResult.rows[0]?.id || '';
     expect(staffUserId).toBeTruthy();
+    await grantIntegrationOrganizationAccess({
+      userId: staffUserId,
+      organizationId: testAccountId,
+      role: 'staff',
+      grantedBy: creatorUserId,
+    });
 
     const viewerEmail = `contact-viewer-${unique()}@example.com`;
     await request(app)
@@ -154,17 +150,12 @@ describe('Contact API Integration Tests', () => {
     );
     viewerUserId = viewerRoleResult.rows[0]?.id || '';
     expect(viewerUserId).toBeTruthy();
-
-    await pool.query(
-      `INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active)
-       VALUES
-         ($1, $3, 'admin', $1, TRUE),
-         ($2, $3, 'staff', $1, TRUE),
-         ($4, $3, 'viewer', $1, TRUE)
-       ON CONFLICT (user_id, account_id)
-       DO UPDATE SET access_level = EXCLUDED.access_level, granted_by = EXCLUDED.granted_by, is_active = TRUE`,
-      [creatorUserId, staffUserId, testAccountId, viewerUserId]
-    );
+    await grantIntegrationOrganizationAccess({
+      userId: viewerUserId,
+      organizationId: testAccountId,
+      role: 'viewer',
+      grantedBy: creatorUserId,
+    });
 
     const staffLoginResponse = await request(app)
       .post('/api/v2/auth/login')

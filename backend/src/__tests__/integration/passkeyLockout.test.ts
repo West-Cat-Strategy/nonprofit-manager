@@ -4,6 +4,10 @@ import app from '../../index';
 import pool from '../../config/database';
 import { toBase64Url } from '../../utils/base64url';
 import {
+  createIntegrationOrganization,
+  grantIntegrationOrganizationAccess,
+} from './helpers/authFixtures';
+import {
   generateAuthenticationOptions,
   generateRegistrationOptions,
   verifyAuthenticationResponse,
@@ -24,6 +28,7 @@ describe('Passkey lockout behavior', () => {
   const testPassword = 'StrongPassword123!';
   const emailPrefix = 'passkey-lockout-';
   const createdEmails: string[] = [];
+  const createdOrganizationIds: string[] = [];
   const previousLockoutFlag = process.env.ENABLE_ACCOUNT_LOCKOUT_IN_TEST;
   const previousMfaBypassFlag = process.env.BYPASS_MFA_FOR_TESTS;
 
@@ -57,6 +62,18 @@ describe('Passkey lockout behavior', () => {
     );
 
     const userId = userResult.rows[0].id;
+    const organization = await createIntegrationOrganization({
+      accountName: `Passkey Lockout Org ${unique()}`,
+      createdBy: userId,
+    });
+    createdOrganizationIds.push(organization.id);
+    await grantIntegrationOrganizationAccess({
+      userId,
+      organizationId: organization.id,
+      role,
+      grantedBy: userId,
+    });
+
     const credentialId = `cred-${unique()}`;
     const publicKey = toBase64Url(Buffer.from(`public-key-${unique()}`));
 
@@ -140,6 +157,31 @@ describe('Passkey lockout behavior', () => {
 
     await pool.query('DELETE FROM user_webauthn_challenges WHERE user_id = ANY($1::uuid[])', [userIds]);
     await pool.query('DELETE FROM user_webauthn_credentials WHERE user_id = ANY($1::uuid[])', [userIds]);
+    await pool.query('DELETE FROM user_account_access WHERE user_id = ANY($1::uuid[])', [userIds]);
+    await pool.query(
+      `DELETE FROM user_account_access
+       WHERE account_id IN (
+         SELECT id
+         FROM accounts
+         WHERE created_by = ANY($1::uuid[])
+            OR modified_by = ANY($1::uuid[])
+       )`,
+      [userIds]
+    );
+    await pool.query(
+      `DELETE FROM accounts
+       WHERE created_by = ANY($1::uuid[])
+          OR modified_by = ANY($1::uuid[])`,
+      [userIds]
+    );
+    if (createdOrganizationIds.length > 0) {
+      await pool.query('DELETE FROM user_account_access WHERE account_id = ANY($1::uuid[])', [
+        createdOrganizationIds,
+      ]);
+      await pool.query('DELETE FROM accounts WHERE id = ANY($1::uuid[])', [
+        createdOrganizationIds,
+      ]);
+    }
     await pool.query('DELETE FROM user_roles WHERE user_id = ANY($1::uuid[])', [userIds]);
     await pool.query('DELETE FROM users WHERE id = ANY($1::uuid[])', [userIds]);
   });

@@ -1,6 +1,10 @@
-import request from 'supertest';
+import request, { type Test } from 'supertest';
 import app from '../../index';
 import pool from '../../config/database';
+import {
+  createIntegrationAuthContext,
+  deleteIntegrationAuthFixtures,
+} from './helpers/authFixtures';
 
 type EmailSettingsSnapshot = {
   id: string;
@@ -27,10 +31,14 @@ const EMAIL_SETTINGS_ID = '00000000-0000-0000-0000-000000000001';
 
 describe('Admin Email Settings API', () => {
   let adminToken = '';
-  let adminEmail = '';
+  let adminUserId = '';
+  let adminOrganizationId = '';
   let originalSettings: EmailSettingsSnapshot | null = null;
 
-  const password = 'Test123!Strong';
+  const withAdminAuth = (req: Test): Test =>
+    req
+      .set('Authorization', `Bearer ${adminToken}`)
+      .set('X-Organization-Id', adminOrganizationId);
 
   beforeAll(async () => {
     await pool.query(
@@ -63,23 +71,14 @@ describe('Admin Email Settings API', () => {
     );
     originalSettings = snapshot.rows[0] ?? null;
 
-    adminEmail = `email-settings-admin-${Date.now()}@example.com`;
-    const registerResponse = await request(app).post('/api/v2/auth/register').send({
-      email: adminEmail,
-      password,
-      password_confirm: password,
-      first_name: 'Email',
-      last_name: 'Admin',
+    const adminContext = await createIntegrationAuthContext({
+      emailPrefix: 'email-settings-admin',
+      accountName: `Email Settings Admin Org ${Date.now()}`,
+      role: 'admin',
     });
-
-    const adminUserId = registerResponse.body?.user?.user_id ?? registerResponse.body?.user?.id;
-    await pool.query("UPDATE users SET role = 'admin' WHERE id = $1", [adminUserId]);
-
-    const loginResponse = await request(app).post('/api/v2/auth/login').send({
-      email: adminEmail,
-      password,
-    });
-    adminToken = loginResponse.body?.token;
+    adminUserId = adminContext.userId;
+    adminOrganizationId = adminContext.organizationId;
+    adminToken = adminContext.authToken;
   });
 
   afterAll(async () => {
@@ -133,18 +132,17 @@ describe('Admin Email Settings API', () => {
     }
 
     try {
-      if (adminEmail) {
-        await pool.query('DELETE FROM users WHERE email = $1', [adminEmail]);
-      }
+      await deleteIntegrationAuthFixtures({
+        userIds: adminUserId ? [adminUserId] : [],
+        organizationIds: adminOrganizationId ? [adminOrganizationId] : [],
+      });
     } catch {
       // ignore user cleanup failures
     }
   });
 
   it('normalizes whitespace-only optional fields into cleared values', async () => {
-    const response = await request(app)
-      .put('/api/v2/admin/email-settings')
-      .set('Authorization', `Bearer ${adminToken}`)
+    const response = await withAdminAuth(request(app).put('/api/v2/admin/email-settings'))
       .send({
         smtpHost: '   ',
         smtpPort: 587,
@@ -195,9 +193,7 @@ describe('Admin Email Settings API', () => {
   });
 
   it('keeps invalid non-empty email values as validation errors', async () => {
-    const response = await request(app)
-      .put('/api/v2/admin/email-settings')
-      .set('Authorization', `Bearer ${adminToken}`)
+    const response = await withAdminAuth(request(app).put('/api/v2/admin/email-settings'))
       .send({
         smtpFromAddress: 'not-an-email',
       });

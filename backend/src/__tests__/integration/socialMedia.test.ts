@@ -1,9 +1,14 @@
-import jwt from 'jsonwebtoken';
 import request, { type Test } from 'supertest';
 import app from '../../index';
 import pool from '../../config/database';
-import { getJwtSecret } from '../../config/jwt';
 import { encrypt } from '@utils/encryption';
+import {
+  createIntegrationAuthContext,
+  createIntegrationUser,
+  deleteIntegrationAuthFixtures,
+  grantIntegrationOrganizationAccess,
+  issueIntegrationAppToken,
+} from './helpers/authFixtures';
 
 type ApiEnvelope<T> = { data?: T } | T;
 
@@ -37,49 +42,34 @@ describe('Social media API integration', () => {
   beforeAll(async () => {
     const suffix = unique();
 
-    const adminUserResult = await pool.query<{ id: string }>(
-      `INSERT INTO users (email, password_hash, first_name, last_name, role, is_active, created_at, updated_at)
-       VALUES ($1, $2, 'Social', 'Admin', 'admin', TRUE, NOW(), NOW())
-       RETURNING id`,
-      [
-        `social-admin-${suffix}@example.com`,
-        '$2a$10$012345678901234567890uI6TTMsnx6Vf7hYhVJrV2N4mcoX8f6mG',
-      ]
-    );
-    adminUserId = adminUserResult.rows[0].id;
+    const adminContext = await createIntegrationAuthContext({
+      emailPrefix: 'social-admin',
+      accountName: `Social Media Org ${suffix}`,
+      role: 'admin',
+    });
+    adminUserId = adminContext.userId;
+    organizationId = adminContext.organizationId;
+    adminToken = adminContext.authToken;
 
-    const managerUserResult = await pool.query<{ id: string }>(
-      `INSERT INTO users (email, password_hash, first_name, last_name, role, is_active, created_at, updated_at)
-       VALUES ($1, $2, 'Social', 'Manager', 'manager', TRUE, NOW(), NOW())
-       RETURNING id`,
-      [
-        `social-manager-${suffix}@example.com`,
-        '$2a$10$012345678901234567890uI6TTMsnx6Vf7hYhVJrV2N4mcoX8f6mG',
-      ]
-    );
-    managerUserId = managerUserResult.rows[0].id;
-
-    const accountResult = await pool.query<{ id: string }>(
-      `INSERT INTO accounts (
-         account_name,
-         account_type,
-         email,
-         is_active,
-         created_at,
-         updated_at,
-         created_by,
-         modified_by
-       ) VALUES ($1, 'organization', $2, TRUE, NOW(), NOW(), $3, $3)
-       RETURNING id`,
-      [`Social Media Org ${suffix}`, `social-org-${suffix}@example.com`, adminUserId]
-    );
-    organizationId = accountResult.rows[0].id;
-
-    await pool.query(
-      `INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active)
-       VALUES ($1, $2, 'admin', $3, TRUE), ($4, $2, 'manager', $3, TRUE)`,
-      [adminUserId, organizationId, adminUserId, managerUserId]
-    );
+    const managerUser = await createIntegrationUser({
+      emailPrefix: 'social-manager',
+      firstName: 'Social',
+      lastName: 'Manager',
+      role: 'manager',
+    });
+    managerUserId = managerUser.id;
+    await grantIntegrationOrganizationAccess({
+      userId: managerUserId,
+      organizationId,
+      role: 'manager',
+      grantedBy: adminUserId,
+    });
+    managerToken = issueIntegrationAppToken({
+      userId: managerUserId,
+      email: managerUser.email,
+      role: managerUser.role,
+      organizationId,
+    });
 
     const templateResult = await pool.query<{ id: string }>(
       `INSERT INTO templates (
@@ -201,25 +191,6 @@ describe('Social media API integration', () => {
       [organizationId, pageId, JSON.stringify({ seeded: true })]
     );
 
-    adminToken = jwt.sign(
-      {
-        id: adminUserId,
-        email: `social-admin-${suffix}@example.com`,
-        role: 'admin',
-      },
-      getJwtSecret(),
-      { expiresIn: '1h' }
-    );
-
-    managerToken = jwt.sign(
-      {
-        id: managerUserId,
-        email: `social-manager-${suffix}@example.com`,
-        role: 'manager',
-      },
-      getJwtSecret(),
-      { expiresIn: '1h' }
-    );
   });
 
   beforeEach(() => {
@@ -237,12 +208,10 @@ describe('Social media API integration', () => {
     await pool.query('DELETE FROM social_media_org_settings WHERE id = $1', [settingsId]);
     await pool.query('DELETE FROM published_sites WHERE id = $1', [siteId]);
     await pool.query('DELETE FROM templates WHERE id = $1', [templateId]);
-    await pool.query(
-      'DELETE FROM user_account_access WHERE user_id IN ($1, $2) AND account_id = $3',
-      [adminUserId, managerUserId, organizationId]
-    );
-    await pool.query('DELETE FROM accounts WHERE id = $1', [organizationId]);
-    await pool.query('DELETE FROM users WHERE id IN ($1, $2)', [adminUserId, managerUserId]);
+    await deleteIntegrationAuthFixtures({
+      userIds: [adminUserId, managerUserId].filter(Boolean),
+      organizationIds: organizationId ? [organizationId] : [],
+    });
   });
 
   it('enforces admin-only access for organization social media settings', async () => {

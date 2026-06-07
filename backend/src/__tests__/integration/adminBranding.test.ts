@@ -1,35 +1,29 @@
-import request from 'supertest';
+import request, { type Test } from 'supertest';
 import app from '../../index';
 import pool from '../../config/database';
+import {
+  createIntegrationAuthContext,
+  deleteIntegrationAuthFixtures,
+} from './helpers/authFixtures';
 
 describe('Admin Branding API', () => {
   let adminToken = '';
   let userToken = '';
-  let adminEmail = '';
-  let userEmail = '';
+  let adminUserId = '';
+  let userId = '';
   let adminOrgId = '';
   let userOrgId = '';
   const originalConfigs = new Map<string, unknown>();
 
-  const password = 'Test123!Strong';
+  const withAdminAuth = (req: Test): Test =>
+    req
+      .set('Authorization', `Bearer ${adminToken}`)
+      .set('X-Organization-Id', adminOrgId);
 
-  const resolveOrganizationIdForEmail = async (email: string): Promise<string> => {
-    const result = await pool.query<{ account_id: string }>(
-      `SELECT uaa.account_id::text
-       FROM user_account_access uaa
-       INNER JOIN users u ON u.id = uaa.user_id
-       WHERE u.email = $1
-         AND uaa.is_active = true
-       ORDER BY uaa.granted_at ASC
-       LIMIT 1`,
-      [email]
-    );
-    const organizationId = result.rows[0]?.account_id;
-    if (!organizationId) {
-      throw new Error(`No active organization access for ${email}`);
-    }
-    return organizationId;
-  };
+  const withUserAuth = (req: Test): Test =>
+    req
+      .set('Authorization', `Bearer ${userToken}`)
+      .set('X-Organization-Id', userOrgId);
 
   beforeAll(async () => {
     // Ensure table exists (keeps the test self-contained even if migrations haven't been applied locally).
@@ -42,41 +36,23 @@ describe('Admin Branding API', () => {
       )
     `);
 
-    // Create admin user (register -> promote -> login to get admin role in JWT)
-    adminEmail = `branding-admin-${Date.now()}@example.com`;
-    const adminRegister = await request(app).post('/api/v2/auth/register').send({
-      email: adminEmail,
-      password,
-      password_confirm: password,
-      first_name: 'Branding',
-      last_name: 'Admin',
+    const adminContext = await createIntegrationAuthContext({
+      emailPrefix: 'branding-admin',
+      accountName: `Branding Admin Org ${Date.now()}`,
+      role: 'admin',
     });
-    const adminUserId = adminRegister.body?.user?.user_id;
-    await pool.query("UPDATE users SET role = 'admin' WHERE id = $1", [adminUserId]);
+    adminUserId = adminContext.userId;
+    adminOrgId = adminContext.organizationId;
+    adminToken = adminContext.authToken;
 
-    const adminLogin = await request(app).post('/api/v2/auth/login').send({
-      email: adminEmail,
-      password,
+    const userContext = await createIntegrationAuthContext({
+      emailPrefix: 'branding-user',
+      accountName: `Branding User Org ${Date.now()}`,
+      role: 'user',
     });
-    adminToken = adminLogin.body?.token;
-    adminOrgId =
-      adminLogin.body?.organizationId || (await resolveOrganizationIdForEmail(adminEmail));
-
-    // Create regular user
-    userEmail = `branding-user-${Date.now()}@example.com`;
-    await request(app).post('/api/v2/auth/register').send({
-      email: userEmail,
-      password,
-      password_confirm: password,
-      first_name: 'Branding',
-      last_name: 'User',
-    });
-    const userLogin = await request(app).post('/api/v2/auth/login').send({
-      email: userEmail,
-      password,
-    });
-    userToken = userLogin.body?.token;
-    userOrgId = userLogin.body?.organizationId || (await resolveOrganizationIdForEmail(userEmail));
+    userId = userContext.userId;
+    userOrgId = userContext.organizationId;
+    userToken = userContext.authToken;
 
     for (const organizationId of Array.from(new Set([adminOrgId, userOrgId]))) {
       const snapshot = await pool.query(
@@ -109,19 +85,18 @@ describe('Admin Branding API', () => {
       // ignore
     }
 
-    // Clean up users
     try {
-      if (adminEmail) await pool.query('DELETE FROM users WHERE email = $1', [adminEmail]);
-      if (userEmail) await pool.query('DELETE FROM users WHERE email = $1', [userEmail]);
+      await deleteIntegrationAuthFixtures({
+        userIds: [adminUserId, userId].filter(Boolean),
+        organizationIds: [adminOrgId, userOrgId].filter(Boolean),
+      });
     } catch {
       // ignore
     }
   });
 
   it('allows authenticated users to read branding', async () => {
-    const response = await request(app)
-      .get('/api/v2/admin/branding')
-      .set('Authorization', `Bearer ${userToken}`);
+    const response = await withUserAuth(request(app).get('/api/v2/admin/branding'));
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual(
@@ -133,9 +108,7 @@ describe('Admin Branding API', () => {
   });
 
   it('rejects non-admin updates', async () => {
-    const response = await request(app)
-      .put('/api/v2/admin/branding')
-      .set('Authorization', `Bearer ${userToken}`)
+    const response = await withUserAuth(request(app).put('/api/v2/admin/branding'))
       .send({
         appName: 'Should Not Save',
         appIcon: null,
@@ -164,9 +137,7 @@ describe('Admin Branding API', () => {
       favicon: null,
     };
 
-    const putResponse = await request(app)
-      .put('/api/v2/admin/branding')
-      .set('Authorization', `Bearer ${adminToken}`)
+    const putResponse = await withAdminAuth(request(app).put('/api/v2/admin/branding'))
       .send(payload);
 
     expect(putResponse.status).toBe(200);
@@ -175,9 +146,7 @@ describe('Admin Branding API', () => {
     expect(putResponse.body.appName).toBe(payload.appName);
     expect(putResponse.body.primaryColour).toBe(payload.primaryColour);
 
-    const getResponse = await request(app)
-      .get('/api/v2/admin/branding')
-      .set('Authorization', `Bearer ${adminToken}`);
+    const getResponse = await withAdminAuth(request(app).get('/api/v2/admin/branding'));
 
     expect(getResponse.status).toBe(200);
     expect(getResponse.body.success).toBe(true);

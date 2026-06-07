@@ -5,6 +5,10 @@ import app from '../../index';
 import pool from '../../config/database';
 import { getJwtSecret } from '../../config/jwt';
 import { MAX_LOGIN_ATTEMPTS } from '../../middleware/accountLockout';
+import {
+  createIntegrationOrganization,
+  grantIntegrationOrganizationAccess,
+} from './helpers/authFixtures';
 
 describe('Auth API Integration Tests', () => {
   let authToken: string;
@@ -35,36 +39,18 @@ describe('Auth API Integration Tests', () => {
       return existingAccess.rows[0].account_id;
     }
 
-    const existingOrganization = await pool.query<{ id: string }>(
-      `SELECT id
-       FROM accounts
-       WHERE account_type = 'organization'
-         AND COALESCE(is_active, true) = true
-       ORDER BY created_at ASC
-       LIMIT 1`
-    );
+    const organization = await createIntegrationOrganization({
+      accountName: `Auth Access Org ${unique()}`,
+      createdBy: userId,
+    });
+    const accountId = organization.id;
 
-    const accountId =
-      existingOrganization.rows[0]?.id ||
-      (
-        await pool.query<{ id: string }>(
-          `INSERT INTO accounts (account_name, account_type, created_by, modified_by)
-           VALUES ($1, 'organization', $2, $2)
-           RETURNING id`,
-          [`Auth Access Org ${unique()}`, userId]
-        )
-      ).rows[0].id;
-
-    await pool.query(
-      `INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active)
-       VALUES ($1, $2, 'editor', $1, true)
-       ON CONFLICT (user_id, account_id)
-       DO UPDATE SET access_level = EXCLUDED.access_level,
-                     granted_by = EXCLUDED.granted_by,
-                     is_active = true,
-                     granted_at = CURRENT_TIMESTAMP`,
-      [userId, accountId]
-    );
+    await grantIntegrationOrganizationAccess({
+      userId,
+      organizationId: accountId,
+      accessLevel: 'editor',
+      grantedBy: userId,
+    });
 
     return accountId;
   };
@@ -107,6 +93,17 @@ describe('Auth API Integration Tests', () => {
       }
     }
   };
+  const loginTestUser = async (): Promise<string> => {
+    const response = await request(app)
+      .post('/api/v2/auth/login')
+      .send({
+        email: testEmail,
+        password: testPassword,
+      })
+      .expect(200);
+
+    return response.body.token;
+  };
 
   afterAll(async () => {
     const safeDelete = async (query: string, params: unknown[]) => {
@@ -132,7 +129,18 @@ describe('Auth API Integration Tests', () => {
       await safeDelete('DELETE FROM event_registrations WHERE contact_id IN (SELECT id FROM contacts WHERE created_by = ANY($1))', [userIds]);
       await safeDelete('DELETE FROM contacts WHERE created_by = ANY($1)', [userIds]);
       await safeDelete('DELETE FROM events WHERE created_by = ANY($1)', [userIds]);
+      await safeDelete(
+        `DELETE FROM user_account_access
+         WHERE account_id IN (
+           SELECT id
+           FROM accounts
+           WHERE created_by = ANY($1)
+              OR modified_by = ANY($1)
+         )`,
+        [userIds]
+      );
       await safeDelete('DELETE FROM accounts WHERE created_by = ANY($1)', [userIds]);
+      await safeDelete('DELETE FROM user_account_access WHERE user_id = ANY($1)', [userIds]);
       await safeDelete('DELETE FROM user_roles WHERE user_id = ANY($1)', [userIds]);
 
       // Finally delete users
@@ -160,12 +168,22 @@ describe('Auth API Integration Tests', () => {
       expect(response.body.user.email).toBe(testEmail);
       expect(response.body.user).not.toHaveProperty('password_hash');
 
+      await ensureOrganizationAccessForUser(testEmail);
+
       await agent
         .post('/api/v2/auth/logout')
         .set('X-CSRF-Token', response.body.csrfToken)
         .expect(200);
 
-      authToken = response.body.token;
+      const loginResponse = await request(app)
+        .post('/api/v2/auth/login')
+        .send({
+          email: testEmail,
+          password: testPassword,
+        })
+        .expect(200);
+
+      authToken = loginResponse.body.token;
     });
 
     it('should reject duplicate email registration', async () => {
@@ -513,18 +531,20 @@ describe('Auth API Integration Tests', () => {
     it('returns startup-scoped auth bootstrap data for authenticated requests', async () => {
       await pool.query(
         `CREATE TABLE IF NOT EXISTS organization_branding (
-          id INTEGER PRIMARY KEY CHECK (id = 1),
+          organization_id UUID PRIMARY KEY REFERENCES accounts(id) ON DELETE CASCADE,
           config JSONB NOT NULL DEFAULT '{}'::jsonb,
           created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
           updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
         )`
       );
+      const organizationId = await ensureOrganizationAccessForUser(testEmail);
       await pool.query(
-        `INSERT INTO organization_branding (id, config)
-         VALUES (1, $1::jsonb)
-         ON CONFLICT (id)
+        `INSERT INTO organization_branding (organization_id, config)
+         VALUES ($1, $2::jsonb)
+         ON CONFLICT (organization_id)
          DO UPDATE SET config = EXCLUDED.config, updated_at = NOW()`,
         [
+          organizationId,
           JSON.stringify({
             appName: 'West Cat',
             appIcon: null,
@@ -645,9 +665,10 @@ describe('Auth API Integration Tests', () => {
       const secondaryOrgId = secondaryOrgResult.rows[0].id;
 
       try {
+        const currentAuthToken = await loginTestUser();
         const response = await request(app)
           .get('/api/v2/auth/bootstrap')
-          .set('Authorization', `Bearer ${authToken}`)
+          .set('Authorization', `Bearer ${currentAuthToken}`)
           .set('X-Organization-Id', secondaryOrgId)
           .expect(403);
 

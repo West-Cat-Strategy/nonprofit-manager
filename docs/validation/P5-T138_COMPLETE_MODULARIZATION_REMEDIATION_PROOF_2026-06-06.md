@@ -1,8 +1,8 @@
 # P5-T138 Complete Modularization Remediation Proof
 
 **Date:** 2026-06-06  
-**Status:** Blocked on backend coverage org-access fixture drift  
-**Branch:** `codex/p5-t138-modularization-remediation`
+**Status:** Review; fixture drift closed and full coverage gate green
+**Branch:** `codex/p5-t138-coverage-fixtures` follow-up to `codex/p5-t138-modularization-remediation`
 
 ## Scope
 
@@ -97,19 +97,46 @@ Selector:
 
 - `./scripts/select-checks.sh --files "<final changed paths>" --mode strict` emitted `make check-links`, `make lint`, `make typecheck`, `make test-tooling`, `npm run knip`, `npm run audit`, `make security-audit`, and `make test-coverage-full`.
 
-Blocked:
+Coverage fixture follow-up, 2026-06-06:
 
-- `make test-coverage-full` now reaches Docker-backed backend coverage, rebuilds the isolated test database, and runs Jest, but exits through the backend coverage failure (`npm` code `1`, `make` code `2`) with `25` failed suites / `264` passed suites and `274` failed tests / `2067` passed tests.
-- The dominant failure pattern is older backend integration fixtures receiving `403 Forbidden` from hardened organization-access auth where the suites expect `200`, `201`, or validation `400`; representative failures include route guardrails, webhooks, user role sync, payments route authorization, alerts, grants, case management visibility, portal messaging, and passkey lockout coverage.
-- Subagent review classified this as backend integration fixture drift against fail-closed org-access checks rather than a P5-T138 modularization regression; the P5-T138 dirty diff does not touch backend auth middleware/controllers or the broad integration fixtures.
-- A separate backend validation/fixture-alignment slice should seed or mint active `user_account_access` consistently for suites that register/promote/login or directly mint JWTs before `make test-coverage-full` is rerun.
+- Added `backend/src/__tests__/integration/helpers/authFixtures.ts` so integration users, organizations, organization access rows, app-session tokens, and cleanup share the hardened production auth posture: `issueAppSessionToken`, `upsertUserOrganizationAccess`, `resolveDefaultOrganizationAccessLevel`, active `accounts.account_type = 'organization'`, and `user_account_access` cleanup before user/account deletion.
+- Updated backend integration/bootstrap fixtures that mint app tokens, register/login users, or promote direct users without active organization access: accounts, admin branding/email/Twilio settings, alerts, analytics, auth, auth MFA, authorization, backup export, case management visibility, cases, case handoff, contacts, debug auth, donations, events, follow-ups, grants, passkey lockout, people import/export, portal appointments, portal messaging, publishing, route guardrails, social media, tasks, user role sync, volunteers, webhooks, payments route security, and meetings integration coverage.
+- Tightened the test database bootstrap path in `scripts/db-migrate.sh` and the root `Makefile` coverage/test-backend wrappers so freshly rebuilt isolated Postgres waits for the final `PostgreSQL init process complete; ready for start up.` marker and a host connection before host Jest starts.
+
+Focused backend follow-up proof:
+
+- `cd backend && npm test -- src/__tests__/integration/alerts.test.ts` passed (`1` suite, `4` tests).
+- `cd backend && npm test -- src/__tests__/integration/routeGuardrails.test.ts` passed (`1` suite, `57` tests).
+- `cd backend && npm test -- src/__tests__/integration/grants.test.ts src/__tests__/integration/webhooks.test.ts` passed (`2` suites, `10` tests).
+- `cd backend && npm test -- src/__tests__/integration/userRoleSync.test.ts src/__tests__/integration/passkeyLockout.test.ts` passed (`2` suites, `6` tests).
+- `cd backend && npm test -- src/__tests__/integration/peopleImportExport.test.ts src/__tests__/integration/portalMessaging.test.ts src/__tests__/integration/caseManagementVisibility.test.ts src/__tests__/integration/portalAppointments.test.ts` passed (`4` suites, `26` tests).
+- `cd backend && npm test -- <all changed backend integration/module suites>` passed (`30` suites, `448` tests).
+- `cd backend && npm run test:coverage -- <focused changed/failing group 1>` passed (`16` suites, `269` tests).
+- `cd backend && npm run test:coverage -- <focused changed/failing group 2>` passed (`14` suites, `179` tests).
+
+Full coverage follow-up result:
+
+- `make test-coverage-full` now passes the backend coverage leg: `289` suites passed, `2341` tests passed.
+- The frontend public-report snapshot blocker from the first follow-up run was fixed by making the hash-token test drive the fragment fallback path instead of retaining the route-param token.
+- Additional broad-gate drift found during closeout was fixed without changing production contracts: tokenized public route catalog entries now cover hash-token invitation/reset paths; portal shell route transitions reuse the cached bootstrap snapshot; recurring donation checkout assertions wait for async action rendering; the E2E auth cache writes the actual session token; contact-detail follow-up/task actions use keyboard activation where browser pointer geometry can be intercepted; quick-lookup preload rejections are swallowed as prefetch-only failures; Firefox field-typing task creation uses keyboard activation; and the test-only contact reset helper retries transient Postgres serialization/deadlock errors.
+- Final `make test-coverage-full` completed the full gate: backend coverage `289` suites / `2341` tests passed, frontend coverage `254` files / `1402` tests passed, host E2E `1008` passed / `15` skipped with no retries or flakes, mobile E2E `3` passed, Docker-backed Playwright smoke `4` passed, and the command ended with `Coverage reports and full behavior gates complete!`.
+- Modularization enforcement remained flat at the exact active caps: backend root-service imports `203/203`, root service files `139/139`, frontend shared-service imports `153/153`, controller SQL calls `46/46`, direct E2E app-source imports `4/4`, and direct E2E app-source imports outside `e2e/helpers/testSupport` `0/0`.
+
+Selector and final hygiene:
+
+- `./scripts/select-checks.sh --files "<final changed paths>" --mode strict` emitted `make check-links`, `make test-tooling`, `make lint`, `make typecheck`, `make test-coverage-full`, and `make db-verify`.
+- Passed before the final broad gate: `make check-links` (`265` files, `1516` local links), `make test-tooling` (`63` tests), `make lint`, `make typecheck`, `make db-verify`, and `git diff --check`.
+- Passed after the final code closeout: `make test-coverage-full`.
+- Passed after the final proof/workboard edits: `./scripts/select-checks.sh --files "<final changed paths>" --mode strict`, `node scripts/check-modularization-boundary-ratchet.ts`, `git diff --check`, `make check-links` (`265` files, `1516` local links), `make test-tooling` (`63` tests), `make lint`, `make typecheck`, and `make db-verify`.
 
 Superseded blockers:
 
 - Earlier `cd backend && npm test -- --runInBand src/__tests__/modules/moduleManifest.test.ts` and `make test-coverage-full` attempts stopped in validation preflight because the Docker daemon/socket was unavailable.
-- Docker is now reachable; the current blocker is the backend coverage fixture failure above.
+- Docker is now reachable.
+- The backend org-access coverage fixture blocker is fixed by this follow-up; focused backend slices and full backend coverage now pass.
+- The later frontend public-report snapshot and browser/E2E drift blockers found by the broad gate are fixed; the full coverage gate now passes.
 
 ## Residual Risks
 
 - This wave establishes and starts the complete modularization remediation, but the root-service and frontend shared-service debt is intentionally ratcheted rather than deleted in one unsafe move.
-- Full coverage closeout remains pending on backend integration fixture alignment for the hardened organization-access auth posture; route paths, `/api/v2` envelopes, permissions, database schema, and modularization implementation remain unchanged by this closeout patch.
+- Further structural modularization remains a follow-on coordinated wave after this review/signoff. Route paths, `/api/v2` envelopes, permissions, auth behavior, database schema, webhook acknowledgement shapes, raw-body payment handling, public-token compatibility, and Docker/runtime contracts remain unchanged by this closeout patch.
