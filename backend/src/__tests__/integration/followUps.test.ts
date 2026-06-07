@@ -1,8 +1,7 @@
 import request, { type Test } from 'supertest';
-import jwt from 'jsonwebtoken';
 import app from '../../index';
 import pool from '../../config/database';
-import { getJwtSecret } from '../../config/jwt';
+import { issueIntegrationAppToken } from './helpers/authFixtures';
 
 type FollowUpRecord = {
   id: string;
@@ -51,16 +50,12 @@ describe('Follow-up API Integration Tests', () => {
   };
 
   const buildToken = (userId: string, email: string, role: string): string =>
-    jwt.sign(
-      {
-        id: userId,
-        email,
-        role,
-        organizationId,
-      },
-      getJwtSecret(),
-      { expiresIn: '1h' }
-    );
+    issueIntegrationAppToken({
+      userId,
+      email,
+      role,
+      organizationId,
+    });
 
   const withOrgAuth = (token: string, req: Test): Test =>
     req.set('Authorization', `Bearer ${token}`).set('X-Organization-Id', organizationId);

@@ -1002,7 +1002,7 @@ const writeEffectiveAdminSessionCache = (session: AuthSession): void => {
   const organizationId = resolveValidatedSessionOrganizationId('Effective admin session cache', {
     organizationId: normalizeOrganizationId(session.organizationId),
     user,
-    token,
+    token: session.token,
   });
   if (!organizationId) {
     return;

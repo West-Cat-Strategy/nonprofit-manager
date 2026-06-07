@@ -4,10 +4,14 @@
  */
 
 import request from 'supertest';
-import jwt from 'jsonwebtoken';
 import app from '../../index';
 import pool from '../../config/database';
-import { getJwtSecret } from '../../config/jwt';
+import {
+  createIntegrationOrganization,
+  createIntegrationUser,
+  grantIntegrationOrganizationAccess,
+  issueIntegrationAppToken,
+} from './helpers/authFixtures';
 
 describe('Authorization Integration Tests', () => {
   // Store tokens for different user roles
@@ -149,55 +153,31 @@ describe('Authorization Integration Tests', () => {
         continue;
       }
 
-      await pool.query(
-        `INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active)
-         VALUES ($1, $2, $3, $4, TRUE)
-         ON CONFLICT (user_id, account_id)
-         DO UPDATE SET access_level = EXCLUDED.access_level,
-                       granted_by = EXCLUDED.granted_by,
-                       is_active = TRUE`,
-        [userId, defaultOrganizationId, organizationAccessByRole[role], userIds.admin]
-      );
+      await grantIntegrationOrganizationAccess({
+        userId,
+        organizationId: defaultOrganizationId,
+        accessLevel: organizationAccessByRole[role],
+        grantedBy: userIds.admin,
+      });
     }
   };
 
   beforeAll(async () => {
     // Create test users with different roles
     const roles = [...testRoles];
-    const password = 'Test123!Strong';
 
     for (const role of roles) {
       const email = `auth-test-${role}-${unique()}@example.com`;
       const firstName = 'Test';
       const lastName = role.charAt(0).toUpperCase() + role.slice(1);
-      const response = await request(app)
-        .post('/api/v2/auth/register')
-        .send({
-          email,
-          password,
-          password_confirm: password,
-          first_name: firstName,
-          last_name: lastName,
-        });
+      const createdUser = await createIntegrationUser({
+        email,
+        firstName,
+        lastName,
+        role,
+      });
 
-      const registered = unwrap<{
-        user?: {
-          id: string;
-        };
-      }>(response.body);
-      let resolvedUserId = registered.user?.id;
-
-      if (!resolvedUserId) {
-        const createdUser = await pool.query<{ id: string }>(
-          `INSERT INTO users (email, password_hash, first_name, last_name, role, is_active, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, $5, true, NOW(), NOW())
-           RETURNING id`,
-          [email, '$2b$10$2B5xCiFv0to6v3sQm6rQOu/xM2bYf7jdd2fNf7q5sWubEjkVif7PO', firstName, lastName, role]
-        );
-        resolvedUserId = createdUser.rows[0].id;
-      }
-
-      userIds[role] = resolvedUserId;
+      userIds[role] = createdUser.id;
       testUsers.push({
         id: userIds[role],
         email,
@@ -205,45 +185,25 @@ describe('Authorization Integration Tests', () => {
         firstName,
         lastName,
       });
-
-      // Update user role in database (bypass normal flow for testing)
-      await pool.query('UPDATE users SET role = $1 WHERE id = $2', [role, userIds[role]]);
-
       await assignOnlyExplicitRole(userIds[role], role);
     }
     await ensureTestUsersExist();
 
-    const orgResult = await pool.query<{ id: string }>(
-      `SELECT id
-       FROM accounts
-       WHERE account_type = 'organization'
-         AND COALESCE(is_active, true) = true
-       ORDER BY created_at ASC
-       LIMIT 1`
-    );
-    defaultOrganizationId = orgResult.rows[0]?.id ?? null;
-
-    if (!defaultOrganizationId) {
-      const createdOrganization = await pool.query<{ id: string }>(
-        `INSERT INTO accounts (account_name, account_type, created_by, modified_by, created_at, updated_at)
-         VALUES ($1, 'organization', $2, $2, NOW(), NOW())
-         RETURNING id`,
-        [`Authorization Test Organization ${unique()}`, userIds.admin]
-      );
-      defaultOrganizationId = createdOrganization.rows[0].id;
-    }
+    const organization = await createIntegrationOrganization({
+      accountName: `Authorization Test Organization ${unique()}`,
+      createdBy: userIds.admin,
+    });
+    defaultOrganizationId = organization.id;
 
     for (const role of roles) {
-      tokens[role] = jwt.sign(
-        {
-          id: userIds[role],
-          email: testUsers.find((user) => user.role === role)?.email ?? `auth-${role}-${unique()}@example.com`,
-          role,
-          ...(defaultOrganizationId ? { organizationId: defaultOrganizationId } : {}),
-        },
-        getJwtSecret(),
-        { expiresIn: '1h' }
-      );
+      tokens[role] = issueIntegrationAppToken({
+        userId: userIds[role],
+        email:
+          testUsers.find((user) => user.role === role)?.email ??
+          `auth-${role}-${unique()}@example.com`,
+        role,
+        organizationId: defaultOrganizationId,
+      });
     }
 
     await ensureTestOrganizationAccess();
@@ -324,6 +284,15 @@ describe('Authorization Integration Tests', () => {
          )`,
         [testUserIds]
       );
+      await pool.query(
+        `DELETE FROM user_account_access
+         WHERE account_id IN (
+           SELECT id
+           FROM accounts
+           WHERE created_by = ANY($1::uuid[])
+         )`,
+        [testUserIds]
+      );
       // Accounts reference users via created_by; remove account rows before deleting users.
       await pool.query('DELETE FROM accounts WHERE created_by = ANY($1::uuid[])', [testUserIds]);
       await pool.query('DELETE FROM user_account_access WHERE user_id = ANY($1::uuid[])', [testUserIds]);
@@ -332,6 +301,7 @@ describe('Authorization Integration Tests', () => {
       await pool.query('DELETE FROM contacts WHERE id = $1', [testData.contactId]);
     }
     if (testData.accountId) {
+      await pool.query('DELETE FROM user_account_access WHERE account_id = $1', [testData.accountId]);
       await pool.query('DELETE FROM accounts WHERE id = $1', [testData.accountId]);
     }
     for (const userId of testUserIds) {

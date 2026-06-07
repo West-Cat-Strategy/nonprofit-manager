@@ -7,10 +7,12 @@
  */
 
 import request from 'supertest';
-import jwt from 'jsonwebtoken';
 import app from '../../index';
 import pool from '../../config/database';
-import { getJwtSecret } from '../../config/jwt';
+import {
+  createIntegrationAuthContext,
+  deleteIntegrationAuthFixtures,
+} from './helpers/authFixtures';
 
 describe('Analytics API Integration Tests', () => {
   let authToken: string;
@@ -29,51 +31,14 @@ describe('Analytics API Integration Tests', () => {
   };
 
   beforeAll(async () => {
-    // Register and login a test user
-    const email = `analytics-test-${unique()}@example.com`;
-    const registerResponse = await request(app).post('/api/v2/auth/register').send({
-      email,
-      password: 'Test123!Strong',
-      password_confirm: 'Test123!Strong',
-      first_name: 'Analytics',
-      last_name: 'Test',
+    const authContext = await createIntegrationAuthContext({
+      emailPrefix: 'analytics-test',
+      accountName: `Analytics Org ${unique()}`,
+      role: 'admin',
     });
-
-    const registerPayload = unwrapEnvelopeData<{
-      token?: string;
-      user?: { id: string; email: string; role: string };
-      organizationId?: string;
-    }>(registerResponse.body);
-
-    const registeredUser = registerPayload.user;
-    if (!registeredUser?.id) {
-      throw new Error('Failed to register analytics test user');
-    }
-
-    testUserId = registeredUser.id;
-    
-    // Ensure we have an organization account linked to the user
-    const accountResult = await pool.query<{ id: string }>(
-      "INSERT INTO accounts (account_name, account_type) VALUES ($1, 'organization') RETURNING id",
-      [`Analytics Org ${unique()}`]
-    );
-    organizationId = accountResult.rows[0].id;
-
-    await pool.query('UPDATE users SET role = $1 WHERE id = $2', ['admin', testUserId]);
-    await pool.query(
-      "INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active) VALUES ($1, $2, 'admin', $1, true)",
-      [testUserId, organizationId]
-    );
-    authToken = jwt.sign(
-      {
-        id: registeredUser.id,
-        email: registeredUser.email ?? email,
-        role: 'admin',
-        organizationId,
-      },
-      getJwtSecret(),
-      { expiresIn: '1h' }
-    );
+    authToken = authContext.authToken;
+    testUserId = authContext.userId;
+    organizationId = authContext.organizationId;
   });
 
   afterAll(async () => {
@@ -91,10 +56,10 @@ describe('Analytics API Integration Tests', () => {
     if (createdContactIds.length > 0) {
       await pool.query('DELETE FROM contacts WHERE id = ANY($1::uuid[])', [createdContactIds]);
     }
-    // Clean up test user - must delete in order to respect foreign keys
-    if (testUserId) {
-      await pool.query('DELETE FROM users WHERE id = $1', [testUserId]);
-    }
+    await deleteIntegrationAuthFixtures({
+      userIds: testUserId ? [testUserId] : [],
+      organizationIds: organizationId ? [organizationId] : [],
+    });
   });
 
   describe('Authentication Requirements', () => {

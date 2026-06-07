@@ -1,8 +1,11 @@
 import request, { type Test } from 'supertest';
-import jwt from 'jsonwebtoken';
 import app from '../../index';
 import pool from '../../config/database';
-import { getJwtSecret } from '../../config/jwt';
+import {
+  createIntegrationAuthContext,
+  grantIntegrationOrganizationAccess,
+  issueIntegrationAppToken,
+} from './helpers/authFixtures';
 
 const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
@@ -45,12 +48,20 @@ describe('People import/export integration', () => {
   let userEmail = '';
   let organizationId = '';
   let organizationAccountNumber = '';
+  const createdAccountIds: string[] = [];
 
   const withAuth = (req: Test): Test => req.set('Authorization', `Bearer ${authToken}`);
   const withOrgAuth = (req: Test): Test =>
     req
       .set('Authorization', `Bearer ${authTokenWithOrganizationContext || authToken}`)
       .set('X-Organization-Id', organizationId);
+  const trackAccountIds = (...accountIds: string[]): void => {
+    for (const accountId of accountIds) {
+      if (accountId && !createdAccountIds.includes(accountId)) {
+        createdAccountIds.push(accountId);
+      }
+    }
+  };
   const createOrganization = async (
     overrides: Partial<{
       account_name: string;
@@ -69,6 +80,7 @@ describe('People import/export integration', () => {
 
     const accountId = accountIdFromResponse(response.body) || '';
     expect(accountId).toBeTruthy();
+    trackAccountIds(accountId);
 
     const result = await pool.query<{ account_number: string }>(
       'SELECT account_number FROM accounts WHERE id = $1',
@@ -77,66 +89,83 @@ describe('People import/export integration', () => {
     const accountNumber = result.rows[0]?.account_number || '';
     expect(accountNumber).toBeTruthy();
 
+    await grantIntegrationOrganizationAccess({
+      userId,
+      organizationId: accountId,
+      role: 'admin',
+      grantedBy: userId,
+    });
+
     return { accountId, accountNumber };
   };
 
   beforeAll(async () => {
-    userEmail = `people-import-export-${unique()}@example.com`;
-    const userResult = await pool.query<{ id: string }>(
-      `
-        INSERT INTO users (email, password_hash, first_name, last_name, role)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING id
-      `,
-      [userEmail.toLowerCase(), 'test-hash', 'People', 'Importer', 'admin']
-    );
-    userId = userResult.rows[0]?.id || '';
+    const bootstrapContext = await createIntegrationAuthContext({
+      role: 'admin',
+      emailPrefix: 'people-import-export',
+      accountName: `People Import Export Bootstrap ${unique()}`,
+    });
+    userId = bootstrapContext.userId;
+    userEmail = bootstrapContext.email;
     expect(userId).toBeTruthy();
-
-    authToken = jwt.sign(
-      {
-        id: userId,
-        email: userEmail.toLowerCase(),
-        role: 'admin',
-      },
-      getJwtSecret(),
-      { expiresIn: '1h' }
-    );
+    authToken = bootstrapContext.authToken;
+    trackAccountIds(bootstrapContext.organizationId);
 
     const organization = await createOrganization();
     organizationId = organization.accountId;
     organizationAccountNumber = organization.accountNumber;
-    authTokenWithOrganizationContext = jwt.sign(
-      {
-        id: userId,
-        email: userEmail.toLowerCase(),
-        role: 'admin',
-        organizationId,
-      },
-      getJwtSecret(),
-      { expiresIn: '1h' }
-    );
+    authTokenWithOrganizationContext = issueIntegrationAppToken({
+      userId,
+      email: userEmail,
+      role: 'admin',
+      organizationId,
+    });
   });
 
   afterAll(async () => {
     if (userId) {
+      await pool.query('DELETE FROM user_account_access WHERE user_id = $1', [userId]);
+      if (createdAccountIds.length > 0) {
+        await pool.query('DELETE FROM user_account_access WHERE account_id = ANY($1::uuid[])', [
+          createdAccountIds,
+        ]);
+      }
       await pool.query(
         `
           DELETE FROM volunteers
           WHERE created_by = $1
-             OR contact_id IN (SELECT id FROM contacts WHERE created_by = $1)
+             OR contact_id IN (
+               SELECT id
+               FROM contacts
+               WHERE created_by = $1
+                  OR account_id = ANY($2::uuid[])
+             )
         `,
-        [userId]
+        [userId, createdAccountIds]
       );
       await pool.query(
         `
           DELETE FROM contact_role_assignments
-          WHERE contact_id IN (SELECT id FROM contacts WHERE created_by = $1)
+          WHERE contact_id IN (
+            SELECT id
+            FROM contacts
+            WHERE created_by = $1
+               OR account_id = ANY($2::uuid[])
+          )
         `,
-        [userId]
+        [userId, createdAccountIds]
       );
-      await pool.query('DELETE FROM contacts WHERE created_by = $1', [userId]);
-      await pool.query('DELETE FROM accounts WHERE created_by = $1', [userId]);
+      await pool.query(
+        `DELETE FROM contacts
+         WHERE created_by = $1
+            OR account_id = ANY($2::uuid[])`,
+        [userId, createdAccountIds]
+      );
+      if (createdAccountIds.length > 0) {
+        await pool.query('DELETE FROM accounts WHERE id = ANY($1::uuid[])', [
+          createdAccountIds,
+        ]);
+      }
       await pool.query('DELETE FROM users WHERE id = $1', [userId]);
     }
   });
@@ -154,6 +183,7 @@ describe('People import/export integration', () => {
 
     const existingAccountId = accountIdFromResponse(existingAccountResponse.body) || '';
     expect(existingAccountId).toBeTruthy();
+    trackAccountIds(existingAccountId);
 
     const existingAccountRow = await pool.query<{ account_number: string }>(
       'SELECT account_number FROM accounts WHERE id = $1',
@@ -208,6 +238,7 @@ describe('People import/export integration', () => {
     expect(commit.updated).toBe(1);
     expect(commit.total_processed).toBe(2);
     expect(commit.affected_ids).toHaveLength(2);
+    trackAccountIds(...commit.affected_ids);
 
     const exportResponse = await withAuth(
       request(app)

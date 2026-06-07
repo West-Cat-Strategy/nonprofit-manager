@@ -1,6 +1,10 @@
 import request from 'supertest';
 import app from '../../index';
 import pool from '../../config/database';
+import {
+  createIntegrationOrganization,
+  grantIntegrationOrganizationAccess,
+} from './helpers/authFixtures';
 
 describe('Case Handoff Packet Integration Tests', () => {
   let authToken = '';
@@ -44,29 +48,24 @@ describe('Case Handoff Packet Integration Tests', () => {
 
     await pool.query('UPDATE users SET role = $1 WHERE id = $2', ['admin', userId]);
 
+    const organization = await createIntegrationOrganization({
+      accountName: `Handoff Test Organization ${unique()}`,
+      createdBy: userId,
+    });
+    organizationId = organization.id;
+    await grantIntegrationOrganizationAccess({
+      userId,
+      organizationId,
+      role: 'admin',
+      grantedBy: userId,
+    });
+
     const loginResponse = await request(app)
       .post('/api/v2/auth/login')
       .send({ email: testEmail, password: 'Test123!Strong' })
       .expect(200);
     authToken = (loginResponse.body.data?.token || loginResponse.body.token) || '';
     expect(authToken).toBeTruthy();
-
-    const accountResponse = await request(app)
-      .post('/api/v2/accounts')
-      .set('Authorization', `Bearer ${authToken}`)
-      .send({
-        account_name: `Handoff Test Organization ${unique()}`,
-        account_type: 'organization',
-      })
-      .expect(201);
-
-    organizationId = (accountResponse.body.data?.account_id || accountResponse.body.account_id) || '';
-
-    await pool.query(
-      `INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active)
-       VALUES ($1, $2, 'owner', $1, true)`,
-      [userId, organizationId]
-    );
 
     const caseTypeResult = await pool.query<{ id: string }>('SELECT id FROM case_types LIMIT 1');
     caseTypeId = caseTypeResult.rows[0].id;
