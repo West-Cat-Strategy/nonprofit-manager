@@ -788,16 +788,18 @@ describe('Authorization Integration Tests', () => {
 
   describe('Donation CRUD Authorization', () => {
     let testDonationId: string;
+    const donationAccountId = (): string => defaultOrganizationId || testData.accountId;
 
     describe('POST /api/v2/donations', () => {
       it('should allow admin to create donations', async () => {
-        if (!testData.accountId) return;
+        const accountId = donationAccountId();
+        if (!accountId) return;
 
         const response = await request(app)
           .post('/api/v2/donations')
           .set('Authorization', `Bearer ${tokens.admin}`)
           .send({
-            account_id: testData.accountId,
+            account_id: accountId,
             amount: 100.0,
             donation_date: '2024-01-15',
             payment_method: 'credit_card',
@@ -809,20 +811,20 @@ describe('Authorization Integration Tests', () => {
         );
         testDonationId = donation.donation_id ?? donation.id ?? '';
         expect(Number(donation.amount)).toBe(100);
-        expect(donation.account_id).toBe(testData.accountId);
+        expect(donation.account_id).toBe(accountId);
         if (testDonationId) {
           const persisted = await pool.query<{ amount: number; account_id: string }>(
             'SELECT amount, account_id FROM donations WHERE id = $1',
             [testDonationId]
           );
           expect(Number(persisted.rows[0].amount)).toBe(100);
-          expect(persisted.rows[0].account_id).toBe(testData.accountId);
+          expect(persisted.rows[0].account_id).toBe(accountId);
         }
       });
 
       it('should require authentication', async () => {
         const response = await request(app).post('/api/v2/donations').send({
-          account_id: testData.accountId,
+          account_id: donationAccountId(),
           amount: 50.0,
           donation_date: '2024-01-15',
         });
@@ -834,9 +836,10 @@ describe('Authorization Integration Tests', () => {
 
     describe('GET /api/v2/donations', () => {
       it('should allow authenticated users to list donations', async () => {
+        const accountId = donationAccountId();
         const response = await request(app)
           .get('/api/v2/donations')
-          .query({ account_id: testData.accountId })
+          .query({ account_id: accountId })
           .set('Authorization', `Bearer ${tokens.admin}`);
 
         expect(response.status).toBe(200);
@@ -846,7 +849,7 @@ describe('Authorization Integration Tests', () => {
         expect(payload.data).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
-              account_id: testData.accountId,
+              account_id: accountId,
             }),
           ])
         );

@@ -6,7 +6,6 @@ import { test, expect } from '../fixtures/auth.fixture';
 import { applyAuthTokenState, ensureEffectiveAdminLoginViaAPI } from '../helpers/auth';
 import {
   clearDatabase,
-  createTestAccount,
   createTestContact,
   createTestDonation,
   createTestEvent,
@@ -34,12 +33,15 @@ test.describe('Complete User Workflows', () => {
     const headers = await getAuthHeaders(authenticatedPage, adminToken);
 
     const unique = Date.now();
-    const { id: accountId } = await createTestAccount(authenticatedPage, adminToken, {
-      name: 'Sarah Johnson',
+    const donor = await createTestContact(authenticatedPage, adminToken, {
+      firstName: 'Sarah',
+      lastName: 'Johnson',
       email: `sarah.johnson+${unique}@example.com`,
+      contactType: 'donor',
     });
     const { id: donationId } = await createTestDonation(authenticatedPage, adminToken, {
-      accountId,
+      accountId: donor.accountId,
+      contactId: donor.id,
       amount: 250,
       paymentStatus: 'completed',
     });

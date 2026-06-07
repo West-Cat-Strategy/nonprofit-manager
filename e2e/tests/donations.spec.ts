@@ -4,13 +4,43 @@
 
 import { test, expect } from '../fixtures/auth.fixture';
 import type { Page } from '@playwright/test';
-import { createTestAccount, createTestDonation, getAuthHeaders } from '../helpers/database';
+import { createTestContact, createTestDonation, getAuthHeaders } from '../helpers/database';
 import { unwrapSuccess } from '../helpers/apiEnvelope';
 
 const makeUnique = (prefix: string): string =>
   `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
 const apiURL = process.env.API_URL || 'http://localhost:3001';
+
+async function createDonationDonor(
+  page: Page,
+  token: string,
+  input: {
+    name: string;
+    email?: string;
+    addressLine1?: string;
+    city?: string;
+    stateProvince?: string;
+    postalCode?: string;
+    country?: string;
+  }
+): Promise<{ id: string; accountId: string }> {
+  const nameParts = input.name.trim().split(/\s+/);
+  const firstName = nameParts.shift() || 'Test';
+  const lastName = nameParts.join(' ') || 'Donor';
+
+  return createTestContact(page, token, {
+    firstName,
+    lastName,
+    email: input.email,
+    contactType: 'donor',
+    addressLine1: input.addressLine1,
+    city: input.city,
+    stateProvince: input.stateProvince,
+    postalCode: input.postalCode,
+    country: input.country,
+  });
+}
 
 async function ensureTaxReceiptSettings(authenticatedPage: Page, token: string): Promise<void> {
   const headers = await getAuthHeaders(authenticatedPage, token);
@@ -77,7 +107,7 @@ test.describe('Donations Module', () => {
 
   test('should create a new donation via UI', async ({ authenticatedPage, authToken }) => {
     const unique = makeUnique('create');
-    const { id: accountId } = await createTestAccount(authenticatedPage, authToken, {
+    const donor = await createDonationDonor(authenticatedPage, authToken, {
       name: `Test Donor ${unique}`,
       email: `${unique}@example.com`,
     });
@@ -85,13 +115,13 @@ test.describe('Donations Module', () => {
     await authenticatedPage.goto('/donations/new');
     await authenticatedPage.waitForURL(/\/donations\/new$/);
 
-    const accountSelect = authenticatedPage.locator('select[name="account_id"]');
-    await expect(accountSelect).toBeVisible();
+    const contactSelect = authenticatedPage.locator('select[name="contact_id"]');
+    await expect(contactSelect).toBeVisible();
     await expect
-      .poll(async () => accountSelect.locator(`option[value="${accountId}"]`).count())
+      .poll(async () => contactSelect.locator(`option[value="${donor.id}"]`).count())
       .toBeGreaterThan(0);
 
-    await accountSelect.selectOption(accountId);
+    await contactSelect.selectOption(donor.id);
     await authenticatedPage.fill('input[name="amount"]', '500.00');
     await authenticatedPage.fill('input[name="donation_date"]', '2026-01-15T14:00');
     await authenticatedPage.fill('input[name="transaction_id"]', `MANUAL-${unique}`);
@@ -157,13 +187,14 @@ test.describe('Donations Module', () => {
 
   test('should view donation details', async ({ authenticatedPage, authToken }) => {
     const unique = makeUnique('detail');
-    const { id: accountId } = await createTestAccount(authenticatedPage, authToken, {
+    const donor = await createDonationDonor(authenticatedPage, authToken, {
       name: `Generous Donor ${unique}`,
       email: `${unique}@example.com`,
     });
 
     const { id: donationId } = await createTestDonation(authenticatedPage, authToken, {
-      accountId,
+      accountId: donor.accountId,
+      contactId: donor.id,
       amount: 1000.0,
       paymentMethod: 'credit_card',
       paymentStatus: 'completed',
@@ -173,17 +204,18 @@ test.describe('Donations Module', () => {
 
     await expect(authenticatedPage.getByRole('button', { name: 'Edit' })).toBeVisible();
     await expect(authenticatedPage.getByText(/\$1,?000(?:\.00)?/)).toBeVisible();
-    await expect(authenticatedPage.getByText('Generous Donor')).toBeVisible();
+    await expect(authenticatedPage.getByText('E2E Organization')).toBeVisible();
   });
 
   test('should edit donation details', async ({ authenticatedPage, authToken }) => {
     const unique = makeUnique('edit');
-    const { id: accountId } = await createTestAccount(authenticatedPage, authToken, {
+    const donor = await createDonationDonor(authenticatedPage, authToken, {
       name: `Edit Test Donor ${unique}`,
     });
 
     const { id: donationId } = await createTestDonation(authenticatedPage, authToken, {
-      accountId,
+      accountId: donor.accountId,
+      contactId: donor.id,
       amount: 100.0,
       paymentStatus: 'pending',
     });
@@ -231,7 +263,7 @@ test.describe('Donations Module', () => {
 
   test('should mark receipt as sent', async ({ authenticatedPage, authToken }) => {
     const unique = makeUnique('receipt');
-    const { id: accountId } = await createTestAccount(authenticatedPage, authToken, {
+    const donor = await createDonationDonor(authenticatedPage, authToken, {
       name: `Receipt Test Donor ${unique}`,
       email: `${unique}@example.com`,
       addressLine1: '123 Receipt Way',
@@ -244,7 +276,8 @@ test.describe('Donations Module', () => {
     await ensureTaxReceiptSettings(authenticatedPage, authToken);
 
     const { id: donationId } = await createTestDonation(authenticatedPage, authToken, {
-      accountId,
+      accountId: donor.accountId,
+      contactId: donor.id,
       amount: 250.0,
       paymentStatus: 'completed',
     });
@@ -308,17 +341,19 @@ test.describe('Donations Module', () => {
 
   test('should filter donations by payment status', async ({ authenticatedPage, authToken }) => {
     const unique = makeUnique('status-filter');
-    const { id: accountId } = await createTestAccount(authenticatedPage, authToken, {
+    const donor = await createDonationDonor(authenticatedPage, authToken, {
       name: `Filter Test Donor ${unique}`,
     });
 
     await createTestDonation(authenticatedPage, authToken, {
-      accountId,
+      accountId: donor.accountId,
+      contactId: donor.id,
       amount: 100.0,
       paymentStatus: 'completed',
     });
     await createTestDonation(authenticatedPage, authToken, {
-      accountId,
+      accountId: donor.accountId,
+      contactId: donor.id,
       amount: 200.0,
       paymentStatus: 'pending',
     });
@@ -334,17 +369,19 @@ test.describe('Donations Module', () => {
 
   test('should filter donations by payment method', async ({ authenticatedPage, authToken }) => {
     const unique = makeUnique('method-filter');
-    const { id: accountId } = await createTestAccount(authenticatedPage, authToken, {
+    const donor = await createDonationDonor(authenticatedPage, authToken, {
       name: `Method Test Donor ${unique}`,
     });
 
     await createTestDonation(authenticatedPage, authToken, {
-      accountId,
+      accountId: donor.accountId,
+      contactId: donor.id,
       amount: 100.0,
       paymentMethod: 'credit_card',
     });
     await createTestDonation(authenticatedPage, authToken, {
-      accountId,
+      accountId: donor.accountId,
+      contactId: donor.id,
       amount: 200.0,
       paymentMethod: 'bank_transfer',
     });
@@ -358,22 +395,25 @@ test.describe('Donations Module', () => {
 
   test('should display donation summary statistics', async ({ authenticatedPage, authToken }) => {
     const unique = makeUnique('summary');
-    const { id: accountId } = await createTestAccount(authenticatedPage, authToken, {
+    const donor = await createDonationDonor(authenticatedPage, authToken, {
       name: `Stats Test Donor ${unique}`,
     });
 
     await createTestDonation(authenticatedPage, authToken, {
-      accountId,
+      accountId: donor.accountId,
+      contactId: donor.id,
       amount: 100.0,
       paymentStatus: 'completed',
     });
     await createTestDonation(authenticatedPage, authToken, {
-      accountId,
+      accountId: donor.accountId,
+      contactId: donor.id,
       amount: 200.0,
       paymentStatus: 'completed',
     });
     await createTestDonation(authenticatedPage, authToken, {
-      accountId,
+      accountId: donor.accountId,
+      contactId: donor.id,
       amount: 150.0,
       paymentStatus: 'completed',
     });
@@ -413,17 +453,17 @@ test.describe('Donations Module', () => {
 
   test('should handle recurring donations', async ({ authenticatedPage, authToken }) => {
     const unique = makeUnique('recurring');
-    const { id: accountId } = await createTestAccount(authenticatedPage, authToken, {
+    const donor = await createDonationDonor(authenticatedPage, authToken, {
       name: `Recurring Donor ${unique}`,
       email: `${unique}@example.com`,
     });
 
     await authenticatedPage.goto('/donations/new');
-    const accountSelect = authenticatedPage.locator('select[name="account_id"]');
-    await expect(accountSelect).toBeVisible();
-    await expect.poll(async () => accountSelect.locator(`option[value="${accountId}"]`).count()).toBe(1);
+    const contactSelect = authenticatedPage.locator('select[name="contact_id"]');
+    await expect(contactSelect).toBeVisible();
+    await expect.poll(async () => contactSelect.locator(`option[value="${donor.id}"]`).count()).toBe(1);
 
-    await accountSelect.selectOption(accountId);
+    await contactSelect.selectOption(donor.id);
     await authenticatedPage.fill('input[name="amount"]', '50.00');
     await authenticatedPage.fill('input[name="donation_date"]', '2026-01-15T14:00');
     await authenticatedPage.fill('input[name="transaction_id"]', `RECUR-${unique}`);
@@ -454,13 +494,14 @@ test.describe('Donations Module', () => {
 
   test('should paginate donations list', async ({ authenticatedPage, authToken }) => {
     const unique = makeUnique('pagination');
-    const { id: accountId } = await createTestAccount(authenticatedPage, authToken, {
+    const donor = await createDonationDonor(authenticatedPage, authToken, {
       name: `Pagination Test Donor ${unique}`,
     });
 
     for (let i = 1; i <= 21; i++) {
       await createTestDonation(authenticatedPage, authToken, {
-        accountId,
+        accountId: donor.accountId,
+        contactId: donor.id,
         amount: i * 10,
       });
     }

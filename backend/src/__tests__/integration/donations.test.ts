@@ -15,13 +15,6 @@ describe('Donation API Integration Tests', () => {
     req
       .set('Authorization', `Bearer ${authToken}`)
       .set('X-Organization-Id', organizationId);
-  const accountIdFromResponse = (body: unknown): string | undefined => {
-    if (typeof body !== 'object' || body === null) {
-      return undefined;
-    }
-    const value = body as { account_id?: string; data?: { account_id?: string } };
-    return value.account_id || value.data?.account_id;
-  };
 
   beforeAll(async () => {
     const authContext = await createIntegrationAuthContext({
@@ -33,22 +26,13 @@ describe('Donation API Integration Tests', () => {
     userId = authContext.userId;
     organizationId = authContext.organizationId;
 
-    // Create test account for donations
-    const accountResponse = await withAuth(request(app).post('/api/v2/accounts'))
-      .send({
-        account_name: 'Test Donor Account',
-        account_type: 'individual',
-      });
-
-    testAccountId = accountIdFromResponse(accountResponse.body) || '';
+    testAccountId = organizationId;
     expect(testAccountId).toBeTruthy();
   });
 
   afterAll(async () => {
-    // Clean up - delete in correct order due to foreign key constraints
     if (testAccountId) {
       await pool.query('DELETE FROM donations WHERE account_id = $1', [testAccountId]);
-      await pool.query('DELETE FROM accounts WHERE id = $1', [testAccountId]);
     }
     await deleteIntegrationAuthFixtures({
       userIds: userId ? [userId] : [],

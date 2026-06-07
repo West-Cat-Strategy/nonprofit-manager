@@ -140,6 +140,7 @@ type StaffFixtureState = {
   meetingId?: string;
   caseId?: string;
   donationId?: string;
+  donationContactId?: string;
   templateId?: string;
   siteId?: string;
   publishedSiteKey?: string;
@@ -712,17 +713,26 @@ async function resolveRoute(
       };
     case 'donation-detail':
     case 'donation-edit':
-      if (!staffState.accountId) {
-        staffState.accountId = (await createTestAccount(adminPage, authToken, {
-          name: `Dark Mode Account ${Date.now()}`,
-          email: `dark-mode-account-${Date.now()}@example.com`,
-        })).id;
-      }
-      if (!staffState.donationId) {
-        staffState.donationId = (await createTestDonation(adminPage, authToken, {
-          accountId: staffState.accountId,
-          amount: 75,
-        })).id;
+      {
+        const donationScope = await resolveStaffFixtureScope(adminPage, authToken, adminSession);
+        if (!staffState.donationContactId) {
+          staffState.donationContactId = (
+            await createTestContact(adminPage, authToken, {
+              firstName: 'Donation',
+              lastName: 'Mode Person',
+              email: `dark-mode-donation-contact-${Date.now()}@example.com`,
+              contactType: 'donor',
+              accountId: donationScope.accountId,
+            })
+          ).id;
+        }
+        if (!staffState.donationId) {
+          staffState.donationId = (await createTestDonation(adminPage, authToken, {
+            accountId: donationScope.accountId,
+            contactId: staffState.donationContactId,
+            amount: 75,
+          })).id;
+        }
       }
       return {
         kind: 'ready',

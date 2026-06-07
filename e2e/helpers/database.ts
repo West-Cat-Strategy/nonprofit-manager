@@ -500,6 +500,12 @@ export async function createTestContact(
     phone?: string;
     contactType?: string;
     accountId?: string;
+    addressLine1?: string;
+    addressLine2?: string;
+    city?: string;
+    stateProvince?: string;
+    postalCode?: string;
+    country?: string;
   }
 ): Promise<{ id: string; accountId: string }> {
   const apiURL = process.env.API_URL || `${HTTP_SCHEME}localhost:3001`;
@@ -524,6 +530,12 @@ export async function createTestContact(
       last_name: data.lastName,
       email: data.email,
       phone: data.phone,
+      address_line1: data.addressLine1,
+      address_line2: data.addressLine2,
+      city: data.city,
+      state_province: data.stateProvince,
+      postal_code: data.postalCode,
+      country: data.country,
       account_id: accountId,
       // Keep legacy field for older backends that still parse it.
       contactType: data.contactType || 'donor',
@@ -559,6 +571,7 @@ export async function createTestDonation(
   token: string,
   data: {
     accountId: string;
+    contactId?: string;
     amount: number;
     donationDate?: string;
     paymentMethod?: string;
@@ -575,6 +588,7 @@ export async function createTestDonation(
       headers,
       data: {
         account_id: data.accountId,
+        contact_id: data.contactId,
         amount: data.amount,
         donation_date: donationDate,
         payment_method: data.paymentMethod || 'credit_card',

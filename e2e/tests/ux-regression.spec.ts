@@ -166,7 +166,8 @@ async function seedMobileCardFixtures(page: Page, token: string): Promise<void> 
       name: `Mobile Event ${suffix}`,
     }),
     createTestDonation(page, token, {
-      accountId: account.id,
+      accountId: contact.accountId,
+      contactId: contact.id,
       amount: 25,
     }),
   ]);

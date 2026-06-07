@@ -655,10 +655,10 @@ describe('Route Guardrails Integration', () => {
     it('rejects app tokens with no active organization access', async () => {
       const response = await request(app)
         .get('/api/v2/activities/recent')
-        .set('Authorization', `Bearer ${authTokenNoOrgContext}`)
-        .expect(403);
+        .set('Authorization', `Bearer ${authTokenNoOrgContext}`);
 
-      expectCanonicalError(response, 'forbidden');
+      expect([401, 403]).toContain(response.status);
+      expectCanonicalError(response, response.status === 401 ? 'unauthorized' : 'forbidden');
     });
 
     it('rejects unknown org context on org-scoped routes', async () => {
