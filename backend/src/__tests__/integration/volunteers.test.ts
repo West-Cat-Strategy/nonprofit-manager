@@ -1,8 +1,10 @@
 import request from 'supertest';
-import jwt from 'jsonwebtoken';
 import app from '../../index';
 import pool from '../../config/database';
-import { getJwtSecret } from '../../config/jwt';
+import {
+  createIntegrationAuthContext,
+  deleteIntegrationAuthFixtures,
+} from './helpers/authFixtures';
 
 describe('Volunteer API Integration Tests', () => {
   let authToken: string;
@@ -15,73 +17,14 @@ describe('Volunteer API Integration Tests', () => {
     (body && typeof body === 'object' && 'data' in body ? (body as { data: T }).data : body) as T;
 
   beforeAll(async () => {
-    // Register and login
-    const email = `volunteer-test-${unique()}@example.com`;
-    const registerResponse = await request(app)
-      .post('/api/v2/auth/register')
-      .send({
-        email,
-        password: 'Test123!Strong',
-        password_confirm: 'Test123!Strong',
-        first_name: 'Volunteer',
-        last_name: 'Tester',
-      });
-
-    const registerPayload = unwrap<{
-      user?: {
-        id: string;
-        email: string;
-        role: string;
-      };
-    }>(registerResponse.body);
-    const registeredUser = registerPayload.user;
-
-    if (!registeredUser?.id) {
-      throw new Error('Failed to register volunteer test user');
-    }
-
-    userId = registeredUser.id;
-    await pool.query('UPDATE users SET role = $1 WHERE id = $2', ['admin', userId]);
-
-    const orgResult = await pool.query<{ id: string }>(
-      `SELECT id
-       FROM accounts
-       WHERE account_type = 'organization'
-         AND COALESCE(is_active, true) = true
-       ORDER BY created_at ASC
-       LIMIT 1`
-    );
-
-    if (orgResult.rows[0]?.id) {
-      organizationId = orgResult.rows[0].id;
-    } else {
-      const createdOrg = await pool.query<{ id: string }>(
-        `INSERT INTO accounts (account_name, account_type, created_by, modified_by, created_at, updated_at)
-         VALUES ($1, 'organization', $2, $2, NOW(), NOW())
-         RETURNING id`,
-        [`Volunteer Test Organization ${unique()}`, userId]
-      );
-      organizationId = createdOrg.rows[0].id;
-    }
-
-    authToken = jwt.sign(
-      {
-        id: userId,
-        email: registeredUser.email ?? email,
-        role: 'admin',
-        organizationId,
-      },
-      getJwtSecret(),
-      { expiresIn: '1h' }
-    );
-
-    await pool.query(
-      `INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active)
-       VALUES ($1, $2, 'admin', $1, TRUE)
-       ON CONFLICT (user_id, account_id)
-       DO UPDATE SET access_level = EXCLUDED.access_level, granted_by = EXCLUDED.granted_by, is_active = TRUE`,
-      [userId, organizationId]
-    );
+    const authContext = await createIntegrationAuthContext({
+      emailPrefix: 'volunteer-test',
+      accountName: `Volunteer Test Organization ${unique()}`,
+      role: 'admin',
+    });
+    authToken = authContext.authToken;
+    userId = authContext.userId;
+    organizationId = authContext.organizationId;
 
     // Create test account
     const accountResponse = await request(app)
@@ -97,14 +40,6 @@ describe('Volunteer API Integration Tests', () => {
     if (!testAccountId) {
       throw new Error('Failed to create volunteer test account');
     }
-
-    await pool.query(
-      `INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active)
-       VALUES ($1, $2, 'admin', $1, TRUE)
-       ON CONFLICT (user_id, account_id)
-       DO UPDATE SET access_level = EXCLUDED.access_level, granted_by = EXCLUDED.granted_by, is_active = TRUE`,
-      [userId, testAccountId]
-    );
 
     // Create test contact for volunteer
     const contactResponse = await request(app)
@@ -141,15 +76,10 @@ describe('Volunteer API Integration Tests', () => {
       await pool.query('DELETE FROM accounts WHERE id = $1', [testAccountId]);
     }
     if (organizationId) {
-      await pool.query('DELETE FROM user_account_access WHERE user_id = $1 AND account_id = $2', [
-        userId,
-        organizationId,
-      ]);
-      // `accounts.created_by` references `users.id`, so remove test-created org rows before user rows.
-      await pool.query('DELETE FROM accounts WHERE id = $1 AND created_by = $2', [organizationId, userId]);
-    }
-    if (userId) {
-      await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+      await deleteIntegrationAuthFixtures({
+        userIds: userId ? [userId] : [],
+        organizationIds: [organizationId],
+      });
     }
   });
 

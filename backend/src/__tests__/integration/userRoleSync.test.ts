@@ -2,10 +2,15 @@ import bcrypt from 'bcryptjs';
 import request from 'supertest';
 import app from '../../index';
 import pool from '../../config/database';
+import {
+  createIntegrationOrganization,
+  grantIntegrationOrganizationAccess,
+} from './helpers/authFixtures';
 
 describe('User Role Sync Integration', () => {
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const testPassword = 'Test123!Strong';
+  const createdOrganizationIds: string[] = [];
 
   const createAdminUser = async (email: string): Promise<string> => {
     const passwordHash = await bcrypt.hash(testPassword, 10);
@@ -15,7 +20,19 @@ describe('User Role Sync Integration', () => {
        RETURNING id`,
       [email, passwordHash]
     );
-    return result.rows[0].id;
+    const userId = result.rows[0].id;
+    const organization = await createIntegrationOrganization({
+      accountName: `Role Sync Org ${unique()}`,
+      createdBy: userId,
+    });
+    createdOrganizationIds.push(organization.id);
+    await grantIntegrationOrganizationAccess({
+      userId,
+      organizationId: organization.id,
+      role: 'admin',
+      grantedBy: userId,
+    });
+    return userId;
   };
 
   const safeDelete = async (query: string, params: unknown[]) => {
@@ -60,8 +77,35 @@ describe('User Role Sync Integration', () => {
     const userIds = users.rows.map((row: { id: string }) => row.id);
 
     if (userIds.length > 0) {
+      await safeDelete('DELETE FROM user_account_access WHERE user_id = ANY($1::uuid[])', [
+        userIds,
+      ]);
+      await safeDelete(
+        `DELETE FROM user_account_access
+         WHERE account_id IN (
+           SELECT id
+           FROM accounts
+           WHERE created_by = ANY($1::uuid[])
+              OR modified_by = ANY($1::uuid[])
+         )`,
+        [userIds]
+      );
+      await safeDelete(
+        `DELETE FROM accounts
+         WHERE created_by = ANY($1::uuid[])
+            OR modified_by = ANY($1::uuid[])`,
+        [userIds]
+      );
       await safeDelete('DELETE FROM user_roles WHERE user_id = ANY($1)', [userIds]);
       await safeDelete('DELETE FROM users WHERE id = ANY($1)', [userIds]);
+    }
+    if (createdOrganizationIds.length > 0) {
+      await safeDelete('DELETE FROM user_account_access WHERE account_id = ANY($1::uuid[])', [
+        createdOrganizationIds,
+      ]);
+      await safeDelete('DELETE FROM accounts WHERE id = ANY($1::uuid[])', [
+        createdOrganizationIds,
+      ]);
     }
   });
 

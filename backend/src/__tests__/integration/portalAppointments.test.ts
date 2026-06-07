@@ -3,6 +3,10 @@ import jwt from 'jsonwebtoken';
 import app from '../../index';
 import pool from '../../config/database';
 import { getJwtSecret } from '../../config/jwt';
+import {
+  grantIntegrationOrganizationAccess,
+  issueIntegrationAppToken,
+} from './helpers/authFixtures';
 
 describe('Portal Appointments Integration', () => {
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -29,13 +33,12 @@ describe('Portal Appointments Integration', () => {
   const createdAccountIds: string[] = [];
 
   const buildAdminToken = () =>
-    jwt.sign(
-      { id: adminUserId, email: adminEmail, role: 'admin', organizationId: accountId },
-      getJwtSecret(),
-      {
-        expiresIn: '1h',
-      }
-    );
+    issueIntegrationAppToken({
+      userId: adminUserId,
+      email: adminEmail,
+      role: 'admin',
+      organizationId: accountId,
+    });
 
   const buildPortalToken = () =>
     jwt.sign(
@@ -67,6 +70,12 @@ describe('Portal Appointments Integration', () => {
     );
     accountId = accountResult.rows[0].id as string;
     createdAccountIds.push(accountId);
+    await grantIntegrationOrganizationAccess({
+      userId: adminUserId,
+      organizationId: accountId,
+      role: 'admin',
+      grantedBy: adminUserId,
+    });
 
     const caseTypeResult = await pool.query(
       `INSERT INTO case_types (name, description, created_at, updated_at)
@@ -178,6 +187,11 @@ describe('Portal Appointments Integration', () => {
     }
     if (createdCaseTypeIds.length > 0) {
       await pool.query('DELETE FROM case_types WHERE id = ANY($1)', [createdCaseTypeIds]);
+    }
+    if (createdUserIds.length > 0) {
+      await pool.query('DELETE FROM user_account_access WHERE user_id = ANY($1::uuid[])', [
+        createdUserIds,
+      ]);
     }
     if (createdAccountIds.length > 0) {
       await pool.query('DELETE FROM accounts WHERE id = ANY($1)', [createdAccountIds]);

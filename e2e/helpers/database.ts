@@ -7,6 +7,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 
 const RETRYABLE_NETWORK_ERROR = /ECONNRESET|ECONNREFUSED|ETIMEDOUT|EPIPE|socket hang up/i;
+const RETRYABLE_DATABASE_RESET_CODES = new Set(['40001', '40P01']);
 const HTTP_SCHEME = ['http', '://'].join('');
 const backendRequire = createRequire(path.resolve(__dirname, '..', '..', 'backend', 'package.json'));
 const { Client: PgClient } = backendRequire('pg') as {
@@ -28,6 +29,16 @@ const { Client: PgClient } = backendRequire('pg') as {
 
 const isRetryableNetworkError = (error: unknown): boolean =>
   error instanceof Error && RETRYABLE_NETWORK_ERROR.test(error.message);
+
+const getDatabaseErrorCode = (error: unknown): string | undefined => {
+  const code = (error as { code?: unknown } | undefined)?.code;
+  return typeof code === 'string' ? code : undefined;
+};
+
+const isRetryableDatabaseResetError = (error: unknown): boolean => {
+  const code = getDatabaseErrorCode(error);
+  return code ? RETRYABLE_DATABASE_RESET_CODES.has(code) : false;
+};
 
 const normalizeOrganizationId = (value: unknown): string | undefined => {
   if (typeof value !== 'string') {
@@ -175,12 +186,22 @@ const getDatabaseConnectionConfig = (): {
 });
 
 const hardResetContacts = async (): Promise<void> => {
-  const client = new PgClient(getDatabaseConnectionConfig());
-  try {
-    await client.connect();
-    await client.query('TRUNCATE TABLE contacts CASCADE;');
-  } finally {
-    await client.end().catch(() => undefined);
+  const attempts = 3;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    const client = new PgClient(getDatabaseConnectionConfig());
+    try {
+      await client.connect();
+      await client.query('TRUNCATE TABLE contacts CASCADE;');
+      return;
+    } catch (error) {
+      if (!isRetryableDatabaseResetError(error) || attempt === attempts) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 250 * attempt));
+    } finally {
+      await client.end().catch(() => undefined);
+    }
   }
 };
 

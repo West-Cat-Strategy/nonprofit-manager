@@ -483,7 +483,7 @@ test-coverage:
 	@echo "$(BLUE)Preparing isolated test database...$(RESET)"
 	@$(CI_TEST_DB_ENV) ./scripts/db-migrate.sh
 	@echo "$(BLUE)Waiting for database to complete post-init restart...$(RESET)"
-	@sleep 5
+	@$(CI_TEST_DB_ENV) ./scripts/db-migrate.sh --wait-ready
 	@echo "$(BLUE)Running backend tests with coverage...$(RESET)"
 	cd backend && $(CI_BACKEND_COVERAGE_ENV) SKIP_INTEGRATION_DB_PREP=1 npm run test:coverage
 	@echo "$(BLUE)Running frontend tests with coverage...$(RESET)"
@@ -500,7 +500,7 @@ test-coverage-full:
 	@echo "$(BLUE)Preparing isolated test database...$(RESET)"
 	@$(CI_TEST_DB_ENV) ./scripts/db-migrate.sh
 	@echo "$(BLUE)Waiting for database to complete post-init restart...$(RESET)"
-	@sleep 5
+	@$(CI_TEST_DB_ENV) ./scripts/db-migrate.sh --wait-ready
 	@echo "$(BLUE)Running backend tests with coverage...$(RESET)"
 	cd backend && $(CI_BACKEND_COVERAGE_ENV) SKIP_INTEGRATION_DB_PREP=1 npm run test:coverage
 	@echo "$(BLUE)Running frontend tests with coverage...$(RESET)"
@@ -518,7 +518,7 @@ test-backend:
 	$(CI_INFRA_ENV) $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
 	@$(CI_TEST_DB_ENV) ./scripts/db-migrate.sh
 	@echo "$(BLUE)Waiting for database to complete post-init restart...$(RESET)"
-	@sleep 5
+	@$(CI_TEST_DB_ENV) ./scripts/db-migrate.sh --wait-ready
 	cd backend && SKIP_INTEGRATION_DB_PREP=1 npm test -- --runInBand
 
 test-frontend:

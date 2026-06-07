@@ -326,6 +326,55 @@ exit 0
   assert.match(result.stdout, /127\.0\.0\.1:8012\/nonprofit_manager_test/);
 });
 
+test('validation preflight accepts the repo-owned isolated test database while it is starting', () => {
+  const fakeBin = createFakeBin({
+    psql: `#!/usr/bin/env bash
+exit 1
+`,
+    docker: `#!/usr/bin/env bash
+case "$1" in
+  info)
+    exit 0
+    ;;
+  ps)
+    printf '%s\\n' test-db-container
+    exit 0
+    ;;
+  inspect)
+    case "$3" in
+      *compose.service*)
+        printf '\\n'
+        ;;
+      *compose.project*)
+        printf '\\n'
+        ;;
+      *'.Name'*)
+        printf '%s\\n' /nonprofit-manager-test-postgres
+        ;;
+    esac
+    exit 0
+    ;;
+esac
+exit 0
+`,
+  });
+
+  const result = run(
+    'bash',
+    ['scripts/validation-preflight.sh', 'isolated-test-db', '--context', 'scripts/db-migrate.sh --wait-ready'],
+    {
+      PATH: `${fakeBin}:${process.env.PATH}`,
+      DB_HOST: '127.0.0.1',
+      DB_PORT: '8012',
+      DB_NAME: 'nonprofit_manager_test',
+    }
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /isolated test database container test-db-container/);
+  assert.match(result.stdout, /Docker is reachable and can bootstrap the isolated test database/);
+});
+
 test('root wrappers call validation preflight before Docker and DB-backed work', () => {
   const makefile = fs.readFileSync(path.join(repoRoot, 'Makefile'), 'utf8');
   const overlayScript = fs.readFileSync(

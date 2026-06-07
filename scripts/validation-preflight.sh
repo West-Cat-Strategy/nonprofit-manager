@@ -150,6 +150,10 @@ test_db_target() {
   printf '%s:%s/%s' "$(test_db_host)" "$(test_db_port)" "$(test_db_name)"
 }
 
+test_db_container_name() {
+  printf '%s' "${DB_TEST_CONTAINER_NAME:-nonprofit-manager-test-postgres}"
+}
+
 test_db_ready() {
   PGPASSWORD="$(test_db_password)" psql \
     -h "$(test_db_host)" \
@@ -198,10 +202,12 @@ EOF
   if [[ -n "$existing_container" ]]; then
     local detected_service=""
     local detected_project=""
+    local detected_name=""
     detected_service="$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.service" }}' "$existing_container" 2>/dev/null || true)"
     detected_project="$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project" }}' "$existing_container" 2>/dev/null || true)"
+    detected_name="$(docker inspect -f '{{ .Name }}' "$existing_container" 2>/dev/null || true)"
 
-    if [[ "$detected_service" != "postgres" ]]; then
+    if [[ "$detected_service" != "postgres" && "$detected_name" != "/$(test_db_container_name)" ]]; then
       log_error "Nonprofit Manager validation preflight failed before ${CONTEXT}: port $(test_db_port) is occupied by a non-Postgres container."
       cat >&2 <<EOF
 The isolated test DB wrapper needs $(test_db_target), but Docker reports
@@ -213,7 +219,11 @@ EOF
       return 1
     fi
 
-    log_warn "Port $(test_db_port) is already published by Postgres container ${existing_container} from project ${detected_project:-unknown}; the DB wrapper will attempt reuse or rebuild."
+    if [[ "$detected_service" == "postgres" ]]; then
+      log_warn "Port $(test_db_port) is already published by Postgres container ${existing_container} from project ${detected_project:-unknown}; the DB wrapper will attempt reuse or rebuild."
+    else
+      log_warn "Port $(test_db_port) is already published by isolated test database container ${existing_container}; the DB wrapper will wait for readiness or rebuild."
+    fi
   fi
 
   log_info "Docker is reachable and can bootstrap the isolated test database at $(test_db_target)."

@@ -1,6 +1,10 @@
-import request from 'supertest';
+import request, { type Test } from 'supertest';
 import app from '../../../../index';
 import pool from '../../../../config/database';
+import {
+  createIntegrationAuthContext,
+  deleteIntegrationAuthFixtures,
+} from '../../../../__tests__/integration/helpers/authFixtures';
 
 describe('Meetings API Integration Tests', () => {
   let adminAuthToken: string;
@@ -9,71 +13,22 @@ describe('Meetings API Integration Tests', () => {
   let testCommitteeId: string;
   let testMeetingId: string;
   let creatorUserId: string;
-  const sharedPassword = 'Test123!Strong';
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-  const tokenFromResponse = (body: any): string | undefined => {
-    return body.token || body.data?.token;
-  };
-
-  const accountIdFromResponse = (body: any): string | undefined => {
-    return body.account_id || body.data?.account_id;
-  };
-
-  const withAuthToken = (token: string, req: any) =>
+  const withAuthToken = (token: string, req: Test): Test =>
     req
       .set('Authorization', `Bearer ${token}`)
       .set('X-Organization-Id', testAccountId);
 
   beforeAll(async () => {
-    // Register and login admin
-    const email = `meeting-admin-${unique()}@example.com`;
-    const registerResponse = await request(app)
-      .post('/api/v2/auth/register')
-      .send({
-        email,
-        password: sharedPassword,
-        password_confirm: sharedPassword,
-        first_name: 'Meeting',
-        last_name: 'Admin',
-      });
-
-    adminAuthToken = tokenFromResponse(registerResponse.body) || '';
-    expect(adminAuthToken).toBeTruthy();
-
-    await pool.query('UPDATE users SET role = $1 WHERE email = $2', ['admin', email.toLowerCase()]);
-
-    const loginResponse = await request(app)
-      .post('/api/v2/auth/login')
-      .send({ email, password: sharedPassword })
-      .expect(200);
-    adminAuthToken = tokenFromResponse(loginResponse.body) || '';
-    expect(adminAuthToken).toBeTruthy();
-
-    // Create a test account
-    const accountResponse = await request(app)
-      .post('/api/v2/accounts')
-      .set('Authorization', `Bearer ${adminAuthToken}`)
-      .send({
-        account_name: 'Test Account for Meetings',
-        account_type: 'organization',
-      });
-
-    testAccountId = accountIdFromResponse(accountResponse.body) || '';
-    expect(testAccountId).toBeTruthy();
-
-    const accountOwnerResult = await pool.query<{ created_by: string }>(
-      'SELECT created_by FROM accounts WHERE id = $1',
-      [testAccountId]
-    );
-    creatorUserId = accountOwnerResult.rows[0]?.created_by || '';
-    expect(creatorUserId).toBeTruthy();
-
-    await pool.query(
-      `INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active)
-       VALUES ($1, $2, 'admin', $1, TRUE)`,
-      [creatorUserId, testAccountId]
-    );
+    const authContext = await createIntegrationAuthContext({
+      role: 'admin',
+      emailPrefix: 'meeting-admin',
+      accountName: `Test Account for Meetings ${unique()}`,
+    });
+    adminAuthToken = authContext.authToken;
+    testAccountId = authContext.organizationId;
+    creatorUserId = authContext.userId;
 
     // Create a test contact
     const contactResponse = await withAuthToken(adminAuthToken, request(app).post('/api/v2/contacts'))
@@ -82,7 +37,7 @@ describe('Meetings API Integration Tests', () => {
         last_name: 'Contact',
         email: `meeting-contact-${unique()}@example.com`,
       });
-    
+
     testContactId = contactResponse.body.data?.contact_id || contactResponse.body.contact_id;
     expect(testContactId).toBeTruthy();
 
@@ -96,8 +51,18 @@ describe('Meetings API Integration Tests', () => {
     if (testAccountId) {
       await pool.query('DELETE FROM meetings WHERE organization_id = $1', [testAccountId]);
       await pool.query('DELETE FROM contacts WHERE account_id = $1', [testAccountId]);
-      await pool.query('DELETE FROM user_account_access WHERE account_id = $1', [testAccountId]);
-      await pool.query('DELETE FROM accounts WHERE id = $1', [testAccountId]);
+      if (creatorUserId) {
+        await pool.query(
+          `DELETE FROM contacts
+           WHERE created_by = $1
+              OR modified_by = $1`,
+          [creatorUserId]
+        );
+      }
+      await deleteIntegrationAuthFixtures({
+        userIds: creatorUserId ? [creatorUserId] : [],
+        organizationIds: [testAccountId],
+      });
     }
   });
 

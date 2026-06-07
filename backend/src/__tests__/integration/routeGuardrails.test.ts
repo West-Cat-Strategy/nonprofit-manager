@@ -1,12 +1,14 @@
 import express from 'express';
-import jwt from 'jsonwebtoken';
 import request from 'supertest';
 import app from '../../index';
 import pool from '@config/database';
-import { getJwtSecret } from '@config/jwt';
 import { randomUUID } from 'crypto';
 import { handleWebhook, setPaymentPool } from '@modules/payments/controllers/paymentController';
 import stripeService from '@services/stripeService';
+import {
+  grantIntegrationOrganizationAccess,
+  issueIntegrationAppToken,
+} from './helpers/authFixtures';
 
 type GuardrailCase = {
   name: string;
@@ -117,6 +119,7 @@ const AUTH_VALIDATION_REQUIRED_CASES: GuardrailCase[] = [
     expectedCode: 'validation_error',
     payload: {},
     withActiveOrgContext: true,
+    tokenKind: 'admin',
   },
   {
     name: 'reconciliation endpoints enforce UUID params',
@@ -406,6 +409,7 @@ describe('Route Guardrails Integration', () => {
   let authTokenAdmin: string;
   let guardrailUserIdentity: GuardrailIdentity | null = null;
   let guardrailAdminIdentity: GuardrailIdentity | null = null;
+  let guardrailNoAccessIdentity: GuardrailIdentity | null = null;
   const activeOrgId = randomUUID();
   const inactiveOrgId = randomUUID();
   const activeOrgAccountNumber = `GR-ACT-${activeOrgId.slice(0, 8)}`;
@@ -424,21 +428,30 @@ describe('Route Guardrails Integration', () => {
     }
 
     const includeOrgContext = options?.includeOrgContext ?? true;
-    return jwt.sign(
-      {
-        id: identity.id,
-        email: identity.email,
-        role,
-        ...(includeOrgContext ? { organizationId: activeOrgId } : {}),
-      },
-      getJwtSecret(),
-      { expiresIn: '1h' }
-    );
+    return issueIntegrationAppToken({
+      userId: identity.id,
+      email: identity.email,
+      role,
+      organizationId: includeOrgContext ? activeOrgId : null,
+    });
+  };
+
+  const buildNoAccessToken = (): string => {
+    if (!guardrailNoAccessIdentity) {
+      throw new Error('Guardrail no-access identity has not been initialized');
+    }
+
+    return issueIntegrationAppToken({
+      userId: guardrailNoAccessIdentity.id,
+      email: guardrailNoAccessIdentity.email,
+      role: 'user',
+      organizationId: null,
+    });
   };
 
   const refreshAuthTokens = (): void => {
     authToken = buildToken('user', { includeOrgContext: true });
-    authTokenNoOrgContext = buildToken('user', { includeOrgContext: false });
+    authTokenNoOrgContext = buildNoAccessToken();
     authTokenAdmin = buildToken('admin', { includeOrgContext: true });
   };
 
@@ -472,6 +485,7 @@ describe('Route Guardrails Integration', () => {
   const ensureGuardrailUsersExist = async (): Promise<void> => {
     await upsertGuardrailIdentity(guardrailUserIdentity, 'user');
     await upsertGuardrailIdentity(guardrailAdminIdentity, 'admin');
+    await upsertGuardrailIdentity(guardrailNoAccessIdentity, 'user');
   };
 
   const upsertGuardrailOrgs = async (): Promise<void> => {
@@ -491,6 +505,25 @@ describe('Route Guardrails Integration', () => {
            is_active = EXCLUDED.is_active`,
       [inactiveOrgId, inactiveOrgAccountNumber, 'Guardrails Inactive Org']
     );
+  };
+
+  const grantGuardrailOrgAccess = async (): Promise<void> => {
+    if (guardrailUserIdentity) {
+      await grantIntegrationOrganizationAccess({
+        userId: guardrailUserIdentity.id,
+        organizationId: activeOrgId,
+        role: 'user',
+        grantedBy: guardrailUserIdentity.id,
+      });
+    }
+    if (guardrailAdminIdentity) {
+      await grantIntegrationOrganizationAccess({
+        userId: guardrailAdminIdentity.id,
+        organizationId: activeOrgId,
+        role: 'admin',
+        grantedBy: guardrailAdminIdentity.id,
+      });
+    }
   };
 
   beforeAll(async () => {
@@ -526,15 +559,23 @@ describe('Route Guardrails Integration', () => {
       firstName: 'Guardrail',
       lastName: 'Admin',
     };
+    guardrailNoAccessIdentity = {
+      id: randomUUID(),
+      email: `guardrails-no-access-${unique}@example.com`,
+      firstName: 'Guardrail',
+      lastName: 'NoAccess',
+    };
 
     await ensureGuardrailUsersExist();
-    refreshAuthTokens();
     await upsertGuardrailOrgs();
+    await grantGuardrailOrgAccess();
+    refreshAuthTokens();
   });
 
   beforeEach(async () => {
     await ensureGuardrailUsersExist();
     await upsertGuardrailOrgs();
+    await grantGuardrailOrgAccess();
     await pool.query(
       `CREATE TABLE IF NOT EXISTS organization_settings (
         organization_id UUID PRIMARY KEY REFERENCES accounts(id) ON DELETE CASCADE,
@@ -550,9 +591,20 @@ describe('Route Guardrails Integration', () => {
   });
 
   afterAll(async () => {
+    await pool.query('DELETE FROM user_account_access WHERE account_id IN ($1, $2)', [
+      activeOrgId,
+      inactiveOrgId,
+    ]);
     await pool.query('DELETE FROM accounts WHERE id IN ($1, $2)', [activeOrgId, inactiveOrgId]);
-    const guardrailIds = [guardrailUserIdentity?.id, guardrailAdminIdentity?.id].filter(Boolean);
+    const guardrailIds = [
+      guardrailUserIdentity?.id,
+      guardrailAdminIdentity?.id,
+      guardrailNoAccessIdentity?.id,
+    ].filter(Boolean);
     if (guardrailIds.length > 0) {
+      await pool.query('DELETE FROM user_account_access WHERE user_id = ANY($1::uuid[])', [
+        guardrailIds,
+      ]);
       await pool.query('DELETE FROM users WHERE id = ANY($1::uuid[])', [guardrailIds]);
     }
   });
@@ -600,13 +652,13 @@ describe('Route Guardrails Integration', () => {
   });
 
   describe('tenant/org activation behavior matrix', () => {
-    it('rejects missing org context on org-scoped routes', async () => {
+    it('rejects app tokens with no active organization access', async () => {
       const response = await request(app)
         .get('/api/v2/activities/recent')
         .set('Authorization', `Bearer ${authTokenNoOrgContext}`)
-        .expect(400);
+        .expect(403);
 
-      expectCanonicalError(response, 'bad_request');
+      expectCanonicalError(response, 'forbidden');
     });
 
     it('rejects unknown org context on org-scoped routes', async () => {
@@ -785,13 +837,13 @@ describe('Route Guardrails Integration', () => {
       expect(disabledResponse.body.error.details).toMatchObject({ module: 'cases' });
     });
 
-    it('preserves route-level validation behavior when no org context is selected', async () => {
+    it('rejects no-access app tokens before route-level validation', async () => {
       const response = await request(app)
         .get('/api/v2/alerts/instances?limit=500')
         .set('Authorization', `Bearer ${authTokenNoOrgContext}`)
-        .expect(400);
+        .expect(403);
 
-      expectCanonicalError(response, 'validation_error');
+      expectCanonicalError(response, 'forbidden');
     });
 
     it('still honors the global team-chat flag when org settings enable the module', async () => {
@@ -911,14 +963,14 @@ describe('Route Guardrails Integration', () => {
       expect(response.body.error.message).not.toMatch(/organization context is required/i);
     });
 
-    it('still enforces organization context on org-scoped business routes', async () => {
+    it('still fails closed before org-scoped business routes without active access', async () => {
       const response = await request(app)
         .get('/api/v2/activities/recent')
         .set('Authorization', `Bearer ${authTokenNoOrgContext}`)
-        .expect(400);
+        .expect(403);
 
-      expectCanonicalError(response, 'bad_request');
-      expect(response.body.error.message).toMatch(/no organization context/i);
+      expectCanonicalError(response, 'forbidden');
+      expect(response.body.error.message).toMatch(/no active organization access/i);
     });
   });
 
@@ -1111,27 +1163,30 @@ describe('Route Guardrails Integration', () => {
       .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 'receipt-1' }] })
       .mockResolvedValue({ rowCount: 0, rows: [] });
 
-    const replayResponse = await request(staleWebhookApp)
-      .post('/api/v2/payments/webhook')
-      .set('stripe-signature', 'sig_test')
-      .set('Content-Type', 'application/json')
-      .send('{}')
-      .expect(200);
+    try {
+      const replayResponse = await request(staleWebhookApp)
+        .post('/api/v2/payments/webhook')
+        .set('stripe-signature', 'sig_test')
+        .set('Content-Type', 'application/json')
+        .send('{}')
+        .expect(200);
 
-    expect(replayResponse.body).toEqual({ received: true });
-    expect(replayResponse.body.success).toBeUndefined();
+      expect(replayResponse.body).toEqual({ received: true });
+      expect(replayResponse.body.success).toBeUndefined();
 
-    const duplicateResponse = await request(staleWebhookApp)
-      .post('/api/v2/payments/webhook')
-      .set('stripe-signature', 'sig_test')
-      .set('Content-Type', 'application/json')
-      .send('{}')
-      .expect(200);
+      const duplicateResponse = await request(staleWebhookApp)
+        .post('/api/v2/payments/webhook')
+        .set('stripe-signature', 'sig_test')
+        .set('Content-Type', 'application/json')
+        .send('{}')
+        .expect(200);
 
-    expect(duplicateResponse.body).toEqual({ received: true, duplicate: true });
-    expect(duplicateResponse.body.success).toBeUndefined();
-
-    replaySpy.mockRestore();
+      expect(duplicateResponse.body).toEqual({ received: true, duplicate: true });
+      expect(duplicateResponse.body.success).toBeUndefined();
+    } finally {
+      replaySpy.mockRestore();
+      setPaymentPool(pool);
+    }
   });
 
   it('keeps correlation IDs isolated across concurrent requests', async () => {

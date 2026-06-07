@@ -1,8 +1,12 @@
-import request from 'supertest';
+import request, { type Test } from 'supertest';
 import twilio from 'twilio';
 import app from '../../index';
 import pool from '../../config/database';
 import { encrypt } from '../../utils/encryption';
+import {
+  createIntegrationAuthContext,
+  deleteIntegrationAuthFixtures,
+} from './helpers/authFixtures';
 
 const messagesCreateMock = jest.fn();
 const accountFetchMock = jest.fn();
@@ -51,16 +55,26 @@ const CONFIGURED_FROM_PHONE = '+15555551234';
 describe('Admin Twilio Settings API', () => {
   let adminToken = '';
   let userToken = '';
-  let adminEmail = '';
-  let userEmail = '';
+  let adminUserId = '';
+  let userId = '';
+  let adminOrganizationId = '';
+  let userOrganizationId = '';
   let originalSettings: TwilioSettingsSnapshot | null = null;
-
-  const password = 'Test123!Strong';
 
   const mockTwilio = twilio as unknown as jest.Mock;
 
   const readTwilioSettingsPayload = (body: Record<string, unknown>) =>
     body.data as Record<string, unknown>;
+
+  const withAdminAuth = (req: Test): Test =>
+    req
+      .set('Authorization', `Bearer ${adminToken}`)
+      .set('X-Organization-Id', adminOrganizationId);
+
+  const withUserAuth = (req: Test): Test =>
+    req
+      .set('Authorization', `Bearer ${userToken}`)
+      .set('X-Organization-Id', userOrganizationId);
 
   const configureTwilioSettings = async (): Promise<void> => {
     await pool.query(
@@ -113,37 +127,23 @@ describe('Admin Twilio Settings API', () => {
 
     await configureTwilioSettings();
 
-    adminEmail = `twilio-settings-admin-${Date.now()}@example.com`;
-    const registerResponse = await request(app).post('/api/v2/auth/register').send({
-      email: adminEmail,
-      password,
-      password_confirm: password,
-      first_name: 'Twilio',
-      last_name: 'Admin',
+    const adminContext = await createIntegrationAuthContext({
+      emailPrefix: 'twilio-settings-admin',
+      accountName: `Twilio Settings Admin Org ${Date.now()}`,
+      role: 'admin',
     });
+    adminUserId = adminContext.userId;
+    adminOrganizationId = adminContext.organizationId;
+    adminToken = adminContext.authToken;
 
-    const adminUserId = registerResponse.body?.user?.user_id ?? registerResponse.body?.user?.id;
-    await pool.query("UPDATE users SET role = 'admin' WHERE id = $1", [adminUserId]);
-
-    const adminLogin = await request(app).post('/api/v2/auth/login').send({
-      email: adminEmail,
-      password,
+    const userContext = await createIntegrationAuthContext({
+      emailPrefix: 'twilio-settings-user',
+      accountName: `Twilio Settings User Org ${Date.now()}`,
+      role: 'user',
     });
-    adminToken = adminLogin.body?.token;
-
-    userEmail = `twilio-settings-user-${Date.now()}@example.com`;
-    await request(app).post('/api/v2/auth/register').send({
-      email: userEmail,
-      password,
-      password_confirm: password,
-      first_name: 'Twilio',
-      last_name: 'User',
-    });
-    const userLogin = await request(app).post('/api/v2/auth/login').send({
-      email: userEmail,
-      password,
-    });
-    userToken = userLogin.body?.token;
+    userId = userContext.userId;
+    userOrganizationId = userContext.organizationId;
+    userToken = userContext.authToken;
   });
 
   beforeEach(() => {
@@ -206,29 +206,23 @@ describe('Admin Twilio Settings API', () => {
     }
 
     try {
-      if (adminEmail) {
-        await pool.query('DELETE FROM users WHERE email = $1', [adminEmail]);
-      }
-      if (userEmail) {
-        await pool.query('DELETE FROM users WHERE email = $1', [userEmail]);
-      }
+      await deleteIntegrationAuthFixtures({
+        userIds: [adminUserId, userId].filter(Boolean),
+        organizationIds: [adminOrganizationId, userOrganizationId].filter(Boolean),
+      });
     } catch {
       // ignore cleanup failures
     }
   });
 
   it('rejects non-admin access', async () => {
-    const response = await request(app)
-      .get('/api/v2/admin/twilio-settings')
-      .set('Authorization', `Bearer ${userToken}`);
+    const response = await withUserAuth(request(app).get('/api/v2/admin/twilio-settings'));
 
     expect(response.status).toBe(403);
   });
 
   it('returns the current Twilio settings and credential presence for admins', async () => {
-    const response = await request(app)
-      .get('/api/v2/admin/twilio-settings')
-      .set('Authorization', `Bearer ${adminToken}`);
+    const response = await withAdminAuth(request(app).get('/api/v2/admin/twilio-settings'));
 
     expect(response.status).toBe(200);
 
@@ -245,9 +239,7 @@ describe('Admin Twilio Settings API', () => {
   });
 
   it('normalizes blank optional fields and recomputes the configured state', async () => {
-    const response = await request(app)
-      .put('/api/v2/admin/twilio-settings')
-      .set('Authorization', `Bearer ${adminToken}`)
+    const response = await withAdminAuth(request(app).put('/api/v2/admin/twilio-settings'))
       .send({
         accountSid: '',
         messagingServiceSid: '',
@@ -285,9 +277,7 @@ describe('Admin Twilio Settings API', () => {
   });
 
   it('rejects invalid Twilio SID formats', async () => {
-    const response = await request(app)
-      .put('/api/v2/admin/twilio-settings')
-      .set('Authorization', `Bearer ${adminToken}`)
+    const response = await withAdminAuth(request(app).put('/api/v2/admin/twilio-settings'))
       .send({
         accountSid: 'AC123',
       });
@@ -310,9 +300,7 @@ describe('Admin Twilio Settings API', () => {
       sid: CONFIGURED_ACCOUNT_SID,
     });
 
-    const response = await request(app)
-      .post('/api/v2/admin/twilio-settings/test')
-      .set('Authorization', `Bearer ${adminToken}`);
+    const response = await withAdminAuth(request(app).post('/api/v2/admin/twilio-settings/test'));
 
     expect(response.status).toBe(200);
 
@@ -337,9 +325,7 @@ describe('Admin Twilio Settings API', () => {
     await configureTwilioSettings();
     accountFetchMock.mockRejectedValueOnce(new Error('Authentication failed'));
 
-    const response = await request(app)
-      .post('/api/v2/admin/twilio-settings/test')
-      .set('Authorization', `Bearer ${adminToken}`);
+    const response = await withAdminAuth(request(app).post('/api/v2/admin/twilio-settings/test'));
 
     expect(response.status).toBe(200);
 

@@ -49,7 +49,9 @@ describe('RecurringDonationCheckoutResultPage', () => {
       );
     });
 
-    expect(screen.getByRole('button', { name: 'Manage Monthly Donation' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: 'Manage Monthly Donation' })
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Return to Website' })).toBeInTheDocument();
   });
 

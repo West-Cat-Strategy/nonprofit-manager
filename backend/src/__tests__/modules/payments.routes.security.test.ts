@@ -1,6 +1,7 @@
 import express from 'express';
 import type { Response } from 'express';
 import request from 'supertest';
+import type { AuthRequest } from '../../middleware/auth';
 
 const paymentControllerMocks = {
   getPaymentConfig: jest.fn((_req: unknown, res: Response) => res.status(200).json({ ok: true })),
@@ -25,7 +26,16 @@ const buildApp = (role: string) => {
   const app = express();
   app.use(express.json());
   app.use((req, _res, next) => {
-    (req as any).user = { id: 'user-1', role };
+    const authReq = req as AuthRequest;
+    authReq.user = { id: '00000000-0000-4000-8000-000000000001', role };
+    authReq.organizationId = '00000000-0000-4000-8000-000000000002';
+    authReq.accountId = authReq.organizationId;
+    authReq.tenantId = authReq.organizationId;
+    authReq.organizationContextValidated = {
+      organizationId: authReq.organizationId,
+      isActive: true,
+      accessValidated: true,
+    };
     next();
   });
   app.use('/api/v2/payments', createPaymentsRoutes());
@@ -48,8 +58,8 @@ describe('payments routes authorization', () => {
     expect(paymentControllerMocks.createRefund).not.toHaveBeenCalled();
   });
 
-  it('allows refund creation for staff roles', async () => {
-    const app = buildApp('staff');
+  it('allows refund creation for payment-processing roles', async () => {
+    const app = buildApp('admin');
 
     await request(app)
       .post('/api/v2/payments/refunds')

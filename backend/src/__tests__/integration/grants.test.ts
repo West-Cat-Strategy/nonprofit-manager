@@ -1,8 +1,9 @@
-import jwt from 'jsonwebtoken';
 import request from 'supertest';
 import app from '../../index';
-import { getJwtSecret } from '../../config/jwt';
-import pool from '../../config/database';
+import {
+  createIntegrationAuthContext,
+  deleteIntegrationAuthFixtures,
+} from './helpers/authFixtures';
 
 describe('Grants API Integration', () => {
   let authToken = '';
@@ -10,33 +11,14 @@ describe('Grants API Integration', () => {
   let organizationId = '';
 
   beforeAll(async () => {
-    const adminEmail = `grants-admin-${Date.now()}@example.com`;
-    const adminUser = await pool.query<{ id: string }>(
-      `INSERT INTO users (email, password_hash, first_name, last_name, role, created_at, updated_at)
-       VALUES ($1, $2, 'Grants', 'Admin', 'admin', NOW(), NOW())
-       RETURNING id`,
-      [adminEmail, '$2a$10$012345678901234567890uI6TTMsnx6Vf7hYhVJrV2N4mcoX8f6mG']
-    );
-
-    adminUserId = adminUser.rows[0]?.id ?? '';
-    authToken = jwt.sign(
-      {
-        id: adminUserId,
-        email: adminEmail,
-        role: 'admin',
-      },
-      getJwtSecret(),
-      { expiresIn: '1h' }
-    );
-
-    const organization = await pool.query<{ id: string }>(
-      `INSERT INTO accounts (account_name, account_type, created_at, updated_at)
-       VALUES ($1, 'organization', NOW(), NOW())
-       RETURNING id`,
-      [`Grants Integration Test Org ${Date.now()}`]
-    );
-
-    organizationId = organization.rows[0]?.id ?? '';
+    const context = await createIntegrationAuthContext({
+      role: 'admin',
+      emailPrefix: 'grants-admin',
+      accountName: `Grants Integration Test Org ${Date.now()}`,
+    });
+    adminUserId = context.userId;
+    organizationId = context.organizationId;
+    authToken = context.authToken;
   });
 
   it('rejects unauthenticated summary requests', async () => {
@@ -73,11 +55,9 @@ describe('Grants API Integration', () => {
   });
 
   afterAll(async () => {
-    if (organizationId) {
-      await pool.query('DELETE FROM accounts WHERE id = $1', [organizationId]);
-    }
-    if (adminUserId) {
-      await pool.query('DELETE FROM users WHERE id = $1', [adminUserId]);
-    }
+    await deleteIntegrationAuthFixtures({
+      userIds: [adminUserId],
+      organizationIds: [organizationId],
+    });
   });
 });

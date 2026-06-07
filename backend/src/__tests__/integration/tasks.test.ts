@@ -1,40 +1,53 @@
-import request from 'supertest';
+import request, { type Test } from 'supertest';
 import app from '../../index';
 import pool from '../../config/database';
+import {
+  createIntegrationAuthContext,
+  deleteIntegrationAuthFixtures,
+} from './helpers/authFixtures';
 
 describe('Task API Integration Tests', () => {
   let authToken: string;
-  let testTaskId: string;
+  let userId: string;
+  let organizationId: string;
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const isoDateTime = (date: string, time = '00:00:00Z') => `${date}T${time}`;
+  const withAuth = (req: Test): Test =>
+    req
+      .set('Authorization', `Bearer ${authToken}`)
+      .set('X-Organization-Id', organizationId);
 
   beforeAll(async () => {
-    // Register and login
-    const registerResponse = await request(app)
-      .post('/api/v2/auth/register')
-      .send({
-        email: `task-test-${unique()}@example.com`,
-        password: 'Test123!Strong',
-        password_confirm: 'Test123!Strong',
-        first_name: 'Task',
-        last_name: 'Tester',
-      });
-
-    authToken = registerResponse.body.token;
+    const authContext = await createIntegrationAuthContext({
+      emailPrefix: 'task-test',
+      accountName: `Task Test Organization ${unique()}`,
+      role: 'admin',
+    });
+    authToken = authContext.authToken;
+    userId = authContext.userId;
+    organizationId = authContext.organizationId;
   });
 
   afterAll(async () => {
-    // Clean up
-    if (testTaskId) {
-      await pool.query('DELETE FROM tasks WHERE id = $1', [testTaskId]);
+    if (userId) {
+      await pool.query(
+        `DELETE FROM tasks
+         WHERE created_by = $1
+            OR modified_by = $1
+            OR assigned_to = $1`,
+        [userId]
+      );
     }
+    await deleteIntegrationAuthFixtures({
+      userIds: userId ? [userId] : [],
+      organizationIds: organizationId ? [organizationId] : [],
+    });
   });
 
   describe('POST /api/v2/tasks', () => {
     it('should create a new task with valid data', async () => {
-      const response = await request(app)
-        .post('/api/v2/tasks')
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await withAuth(request(app)
+        .post('/api/v2/tasks'))
         .send({
           subject: 'Follow up with donor',
           priority: 'high',
@@ -46,7 +59,6 @@ describe('Task API Integration Tests', () => {
       expect(response.body).toHaveProperty('id');
       expect(response.body.subject).toBe('Follow up with donor');
       expect(response.body.priority).toBe('high');
-      testTaskId = response.body.id;
     });
 
     it('should require authentication', async () => {
@@ -59,9 +71,8 @@ describe('Task API Integration Tests', () => {
     });
 
     it('should create task with minimal fields', async () => {
-      const response = await request(app)
-        .post('/api/v2/tasks')
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await withAuth(request(app)
+        .post('/api/v2/tasks'))
         .send({
           subject: 'Minimal task',
         })
@@ -74,9 +85,8 @@ describe('Task API Integration Tests', () => {
     });
 
     it('should create task with related entity', async () => {
-      const response = await request(app)
-        .post('/api/v2/tasks')
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await withAuth(request(app)
+        .post('/api/v2/tasks'))
         .send({
           subject: 'Prepare event materials',
           priority: 'normal',
@@ -89,9 +99,8 @@ describe('Task API Integration Tests', () => {
     });
 
     it('should reject invalid priority enum', async () => {
-      const response = await request(app)
-        .post('/api/v2/tasks')
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await withAuth(request(app)
+        .post('/api/v2/tasks'))
         .send({
           subject: 'Invalid Priority Task',
           priority: 'invalid_priority',
@@ -111,9 +120,8 @@ describe('Task API Integration Tests', () => {
 
   describe('GET /api/v2/tasks', () => {
     it('should return list of tasks with pagination', async () => {
-      const response = await request(app)
-        .get('/api/v2/tasks')
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await withAuth(request(app)
+        .get('/api/v2/tasks'))
         .expect(200);
 
       expect(response.body).toHaveProperty('tasks');
@@ -122,38 +130,34 @@ describe('Task API Integration Tests', () => {
     });
 
     it('should support search query', async () => {
-      const response = await request(app)
-        .get('/api/v2/tasks?search=donor')
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await withAuth(request(app)
+        .get('/api/v2/tasks?search=donor'))
         .expect(200);
 
       expect(response.body).toHaveProperty('tasks');
     });
 
     it('should filter by priority', async () => {
-      const response = await request(app)
-        .get('/api/v2/tasks?priority=high')
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await withAuth(request(app)
+        .get('/api/v2/tasks?priority=high'))
         .expect(200);
 
       expect(response.body).toHaveProperty('tasks');
     });
 
     it('should filter by status', async () => {
-      const response = await request(app)
-        .get('/api/v2/tasks?status=not_started')
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await withAuth(request(app)
+        .get('/api/v2/tasks?status=not_started'))
         .expect(200);
 
       expect(response.body).toHaveProperty('tasks');
     });
 
     it('should filter by due date range', async () => {
-      const response = await request(app)
+      const response = await withAuth(request(app)
         .get(
           `/api/v2/tasks?due_after=${isoDateTime('2024-01-01')}&due_before=${isoDateTime('2024-12-31', '23:59:59Z')}`
-        )
-        .set('Authorization', `Bearer ${authToken}`)
+        ))
         .expect(200);
 
       expect(response.body).toHaveProperty('tasks');
@@ -166,9 +170,8 @@ describe('Task API Integration Tests', () => {
 
   describe('GET /api/v2/tasks/:id', () => {
     it('should return a single task by ID', async () => {
-      const createResponse = await request(app)
-        .post('/api/v2/tasks')
-        .set('Authorization', `Bearer ${authToken}`)
+      const createResponse = await withAuth(request(app)
+        .post('/api/v2/tasks'))
         .send({
           subject: 'Single Task Test',
           priority: 'low',
@@ -176,9 +179,8 @@ describe('Task API Integration Tests', () => {
 
       const taskId = createResponse.body.id;
 
-      const response = await request(app)
-        .get(`/api/v2/tasks/${taskId}`)
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await withAuth(request(app)
+        .get(`/api/v2/tasks/${taskId}`))
         .expect(200);
 
       expect(response.body.id).toBe(taskId);
@@ -186,9 +188,8 @@ describe('Task API Integration Tests', () => {
     });
 
     it('should return 404 for non-existent task', async () => {
-      await request(app)
-        .get('/api/v2/tasks/00000000-0000-0000-0000-000000000000')
-        .set('Authorization', `Bearer ${authToken}`)
+      await withAuth(request(app)
+        .get('/api/v2/tasks/00000000-0000-0000-0000-000000000000'))
         .expect(404);
     });
 
@@ -199,9 +200,8 @@ describe('Task API Integration Tests', () => {
 
   describe('PUT /api/v2/tasks/:id', () => {
     it('should update an existing task', async () => {
-      const createResponse = await request(app)
-        .post('/api/v2/tasks')
-        .set('Authorization', `Bearer ${authToken}`)
+      const createResponse = await withAuth(request(app)
+        .post('/api/v2/tasks'))
         .send({
           subject: 'Original Task',
           priority: 'low',
@@ -210,9 +210,8 @@ describe('Task API Integration Tests', () => {
 
       const taskId = createResponse.body.id;
 
-      const response = await request(app)
-        .put(`/api/v2/tasks/${taskId}`)
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await withAuth(request(app)
+        .put(`/api/v2/tasks/${taskId}`))
         .send({
           subject: 'Updated Task',
           priority: 'high',
@@ -226,9 +225,8 @@ describe('Task API Integration Tests', () => {
     });
 
     it('should update task completion status', async () => {
-      const createResponse = await request(app)
-        .post('/api/v2/tasks')
-        .set('Authorization', `Bearer ${authToken}`)
+      const createResponse = await withAuth(request(app)
+        .post('/api/v2/tasks'))
         .send({
           subject: 'Task to Complete',
           status: 'in_progress',
@@ -236,9 +234,8 @@ describe('Task API Integration Tests', () => {
 
       const taskId = createResponse.body.id;
 
-      const response = await request(app)
-        .put(`/api/v2/tasks/${taskId}`)
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await withAuth(request(app)
+        .put(`/api/v2/tasks/${taskId}`))
         .send({
           status: 'completed',
         })
@@ -249,9 +246,8 @@ describe('Task API Integration Tests', () => {
     });
 
     it('should return 404 for non-existent task', async () => {
-      await request(app)
-        .put('/api/v2/tasks/00000000-0000-0000-0000-000000000000')
-        .set('Authorization', `Bearer ${authToken}`)
+      await withAuth(request(app)
+        .put('/api/v2/tasks/00000000-0000-0000-0000-000000000000'))
         .send({
           subject: 'Updated',
         })
@@ -265,31 +261,27 @@ describe('Task API Integration Tests', () => {
 
   describe('DELETE /api/v2/tasks/:id', () => {
     it('should delete a task', async () => {
-      const createResponse = await request(app)
-        .post('/api/v2/tasks')
-        .set('Authorization', `Bearer ${authToken}`)
+      const createResponse = await withAuth(request(app)
+        .post('/api/v2/tasks'))
         .send({
           subject: 'Task to Delete',
         });
 
       const taskId = createResponse.body.id;
 
-      await request(app)
-        .delete(`/api/v2/tasks/${taskId}`)
-        .set('Authorization', `Bearer ${authToken}`)
+      await withAuth(request(app)
+        .delete(`/api/v2/tasks/${taskId}`))
         .expect(204);
 
       // Verify task is deleted
-      await request(app)
-        .get(`/api/v2/tasks/${taskId}`)
-        .set('Authorization', `Bearer ${authToken}`)
+      await withAuth(request(app)
+        .get(`/api/v2/tasks/${taskId}`))
         .expect(404);
     });
 
     it('should return 404 for non-existent task', async () => {
-      await request(app)
-        .delete('/api/v2/tasks/00000000-0000-0000-0000-000000000000')
-        .set('Authorization', `Bearer ${authToken}`)
+      await withAuth(request(app)
+        .delete('/api/v2/tasks/00000000-0000-0000-0000-000000000000'))
         .expect(404);
     });
 

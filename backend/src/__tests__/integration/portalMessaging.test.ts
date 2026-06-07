@@ -5,6 +5,10 @@ import jwt from 'jsonwebtoken';
 import app from '../../index';
 import pool from '../../config/database';
 import { getJwtSecret } from '../../config/jwt';
+import {
+  grantIntegrationOrganizationAccess,
+  issueIntegrationAppToken,
+} from './helpers/authFixtures';
 
 describe('Portal Messaging Integration', () => {
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -29,13 +33,12 @@ describe('Portal Messaging Integration', () => {
   const createdAccountIds: string[] = [];
 
   const buildAdminToken = () =>
-    jwt.sign(
-      { id: adminUserId, email: adminEmail, role: 'admin', organizationId: accountId },
-      getJwtSecret(),
-      {
-        expiresIn: '1h',
-      }
-    );
+    issueIntegrationAppToken({
+      userId: adminUserId,
+      email: adminEmail,
+      role: 'admin',
+      organizationId: accountId,
+    });
 
   const buildPortalToken = () =>
     jwt.sign(
@@ -122,6 +125,12 @@ describe('Portal Messaging Integration', () => {
     );
     accountId = accountResult.rows[0].id as string;
     createdAccountIds.push(accountId);
+    await grantIntegrationOrganizationAccess({
+      userId: adminUserId,
+      organizationId: accountId,
+      role: 'admin',
+      grantedBy: adminUserId,
+    });
 
     const caseTypeResult = await pool.query(
       `INSERT INTO case_types (name, description, created_at, updated_at)
@@ -220,16 +229,45 @@ describe('Portal Messaging Integration', () => {
   });
 
   afterAll(async () => {
-    await pool.query('DELETE FROM portal_messages WHERE thread_id IN (SELECT id FROM portal_threads WHERE portal_user_id = ANY($1))', [createdPortalUserIds]);
-    await pool.query('DELETE FROM portal_threads WHERE portal_user_id = ANY($1)', [createdPortalUserIds]);
-    await pool.query('DELETE FROM case_notes WHERE case_id = ANY($1)', [createdCaseIds]);
-    await pool.query('DELETE FROM cases WHERE id = ANY($1)', [createdCaseIds]);
-    await pool.query('DELETE FROM portal_users WHERE id = ANY($1)', [createdPortalUserIds]);
-    await pool.query('DELETE FROM contacts WHERE id = ANY($1)', [createdContactIds]);
-    await pool.query('DELETE FROM case_statuses WHERE id = ANY($1)', [createdStatusIds]);
-    await pool.query('DELETE FROM case_types WHERE id = ANY($1)', [createdCaseTypeIds]);
-    await pool.query('DELETE FROM accounts WHERE id = ANY($1)', [createdAccountIds]);
-    await pool.query('DELETE FROM users WHERE id = ANY($1)', [createdUserIds]);
+    if (createdPortalUserIds.length > 0) {
+      await pool.query(
+        'DELETE FROM portal_messages WHERE thread_id IN (SELECT id FROM portal_threads WHERE portal_user_id = ANY($1))',
+        [createdPortalUserIds]
+      );
+      await pool.query('DELETE FROM portal_threads WHERE portal_user_id = ANY($1)', [
+        createdPortalUserIds,
+      ]);
+    }
+    if (createdCaseIds.length > 0) {
+      await pool.query('DELETE FROM case_notes WHERE case_id = ANY($1)', [createdCaseIds]);
+      await pool.query('DELETE FROM cases WHERE id = ANY($1)', [createdCaseIds]);
+    }
+    if (createdPortalUserIds.length > 0) {
+      await pool.query('DELETE FROM portal_users WHERE id = ANY($1)', [createdPortalUserIds]);
+    }
+    if (createdContactIds.length > 0) {
+      await pool.query('DELETE FROM contacts WHERE id = ANY($1)', [createdContactIds]);
+    }
+    if (createdStatusIds.length > 0) {
+      await pool.query('DELETE FROM case_statuses WHERE id = ANY($1)', [createdStatusIds]);
+    }
+    if (createdCaseTypeIds.length > 0) {
+      await pool.query('DELETE FROM case_types WHERE id = ANY($1)', [createdCaseTypeIds]);
+    }
+    if (createdUserIds.length > 0) {
+      await pool.query('DELETE FROM user_account_access WHERE user_id = ANY($1::uuid[])', [
+        createdUserIds,
+      ]);
+    }
+    if (createdAccountIds.length > 0) {
+      await pool.query('DELETE FROM user_account_access WHERE account_id = ANY($1::uuid[])', [
+        createdAccountIds,
+      ]);
+      await pool.query('DELETE FROM accounts WHERE id = ANY($1)', [createdAccountIds]);
+    }
+    if (createdUserIds.length > 0) {
+      await pool.query('DELETE FROM users WHERE id = ANY($1)', [createdUserIds]);
+    }
   });
 
   it('creates a portal thread and allows staff reply through admin conversation endpoint', async () => {
@@ -419,7 +457,11 @@ describe('Portal Messaging Integration', () => {
       expect(adminStream.contentType).toContain('text/event-stream');
       expect(adminStream.firstChunk).toMatch(/event:/i);
     } finally {
-      process.env.PORTAL_REALTIME_ENABLED = originalRealtime;
+      if (originalRealtime === undefined) {
+        delete process.env.PORTAL_REALTIME_ENABLED;
+      } else {
+        process.env.PORTAL_REALTIME_ENABLED = originalRealtime;
+      }
     }
   });
 });
