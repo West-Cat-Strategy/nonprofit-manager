@@ -129,6 +129,13 @@ Selector and final hygiene:
 - Passed after the final code closeout: `make test-coverage-full`.
 - Passed after the final proof/workboard edits: `./scripts/select-checks.sh --files "<final changed paths>" --mode strict`, `node scripts/check-modularization-boundary-ratchet.ts`, `git diff --check`, `make check-links` (`265` files, `1516` local links), `make test-tooling` (`63` tests), `make lint`, `make typecheck`, and `make db-verify`.
 
+Merged-main closeout, 2026-06-07:
+
+- After local `main` merged this fixture lane and then `codex/p5-t139-code-review-remediation`, `./scripts/select-checks.sh --mode strict --files "<git diff --name-only origin/main>"` emitted `make check-links`, `make test-tooling`, `make lint`, `make typecheck`, `make test-coverage-full`, and `make db-verify`.
+- The combined tree passed `make ci-full`: backend coverage `291` suites / `2358` tests, frontend coverage `255` files / `1403` tests, desktop E2E `1007` passed / `15` skipped with one Chromium startup-performance retry that passed, mobile E2E `3` passed, Docker smoke `4` passed, build passed, frontend bundle budget passed, and production audit found 0 vulnerabilities.
+- The combined tree passed `make security-scan`: production npm audit found 0 vulnerabilities, gitleaks worktree scan found no leaks, and gitleaks history scan covered 543 commits with no leaks.
+- The only merged-main source follow-up was the admin dashboard loading-state stabilization so mobile/staff route checks can see primary actions while the status body loads; route paths, `/api/v2` envelopes, permissions, public-token compatibility, migration ordering, and Docker/runtime contracts remain unchanged by this fixture closeout.
+
 Superseded blockers:
 
 - Earlier `cd backend && npm test -- --runInBand src/__tests__/modules/moduleManifest.test.ts` and `make test-coverage-full` attempts stopped in validation preflight because the Docker daemon/socket was unavailable.

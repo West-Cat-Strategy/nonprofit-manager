@@ -115,8 +115,8 @@ scripts/tests/tooling-contracts.test.cjs
 
 ## Residual Review Notes
 
-- The earlier `make test-coverage-full` failure remains historical broad-gate context from before the P5-T138 fixture lane was split out; the final P5-T139 closeout intentionally used the narrower validation below to keep this branch P5-T139-only.
-- Strict selector still recommends `make test-coverage-full` for the full 47-path review set, but that broad gate was intentionally not rerun in this closeout per the P5-T139-only validation plan.
+- The earlier `make test-coverage-full` failure remains historical broad-gate context from before the P5-T138 fixture lane was split out; the branch-local P5-T139 closeout intentionally used the narrower validation below to keep that branch P5-T139-only.
+- Strict selector recommended `make test-coverage-full` for the full 47-path review set. The branch-local deferral is superseded by the merged-main closeout proof below after the P5-T138 fixture lane was merged first.
 - The public report/path-token contract intentionally returns `410 legacy_token_path_disabled` on unsafe v2 path-token data routes. Bearer-token root public report and case-form routes remain the supported data contract.
 
 ## Final Closeout Proof - 2026-06-07
@@ -133,3 +133,22 @@ scripts/tests/tooling-contracts.test.cjs
 | `make lint` | Passed: backend lint, shared policy checks, UI audit, route integrity/catalog checks, and frontend lint. |
 | `make typecheck` | Passed: backend, frontend, and contracts type checks. |
 | `make db-verify` | Passed: manifest/initdb contract, isolated DB, migration order, RLS, FK, bootstrap rows, superseded-index, and audit-partition checks. |
+
+## Merged Main Closeout Proof - 2026-06-07
+
+- Local `main` merged `codex/p5-t138-coverage-fixtures` before `codex/p5-t139-code-review-remediation`, preserving the P5-T138 fixture/bootstrap closeout as the prerequisite broad-gate unblocker for P5-T139.
+- The merged tree kept route paths, `/api/v2` envelopes, production deploy boundaries, migration manifest/initdb ordering for `137_code_review_remediation_security_scope.sql`, and the public-token compatibility contract intact.
+- Full-gate validation exposed one mobile/admin timing issue after the merge: `/settings/admin/dashboard` could show the loading spinner before the expected action buttons. The follow-up patch renders the admin dashboard actions while the status body loads; it does not change API contracts, route paths, permissions, or response shapes.
+
+| Command | Result |
+|---|---|
+| `./scripts/select-checks.sh --mode strict --files "<git diff --name-only origin/main>"` | Selected `make check-links`, `make test-tooling`, `make lint`, `make typecheck`, `make test-coverage-full`, and `make db-verify`. |
+| `git diff --check` | Passed after the merged-main dashboard loading fix. |
+| `make check-links` | Passed: checked 266 files and 1518 local links. |
+| `make test-tooling` | Passed: 65 tooling/selector/policy tests. |
+| `make lint` | Passed: backend lint, shared policy checks, unchanged UI audit baseline, route integrity/catalog checks, and frontend lint. |
+| `make typecheck` | Passed: backend, frontend, and contracts type checks. |
+| `make db-verify` | Passed: manifest/initdb contract, isolated DB, migration order, RLS, FK, bootstrap, superseded-index, and audit-partition checks. |
+| `cd e2e && npm run test:ci:mobile` after an isolated DB reset | Passed: 3 Mobile Chrome UX tests, including the admin staff-routes check that covers `/settings/admin/dashboard`. |
+| `make ci-full` | Passed on the merged tree: backend coverage `291` suites / `2358` tests, frontend coverage `255` files / `1403` tests, desktop E2E `1007` passed / `15` skipped with one Chromium startup-performance retry that passed, mobile E2E `3` passed, Docker smoke `4` passed, build passed, frontend bundle budget passed, and production audit found 0 vulnerabilities. |
+| `make security-scan` | Passed: production npm audit found 0 vulnerabilities; gitleaks worktree scan found no leaks; gitleaks history scan covered 543 commits and found no leaks. |
