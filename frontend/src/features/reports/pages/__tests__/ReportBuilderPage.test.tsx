@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import type * as ReactRouterDom from 'react-router-dom';
@@ -256,6 +256,12 @@ describe('ReportBuilderPage', () => {
     renderWithProviders(<ReportBuilderPage />, {
       preloadedState: buildAuthState(['report:view', 'report:create', 'report:export']),
     });
+
+    const saveDialog = screen.getByRole('dialog', { name: /save report definition/i });
+    expect(saveDialog).toHaveAttribute('aria-modal', 'true');
+    expect(
+      within(saveDialog).getByRole('heading', { name: /save report definition/i })
+    ).toHaveAttribute('id', 'save-report-definition-title');
 
     await user.type(screen.getByLabelText(/report name/i), ' Updated');
     await user.type(screen.getByLabelText(/description/i), ' Notes');

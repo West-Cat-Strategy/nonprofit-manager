@@ -95,17 +95,39 @@ vi.mock('../../../../components/neo-brutalist', () => ({
 }));
 
 vi.mock('../../components/CaseNotesPanel', () => ({ default: () => <div>Notes panel</div> }));
-vi.mock('../../components/CaseReassessmentPanel', () => ({ default: () => <div>Reassessment panel</div> }));
-vi.mock('../../../../components/CaseDocuments', () => ({ default: () => <div>Documents panel</div> }));
-vi.mock('../../../../components/FollowUpList', () => ({ default: () => <div>Follow-ups panel</div> }));
-vi.mock('../../../../components/cases/CaseRelationships', () => ({ default: () => <div>Relationships panel</div> }));
-vi.mock('../../../../components/cases/CaseServices', () => ({ default: () => <div>Services panel</div> }));
-vi.mock('../../../../components/cases/CasePortalConversations', () => ({ default: () => <div>Portal panel</div> }));
-vi.mock('../../../../components/cases/CaseTimeline', () => ({ default: () => <div>Timeline panel</div> }));
-vi.mock('../../../../components/cases/CaseOutcomesTopics', () => ({ default: () => <div>Outcomes panel</div> }));
-vi.mock('../../../../components/cases/CaseAppointments', () => ({ default: () => <div>Appointments panel</div> }));
-vi.mock('../../../../features/teamChat/components/CaseTeamChatPanel', () => ({ default: () => <div>Team chat</div> }));
-vi.mock('../../../../features/cases/components/CaseStatusChangeModal', () => ({ default: () => null }));
+vi.mock('../../components/CaseReassessmentPanel', () => ({
+  default: () => <div>Reassessment panel</div>,
+}));
+vi.mock('../../../../components/CaseDocuments', () => ({
+  default: () => <div>Documents panel</div>,
+}));
+vi.mock('../../../../components/FollowUpList', () => ({
+  default: () => <div>Follow-ups panel</div>,
+}));
+vi.mock('../../../../components/cases/CaseRelationships', () => ({
+  default: () => <div>Relationships panel</div>,
+}));
+vi.mock('../../../../components/cases/CaseServices', () => ({
+  default: () => <div>Services panel</div>,
+}));
+vi.mock('../../../../components/cases/CasePortalConversations', () => ({
+  default: () => <div>Portal panel</div>,
+}));
+vi.mock('../../../../components/cases/CaseTimeline', () => ({
+  default: () => <div>Timeline panel</div>,
+}));
+vi.mock('../../../../components/cases/CaseOutcomesTopics', () => ({
+  default: () => <div>Outcomes panel</div>,
+}));
+vi.mock('../../../../components/cases/CaseAppointments', () => ({
+  default: () => <div>Appointments panel</div>,
+}));
+vi.mock('../../../../features/teamChat/components/CaseTeamChatPanel', () => ({
+  default: () => <div>Team chat</div>,
+}));
+vi.mock('../../../../features/cases/components/CaseStatusChangeModal', () => ({
+  default: () => null,
+}));
 
 vi.mock('../../../../features/cases/state', () => ({
   default: (
@@ -170,7 +192,14 @@ describe('Case detail tabs URL sync', () => {
   it('hydrates selected tab from query string', () => {
     renderCaseDetail(`/cases/${validCaseId}?tab=notes`);
 
-    expect(screen.getByRole('tab', { name: /notes/i })).toHaveAttribute('aria-selected', 'true');
+    const notesTab = screen.getByRole('tab', { name: /notes/i });
+    expect(notesTab).toHaveAttribute('id', 'tab-notes');
+    expect(notesTab).toHaveAttribute('aria-controls', 'panel-notes');
+    expect(notesTab).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tabpanel', { name: /notes/i })).toHaveAttribute(
+      'aria-labelledby',
+      'tab-notes'
+    );
     expect(screen.getByTestId('location-search')).toHaveTextContent('tab=notes');
     expect(screen.queryByText(/imported provenance/i)).not.toBeInTheDocument();
   });
@@ -180,7 +209,14 @@ describe('Case detail tabs URL sync', () => {
 
     fireEvent.click(screen.getByRole('tab', { name: /documents/i }));
 
-    expect(screen.getByRole('tab', { name: /documents/i })).toHaveAttribute('aria-selected', 'true');
+    const documentsTab = screen.getByRole('tab', { name: /documents/i });
+    expect(documentsTab).toHaveAttribute('id', 'tab-documents');
+    expect(documentsTab).toHaveAttribute('aria-controls', 'panel-documents');
+    expect(documentsTab).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tabpanel', { name: /documents/i })).toHaveAttribute(
+      'aria-labelledby',
+      'tab-documents'
+    );
     expect(screen.getByTestId('location-search')).toHaveTextContent('tab=documents');
   });
 

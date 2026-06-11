@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import EmailMarketingPage from '../../../mailchimp/pages/EmailMarketingPage';
 import { renderWithProviders } from '../../../../test/testUtils';
@@ -148,9 +148,7 @@ describe('EmailMarketingPage', () => {
 
     const dialog = await screen.findByRole('dialog', { name: /create email campaign/i });
     expect(dialog).toHaveAttribute('aria-modal', 'true');
-    expect(
-      screen.getByRole('button', { name: /close campaign creation dialog/i })
-    ).toHaveFocus();
+    expect(screen.getByRole('button', { name: /close campaign creation dialog/i })).toHaveFocus();
     expect(screen.getByRole('button', { name: /all eligible contacts/i })).toHaveAttribute(
       'aria-pressed',
       'true'
@@ -239,7 +237,9 @@ describe('EmailMarketingPage', () => {
       screen.getByRole('option', { name: /crm email audience \(0 eligible contacts\)/i })
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /provider segment/i })).not.toBeInTheDocument();
-    expect(screen.getByText(/all eligible crm contacts in crm email audience/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/all eligible crm contacts in crm email audience/i)
+    ).toBeInTheDocument();
     expect(screen.getAllByText(/smtp setup required/i).length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: /send test email/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /send now/i })).toBeDisabled();
@@ -294,7 +294,17 @@ describe('EmailMarketingPage', () => {
     });
     await user.click(screen.getByRole('button', { name: /^preview$/i }));
 
-    expect(await screen.findByRole('heading', { name: /campaign preview/i })).toBeInTheDocument();
+    const previewDialog = await screen.findByRole('dialog', { name: /campaign preview/i });
+    expect(previewDialog).toHaveAttribute('aria-modal', 'true');
+    expect(
+      within(previewDialog).getByRole('heading', { name: /campaign preview/i })
+    ).toHaveAttribute('id', 'campaign-preview-modal-title');
+    expect(
+      within(previewDialog).getByRole('button', { name: /close campaign preview/i })
+    ).toBeInTheDocument();
+    expect(
+      within(previewDialog).getByRole('region', { name: /plain text fallback/i })
+    ).toHaveTextContent('Preview body');
     expect(screen.getByTitle('Campaign Preview')).toHaveAttribute('sandbox', '');
     expect(mockedApi.post).toHaveBeenCalledWith(
       '/communications/campaigns/preview',
@@ -538,7 +548,12 @@ describe('EmailMarketingPage', () => {
       return Promise.resolve({ data: {} });
     });
 
-    const mainAudience = { id: 'list-1', name: 'Main Audience', memberCount: 42, doubleOptIn: false };
+    const mainAudience = {
+      id: 'list-1',
+      name: 'Main Audience',
+      memberCount: 42,
+      doubleOptIn: false,
+    };
     renderWithProviders(<EmailMarketingPage />, {
       route: '/settings/email-marketing',
       preloadedState: {
@@ -623,72 +638,78 @@ describe('EmailMarketingPage', () => {
   });
 
   it('searches paginated CRM contacts and sends selected provider tags during sync', async () => {
-    mockedApi.get.mockImplementation((url: string, config?: { params?: Record<string, unknown> }) => {
-      if (url === '/communications/status') {
-        return Promise.resolve({
-          data: {
-            configured: true,
-            provider: 'local_email',
-            defaultProvider: 'local_email',
-            providers: {
-              local_email: { provider: 'local_email', configured: true, ready: true },
-              mailchimp: { provider: 'mailchimp', configured: true, accountName: 'Mailchimp Account' },
-            },
-          },
-        });
-      }
-      if (url === '/communications/audiences?scope=provider') {
-        return Promise.resolve({
-          data: [
-            {
-              id: 'list-1',
-              name: 'Main Audience',
-              memberCount: 42,
-              doubleOptIn: false,
-              provider: 'mailchimp',
-            },
-          ],
-        });
-      }
-      if (url === '/communications/campaigns') return Promise.resolve({ data: [] });
-      if (url === '/communications/audiences?scope=saved') return Promise.resolve({ data: [] });
-      if (url === '/communications/campaign-runs') return Promise.resolve({ data: [] });
-      if (url === '/mailchimp/lists/list-1/tags') {
-        return Promise.resolve({ data: [{ id: 1, name: 'newsletter', memberCount: 12 }] });
-      }
-      if (url === '/v2/contacts') {
-        return Promise.resolve({
-          data: {
-            success: true,
+    mockedApi.get.mockImplementation(
+      (url: string, config?: { params?: Record<string, unknown> }) => {
+        if (url === '/communications/status') {
+          return Promise.resolve({
             data: {
-              data: [
-                {
-                  contact_id: 'contact-1',
-                  first_name: 'Ada',
-                  last_name: 'Lovelace',
-                  email: 'ada@example.org',
-                  do_not_email: false,
+              configured: true,
+              provider: 'local_email',
+              defaultProvider: 'local_email',
+              providers: {
+                local_email: { provider: 'local_email', configured: true, ready: true },
+                mailchimp: {
+                  provider: 'mailchimp',
+                  configured: true,
+                  accountName: 'Mailchimp Account',
                 },
-                {
-                  contact_id: 'contact-2',
-                  first_name: 'Grace',
-                  last_name: 'Hopper',
-                  email: 'grace@example.org',
-                  do_not_email: true,
-                },
-              ],
-              pagination: {
-                total: config?.params?.search === 'Ada' ? 1 : 52,
-                page: Number(config?.params?.page || 1),
-                limit: Number(config?.params?.limit || 25),
-                total_pages: config?.params?.search === 'Ada' ? 1 : 3,
               },
             },
-          },
-        });
+          });
+        }
+        if (url === '/communications/audiences?scope=provider') {
+          return Promise.resolve({
+            data: [
+              {
+                id: 'list-1',
+                name: 'Main Audience',
+                memberCount: 42,
+                doubleOptIn: false,
+                provider: 'mailchimp',
+              },
+            ],
+          });
+        }
+        if (url === '/communications/campaigns') return Promise.resolve({ data: [] });
+        if (url === '/communications/audiences?scope=saved') return Promise.resolve({ data: [] });
+        if (url === '/communications/campaign-runs') return Promise.resolve({ data: [] });
+        if (url === '/mailchimp/lists/list-1/tags') {
+          return Promise.resolve({ data: [{ id: 1, name: 'newsletter', memberCount: 12 }] });
+        }
+        if (url === '/v2/contacts') {
+          return Promise.resolve({
+            data: {
+              success: true,
+              data: {
+                data: [
+                  {
+                    contact_id: 'contact-1',
+                    first_name: 'Ada',
+                    last_name: 'Lovelace',
+                    email: 'ada@example.org',
+                    do_not_email: false,
+                  },
+                  {
+                    contact_id: 'contact-2',
+                    first_name: 'Grace',
+                    last_name: 'Hopper',
+                    email: 'grace@example.org',
+                    do_not_email: true,
+                  },
+                ],
+                pagination: {
+                  total: config?.params?.search === 'Ada' ? 1 : 52,
+                  page: Number(config?.params?.page || 1),
+                  limit: Number(config?.params?.limit || 25),
+                  total_pages: config?.params?.search === 'Ada' ? 1 : 3,
+                },
+              },
+            },
+          });
+        }
+        return Promise.resolve({ data: {} });
       }
-      return Promise.resolve({ data: {} });
-    });
+    );
     mockedApi.post.mockResolvedValue({
       data: { total: 1, added: 1, updated: 0, skipped: 0, errors: 0, results: [] },
     });
@@ -800,7 +821,9 @@ describe('EmailMarketingPage', () => {
       route: '/settings/email-marketing',
     });
 
-    expect(await screen.findByText(/preferred open-source external sync provider/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/preferred open-source external sync provider/i)
+    ).toBeInTheDocument();
     await user.click(await screen.findByRole('button', { name: /^mautic$/i }));
     expect(screen.getByRole('button', { name: /new campaign/i })).toBeDisabled();
     await user.click(await screen.findByText('Mautic Newsletter'));
@@ -821,7 +844,18 @@ describe('EmailMarketingPage', () => {
 
   it('archives saved audiences from the communications workspace', async () => {
     mockedApi.get.mockImplementation((url: string) => {
-      if (url === '/communications/status') return Promise.resolve({ data: { configured: true, provider: 'local_email', defaultProvider: 'local_email', providers: { local_email: { provider: 'local_email', configured: true, ready: true }, mailchimp: { provider: 'mailchimp', configured: false } } } });
+      if (url === '/communications/status')
+        return Promise.resolve({
+          data: {
+            configured: true,
+            provider: 'local_email',
+            defaultProvider: 'local_email',
+            providers: {
+              local_email: { provider: 'local_email', configured: true, ready: true },
+              mailchimp: { provider: 'mailchimp', configured: false },
+            },
+          },
+        });
       if (url === '/communications/audiences?scope=provider') {
         return Promise.resolve({
           data: [{ id: 'list-1', name: 'Main Audience', memberCount: 42, doubleOptIn: false }],
@@ -914,7 +948,18 @@ describe('EmailMarketingPage', () => {
 
   it('sends saved-audience targeting metadata through campaign creation', async () => {
     mockedApi.get.mockImplementation((url: string) => {
-      if (url === '/communications/status') return Promise.resolve({ data: { configured: true, provider: 'local_email', defaultProvider: 'local_email', providers: { local_email: { provider: 'local_email', configured: true, ready: true }, mailchimp: { provider: 'mailchimp', configured: false } } } });
+      if (url === '/communications/status')
+        return Promise.resolve({
+          data: {
+            configured: true,
+            provider: 'local_email',
+            defaultProvider: 'local_email',
+            providers: {
+              local_email: { provider: 'local_email', configured: true, ready: true },
+              mailchimp: { provider: 'mailchimp', configured: false },
+            },
+          },
+        });
       if (url === '/communications/audiences?scope=provider') {
         return Promise.resolve({
           data: [{ id: 'list-1', name: 'Main Audience', memberCount: 42, doubleOptIn: false }],
@@ -1127,7 +1172,18 @@ describe('EmailMarketingPage', () => {
 
   it('shows campaign-run provider segment, suppression, and test-recipient evidence', async () => {
     mockedApi.get.mockImplementation((url: string) => {
-      if (url === '/communications/status') return Promise.resolve({ data: { configured: true, provider: 'local_email', defaultProvider: 'local_email', providers: { local_email: { provider: 'local_email', configured: true, ready: true }, mailchimp: { provider: 'mailchimp', configured: false } } } });
+      if (url === '/communications/status')
+        return Promise.resolve({
+          data: {
+            configured: true,
+            provider: 'local_email',
+            defaultProvider: 'local_email',
+            providers: {
+              local_email: { provider: 'local_email', configured: true, ready: true },
+              mailchimp: { provider: 'mailchimp', configured: false },
+            },
+          },
+        });
       if (url === '/communications/audiences?scope=provider') {
         return Promise.resolve({
           data: [{ id: 'list-1', name: 'Main Audience', memberCount: 42, doubleOptIn: false }],
@@ -1196,20 +1252,37 @@ describe('EmailMarketingPage', () => {
     });
 
     expect(await screen.findByText('Spring Appeal')).toBeInTheDocument();
-    expect(screen.getByText(/Run segment: NPM 2026-04-25T00:00:00 run \(#789\)/i)).toBeInTheDocument();
-    expect(screen.getByText(/Contacts: 9 synced from 12 requested, 1 skipped/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Run segment: NPM 2026-04-25T00:00:00 run \(#789\)/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Contacts: 9 synced from 12 requested, 1 skipped/i)
+    ).toBeInTheDocument();
     expect(screen.getByText(/Target snapshot: 2 contacts/i)).toBeInTheDocument();
     expect(screen.getByText(/3 contacts suppressed/i)).toBeInTheDocument();
     expect(screen.getByText(/Provider lifecycle: sent/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/Provider summary: 8 sent, 50.0% opens, 12.5% clicks, 1 unsubscribed, 0 bounced/i)
+      screen.getByText(
+        /Provider summary: 8 sent, 50.0% opens, 12.5% clicks, 1 unsubscribed, 0 bounced/i
+      )
     ).toBeInTheDocument();
     expect(screen.getByText(/Test recipients: review@example.org/i)).toBeInTheDocument();
   });
 
   it('shows campaign-run actions and explicit unsupported cancel and reschedule states', async () => {
     mockedApi.get.mockImplementation((url: string) => {
-      if (url === '/communications/status') return Promise.resolve({ data: { configured: true, provider: 'local_email', defaultProvider: 'local_email', providers: { local_email: { provider: 'local_email', configured: true, ready: true }, mailchimp: { provider: 'mailchimp', configured: false } } } });
+      if (url === '/communications/status')
+        return Promise.resolve({
+          data: {
+            configured: true,
+            provider: 'local_email',
+            defaultProvider: 'local_email',
+            providers: {
+              local_email: { provider: 'local_email', configured: true, ready: true },
+              mailchimp: { provider: 'mailchimp', configured: false },
+            },
+          },
+        });
       if (url === '/communications/audiences?scope=provider') {
         return Promise.resolve({
           data: [{ id: 'list-1', name: 'Main Audience', memberCount: 42, doubleOptIn: false }],
@@ -1378,7 +1451,9 @@ describe('EmailMarketingPage', () => {
     });
 
     expect(
-      mockedApi.post.mock.calls.some(([url]) => url === '/communications/campaign-runs/campaign-1/send')
+      mockedApi.post.mock.calls.some(
+        ([url]) => url === '/communications/campaign-runs/campaign-1/send'
+      )
     ).toBe(false);
   });
 
@@ -1434,7 +1509,9 @@ describe('EmailMarketingPage', () => {
       expect(mockedApi.post).toHaveBeenCalledWith('/communications/campaign-runs/campaign-1/send');
     });
 
-    const createCall = mockedApi.post.mock.calls.find(([url]) => url === '/communications/campaigns');
+    const createCall = mockedApi.post.mock.calls.find(
+      ([url]) => url === '/communications/campaigns'
+    );
     expect(createCall?.[1]).toEqual(
       expect.objectContaining({
         title: 'Immediate Appeal',
@@ -1452,7 +1529,17 @@ describe('EmailMarketingPage', () => {
   it('labels scheduled campaigns as scheduled instead of sent', async () => {
     mockedApi.get.mockImplementation((url: string) => {
       if (url === '/communications/status') {
-        return Promise.resolve({ data: { configured: true, provider: 'local_email', defaultProvider: 'local_email', providers: { local_email: { provider: 'local_email', configured: true, ready: true }, mailchimp: { provider: 'mailchimp', configured: false } } } });
+        return Promise.resolve({
+          data: {
+            configured: true,
+            provider: 'local_email',
+            defaultProvider: 'local_email',
+            providers: {
+              local_email: { provider: 'local_email', configured: true, ready: true },
+              mailchimp: { provider: 'mailchimp', configured: false },
+            },
+          },
+        });
       }
 
       if (url === '/communications/audiences?scope=provider') {
