@@ -28,8 +28,12 @@ const {
 const repoRoot = path.resolve(__dirname, '../..');
 
 function run(command, args, extraEnv = {}) {
+  return runInCwd(command, args, repoRoot, extraEnv);
+}
+
+function runInCwd(command, args, cwd, extraEnv = {}) {
   const result = spawnSync(command, args, {
-    cwd: repoRoot,
+    cwd,
     env: {
       ...process.env,
       ...extraEnv,
@@ -41,6 +45,12 @@ function run(command, args, extraEnv = {}) {
     throw result.error;
   }
 
+  return result;
+}
+
+function runRequired(command, args, cwd, extraEnv = {}) {
+  const result = runInCwd(command, args, cwd, extraEnv);
+  assert.equal(result.status, 0, result.stderr || result.stdout);
   return result;
 }
 
@@ -75,6 +85,34 @@ function createFakeBin(commands) {
   }
 
   return fakeBin;
+}
+
+function copyRepoFileToFixture(root, relativePath) {
+  const target = path.join(root, relativePath);
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.copyFileSync(path.join(repoRoot, relativePath), target);
+}
+
+function createSelectorFixtureRepo() {
+  const root = createTempDir();
+
+  for (const relativePath of [
+    'scripts/select-checks.sh',
+    'scripts/lib/common.sh',
+    'scripts/lib/config.sh',
+  ]) {
+    copyRepoFileToFixture(root, relativePath);
+  }
+
+  fs.chmodSync(path.join(root, 'scripts/select-checks.sh'), 0o755);
+
+  runRequired('git', ['init'], root);
+  runRequired('git', ['config', 'user.email', 'tooling-fixture@example.test'], root);
+  runRequired('git', ['config', 'user.name', 'Tooling Fixture'], root);
+  runRequired('git', ['add', 'scripts/select-checks.sh', 'scripts/lib/common.sh', 'scripts/lib/config.sh'], root);
+  runRequired('git', ['commit', '-m', 'baseline selector fixture'], root);
+
+  return root;
 }
 
 test('check selector routes frontend bundle tooling to build and bundle-budget proof', () => {
@@ -1325,34 +1363,36 @@ test('select-checks broadens orchestration changes into the coverage gate in str
 });
 
 test('select-checks includes untracked files in default selection', () => {
-  const fixturePath = path.join(repoRoot, 'openapi.selector-fixture');
+  const fixtureRoot = createSelectorFixtureRepo();
+  fs.writeFileSync(path.join(fixtureRoot, 'openapi.selector-fixture'), 'fixture\n', 'utf8');
 
-  try {
-    fs.writeFileSync(fixturePath, 'fixture\n', 'utf8');
+  const result = runInCwd(
+    'bash',
+    ['scripts/select-checks.sh', '--base', 'HEAD', '--mode', 'fast'],
+    fixtureRoot
+  );
 
-    const result = run('bash', ['scripts/select-checks.sh', '--base', 'HEAD', '--mode', 'fast']);
-
-    assert.equal(result.status, 0, result.stderr);
-    assert(result.stdout.split('\n').includes('make lint-openapi'));
-  } finally {
-    fs.rmSync(fixturePath, { force: true });
-  }
+  assert.equal(result.status, 0, result.stderr);
+  assert(result.stdout.split('\n').includes('make lint-openapi'));
 });
 
 test('select-checks includes dirty tracked files in default selection', () => {
-  const fixturePath = path.join(repoRoot, 'knip.json');
-  const originalText = fs.readFileSync(fixturePath, 'utf8');
+  const fixtureRoot = createSelectorFixtureRepo();
+  const fixturePath = path.join(fixtureRoot, 'knip.json');
 
-  try {
-    fs.writeFileSync(fixturePath, `${originalText}\n`, 'utf8');
+  fs.writeFileSync(fixturePath, '{\n  "ignore": []\n}\n', 'utf8');
+  runRequired('git', ['add', 'knip.json'], fixtureRoot);
+  runRequired('git', ['commit', '-m', 'track knip config fixture'], fixtureRoot);
+  fs.writeFileSync(fixturePath, '{\n  "ignore": ["fixture"]\n}\n', 'utf8');
 
-    const result = run('bash', ['scripts/select-checks.sh', '--base', 'HEAD', '--mode', 'fast']);
+  const result = runInCwd(
+    'bash',
+    ['scripts/select-checks.sh', '--base', 'HEAD', '--mode', 'fast'],
+    fixtureRoot
+  );
 
-    assert.equal(result.status, 0, result.stderr);
-    assert(result.stdout.split('\n').includes('npm run knip'));
-  } finally {
-    fs.writeFileSync(fixturePath, originalText, 'utf8');
-  }
+  assert.equal(result.status, 0, result.stderr);
+  assert(result.stdout.split('\n').includes('npm run knip'));
 });
 
 test('gitignore keeps live envs local-only while allowing tracked templates and canonical refs', () => {
