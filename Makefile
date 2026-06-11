@@ -511,7 +511,7 @@ test-coverage-full:
 	@echo "$(GREEN)Coverage reports and full behavior gates complete!$(RESET)"
 
 test-tooling:
-	node --test scripts/tests/tooling-contracts.test.cjs
+	node --test scripts/tests/tooling-contracts.test.cjs scripts/tests/auth-alias-telemetry-review.test.mjs
 
 test-backend:
 	@./scripts/validation-preflight.sh isolated-test-db --context "make test-backend"
