@@ -31,6 +31,14 @@ The June 17 checkpoint is a telemetry and exception review only. It must not rem
 
 Run the production-like log review from [../security/AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md](../security/AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md) against complete days first. If the review happens at the scheduled 09:00 America/Vancouver follow-up, the complete-day window to inspect for the July 1 path is June 1 through June 16, 2026; June 17 itself should be treated as partial until the day closes.
 
+For a low-touch run, export the `auth.alias_input_used` and `Outgoing response` logs from the operations-guide queries as JSON, NDJSON, or Kibana `hits.hits` JSON, then run:
+
+```bash
+node scripts/auth-alias-telemetry-review.mjs --input tmp/auth-alias-june17-logs.ndjson --start 2026-06-01 --end 2026-06-16
+```
+
+Paste the generated route review table, alias-event rollup, and exception-check template into this handoff or a refreshed usage report. The helper uses the tracked auth telemetry route contract from `backend/src/modules/auth/routes/index.ts`: `POST /api/v2/auth/register`, `POST /api/v2/auth/setup`, and `PUT /api/v2/auth/password`.
+
 Check these route-specific counters and denominators:
 
 | Route                        | Alias event fields to inspect                                      | Denominator log                                                             |
@@ -96,6 +104,16 @@ A thread follow-up is scheduled for June 17, 2026 at 09:00 America/Vancouver to 
 
 ## Validation
 
+- Passed on 2026-06-11: `./scripts/select-checks.sh --files "Makefile docs/security/AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md docs/validation/P5-T75_AUTH_ALIAS_GATE_HANDOFF_2026-05-05.md docs/validation/README.md scripts/README.md scripts/auth-alias-telemetry-review.mjs scripts/tests/auth-alias-telemetry-review.test.mjs" --mode fast`
+  - Result: selected `make check-links`, `make test-tooling`, and `make test-e2e-docker-smoke`.
+  - Scope note: this prep lane changed only docs and a deterministic offline log-review helper, with no auth route, schema, container, or runtime behavior changes; focused proof stopped at docs/tooling validation.
+- Passed on 2026-06-11: `make test-tooling`
+  - Result: 69 Node tooling tests passed, including the new auth-alias telemetry review helper tests for clean, inconclusive, blocked, and CLI Markdown-output cases.
+- Passed on 2026-06-11: `make check-links`
+  - Result: checked 266 files and 1520 local links; no broken active-doc links found.
+- Passed on 2026-06-11: `npm exec -- prettier --check docs/security/AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md docs/validation/P5-T75_AUTH_ALIAS_GATE_HANDOFF_2026-05-05.md docs/validation/README.md scripts/README.md scripts/auth-alias-telemetry-review.mjs scripts/tests/auth-alias-telemetry-review.test.mjs`
+  - Result: all matched files use Prettier code style.
+- Passed on 2026-06-11: `git diff --check`
 - Passed on 2026-06-10: `./scripts/select-checks.sh --files docs/validation/P5-T75_AUTH_ALIAS_GATE_HANDOFF_2026-05-05.md --mode fast`
   - Result: selected `make check-links` for this docs-only handoff refresh.
 - Passed on 2026-06-10: `make check-links`

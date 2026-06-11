@@ -1,7 +1,6 @@
 # Auth Alias Telemetry Operations Guide
 
-**Last Updated:** 2026-04-20
-
+**Last Updated:** 2026-06-11
 
 Date: 2026-04-14
 
@@ -60,11 +59,11 @@ Where:
 
 Route-to-method mapping for the denominator:
 
-| Route | Method |
-|---|---|
+| Route                   | Method |
+| ----------------------- | ------ |
 | `/api/v2/auth/register` | `POST` |
-| `/api/v2/auth/setup` | `POST` |
-| `/api/v2/auth/password` | `PUT` |
+| `/api/v2/auth/setup`    | `POST` |
+| `/api/v2/auth/password` | `PUT`  |
 
 Count all completed requests for the denominator. Do not limit the denominator to only successful responses, because the goal is to measure alias-field usage across the full request stream seen by the auth endpoints.
 
@@ -114,6 +113,16 @@ FROM logs-*
 | STATS total_requests = COUNT(*) BY day, path, method
 | SORT day DESC, path ASC
 ```
+
+### Low-Touch June 17 Review Helper
+
+After exporting the alias-event and total-request query results as JSON, NDJSON, or Kibana `hits.hits` JSON, run the checked-in helper to produce the P5-T75 handoff tables:
+
+```bash
+node scripts/auth-alias-telemetry-review.mjs --input tmp/auth-alias-june17-logs.ndjson --start 2026-06-01 --end 2026-06-16
+```
+
+The helper counts only the three tracked auth routes, treats zero route traffic for any complete day as inconclusive, and marks any non-zero alias event as blocked. It does not change schemas, routes, enforcement guards, or deprecation state.
 
 ### Route-Specific Spot Checks
 
