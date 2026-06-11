@@ -1,9 +1,9 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
-const { spawnSync } = require('node:child_process');
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const { spawnSync } = require("node:child_process");
 
 const {
   catalogPatternMatchesRuntime,
@@ -11,21 +11,19 @@ const {
   collectRouteCatalogTargetsFromSource,
   collectRouteRegistrationTargetsFromSource,
   collectRuntimeRouteTargetsFromSource,
-} = require('../lib/route-audit.ts');
+} = require("../lib/route-audit.ts");
 const {
   analyzeRouteValidationSource,
-} = require('../check-route-validation-policy.ts');
+} = require("../check-route-validation-policy.ts");
 const {
   analyzeMigrationManifestPolicy,
-} = require('../check-migration-manifest-policy.ts');
-const {
-  analyzeOpenApiContract,
-} = require('../check-openapi-contract.ts');
+} = require("../check-migration-manifest-policy.ts");
+const { analyzeOpenApiContract } = require("../check-openapi-contract.ts");
 const {
   analyzeV2RouteAuthPosture,
-} = require('../check-v2-route-auth-posture.ts');
+} = require("../check-v2-route-auth-posture.ts");
 
-const repoRoot = path.resolve(__dirname, '../..');
+const repoRoot = path.resolve(__dirname, "../..");
 
 function run(command, args, extraEnv = {}) {
   return runInCwd(command, args, repoRoot, extraEnv);
@@ -38,7 +36,7 @@ function runInCwd(command, args, cwd, extraEnv = {}) {
       ...process.env,
       ...extraEnv,
     },
-    encoding: 'utf8',
+    encoding: "utf8",
   });
 
   if (result.error) {
@@ -58,26 +56,26 @@ function parseEnvironment(stdout) {
   return Object.fromEntries(
     stdout
       .trim()
-      .split('\n')
+      .split("\n")
       .filter(Boolean)
       .map((line) => {
-        const separatorIndex = line.indexOf('=');
+        const separatorIndex = line.indexOf("=");
         return [line.slice(0, separatorIndex), line.slice(separatorIndex + 1)];
-      })
+      }),
   );
 }
 
 function createTempDir() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'nonprofit-manager-tooling-'));
+  return fs.mkdtempSync(path.join(os.tmpdir(), "nonprofit-manager-tooling-"));
 }
 
 function writeExecutable(file, text) {
-  fs.writeFileSync(file, text, 'utf8');
+  fs.writeFileSync(file, text, "utf8");
   fs.chmodSync(file, 0o755);
 }
 
 function createFakeBin(commands) {
-  const fakeBin = path.join(createTempDir(), 'bin');
+  const fakeBin = path.join(createTempDir(), "bin");
   fs.mkdirSync(fakeBin, { recursive: true });
 
   for (const [name, text] of Object.entries(commands)) {
@@ -97,83 +95,105 @@ function createSelectorFixtureRepo() {
   const root = createTempDir();
 
   for (const relativePath of [
-    'scripts/select-checks.sh',
-    'scripts/lib/common.sh',
-    'scripts/lib/config.sh',
+    "scripts/select-checks.sh",
+    "scripts/lib/common.sh",
+    "scripts/lib/config.sh",
   ]) {
     copyRepoFileToFixture(root, relativePath);
   }
 
-  fs.chmodSync(path.join(root, 'scripts/select-checks.sh'), 0o755);
+  fs.chmodSync(path.join(root, "scripts/select-checks.sh"), 0o755);
 
-  runRequired('git', ['init'], root);
-  runRequired('git', ['config', 'user.email', 'tooling-fixture@example.test'], root);
-  runRequired('git', ['config', 'user.name', 'Tooling Fixture'], root);
-  runRequired('git', ['add', 'scripts/select-checks.sh', 'scripts/lib/common.sh', 'scripts/lib/config.sh'], root);
-  runRequired('git', ['commit', '-m', 'baseline selector fixture'], root);
+  runRequired("git", ["init"], root);
+  runRequired(
+    "git",
+    ["config", "user.email", "tooling-fixture@example.test"],
+    root,
+  );
+  runRequired("git", ["config", "user.name", "Tooling Fixture"], root);
+  runRequired(
+    "git",
+    [
+      "add",
+      "scripts/select-checks.sh",
+      "scripts/lib/common.sh",
+      "scripts/lib/config.sh",
+    ],
+    root,
+  );
+  runRequired("git", ["commit", "-m", "baseline selector fixture"], root);
 
   return root;
 }
 
-test('check selector routes frontend bundle tooling to build and bundle-budget proof', () => {
-  const result = run('bash', [
-    'scripts/select-checks.sh',
-    '--files',
-    'scripts/check-frontend-bundle-size.js docs/performance/p4-t9d-thresholds.json frontend/vite.config.ts',
-    '--mode',
-    'fast',
+test("check selector routes frontend bundle tooling to build and bundle-budget proof", () => {
+  const result = run("bash", [
+    "scripts/select-checks.sh",
+    "--files",
+    "scripts/check-frontend-bundle-size.js docs/performance/p4-t9d-thresholds.json frontend/vite.config.ts",
+    "--mode",
+    "fast",
   ]);
 
   assert.equal(result.status, 0, result.stderr);
-  const commands = result.stdout.trim().split('\n');
+  const commands = result.stdout.trim().split("\n");
 
-  assert(commands.includes('make test-tooling'));
-  assert(commands.includes('cd frontend && npm run build'));
-  assert(commands.includes('node scripts/check-frontend-bundle-size.js'));
+  assert(commands.includes("make test-tooling"));
+  assert(commands.includes("cd frontend && npm run build"));
+  assert(commands.includes("node scripts/check-frontend-bundle-size.js"));
 });
 
-test('check selector routes policy baseline changes to lint and tooling proof', () => {
-  const result = run('bash', [
-    'scripts/select-checks.sh',
-    '--files',
-    'scripts/baselines/modularization-boundaries.json',
-    '--mode',
-    'fast',
+test("check selector routes policy baseline changes to lint and tooling proof", () => {
+  const result = run("bash", [
+    "scripts/select-checks.sh",
+    "--files",
+    "scripts/baselines/modularization-boundaries.json",
+    "--mode",
+    "fast",
   ]);
 
   assert.equal(result.status, 0, result.stderr);
-  const commands = result.stdout.trim().split('\n');
+  const commands = result.stdout.trim().split("\n");
 
-  assert(commands.includes('make lint'));
-  assert(commands.includes('make test-tooling'));
+  assert(commands.includes("make lint"));
+  assert(commands.includes("make test-tooling"));
 });
 
-function writeMigrationPolicyFixture(root, { manifestRows, migrationFiles, includeFiles, tuples }) {
-  const migrationsDir = path.join(root, 'database/migrations');
-  const initdbDir = path.join(root, 'database/initdb');
+function writeMigrationPolicyFixture(
+  root,
+  { manifestRows, migrationFiles, includeFiles, tuples },
+) {
+  const migrationsDir = path.join(root, "database/migrations");
+  const initdbDir = path.join(root, "database/initdb");
   fs.mkdirSync(migrationsDir, { recursive: true });
   fs.mkdirSync(initdbDir, { recursive: true });
 
   fs.writeFileSync(
-    path.join(migrationsDir, 'manifest.tsv'),
-    `${manifestRows.join('\n')}\n`,
-    'utf8'
+    path.join(migrationsDir, "manifest.tsv"),
+    `${manifestRows.join("\n")}\n`,
+    "utf8",
   );
 
   for (const filename of migrationFiles) {
-    fs.writeFileSync(path.join(migrationsDir, filename), '-- fixture migration\n', 'utf8');
+    fs.writeFileSync(
+      path.join(migrationsDir, filename),
+      "-- fixture migration\n",
+      "utf8",
+    );
   }
 
-  const includeSql = includeFiles.map((filename) => `\\i /migrations/${filename}`).join('\n');
+  const includeSql = includeFiles
+    .map((filename) => `\\i /migrations/${filename}`)
+    .join("\n");
   const tupleSql = tuples
     .map(
       ({ filename, migrationId, canonicalFilename }) =>
-        `    ('${filename}', '${migrationId}', '${canonicalFilename}')`
+        `    ('${filename}', '${migrationId}', '${canonicalFilename}')`,
     )
-    .join(',\n');
+    .join(",\n");
 
   fs.writeFileSync(
-    path.join(initdbDir, '000_init.sql'),
+    path.join(initdbDir, "000_init.sql"),
     `${includeSql}
 
 INSERT INTO schema_migrations (filename, migration_id, canonical_filename)
@@ -183,20 +203,20 @@ ON CONFLICT (filename) DO UPDATE
 SET migration_id = EXCLUDED.migration_id,
     canonical_filename = EXCLUDED.canonical_filename;
 `,
-    'utf8'
+    "utf8",
   );
 }
 
 function writeOpenApiFixture(root, text) {
-  const apiDir = path.join(root, 'docs/api');
+  const apiDir = path.join(root, "docs/api");
   fs.mkdirSync(apiDir, { recursive: true });
-  fs.writeFileSync(path.join(apiDir, 'openapi.yaml'), text, 'utf8');
+  fs.writeFileSync(path.join(apiDir, "openapi.yaml"), text, "utf8");
 }
 
-test('Docker image policy allows digest pins and local build aliases', () => {
+test("Docker image policy allows digest pins and local build aliases", () => {
   const root = createTempDir();
-  const composeFile = path.join(root, 'docker-compose.policy.yml');
-  const helperFile = path.join(root, 'helper.sh');
+  const composeFile = path.join(root, "docker-compose.policy.yml");
+  const helperFile = path.join(root, "helper.sh");
 
   fs.writeFileSync(
     composeFile,
@@ -205,19 +225,19 @@ services:
   local_app:
     image: \${BACKEND_DOCKER_IMAGE:-nonprofit-manager-backend:latest}
   pinned_external:
-    image: redis:8-alpine@sha256:${'a'.repeat(64)}
+    image: redis:8-alpine@sha256:${"a".repeat(64)}
 `,
-    'utf8'
+    "utf8",
   );
   fs.writeFileSync(
     helperFile,
-    `HELPER_DOCKER_IMAGE="\${HELPER_DOCKER_IMAGE:-ghcr.io/example/helper:1.0.0@sha256:${'b'.repeat(64)}}"\n`,
-    'utf8'
+    `HELPER_DOCKER_IMAGE="\${HELPER_DOCKER_IMAGE:-ghcr.io/example/helper:1.0.0@sha256:${"b".repeat(64)}}"\n`,
+    "utf8",
   );
 
-  const result = run('node', [
-    'scripts/check-docker-image-policy.mjs',
-    '--files',
+  const result = run("node", [
+    "scripts/check-docker-image-policy.mjs",
+    "--files",
     composeFile,
     helperFile,
   ]);
@@ -226,10 +246,10 @@ services:
   assert.match(result.stdout, /Docker image policy passed/);
 });
 
-test('Docker image policy rejects external tag-only images', () => {
+test("Docker image policy rejects external tag-only images", () => {
   const root = createTempDir();
-  const composeFile = path.join(root, 'docker-compose.policy.yml');
-  const helperFile = path.join(root, 'helper.sh');
+  const composeFile = path.join(root, "docker-compose.policy.yml");
+  const helperFile = path.join(root, "helper.sh");
 
   fs.writeFileSync(
     composeFile,
@@ -238,13 +258,17 @@ services:
   external:
     image: redis:8-alpine
 `,
-    'utf8'
+    "utf8",
   );
-  fs.writeFileSync(helperFile, 'docker run --rm ghcr.io/example/helper:latest detect\n', 'utf8');
+  fs.writeFileSync(
+    helperFile,
+    "docker run --rm ghcr.io/example/helper:latest detect\n",
+    "utf8",
+  );
 
-  const result = run('node', [
-    'scripts/check-docker-image-policy.mjs',
-    '--files',
+  const result = run("node", [
+    "scripts/check-docker-image-policy.mjs",
+    "--files",
     composeFile,
     helperFile,
   ]);
@@ -255,9 +279,9 @@ services:
   assert.match(result.stderr, /ghcr.io\/example\/helper:latest/);
 });
 
-test('Docker image policy checks Compose images moved into reusable anchors', () => {
+test("Docker image policy checks Compose images moved into reusable anchors", () => {
   const root = createTempDir();
-  const composeFile = path.join(root, 'docker-compose.policy.yml');
+  const composeFile = path.join(root, "docker-compose.policy.yml");
 
   fs.writeFileSync(
     composeFile,
@@ -270,10 +294,14 @@ services:
   worker:
     <<: *runtime-service
 `,
-    'utf8'
+    "utf8",
   );
 
-  const result = run('node', ['scripts/check-docker-image-policy.mjs', '--files', composeFile]);
+  const result = run("node", [
+    "scripts/check-docker-image-policy.mjs",
+    "--files",
+    composeFile,
+  ]);
 
   assert.equal(result.status, 1);
   assert.match(result.stderr, /Docker image policy failed/);
@@ -281,7 +309,7 @@ services:
   assert.match(result.stderr, /redis:8-alpine/);
 });
 
-test('validation preflight fails before Docker-backed wrappers when Docker daemon is unavailable', () => {
+test("validation preflight fails before Docker-backed wrappers when Docker daemon is unavailable", () => {
   const fakeBin = createFakeBin({
     docker: `#!/usr/bin/env bash
 case "$1" in
@@ -301,23 +329,31 @@ exit 0
   });
 
   const result = run(
-    'bash',
-    ['scripts/validation-preflight.sh', 'docker', '--context', 'make docker-validate-overlays'],
+    "bash",
+    [
+      "scripts/validation-preflight.sh",
+      "docker",
+      "--context",
+      "make docker-validate-overlays",
+    ],
     {
       PATH: `${fakeBin}:${process.env.PATH}`,
-      DOCKER_HOST: 'unix:///tmp/missing-docker.sock',
-    }
+      DOCKER_HOST: "unix:///tmp/missing-docker.sock",
+    },
   );
 
   assert.equal(result.status, 1);
   const output = `${result.stdout}\n${result.stderr}`;
-  assert.match(output, /Nonprofit Manager validation preflight failed before make docker-validate-overlays/);
+  assert.match(
+    output,
+    /Nonprofit Manager validation preflight failed before make docker-validate-overlays/,
+  );
   assert.match(output, /Docker daemon is not reachable/);
   assert.match(output, /unix:\/\/\/tmp\/missing-docker\.sock/);
   assert.match(output, /docker info/);
 });
 
-test('validation preflight fails clearly when skipped DB prep has no ready isolated database', () => {
+test("validation preflight fails clearly when skipped DB prep has no ready isolated database", () => {
   const fakeBin = createFakeBin({
     psql: `#!/usr/bin/env bash
 exit 1
@@ -325,28 +361,36 @@ exit 1
   });
 
   const result = run(
-    'bash',
-    ['scripts/validation-preflight.sh', 'isolated-test-db', '--context', 'make test-backend'],
+    "bash",
+    [
+      "scripts/validation-preflight.sh",
+      "isolated-test-db",
+      "--context",
+      "make test-backend",
+    ],
     {
       PATH: `${fakeBin}:${process.env.PATH}`,
-      SKIP_INTEGRATION_DB_PREP: '1',
-      DB_HOST: '127.0.0.1',
-      DB_PORT: '8012',
-      DB_NAME: 'nonprofit_manager_test',
-      DB_USER: 'postgres',
-      DB_PASSWORD: 'postgres',
-    }
+      SKIP_INTEGRATION_DB_PREP: "1",
+      DB_HOST: "127.0.0.1",
+      DB_PORT: "8012",
+      DB_NAME: "nonprofit_manager_test",
+      DB_USER: "postgres",
+      DB_PASSWORD: "postgres",
+    },
   );
 
   assert.equal(result.status, 1);
   const output = `${result.stdout}\n${result.stderr}`;
-  assert.match(output, /Nonprofit Manager validation preflight failed before make test-backend/);
+  assert.match(
+    output,
+    /Nonprofit Manager validation preflight failed before make test-backend/,
+  );
   assert.match(output, /SKIP_INTEGRATION_DB_PREP=1/);
   assert.match(output, /127\.0\.0\.1:8012\/nonprofit_manager_test/);
   assert.match(output, /make db-verify/);
 });
 
-test('validation preflight accepts Docker bootstrap path for an unavailable isolated database', () => {
+test("validation preflight accepts Docker bootstrap path for an unavailable isolated database", () => {
   const fakeBin = createFakeBin({
     psql: `#!/usr/bin/env bash
 exit 1
@@ -365,22 +409,30 @@ exit 0
   });
 
   const result = run(
-    'bash',
-    ['scripts/validation-preflight.sh', 'isolated-test-db', '--context', 'make test'],
+    "bash",
+    [
+      "scripts/validation-preflight.sh",
+      "isolated-test-db",
+      "--context",
+      "make test",
+    ],
     {
       PATH: `${fakeBin}:${process.env.PATH}`,
-      DB_HOST: '127.0.0.1',
-      DB_PORT: '8012',
-      DB_NAME: 'nonprofit_manager_test',
-    }
+      DB_HOST: "127.0.0.1",
+      DB_PORT: "8012",
+      DB_NAME: "nonprofit_manager_test",
+    },
   );
 
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /Docker is reachable and can bootstrap the isolated test database/);
+  assert.match(
+    result.stdout,
+    /Docker is reachable and can bootstrap the isolated test database/,
+  );
   assert.match(result.stdout, /127\.0\.0\.1:8012\/nonprofit_manager_test/);
 });
 
-test('validation preflight accepts the repo-owned isolated test database while it is starting', () => {
+test("validation preflight accepts the repo-owned isolated test database while it is starting", () => {
   const fakeBin = createFakeBin({
     psql: `#!/usr/bin/env bash
 exit 1
@@ -414,87 +466,104 @@ exit 0
   });
 
   const result = run(
-    'bash',
-    ['scripts/validation-preflight.sh', 'isolated-test-db', '--context', 'scripts/db-migrate.sh --wait-ready'],
+    "bash",
+    [
+      "scripts/validation-preflight.sh",
+      "isolated-test-db",
+      "--context",
+      "scripts/db-migrate.sh --wait-ready",
+    ],
     {
       PATH: `${fakeBin}:${process.env.PATH}`,
-      DB_HOST: '127.0.0.1',
-      DB_PORT: '8012',
-      DB_NAME: 'nonprofit_manager_test',
-    }
+      DB_HOST: "127.0.0.1",
+      DB_PORT: "8012",
+      DB_NAME: "nonprofit_manager_test",
+    },
   );
 
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /isolated test database container test-db-container/);
-  assert.match(result.stdout, /Docker is reachable and can bootstrap the isolated test database/);
+  assert.match(
+    result.stdout,
+    /isolated test database container test-db-container/,
+  );
+  assert.match(
+    result.stdout,
+    /Docker is reachable and can bootstrap the isolated test database/,
+  );
 });
 
-test('root wrappers call validation preflight before Docker and DB-backed work', () => {
-  const makefile = fs.readFileSync(path.join(repoRoot, 'Makefile'), 'utf8');
+test("root wrappers call validation preflight before Docker and DB-backed work", () => {
+  const makefile = fs.readFileSync(path.join(repoRoot, "Makefile"), "utf8");
   const overlayScript = fs.readFileSync(
-    path.join(repoRoot, 'scripts/docker-validate-overlays.sh'),
-    'utf8'
+    path.join(repoRoot, "scripts/docker-validate-overlays.sh"),
+    "utf8",
   );
   const backendWrapper = fs.readFileSync(
-    path.join(repoRoot, 'backend/scripts/run-full-tests.sh'),
-    'utf8'
+    path.join(repoRoot, "backend/scripts/run-full-tests.sh"),
+    "utf8",
   );
 
   const dockerValidateOverlaysTarget = makefile.slice(
-    makefile.indexOf('\ndocker-validate-overlays:\n'),
-    makefile.indexOf('\n#------------------------------------------------------------------------------\n# Quality Checks')
+    makefile.indexOf("\ndocker-validate-overlays:\n"),
+    makefile.indexOf(
+      "\n#------------------------------------------------------------------------------\n# Quality Checks",
+    ),
   );
   assert.match(
     dockerValidateOverlaysTarget,
-    /validation-preflight\.sh docker --compose --context "make docker-validate-overlays"[\s\S]*scripts\/docker-validate-overlays\.sh/
+    /validation-preflight\.sh docker --compose --context "make docker-validate-overlays"[\s\S]*scripts\/docker-validate-overlays\.sh/,
   );
 
   const testTarget = makefile.slice(
-    makefile.indexOf('\ntest:\n'),
-    makefile.indexOf('\ntest-coverage:\n')
+    makefile.indexOf("\ntest:\n"),
+    makefile.indexOf("\ntest-coverage:\n"),
   );
   assert.match(
     testTarget,
-    /validation-preflight\.sh isolated-test-db --context "make test"[\s\S]*Ensuring test infrastructure/
+    /validation-preflight\.sh isolated-test-db --context "make test"[\s\S]*Ensuring test infrastructure/,
   );
 
   assert.match(
     overlayScript,
-    /validation-preflight\.sh docker --compose --context "scripts\/docker-validate-overlays\.sh"[\s\S]*Checking Docker image pinning policy/
+    /validation-preflight\.sh docker --compose --context "scripts\/docker-validate-overlays\.sh"[\s\S]*Checking Docker image pinning policy/,
   );
   assert.match(
     backendWrapper,
-    /validation-preflight\.sh" isolated-test-db --context "cd backend && npm test"/
+    /validation-preflight\.sh" isolated-test-db --context "cd backend && npm test"/,
   );
 });
 
-test('route audit collects catalog entries across split files', () => {
+test("route audit collects catalog entries across split files", () => {
   const catalogFileA = collectRouteCatalogTargetsFromSource(
-    '/repo/frontend/src/routes/routeCatalog/staffPeople.ts',
+    "/repo/frontend/src/routes/routeCatalog/staffPeople.ts",
     `
       export const staffPeopleRoute = {
         path: '/staff/people',
       };
-    `
+    `,
   );
   const catalogFileB = collectRouteCatalogTargetsFromSource(
-    '/repo/frontend/src/routes/routeCatalog/staffPersonDetails.ts',
+    "/repo/frontend/src/routes/routeCatalog/staffPersonDetails.ts",
     `
       export const staffPersonDetailsRoute = {
         path: \`/staff/people/\${personId}\`,
       };
-    `
+    `,
   );
 
   assert.deepEqual(
-    [...new Set([...catalogFileA, ...catalogFileB].map((entry) => entry.pattern))].sort(),
-    ['/staff/people', '/staff/people/:*']
+    [
+      ...new Set(
+        [...catalogFileA, ...catalogFileB].map((entry) => entry.pattern),
+      ),
+    ].sort(),
+    ["/staff/people", "/staff/people/:*"],
   );
 });
 
-test('route audit normalizes runtime template literals to catalog patterns', () => {
+test("route audit normalizes runtime template literals to catalog patterns", () => {
   const runtimeTargets = collectRuntimeRouteTargetsFromSource(
-    '/repo/frontend/src/features/people/PersonCard.tsx',
+    "/repo/frontend/src/features/people/PersonCard.tsx",
     `
       navigate(\`/staff/people/\${personId}\`);
       history.push({ pathname: \`/staff/people/\${personId}/notes\` });
@@ -502,23 +571,23 @@ test('route audit normalizes runtime template literals to catalog patterns', () 
         return null;
       }
       return <Link to={\`/staff/people/\${personId}\`}>Open</Link>;
-    `
+    `,
   );
 
   assert.deepEqual(
     runtimeTargets.map((entry) => entry.pattern),
     [
-      '/staff/people/:*',
-      '/staff/people/:*/notes',
-      '/staff/people/:*',
-      '/staff/people/:*',
-    ]
+      "/staff/people/:*",
+      "/staff/people/:*/notes",
+      "/staff/people/:*",
+      "/staff/people/:*",
+    ],
   );
 });
 
-test('route audit normalizes registered template routes to canonical patterns', () => {
+test("route audit normalizes registered template routes to canonical patterns", () => {
   const registrationTargets = collectRouteRegistrationTargetsFromSource(
-    '/repo/frontend/src/routes/StaffRoutes.tsx',
+    "/repo/frontend/src/routes/StaffRoutes.tsx",
     `
       export const routes = [
         { path: '/staff/people' },
@@ -528,22 +597,22 @@ test('route audit normalizes registered template routes to canonical patterns', 
       export function StaffRoutes() {
         return <Route path={\`/staff/people/\${personId}/notes\`} element={<div />} />;
       }
-    `
+    `,
   );
 
   assert.deepEqual(
     registrationTargets.map((entry) => entry.pattern),
-    ['/staff/people', '/staff/people/:*', '/staff/people/:*/notes']
+    ["/staff/people", "/staff/people/:*", "/staff/people/:*/notes"],
   );
 });
 
-test('route validation flags only the unvalidated parameterized routes in mixed files', () => {
+test("route validation flags only the unvalidated parameterized routes in mixed files", () => {
   const result = analyzeRouteValidationSource(
-    '/repo/backend/src/modules/people/routes/index.ts',
+    "/repo/backend/src/modules/people/routes/index.ts",
     `
       router.get('/api/v2/people/:personId', validateParams(personIdSchema), getPerson);
       router.get('/api/v2/people/:personId/notes/:noteId', getPersonNote);
-    `
+    `,
   );
 
   assert.equal(result.routeDefinitionCount, 2);
@@ -551,21 +620,24 @@ test('route validation flags only the unvalidated parameterized routes in mixed 
   assert.match(result.issues[0], /without params validation middleware/);
 });
 
-test('route validation reports route files that define routes without any validation middleware', () => {
+test("route validation reports route files that define routes without any validation middleware", () => {
   const result = analyzeRouteValidationSource(
-    '/repo/backend/src/modules/reports/routes/index.ts',
+    "/repo/backend/src/modules/reports/routes/index.ts",
     `
       router.get('/api/v2/reports', listReports);
       router.post('/api/v2/reports', createReport);
-    `
+    `,
   );
 
   assert.equal(result.routeDefinitionCount, 2);
   assert.equal(result.issues.length, 1);
-  assert.match(result.issues[0], /defines routes without any recognized validation middleware/);
+  assert.match(
+    result.issues[0],
+    /defines routes without any recognized validation middleware/,
+  );
 });
 
-test('v2 route auth posture requires explicit public or module-local mounts', () => {
+test("v2 route auth posture requires explicit public or module-local mounts", () => {
   const publicApiPolicyText = `
     export const PUBLIC_API_V2_MOUNT_PATHS = [
       '/auth',
@@ -584,9 +656,9 @@ test('v2 route auth posture requires explicit public or module-local mounts', ()
       mountWorkspaceModuleRoutes('/cases', 'cases', casesV2Routes);
     `,
     publicApiPolicyText,
-    indexText: 'isPublicSiteApiPath(req.path);',
-    csrfText: 'isCsrfSkipPath(path, fullPath);',
-    routeFile: '/repo/backend/src/routes/v2/index.ts',
+    indexText: "isPublicSiteApiPath(req.path);",
+    csrfText: "isCsrfSkipPath(path, fullPath);",
+    routeFile: "/repo/backend/src/routes/v2/index.ts",
   });
 
   assert.deepEqual(clean.issues, []);
@@ -597,55 +669,84 @@ test('v2 route auth posture requires explicit public or module-local mounts', ()
       mountV2Routes('/surprise', surpriseV2Routes);
     `,
     publicApiPolicyText,
-    indexText: 'isPublicSiteApiPath(req.path);',
-    csrfText: 'isCsrfSkipPath(path, fullPath);',
-    routeFile: '/repo/backend/src/routes/v2/index.ts',
+    indexText: "isPublicSiteApiPath(req.path);",
+    csrfText: "isCsrfSkipPath(path, fullPath);",
+    routeFile: "/repo/backend/src/routes/v2/index.ts",
   });
 
-  assert(drift.issues.some((issue) => issue.includes('includes unmounted /auth')));
+  assert(
+    drift.issues.some((issue) => issue.includes("includes unmounted /auth")),
+  );
   assert(
     drift.issues.some((issue) =>
-      issue.includes('mounts /surprise without registrar auth or explicit module-local/public posture')
-    )
+      issue.includes(
+        "mounts /surprise without registrar auth or explicit module-local/public posture",
+      ),
+    ),
   );
 });
 
-test('canonicalizeRoutePattern collapses params and template placeholders consistently', () => {
-  assert.equal(canonicalizeRoutePattern('/staff/people/:personId'), '/staff/people/:*');
-  assert.equal(canonicalizeRoutePattern('/staff/people/${personId}'), '/staff/people/:*');
-  assert.equal(canonicalizeRoutePattern('/staff/people/${personId}/notes/:noteId'), '/staff/people/:*/notes/:*');
-});
-
-test('route pattern matching accepts prefix checks and compatible dynamic runtime patterns', () => {
+test("canonicalizeRoutePattern collapses params and template placeholders consistently", () => {
   assert.equal(
-    catalogPatternMatchesRuntime('/demo', '/demo/dashboard', 'pathname-startsWith'),
-    true
+    canonicalizeRoutePattern("/staff/people/:personId"),
+    "/staff/people/:*",
   );
   assert.equal(
-    catalogPatternMatchesRuntime('/portal/reset-password', '/portal/reset-password/:*', 'pathname-startsWith'),
-    true
+    canonicalizeRoutePattern("/staff/people/${personId}"),
+    "/staff/people/:*",
   );
   assert.equal(
-    catalogPatternMatchesRuntime('/websites/:*/:*', '/websites/:*/overview', 'to'),
-    true
-  );
-  assert.equal(
-    catalogPatternMatchesRuntime('/websites/:*/:*', '/website-builder/:*/preview', 'to'),
-    false
+    canonicalizeRoutePattern("/staff/people/${personId}/notes/:noteId"),
+    "/staff/people/:*/notes/:*",
   );
 });
 
-test('migration manifest policy flags orphan migration files and duplicate numeric IDs', () => {
+test("route pattern matching accepts prefix checks and compatible dynamic runtime patterns", () => {
+  assert.equal(
+    catalogPatternMatchesRuntime(
+      "/demo",
+      "/demo/dashboard",
+      "pathname-startsWith",
+    ),
+    true,
+  );
+  assert.equal(
+    catalogPatternMatchesRuntime(
+      "/portal/reset-password",
+      "/portal/reset-password/:*",
+      "pathname-startsWith",
+    ),
+    true,
+  );
+  assert.equal(
+    catalogPatternMatchesRuntime(
+      "/websites/:*/:*",
+      "/websites/:*/overview",
+      "to",
+    ),
+    true,
+  );
+  assert.equal(
+    catalogPatternMatchesRuntime(
+      "/websites/:*/:*",
+      "/website-builder/:*/preview",
+      "to",
+    ),
+    false,
+  );
+});
+
+test("migration manifest policy flags orphan migration files and duplicate numeric IDs", () => {
   const fixtureRoot = createTempDir();
   writeMigrationPolicyFixture(fixtureRoot, {
-    manifestRows: ['001\t001_initial_schema.sql'],
-    migrationFiles: ['001_initial_schema.sql', '001_orphan_duplicate.sql'],
-    includeFiles: ['001_initial_schema.sql'],
+    manifestRows: ["001\t001_initial_schema.sql"],
+    migrationFiles: ["001_initial_schema.sql", "001_orphan_duplicate.sql"],
+    includeFiles: ["001_initial_schema.sql"],
     tuples: [
       {
-        filename: '001_initial_schema.sql',
-        migrationId: '001',
-        canonicalFilename: '001_initial_schema.sql',
+        filename: "001_initial_schema.sql",
+        migrationId: "001",
+        canonicalFilename: "001_initial_schema.sql",
       },
     ],
   });
@@ -654,47 +755,51 @@ test('migration manifest policy flags orphan migration files and duplicate numer
 
   assert(
     issues.some((issue) =>
-      issue.includes('Orphan migration file is not listed in manifest.tsv: 001_orphan_duplicate.sql')
-    )
+      issue.includes(
+        "Orphan migration file is not listed in manifest.tsv: 001_orphan_duplicate.sql",
+      ),
+    ),
   );
   assert(
     issues.some((issue) =>
-      issue.includes('Duplicate numeric migration file ID 001: 001_initial_schema.sql, 001_orphan_duplicate.sql')
-    )
+      issue.includes(
+        "Duplicate numeric migration file ID 001: 001_initial_schema.sql, 001_orphan_duplicate.sql",
+      ),
+    ),
   );
 });
 
-test('migration manifest policy accepts non-numeric suffix IDs when manifest and initdb match', () => {
+test("migration manifest policy accepts non-numeric suffix IDs when manifest and initdb match", () => {
   const fixtureRoot = createTempDir();
   writeMigrationPolicyFixture(fixtureRoot, {
     manifestRows: [
-      '060a\t060a_event_checkin_and_appointment_reminders.sql\t060_event_checkin_and_appointment_reminders.sql',
-      '060b\t060b_saved_reports_sharing_columns.sql\t060_saved_reports_sharing_columns.sql',
+      "060a\t060a_event_checkin_and_appointment_reminders.sql\t060_event_checkin_and_appointment_reminders.sql",
+      "060b\t060b_saved_reports_sharing_columns.sql\t060_saved_reports_sharing_columns.sql",
     ],
     migrationFiles: [
-      '060a_event_checkin_and_appointment_reminders.sql',
-      '060b_saved_reports_sharing_columns.sql',
+      "060a_event_checkin_and_appointment_reminders.sql",
+      "060b_saved_reports_sharing_columns.sql",
     ],
     includeFiles: [
-      '060a_event_checkin_and_appointment_reminders.sql',
-      '060b_saved_reports_sharing_columns.sql',
+      "060a_event_checkin_and_appointment_reminders.sql",
+      "060b_saved_reports_sharing_columns.sql",
     ],
     tuples: [
       {
-        filename: '060a_event_checkin_and_appointment_reminders.sql',
-        migrationId: '060a',
-        canonicalFilename: '060a_event_checkin_and_appointment_reminders.sql',
+        filename: "060a_event_checkin_and_appointment_reminders.sql",
+        migrationId: "060a",
+        canonicalFilename: "060a_event_checkin_and_appointment_reminders.sql",
       },
       {
-        filename: '060b_saved_reports_sharing_columns.sql',
-        migrationId: '060b',
-        canonicalFilename: '060b_saved_reports_sharing_columns.sql',
+        filename: "060b_saved_reports_sharing_columns.sql",
+        migrationId: "060b",
+        canonicalFilename: "060b_saved_reports_sharing_columns.sql",
       },
     ],
   });
 
   fs.appendFileSync(
-    path.join(fixtureRoot, 'database/initdb/000_init.sql'),
+    path.join(fixtureRoot, "database/initdb/000_init.sql"),
     `
 UPDATE schema_migrations
 SET migration_id = '060a',
@@ -706,13 +811,13 @@ SET migration_id = '060b',
     canonical_filename = '060b_saved_reports_sharing_columns.sql'
 WHERE filename = '060_saved_reports_sharing_columns.sql';
 `,
-    'utf8'
+    "utf8",
   );
 
   assert.deepEqual(analyzeMigrationManifestPolicy(fixtureRoot), []);
 });
 
-test('openapi contract policy accepts local refs and path parameters', () => {
+test("openapi contract policy accepts local refs and path parameters", () => {
   const fixtureRoot = createTempDir();
   writeOpenApiFixture(
     fixtureRoot,
@@ -748,13 +853,13 @@ components:
       properties:
         success:
           type: boolean
-`
+`,
   );
 
   assert.deepEqual(analyzeOpenApiContract(fixtureRoot), []);
 });
 
-test('openapi contract policy flags missing refs and unbound path params', () => {
+test("openapi contract policy flags missing refs and unbound path params", () => {
   const fixtureRoot = createTempDir();
   writeOpenApiFixture(
     fixtureRoot,
@@ -775,139 +880,162 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MissingEnvelope'
-`
+`,
   );
 
   const issues = analyzeOpenApiContract(fixtureRoot);
 
-  assert(issues.some((issue) => issue.includes('should be relative to the /api/v2 server base URL')));
-  assert(issues.some((issue) => issue.includes('must include a summary')));
-  assert(issues.some((issue) => issue.includes("missing path parameter 'personId'")));
-  assert(issues.some((issue) => issue.includes('must be an HTTP status code or default')));
-  assert(issues.some((issue) => issue.includes("references missing component '#/components/schemas/MissingEnvelope'")));
+  assert(
+    issues.some((issue) =>
+      issue.includes("should be relative to the /api/v2 server base URL"),
+    ),
+  );
+  assert(issues.some((issue) => issue.includes("must include a summary")));
+  assert(
+    issues.some((issue) => issue.includes("missing path parameter 'personId'")),
+  );
+  assert(
+    issues.some((issue) =>
+      issue.includes("must be an HTTP status code or default"),
+    ),
+  );
+  assert(
+    issues.some((issue) =>
+      issue.includes(
+        "references missing component '#/components/schemas/MissingEnvelope'",
+      ),
+    ),
+  );
 });
 
-test('e2e playwright host wrapper preserves explicit runtime overrides', () => {
+test("e2e playwright host wrapper preserves explicit runtime overrides", () => {
   const result = run(
-    'bash',
-    ['scripts/e2e-playwright.sh', 'host', '--direct', 'env'],
+    "bash",
+    ["scripts/e2e-playwright.sh", "host", "--direct", "env"],
     {
-      E2E_BACKEND_PORT: '4301',
-      E2E_FRONTEND_PORT: '5301',
-      BASE_URL: 'http://127.0.0.1:5301',
-      API_URL: 'http://127.0.0.1:4301',
-    }
+      E2E_BACKEND_PORT: "4301",
+      E2E_FRONTEND_PORT: "5301",
+      BASE_URL: "http://127.0.0.1:5301",
+      API_URL: "http://127.0.0.1:4301",
+    },
   );
 
   assert.equal(result.status, 0, result.stderr);
 
   const env = parseEnvironment(result.stdout);
-  assert.equal(env.E2E_BACKEND_PORT, '4301');
-  assert.equal(env.E2E_FRONTEND_PORT, '5301');
-  assert.equal(env.BASE_URL, 'http://127.0.0.1:5301');
-  assert.equal(env.API_URL, 'http://127.0.0.1:4301');
-  assert.equal(env.E2E_REQUIRED_PORTS, '4301 5301');
-  assert.equal(env.PW_REUSE_EXISTING_SERVER, '0');
-  assert.equal(env.E2E_PORT_ACTION, 'kill');
+  assert.equal(env.E2E_BACKEND_PORT, "4301");
+  assert.equal(env.E2E_FRONTEND_PORT, "5301");
+  assert.equal(env.BASE_URL, "http://127.0.0.1:5301");
+  assert.equal(env.API_URL, "http://127.0.0.1:4301");
+  assert.equal(env.E2E_REQUIRED_PORTS, "4301 5301");
+  assert.equal(env.PW_REUSE_EXISTING_SERVER, "0");
+  assert.equal(env.E2E_PORT_ACTION, "kill");
   assert.equal(env.E2E_READY_URLS, undefined);
-  assert.equal(env.SKIP_WEBSERVER, '0');
+  assert.equal(env.SKIP_WEBSERVER, "0");
 });
 
-test('e2e playwright host wrapper enables readiness preflight only for explicit server reuse', () => {
+test("e2e playwright host wrapper enables readiness preflight only for explicit server reuse", () => {
   const result = run(
-    'bash',
-    ['scripts/e2e-playwright.sh', 'host', '--direct', 'env'],
+    "bash",
+    ["scripts/e2e-playwright.sh", "host", "--direct", "env"],
     {
-      PW_REUSE_EXISTING_SERVER: '1',
-      E2E_BACKEND_PORT: '4301',
-      E2E_FRONTEND_PORT: '5301',
-    }
+      PW_REUSE_EXISTING_SERVER: "1",
+      E2E_BACKEND_PORT: "4301",
+      E2E_FRONTEND_PORT: "5301",
+    },
   );
 
   assert.equal(result.status, 0, result.stderr);
 
   const env = parseEnvironment(result.stdout);
-  assert.equal(env.PW_REUSE_EXISTING_SERVER, '1');
-  assert.equal(env.E2E_PORT_ACTION, 'warn');
+  assert.equal(env.PW_REUSE_EXISTING_SERVER, "1");
+  assert.equal(env.E2E_PORT_ACTION, "warn");
   assert.equal(
     env.E2E_READY_URLS,
-    'http://127.0.0.1:4301/health/live http://127.0.0.1:5301'
+    "http://127.0.0.1:4301/health/live http://127.0.0.1:5301",
   );
 });
 
-test('e2e playwright docker wrapper carries ports and readiness URLs through the E2E contract', () => {
+test("e2e playwright docker wrapper carries ports and readiness URLs through the E2E contract", () => {
   const result = run(
-    'bash',
-    ['scripts/e2e-playwright.sh', 'docker', '--direct', 'env'],
+    "bash",
+    ["scripts/e2e-playwright.sh", "docker", "--direct", "env"],
     {
-      E2E_BACKEND_PORT: '8104',
-      E2E_FRONTEND_PORT: '8105',
-      E2E_PUBLIC_SITE_PORT: '8106',
-      E2E_DB_PORT: '9102',
-    }
+      E2E_BACKEND_PORT: "8104",
+      E2E_FRONTEND_PORT: "8105",
+      E2E_PUBLIC_SITE_PORT: "8106",
+      E2E_DB_PORT: "9102",
+    },
   );
 
   assert.equal(result.status, 0, result.stderr);
 
   const env = parseEnvironment(result.stdout);
-  assert.equal(env.DB_PORT, '9102');
-  assert.equal(env.E2E_DB_PORT, '9102');
-  assert.equal(env.E2E_REQUIRED_PORTS, '8104 8105 8106');
-  assert.equal(env.E2E_RUNNER_ACTION, 'fail');
+  assert.equal(env.DB_PORT, "9102");
+  assert.equal(env.E2E_DB_PORT, "9102");
+  assert.equal(env.E2E_REQUIRED_PORTS, "8104 8105 8106");
+  assert.equal(env.E2E_RUNNER_ACTION, "fail");
   assert.equal(
     env.E2E_READY_URLS,
-    'http://127.0.0.1:8104/health/ready http://127.0.0.1:8105 http://127.0.0.1:8106/health/ready'
+    "http://127.0.0.1:8104/health/ready http://127.0.0.1:8105 http://127.0.0.1:8106/health/ready",
   );
-  assert.equal(env.SKIP_WEBSERVER, '1');
+  assert.equal(env.SKIP_WEBSERVER, "1");
 });
 
-test('e2e playwright docker wrapper keeps explicit lock kill opt-in', () => {
+test("e2e playwright docker wrapper keeps explicit lock kill opt-in", () => {
   const result = run(
-    'bash',
-    ['scripts/e2e-playwright.sh', 'docker', '--direct', 'env'],
+    "bash",
+    ["scripts/e2e-playwright.sh", "docker", "--direct", "env"],
     {
-      E2E_RUNNER_ACTION: 'kill',
-    }
+      E2E_RUNNER_ACTION: "kill",
+    },
   );
 
   assert.equal(result.status, 0, result.stderr);
 
   const env = parseEnvironment(result.stdout);
-  assert.equal(env.E2E_RUNNER_ACTION, 'kill');
+  assert.equal(env.E2E_RUNNER_ACTION, "kill");
 });
 
-test('e2e shared runner fails lock contention by default', () => {
+test("e2e shared runner fails lock contention by default", () => {
   const tempDir = createTempDir();
-  const lockDir = path.join(tempDir, 'e2e.lock');
+  const lockDir = path.join(tempDir, "e2e.lock");
   fs.mkdirSync(lockDir);
-  fs.writeFileSync(path.join(lockDir, 'owner'), `${process.pid}:${process.pid}\n`, 'utf8');
+  fs.writeFileSync(
+    path.join(lockDir, "owner"),
+    `${process.pid}:${process.pid}\n`,
+    "utf8",
+  );
 
   const result = run(
-    'bash',
-    ['scripts/e2e-run-with-lock.sh', 'bash', '-c', 'exit 0'],
+    "bash",
+    ["scripts/e2e-run-with-lock.sh", "bash", "-c", "exit 0"],
     {
       E2E_LOCK_FILE: lockDir,
-      E2E_RUNNER_MAX_ATTEMPTS: '1',
-    }
+      E2E_RUNNER_MAX_ATTEMPTS: "1",
+    },
   );
 
   assert.equal(result.status, 1);
-  assert.match(`${result.stdout}\n${result.stderr}`, /Another E2E run is active/);
+  assert.match(
+    `${result.stdout}\n${result.stderr}`,
+    /Another E2E run is active/,
+  );
   assert.match(`${result.stdout}\n${result.stderr}`, /E2E_RUNNER_ACTION=kill/);
 });
 
-test('e2e playwright usage documents the Docker public-site port', () => {
-  const result = run('bash', ['scripts/e2e-playwright.sh']);
+test("e2e playwright usage documents the Docker public-site port", () => {
+  const result = run("bash", ["scripts/e2e-playwright.sh"]);
 
   assert.equal(result.status, 2);
   assert.match(result.stderr, /frontend\/backend\/public-site runtime/);
   assert.match(result.stderr, /8005\/8004\/8006/);
 });
 
-test('make test reuses the root-prepared backend test database', () => {
-  const makefile = fs.readFileSync(path.join(repoRoot, 'Makefile'), 'utf8');
-  const start = makefile.indexOf('\ntest:\n');
-  const end = makefile.indexOf('\ntest-coverage:\n');
+test("make test reuses the root-prepared backend test database", () => {
+  const makefile = fs.readFileSync(path.join(repoRoot, "Makefile"), "utf8");
+  const start = makefile.indexOf("\ntest:\n");
+  const end = makefile.indexOf("\ntest-coverage:\n");
 
   assert.notEqual(start, -1);
   assert.notEqual(end, -1);
@@ -916,46 +1044,71 @@ test('make test reuses the root-prepared backend test database', () => {
   assert.match(testTarget, /\$\(CI_TEST_DB_ENV\) \.\/scripts\/db-migrate\.sh/);
   assert.match(
     testTarget,
-    /cd backend && SKIP_INTEGRATION_DB_PREP=1 npm test -- --runInBand/
+    /cd backend && SKIP_INTEGRATION_DB_PREP=1 npm test -- --runInBand/,
   );
 });
 
-test('e2e host ci report wrapper resolves default archived report paths in dry-run mode', () => {
-  const result = run('bash', ['scripts/e2e-host-ci-report.sh', '--dry-run']);
+test("e2e host ci report wrapper resolves default archived report paths in dry-run mode", () => {
+  const result = run("bash", ["scripts/e2e-host-ci-report.sh", "--dry-run"]);
 
   assert.equal(result.status, 0, result.stderr);
 
   const env = parseEnvironment(result.stdout);
   assert.match(
     env.REPORT_ROOT,
-    new RegExp(`^${repoRoot.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}/tmp/e2e-reports$`)
+    new RegExp(
+      `^${repoRoot.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}/tmp/e2e-reports$`,
+    ),
   );
   assert.match(env.RUN_ID, /^host-ci-\d{8}T\d{6}Z-\d+$/);
   assert.equal(env.RUN_DIR, `${env.REPORT_ROOT}/${env.RUN_ID}`);
-  assert.equal(env.PLAYWRIGHT_HTML_OUTPUT_DIR, `${env.RUN_DIR}/playwright-report`);
-  assert.equal(env.PLAYWRIGHT_JSON_OUTPUT_FILE, `${env.RUN_DIR}/test-results.json`);
-  assert.equal(env.SLICE_DESKTOP_HTML, `${env.RUN_DIR}/desktop/playwright-report`);
-  assert.equal(env.SLICE_DESKTOP_JSON, `${env.RUN_DIR}/desktop/test-results.json`);
-  assert.equal(env.SLICE_DESKTOP_RUNNER_LOG_DIR, `${env.RUN_DIR}/desktop/runner-logs`);
-  assert.equal(env.SLICE_MOBILE_HTML, `${env.RUN_DIR}/mobile/playwright-report`);
-  assert.equal(env.SLICE_MOBILE_JSON, `${env.RUN_DIR}/mobile/test-results.json`);
-  assert.equal(env.SLICE_MOBILE_RUNNER_LOG_DIR, `${env.RUN_DIR}/mobile/runner-logs`);
-  assert.match(env.SLICE_MOBILE_COMMAND, /--project=Mobile Chrome tests\/ux-regression\.spec\.ts/);
+  assert.equal(
+    env.PLAYWRIGHT_HTML_OUTPUT_DIR,
+    `${env.RUN_DIR}/playwright-report`,
+  );
+  assert.equal(
+    env.PLAYWRIGHT_JSON_OUTPUT_FILE,
+    `${env.RUN_DIR}/test-results.json`,
+  );
+  assert.equal(
+    env.SLICE_DESKTOP_HTML,
+    `${env.RUN_DIR}/desktop/playwright-report`,
+  );
+  assert.equal(
+    env.SLICE_DESKTOP_JSON,
+    `${env.RUN_DIR}/desktop/test-results.json`,
+  );
+  assert.equal(
+    env.SLICE_DESKTOP_RUNNER_LOG_DIR,
+    `${env.RUN_DIR}/desktop/runner-logs`,
+  );
+  assert.equal(
+    env.SLICE_MOBILE_HTML,
+    `${env.RUN_DIR}/mobile/playwright-report`,
+  );
+  assert.equal(
+    env.SLICE_MOBILE_JSON,
+    `${env.RUN_DIR}/mobile/test-results.json`,
+  );
+  assert.equal(
+    env.SLICE_MOBILE_RUNNER_LOG_DIR,
+    `${env.RUN_DIR}/mobile/runner-logs`,
+  );
+  assert.match(
+    env.SLICE_MOBILE_COMMAND,
+    /--project=Mobile Chrome tests\/ux-regression\.spec\.ts/,
+  );
 });
 
-test('e2e host ci report wrapper honors report root and run id overrides in dry-run mode', () => {
+test("e2e host ci report wrapper honors report root and run id overrides in dry-run mode", () => {
   const tempDir = createTempDir();
-  const reportRoot = path.join(tempDir, 'archived-reports');
-  const runId = 'host-ci-custom-run';
+  const reportRoot = path.join(tempDir, "archived-reports");
+  const runId = "host-ci-custom-run";
 
-  const result = run(
-    'bash',
-    ['scripts/e2e-host-ci-report.sh', '--dry-run'],
-    {
-      E2E_REPORT_ROOT: reportRoot,
-      E2E_REPORT_RUN_ID: runId,
-    }
-  );
+  const result = run("bash", ["scripts/e2e-host-ci-report.sh", "--dry-run"], {
+    E2E_REPORT_ROOT: reportRoot,
+    E2E_REPORT_RUN_ID: runId,
+  });
 
   assert.equal(result.status, 0, result.stderr);
 
@@ -966,77 +1119,141 @@ test('e2e host ci report wrapper honors report root and run id overrides in dry-
   assert.equal(env.SHOW_REPORT_LOG, `${reportRoot}/${runId}/show-report.log`);
   assert.equal(
     env.OPEN_REPORT_COMMAND,
-    `${repoRoot}/node_modules/.bin/playwright show-report ${reportRoot}/${runId}/playwright-report`
+    `${repoRoot}/node_modules/.bin/playwright show-report ${reportRoot}/${runId}/playwright-report`,
   );
 });
 
-test('e2e docker ci report wrapper resolves per-slice archived report paths in dry-run mode', () => {
-  const result = run('bash', ['scripts/e2e-docker-ci-report.sh', 'ci', '--dry-run']);
+test("e2e docker ci report wrapper resolves per-slice archived report paths in dry-run mode", () => {
+  const result = run("bash", [
+    "scripts/e2e-docker-ci-report.sh",
+    "ci",
+    "--dry-run",
+  ]);
 
   assert.equal(result.status, 0, result.stderr);
 
   const env = parseEnvironment(result.stdout);
-  assert.equal(env.LANE, 'ci');
+  assert.equal(env.LANE, "ci");
   assert.match(env.RUN_ID, /^docker-ci-\d{8}T\d{6}Z-\d+$/);
   assert.equal(env.RUN_DIR, `${env.REPORT_ROOT}/${env.RUN_ID}`);
-  assert.equal(env.PLAYWRIGHT_HTML_OUTPUT_DIR, `${env.RUN_DIR}/playwright-report`);
-  assert.equal(env.PLAYWRIGHT_JSON_OUTPUT_FILE, `${env.RUN_DIR}/test-results.json`);
-  assert.equal(env.SLICE_DESKTOP_HTML, `${env.RUN_DIR}/desktop/playwright-report`);
-  assert.equal(env.SLICE_DESKTOP_JSON, `${env.RUN_DIR}/desktop/test-results.json`);
-  assert.equal(env.SLICE_DESKTOP_RUNNER_LOG_DIR, `${env.RUN_DIR}/desktop/runner-logs`);
-  assert.equal(env.SLICE_MOBILE_HTML, `${env.RUN_DIR}/mobile/playwright-report`);
-  assert.equal(env.SLICE_MOBILE_JSON, `${env.RUN_DIR}/mobile/test-results.json`);
-  assert.equal(env.SLICE_MOBILE_RUNNER_LOG_DIR, `${env.RUN_DIR}/mobile/runner-logs`);
+  assert.equal(
+    env.PLAYWRIGHT_HTML_OUTPUT_DIR,
+    `${env.RUN_DIR}/playwright-report`,
+  );
+  assert.equal(
+    env.PLAYWRIGHT_JSON_OUTPUT_FILE,
+    `${env.RUN_DIR}/test-results.json`,
+  );
+  assert.equal(
+    env.SLICE_DESKTOP_HTML,
+    `${env.RUN_DIR}/desktop/playwright-report`,
+  );
+  assert.equal(
+    env.SLICE_DESKTOP_JSON,
+    `${env.RUN_DIR}/desktop/test-results.json`,
+  );
+  assert.equal(
+    env.SLICE_DESKTOP_RUNNER_LOG_DIR,
+    `${env.RUN_DIR}/desktop/runner-logs`,
+  );
+  assert.equal(
+    env.SLICE_MOBILE_HTML,
+    `${env.RUN_DIR}/mobile/playwright-report`,
+  );
+  assert.equal(
+    env.SLICE_MOBILE_JSON,
+    `${env.RUN_DIR}/mobile/test-results.json`,
+  );
+  assert.equal(
+    env.SLICE_MOBILE_RUNNER_LOG_DIR,
+    `${env.RUN_DIR}/mobile/runner-logs`,
+  );
   assert.match(env.SLICE_DESKTOP_COMMAND, /e2e-playwright\.sh docker/);
-  assert.match(env.SLICE_MOBILE_COMMAND, /--project=Mobile Chrome tests\/ux-regression\.spec\.ts/);
+  assert.match(
+    env.SLICE_MOBILE_COMMAND,
+    /--project=Mobile Chrome tests\/ux-regression\.spec\.ts/,
+  );
 });
 
-test('e2e docker audit report wrapper resolves audit archived report paths in dry-run mode', () => {
-  const result = run('bash', ['scripts/e2e-docker-ci-report.sh', 'audit', '--dry-run']);
+test("e2e docker audit report wrapper resolves audit archived report paths in dry-run mode", () => {
+  const result = run("bash", [
+    "scripts/e2e-docker-ci-report.sh",
+    "audit",
+    "--dry-run",
+  ]);
 
   assert.equal(result.status, 0, result.stderr);
 
   const env = parseEnvironment(result.stdout);
-  assert.equal(env.LANE, 'audit');
+  assert.equal(env.LANE, "audit");
   assert.match(env.RUN_ID, /^docker-audit-\d{8}T\d{6}Z-\d+$/);
   assert.equal(env.RUN_DIR, `${env.REPORT_ROOT}/${env.RUN_ID}`);
   assert.equal(env.SLICE_AUDIT_HTML, `${env.RUN_DIR}/audit/playwright-report`);
   assert.equal(env.SLICE_AUDIT_JSON, `${env.RUN_DIR}/audit/test-results.json`);
-  assert.equal(env.SLICE_AUDIT_RUNNER_LOG_DIR, `${env.RUN_DIR}/audit/runner-logs`);
-  assert.match(env.SLICE_AUDIT_COMMAND, /tests\/dark-mode-accessibility-audit\.spec\.ts/);
+  assert.equal(
+    env.SLICE_AUDIT_RUNNER_LOG_DIR,
+    `${env.RUN_DIR}/audit/runner-logs`,
+  );
+  assert.match(
+    env.SLICE_AUDIT_COMMAND,
+    /tests\/dark-mode-accessibility-audit\.spec\.ts/,
+  );
 });
 
-test('playwright config honors report artifact environment overrides', () => {
-  const configText = fs.readFileSync(path.join(repoRoot, 'e2e/playwright.config.ts'), 'utf8');
+test("playwright config honors report artifact environment overrides", () => {
+  const configText = fs.readFileSync(
+    path.join(repoRoot, "e2e/playwright.config.ts"),
+    "utf8",
+  );
 
-  assert.match(configText, /PLAYWRIGHT_HTML_OUTPUT_DIR \|\| 'playwright-report'/);
-  assert.match(configText, /PLAYWRIGHT_JSON_OUTPUT_FILE \|\| 'test-results\.json'/);
+  assert.match(
+    configText,
+    /PLAYWRIGHT_HTML_OUTPUT_DIR \|\| 'playwright-report'/,
+  );
+  assert.match(
+    configText,
+    /PLAYWRIGHT_JSON_OUTPUT_FILE \|\| 'test-results\.json'/,
+  );
 });
 
-test('e2e package routes Docker CI and audit lanes through preserving report wrapper', () => {
-  const packageJson = JSON.parse(fs.readFileSync(path.join(repoRoot, 'e2e/package.json'), 'utf8'));
+test("e2e package routes Docker CI and audit lanes through preserving report wrapper", () => {
+  const packageJson = JSON.parse(
+    fs.readFileSync(path.join(repoRoot, "e2e/package.json"), "utf8"),
+  );
 
-  assert.equal(packageJson.scripts['test:docker:ci'], 'npm run test:docker:ci:report');
-  assert.equal(packageJson.scripts['test:docker:ci:report'], 'bash ../scripts/e2e-docker-ci-report.sh ci');
-  assert.equal(packageJson.scripts['test:docker:audit'], 'npm run test:docker:audit:report');
-  assert.equal(packageJson.scripts['test:docker:audit:report'], 'bash ../scripts/e2e-docker-ci-report.sh audit');
+  assert.equal(
+    packageJson.scripts["test:docker:ci"],
+    "npm run test:docker:ci:report",
+  );
+  assert.equal(
+    packageJson.scripts["test:docker:ci:report"],
+    "bash ../scripts/e2e-docker-ci-report.sh ci",
+  );
+  assert.equal(
+    packageJson.scripts["test:docker:audit"],
+    "npm run test:docker:audit:report",
+  );
+  assert.equal(
+    packageJson.scripts["test:docker:audit:report"],
+    "bash ../scripts/e2e-docker-ci-report.sh audit",
+  );
 });
 
-test('e2e port preflight fails clearly when lsof is unavailable', () => {
+test("e2e port preflight fails clearly when lsof is unavailable", () => {
   const result = run(
-    'bash',
-    ['-c', 'source scripts/lib/common.sh && e2e_collect_listener_pids 65535'],
+    "bash",
+    ["-c", "source scripts/lib/common.sh && e2e_collect_listener_pids 65535"],
     {
-      PATH: '/usr/bin:/bin',
-    }
+      PATH: "/usr/bin:/bin",
+    },
   );
 
   assert.notEqual(result.status, 0);
   assert.match(`${result.stdout}\n${result.stderr}`, /requires 'lsof'/);
 });
 
-test('legacy broad verifier defaults to current supported contract notice', () => {
-  const result = run('bash', ['scripts/verify.sh']);
+test("legacy broad verifier defaults to current supported contract notice", () => {
+  const result = run("bash", ["scripts/verify.sh"]);
 
   assert.equal(result.status, 1, result.stderr);
   assert.match(result.stdout, /historical verifier re-homed/);
@@ -1046,8 +1263,8 @@ test('legacy broad verifier defaults to current supported contract notice', () =
   assert.doesNotMatch(result.stdout, /legacy verification replay complete/);
 });
 
-test('legacy PR verifier defaults to current supported contract notice', () => {
-  const result = run('bash', ['scripts/verify-pr.sh', '9']);
+test("legacy PR verifier defaults to current supported contract notice", () => {
+  const result = run("bash", ["scripts/verify-pr.sh", "9"]);
 
   assert.equal(result.status, 1, result.stderr);
   assert.match(result.stdout, /historical PR verifier re-homed/);
@@ -1057,145 +1274,149 @@ test('legacy PR verifier defaults to current supported contract notice', () => {
   assert.match(result.stdout, /scripts\/verify-pr\.sh --run-legacy 9/);
 });
 
-function selectChecks(files, mode = 'fast') {
-  const result = run('bash', [
-    'scripts/select-checks.sh',
-    '--files',
+function selectChecks(files, mode = "fast") {
+  const result = run("bash", [
+    "scripts/select-checks.sh",
+    "--files",
     files,
-    '--mode',
+    "--mode",
     mode,
   ]);
 
   assert.equal(result.status, 0, result.stderr);
-  return result.stdout.trim().split('\n').filter(Boolean);
+  return result.stdout.trim().split("\n").filter(Boolean);
 }
 
-test('select-checks keeps docs-only fast mode on docs validation', () => {
-  const result = run('bash', [
-    'scripts/select-checks.sh',
-    '--files',
-    'docs/testing/TESTING.md scripts/README.md',
-    '--mode',
-    'fast',
+test("select-checks keeps docs-only fast mode on docs validation", () => {
+  const result = run("bash", [
+    "scripts/select-checks.sh",
+    "--files",
+    "docs/testing/TESTING.md scripts/README.md",
+    "--mode",
+    "fast",
   ]);
 
   assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(result.stdout.trim().split('\n'), ['make check-links']);
+  assert.deepEqual(result.stdout.trim().split("\n"), ["make check-links"]);
 });
 
-test('select-checks broadens docs-only strict mode into the coverage gate', () => {
-  const result = run('bash', [
-    'scripts/select-checks.sh',
-    '--files',
-    'docs/testing/TESTING.md scripts/README.md',
-    '--mode',
-    'strict',
+test("select-checks broadens docs-only strict mode into the coverage gate", () => {
+  const result = run("bash", [
+    "scripts/select-checks.sh",
+    "--files",
+    "docs/testing/TESTING.md scripts/README.md",
+    "--mode",
+    "strict",
   ]);
 
   assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(result.stdout.trim().split('\n'), [
-    'make check-links',
-    'make test-tooling',
-    'make test-coverage-full',
+  assert.deepEqual(result.stdout.trim().split("\n"), [
+    "make check-links",
+    "make test-tooling",
+    "make test-coverage-full",
   ]);
 });
 
-test('select-checks covers the confidence-per-change lane examples', () => {
+test("select-checks covers the confidence-per-change lane examples", () => {
   const examples = [
     {
-      label: 'runtime docs strict mode',
-      files: 'docs/testing/TESTING.md docs/development/AGENT_INSTRUCTIONS.md e2e/README.md scripts/README.md',
-      mode: 'strict',
+      label: "runtime docs strict mode",
+      files:
+        "docs/testing/TESTING.md docs/development/AGENT_INSTRUCTIONS.md e2e/README.md scripts/README.md",
+      mode: "strict",
       commands: [
-        'make check-links',
-        'make lint-doc-api-versioning',
-        'make lint-openapi',
-        'make test-tooling',
-        'make test-coverage-full',
+        "make check-links",
+        "make lint-doc-api-versioning",
+        "make lint-openapi",
+        "make test-tooling",
+        "make test-coverage-full",
       ],
     },
     {
-      label: 'backend-only fast mode',
-      files: 'backend/src/modules/portalAuth/controllers/portalAuthController.ts',
-      mode: 'fast',
+      label: "backend-only fast mode",
+      files:
+        "backend/src/modules/portalAuth/controllers/portalAuthController.ts",
+      mode: "fast",
       commands: [
-        'cd backend && npm run lint',
-        'cd backend && npm run type-check',
-        'cd backend && npm test -- src/__tests__/integration',
+        "cd backend && npm run lint",
+        "cd backend && npm run type-check",
+        "cd backend && npm test -- src/__tests__/integration",
       ],
     },
     {
-      label: 'frontend-only fast mode',
-      files: 'frontend/src/features/portal/pages/PortalDashboardPage.tsx',
-      mode: 'fast',
+      label: "frontend-only fast mode",
+      files: "frontend/src/features/portal/pages/PortalDashboardPage.tsx",
+      mode: "fast",
       commands: [
-        'cd frontend && npm run lint',
-        'cd frontend && npm run type-check',
-        'cd frontend && npm test -- --run',
+        "cd frontend && npm run lint",
+        "cd frontend && npm run type-check",
+        "cd frontend && npm test -- --run",
       ],
     },
     {
-      label: 'E2E-only fast mode',
-      files: 'e2e/tests/public-website.spec.ts',
-      mode: 'fast',
-      commands: ['cd e2e && npm run test:smoke'],
+      label: "E2E-only fast mode",
+      files: "e2e/tests/public-website.spec.ts",
+      mode: "fast",
+      commands: ["cd e2e && npm run test:smoke"],
     },
     {
-      label: 'database migration fast mode',
-      files: 'database/migrations/140_testing_strategy_fixture.sql database/migrations/manifest.tsv database/initdb/000_init.sql',
-      mode: 'fast',
-      commands: ['make db-verify'],
+      label: "database migration fast mode",
+      files:
+        "database/migrations/140_testing_strategy_fixture.sql database/migrations/manifest.tsv database/initdb/000_init.sql",
+      mode: "fast",
+      commands: ["make db-verify"],
     },
     {
-      label: 'root dependency fast mode',
-      files: 'package.json package-lock.json',
-      mode: 'fast',
+      label: "root dependency fast mode",
+      files: "package.json package-lock.json",
+      mode: "fast",
       commands: [
-        'make test-tooling',
-        'npm run knip',
-        'npm run audit',
-        'make security-audit',
-        'make lint',
-        'make typecheck',
-        'make test-e2e-docker-smoke',
+        "make test-tooling",
+        "npm run knip",
+        "npm run audit",
+        "make security-audit",
+        "make lint",
+        "make typecheck",
+        "make test-e2e-docker-smoke",
       ],
     },
     {
-      label: 'orchestration strict mode',
-      files: 'Makefile scripts/ci.sh scripts/local-release.sh scripts/select-checks.sh',
-      mode: 'strict',
+      label: "orchestration strict mode",
+      files:
+        "Makefile scripts/ci.sh scripts/local-release.sh scripts/select-checks.sh",
+      mode: "strict",
       commands: [
-        'make test-tooling',
-        'make lint',
-        'make typecheck',
-        'make test-coverage-full',
+        "make test-tooling",
+        "make lint",
+        "make typecheck",
+        "make test-coverage-full",
       ],
     },
     {
-      label: 'Docker public-site fast mode',
-      files: 'docker-compose.caddy.yml backend/src/public-site.ts',
-      mode: 'fast',
+      label: "Docker public-site fast mode",
+      files: "docker-compose.caddy.yml backend/src/public-site.ts",
+      mode: "fast",
       commands: [
-        'make lint',
-        'make test-tooling',
-        'cd backend && npm run lint',
-        'cd backend && npm run type-check',
-        'cd backend && npm test -- src/__tests__/integration',
-        'make docker-validate-overlays',
-        'make test-e2e-docker-smoke',
-        'make db-verify',
+        "make lint",
+        "make test-tooling",
+        "cd backend && npm run lint",
+        "cd backend && npm run type-check",
+        "cd backend && npm test -- src/__tests__/integration",
+        "make docker-validate-overlays",
+        "make test-e2e-docker-smoke",
+        "make db-verify",
       ],
     },
     {
-      label: 'release and security tooling strict mode',
-      files: 'scripts/local-release.sh scripts/security-scan.sh',
-      mode: 'strict',
+      label: "release and security tooling strict mode",
+      files: "scripts/local-release.sh scripts/security-scan.sh",
+      mode: "strict",
       commands: [
-        'make security-scan',
-        'make test-tooling',
-        'make lint',
-        'make typecheck',
-        'make test-coverage-full',
+        "make security-scan",
+        "make test-tooling",
+        "make lint",
+        "make typecheck",
+        "make test-coverage-full",
       ],
     },
   ];
@@ -1204,200 +1425,210 @@ test('select-checks covers the confidence-per-change lane examples', () => {
     assert.deepEqual(
       selectChecks(example.files, example.mode),
       example.commands,
-      example.label
+      example.label,
     );
   }
 });
 
-test('select-checks recommends tooling regression coverage for orchestration changes', () => {
-  const result = run('bash', [
-    'scripts/select-checks.sh',
-    '--files',
-    'Makefile docker-compose.dev.yml scripts/install-git-hooks.sh scripts/select-checks.sh',
-    '--mode',
-    'fast',
+test("select-checks recommends tooling regression coverage for orchestration changes", () => {
+  const result = run("bash", [
+    "scripts/select-checks.sh",
+    "--files",
+    "Makefile docker-compose.dev.yml scripts/install-git-hooks.sh scripts/select-checks.sh",
+    "--mode",
+    "fast",
   ]);
 
   assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(result.stdout.trim().split('\n'), [
-    'make lint',
-    'make test-tooling',
-    './scripts/install-git-hooks.sh --dry-run',
-    'make docker-validate-overlays',
-    'make test-e2e-docker-smoke',
-    'make db-verify',
+  assert.deepEqual(result.stdout.trim().split("\n"), [
+    "make lint",
+    "make test-tooling",
+    "./scripts/install-git-hooks.sh --dry-run",
+    "make docker-validate-overlays",
+    "make test-e2e-docker-smoke",
+    "make db-verify",
   ]);
 });
 
-test('select-checks routes Docker policy scripts and compose files through overlay proof', () => {
-  const result = run('bash', [
-    'scripts/select-checks.sh',
-    '--files',
-    'docker-compose.dev.yml scripts/check-docker-image-policy.mjs',
-    '--mode',
-    'fast',
+test("select-checks routes Docker policy scripts and compose files through overlay proof", () => {
+  const result = run("bash", [
+    "scripts/select-checks.sh",
+    "--files",
+    "docker-compose.dev.yml scripts/check-docker-image-policy.mjs",
+    "--mode",
+    "fast",
   ]);
 
   assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(result.stdout.trim().split('\n'), [
-    'make lint',
-    'make test-tooling',
-    'make docker-validate-overlays',
-    'make test-e2e-docker-smoke',
-    'make db-verify',
+  assert.deepEqual(result.stdout.trim().split("\n"), [
+    "make lint",
+    "make test-tooling",
+    "make docker-validate-overlays",
+    "make test-e2e-docker-smoke",
+    "make db-verify",
   ]);
 });
 
-test('select-checks treats Playwright config as tooling plus behavior in fast mode', () => {
-  const result = run('bash', [
-    'scripts/select-checks.sh',
-    '--files',
-    'e2e/playwright.config.ts',
-    '--mode',
-    'fast',
+test("select-checks treats Playwright config as tooling plus behavior in fast mode", () => {
+  const result = run("bash", [
+    "scripts/select-checks.sh",
+    "--files",
+    "e2e/playwright.config.ts",
+    "--mode",
+    "fast",
   ]);
 
   assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(result.stdout.trim().split('\n'), [
-    'make test-tooling',
-    'cd e2e && npm run test:smoke',
-    'make test-e2e-docker-smoke',
+  assert.deepEqual(result.stdout.trim().split("\n"), [
+    "make test-tooling",
+    "cd e2e && npm run test:smoke",
+    "make test-e2e-docker-smoke",
   ]);
 });
 
-test('select-checks routes workspace package manifests through dependency checks and package surfaces', () => {
-  const result = run('bash', [
-    'scripts/select-checks.sh',
-    '--files',
-    'backend/package.json frontend/package.json e2e/package.json contracts/package.json',
-    '--mode',
-    'fast',
+test("select-checks routes workspace package manifests through dependency checks and package surfaces", () => {
+  const result = run("bash", [
+    "scripts/select-checks.sh",
+    "--files",
+    "backend/package.json frontend/package.json e2e/package.json contracts/package.json",
+    "--mode",
+    "fast",
   ]);
 
   assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(result.stdout.trim().split('\n'), [
-    'make test-tooling',
-    'npm run knip',
-    'npm run audit',
-    'make security-audit',
-    'cd backend && npm run lint',
-    'cd backend && npm run type-check',
-    'cd backend && npm test -- src/__tests__/integration',
-    'cd frontend && npm run lint',
-    'cd frontend && npm run type-check',
-    'cd frontend && npm test -- --run',
-    'cd e2e && npm run test:smoke',
-    'cd contracts && npm run type-check',
-    'make test-e2e-docker-smoke',
+  assert.deepEqual(result.stdout.trim().split("\n"), [
+    "make test-tooling",
+    "npm run knip",
+    "npm run audit",
+    "make security-audit",
+    "cd backend && npm run lint",
+    "cd backend && npm run type-check",
+    "cd backend && npm test -- src/__tests__/integration",
+    "cd frontend && npm run lint",
+    "cd frontend && npm run type-check",
+    "cd frontend && npm test -- --run",
+    "cd e2e && npm run test:smoke",
+    "cd contracts && npm run type-check",
+    "make test-e2e-docker-smoke",
   ]);
 });
 
-test('select-checks routes root package manifests through lint and typecheck proof', () => {
-  const result = run('bash', [
-    'scripts/select-checks.sh',
-    '--files',
-    'package.json package-lock.json',
-    '--mode',
-    'fast',
+test("select-checks routes root package manifests through lint and typecheck proof", () => {
+  const result = run("bash", [
+    "scripts/select-checks.sh",
+    "--files",
+    "package.json package-lock.json",
+    "--mode",
+    "fast",
   ]);
 
   assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(result.stdout.trim().split('\n'), [
-    'make test-tooling',
-    'npm run knip',
-    'npm run audit',
-    'make security-audit',
-    'make lint',
-    'make typecheck',
-    'make test-e2e-docker-smoke',
+  assert.deepEqual(result.stdout.trim().split("\n"), [
+    "make test-tooling",
+    "npm run knip",
+    "npm run audit",
+    "make security-audit",
+    "make lint",
+    "make typecheck",
+    "make test-e2e-docker-smoke",
   ]);
 });
 
-test('select-checks keeps contracts-only fast mode on type validation', () => {
-  const result = run('bash', [
-    'scripts/select-checks.sh',
-    '--files',
-    'contracts/src/index.ts',
-    '--mode',
-    'fast',
+test("select-checks keeps contracts-only fast mode on type validation", () => {
+  const result = run("bash", [
+    "scripts/select-checks.sh",
+    "--files",
+    "contracts/src/index.ts",
+    "--mode",
+    "fast",
   ]);
 
   assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(result.stdout.trim().split('\n'), ['cd contracts && npm run type-check']);
+  assert.deepEqual(result.stdout.trim().split("\n"), [
+    "cd contracts && npm run type-check",
+  ]);
 });
 
-test('select-checks routes contracts package changes through dependency and type checks', () => {
-  const result = run('bash', [
-    'scripts/select-checks.sh',
-    '--files',
-    'contracts/package.json',
-    '--mode',
-    'fast',
+test("select-checks routes contracts package changes through dependency and type checks", () => {
+  const result = run("bash", [
+    "scripts/select-checks.sh",
+    "--files",
+    "contracts/package.json",
+    "--mode",
+    "fast",
   ]);
 
   assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(result.stdout.trim().split('\n'), [
-    'npm run knip',
-    'npm run audit',
-    'make security-audit',
-    'cd contracts && npm run type-check',
+  assert.deepEqual(result.stdout.trim().split("\n"), [
+    "npm run knip",
+    "npm run audit",
+    "make security-audit",
+    "cd contracts && npm run type-check",
   ]);
 });
 
-test('select-checks broadens orchestration changes into the coverage gate in strict mode', () => {
-  const result = run('bash', [
-    'scripts/select-checks.sh',
-    '--files',
-    'Makefile scripts/ci.sh scripts/select-checks.sh',
-    '--mode',
-    'strict',
+test("select-checks broadens orchestration changes into the coverage gate in strict mode", () => {
+  const result = run("bash", [
+    "scripts/select-checks.sh",
+    "--files",
+    "Makefile scripts/ci.sh scripts/select-checks.sh",
+    "--mode",
+    "strict",
   ]);
 
   assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(result.stdout.trim().split('\n'), [
-    'make test-tooling',
-    'make lint',
-    'make typecheck',
-    'make test-coverage-full',
+  assert.deepEqual(result.stdout.trim().split("\n"), [
+    "make test-tooling",
+    "make lint",
+    "make typecheck",
+    "make test-coverage-full",
   ]);
 });
 
-test('select-checks includes untracked files in default selection', () => {
+test("select-checks includes untracked files in default selection", () => {
   const fixtureRoot = createSelectorFixtureRepo();
-  fs.writeFileSync(path.join(fixtureRoot, 'openapi.selector-fixture'), 'fixture\n', 'utf8');
+  fs.writeFileSync(
+    path.join(fixtureRoot, "openapi.selector-fixture"),
+    "fixture\n",
+    "utf8",
+  );
 
   const result = runInCwd(
-    'bash',
-    ['scripts/select-checks.sh', '--base', 'HEAD', '--mode', 'fast'],
-    fixtureRoot
+    "bash",
+    ["scripts/select-checks.sh", "--base", "HEAD", "--mode", "fast"],
+    fixtureRoot,
   );
 
   assert.equal(result.status, 0, result.stderr);
-  assert(result.stdout.split('\n').includes('make lint-openapi'));
+  assert(result.stdout.split("\n").includes("make lint-openapi"));
 });
 
-test('select-checks includes dirty tracked files in default selection', () => {
+test("select-checks includes dirty tracked files in default selection", () => {
   const fixtureRoot = createSelectorFixtureRepo();
-  const fixturePath = path.join(fixtureRoot, 'knip.json');
+  const fixturePath = path.join(fixtureRoot, "knip.json");
 
-  fs.writeFileSync(fixturePath, '{\n  "ignore": []\n}\n', 'utf8');
-  runRequired('git', ['add', 'knip.json'], fixtureRoot);
-  runRequired('git', ['commit', '-m', 'track knip config fixture'], fixtureRoot);
-  fs.writeFileSync(fixturePath, '{\n  "ignore": ["fixture"]\n}\n', 'utf8');
+  fs.writeFileSync(fixturePath, '{\n  "ignore": []\n}\n', "utf8");
+  runRequired("git", ["add", "knip.json"], fixtureRoot);
+  runRequired(
+    "git",
+    ["commit", "-m", "track knip config fixture"],
+    fixtureRoot,
+  );
+  fs.writeFileSync(fixturePath, '{\n  "ignore": ["fixture"]\n}\n', "utf8");
 
   const result = runInCwd(
-    'bash',
-    ['scripts/select-checks.sh', '--base', 'HEAD', '--mode', 'fast'],
-    fixtureRoot
+    "bash",
+    ["scripts/select-checks.sh", "--base", "HEAD", "--mode", "fast"],
+    fixtureRoot,
   );
 
   assert.equal(result.status, 0, result.stderr);
-  assert(result.stdout.split('\n').includes('npm run knip'));
+  assert(result.stdout.split("\n").includes("npm run knip"));
 });
 
-test('gitignore keeps live envs local-only while allowing tracked templates and canonical refs', () => {
-  const result = run('bash', [
-    '-lc',
+test("gitignore keeps live envs local-only while allowing tracked templates and canonical refs", () => {
+  const result = run("bash", [
+    "-lc",
     `git check-ignore -v --no-index --non-matching --stdin <<'EOF'
 .env.development
 .env.example
@@ -1409,231 +1640,247 @@ EOF`,
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /\.gitignore:\d+:\.env\.\*\t\.env\.development/);
-  assert.match(result.stdout, /\.gitignore:\d+:!\.env\.example\t\.env\.example/);
-  assert.match(result.stdout, /\.gitignore:\d+:output\/(?:playwright\/)?\toutput\/playwright\/session\/trace\.zip/);
   assert.match(
     result.stdout,
-    /\.gitignore:\d+:!\.codex\/skills\/nonprofit-manager-persona-analysis\/references\/\*\*\t\.codex\/skills\/nonprofit-manager-persona-analysis\/references\/source-map\.md/
+    /\.gitignore:\d+:!\.env\.example\t\.env\.example/,
   );
   assert.match(
     result.stdout,
-    /\.gitignore:\d+:\/?\.codex\/skills\/\*\t\.codex\/skills\/nonprofit-manager-security-ops\/SKILL\.md/
+    /\.gitignore:\d+:output\/(?:playwright\/)?\toutput\/playwright\/session\/trace\.zip/,
+  );
+  assert.match(
+    result.stdout,
+    /\.gitignore:\d+:!\.codex\/skills\/nonprofit-manager-persona-analysis\/references\/\*\*\t\.codex\/skills\/nonprofit-manager-persona-analysis\/references\/source-map\.md/,
+  );
+  assert.match(
+    result.stdout,
+    /\.gitignore:\d+:\/?\.codex\/skills\/\*\t\.codex\/skills\/nonprofit-manager-security-ops\/SKILL\.md/,
   );
 });
 
-test('docker build helper keeps workspace dependency validation explicit', () => {
-  const result = run('bash', ['scripts/docker-build-images.sh', 'validate', '--dry-run']);
+test("docker build helper keeps workspace dependency validation explicit", () => {
+  const result = run("bash", [
+    "scripts/docker-build-images.sh",
+    "validate",
+    "--dry-run",
+  ]);
 
   assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(result.stdout.trim().split('\n'), [
-    'docker build --build-context workspace=. --pull --no-cache --target workspace-deps -f backend/Dockerfile backend',
-    'docker build --build-context workspace=. --pull --no-cache --target workspace-production-deps -f backend/Dockerfile backend',
-    'docker build --build-context workspace=. --pull --no-cache -f backend/Dockerfile backend',
-    'docker build --build-context workspace=. --pull --no-cache --target workspace-deps -f frontend/Dockerfile frontend',
-    'docker build --build-context workspace=. --pull --no-cache -f frontend/Dockerfile frontend',
+  assert.deepEqual(result.stdout.trim().split("\n"), [
+    "docker build --build-context workspace=. --pull --no-cache --target workspace-deps -f backend/Dockerfile backend",
+    "docker build --build-context workspace=. --pull --no-cache --target workspace-production-deps -f backend/Dockerfile backend",
+    "docker build --build-context workspace=. --pull --no-cache -f backend/Dockerfile backend",
+    "docker build --build-context workspace=. --pull --no-cache --target workspace-deps -f frontend/Dockerfile frontend",
+    "docker build --build-context workspace=. --pull --no-cache -f frontend/Dockerfile frontend",
   ]);
 });
 
-test('deploy staging fails closed when the staging env file is missing', () => {
+test("deploy staging fails closed when the staging env file is missing", () => {
   const tempDir = createTempDir();
-  const missingEnvFile = path.join(tempDir, '.env.staging');
-  const result = run(
-    'bash',
-    ['scripts/deploy.sh', 'staging'],
-    {
-      DEPLOY_STAGING_ENV_FILE: missingEnvFile,
-      DEPLOY_EXECUTE: '0',
-    }
-  );
+  const missingEnvFile = path.join(tempDir, ".env.staging");
+  const result = run("bash", ["scripts/deploy.sh", "staging"], {
+    DEPLOY_STAGING_ENV_FILE: missingEnvFile,
+    DEPLOY_EXECUTE: "0",
+  });
 
   assert.notEqual(result.status, 0);
   assert.match(`${result.stdout}\n${result.stderr}`, /Env file not found/);
 });
 
-test('deploy production dry-run includes opt-in extra compose files after DB overlay', () => {
+test("deploy production dry-run includes opt-in extra compose files after DB overlay", () => {
   const tempDir = createTempDir();
-  const envFile = path.join(tempDir, '.env.production');
+  const envFile = path.join(tempDir, ".env.production");
   fs.writeFileSync(
     envFile,
     [
-      'DB_PASSWORD=postgres',
-      'REDIS_URL=redis://redis:6379',
-      'DB_HOST=postgres',
-      'DB_AT_REST_ENCRYPTION_MODE=self_hosted',
-      'DB_AT_REST_PROVIDER=self_hosted',
-      'POSTGRES_DATA_DIR=/var/lib/nonprofit-manager/postgres',
-      'BACKUP_DIR=/var/lib/nonprofit-manager/backups/database',
-      'SELF_HOSTED_DB_RISK_ACCEPTED=true',
-    ].join('\n'),
-    'utf8'
+      "DB_PASSWORD=postgres",
+      "REDIS_URL=redis://redis:6379",
+      "DB_HOST=postgres",
+      "DB_AT_REST_ENCRYPTION_MODE=self_hosted",
+      "DB_AT_REST_PROVIDER=self_hosted",
+      "POSTGRES_DATA_DIR=/var/lib/nonprofit-manager/postgres",
+      "BACKUP_DIR=/var/lib/nonprofit-manager/backups/database",
+      "SELF_HOSTED_DB_RISK_ACCEPTED=true",
+    ].join("\n"),
+    "utf8",
   );
 
-  const result = run('bash', ['scripts/deploy.sh', 'production'], {
+  const result = run("bash", ["scripts/deploy.sh", "production"], {
     DEPLOY_PRODUCTION_ENV_FILE: envFile,
-    DEPLOY_EXECUTE: '0',
-    DEPLOY_USE_HOST_CADDY: '1',
-    DEPLOY_EXTRA_COMPOSE_FILES: 'docker-compose.postgres14-root.yml',
+    DEPLOY_EXECUTE: "0",
+    DEPLOY_USE_HOST_CADDY: "1",
+    DEPLOY_EXTRA_COMPOSE_FILES: "docker-compose.postgres14-root.yml",
   });
 
   assert.equal(result.status, 0, result.stderr);
   const composeFiles = result.stdout
-    .split('\n')
+    .split("\n")
     .map((line) => line.trim())
-    .filter((line) => line.startsWith('-f '))
+    .filter((line) => line.startsWith("-f "))
     .map((line) => path.relative(repoRoot, line.slice(3)));
 
   assert.deepEqual(composeFiles, [
-    'docker-compose.yml',
-    'docker-compose.host-access.yml',
-    'docker-compose.db-self-hosted.yml',
-    'docker-compose.postgres14-root.yml',
+    "docker-compose.yml",
+    "docker-compose.host-access.yml",
+    "docker-compose.db-self-hosted.yml",
+    "docker-compose.postgres14-root.yml",
   ]);
 });
 
-test('deploy production fails closed when an extra compose file is missing', () => {
+test("deploy production fails closed when an extra compose file is missing", () => {
   const tempDir = createTempDir();
-  const envFile = path.join(tempDir, '.env.production');
+  const envFile = path.join(tempDir, ".env.production");
   fs.writeFileSync(
     envFile,
     [
-      'DB_PASSWORD=postgres',
-      'REDIS_URL=redis://redis:6379',
-      'DB_HOST=postgres',
-      'DB_AT_REST_ENCRYPTION_MODE=self_hosted',
-      'DB_AT_REST_PROVIDER=self_hosted',
-      'POSTGRES_DATA_DIR=/var/lib/nonprofit-manager/postgres',
-      'BACKUP_DIR=/var/lib/nonprofit-manager/backups/database',
-      'SELF_HOSTED_DB_RISK_ACCEPTED=true',
-    ].join('\n'),
-    'utf8'
+      "DB_PASSWORD=postgres",
+      "REDIS_URL=redis://redis:6379",
+      "DB_HOST=postgres",
+      "DB_AT_REST_ENCRYPTION_MODE=self_hosted",
+      "DB_AT_REST_PROVIDER=self_hosted",
+      "POSTGRES_DATA_DIR=/var/lib/nonprofit-manager/postgres",
+      "BACKUP_DIR=/var/lib/nonprofit-manager/backups/database",
+      "SELF_HOSTED_DB_RISK_ACCEPTED=true",
+    ].join("\n"),
+    "utf8",
   );
 
-  const result = run('bash', ['scripts/deploy.sh', 'production'], {
+  const result = run("bash", ["scripts/deploy.sh", "production"], {
     DEPLOY_PRODUCTION_ENV_FILE: envFile,
-    DEPLOY_EXECUTE: '0',
-    DEPLOY_USE_HOST_CADDY: '1',
-    DEPLOY_EXTRA_COMPOSE_FILES: 'docker-compose.postgres14-root.yml,missing-compose.yml',
-  });
-
-  assert.notEqual(result.status, 0);
-  assert.match(`${result.stdout}\n${result.stderr}`, /Extra compose file not found:/);
-  assert.match(`${result.stdout}\n${result.stderr}`, /missing-compose\.yml/);
-});
-
-test('archive restore requires explicit confirmation before destructive work', () => {
-  const tempDir = createTempDir();
-  const archiveFile = path.join(tempDir, 'example.dump');
-  fs.writeFileSync(archiveFile, 'placeholder');
-
-  const result = run('bash', ['scripts/db-restore-archive.sh', archiveFile], {
-    DB_RESTORE_CONFIRM: '0',
-  });
-
-  assert.notEqual(result.status, 0);
-  assert.match(`${result.stdout}\n${result.stderr}`, /Set DB_RESTORE_CONFIRM=1/);
-});
-
-test('archive export requires explicit risk confirmation for remote targets', () => {
-  const tempDir = createTempDir();
-  const archiveFile = path.join(tempDir, 'example.dump');
-
-  const result = run('bash', ['scripts/db-export-archive.sh', archiveFile], {
-    DB_HOST: 'db.example.test',
-    DB_PORT: '5432',
-    DB_NAME: 'nonprofit_manager',
+    DEPLOY_EXECUTE: "0",
+    DEPLOY_USE_HOST_CADDY: "1",
+    DEPLOY_EXTRA_COMPOSE_FILES:
+      "docker-compose.postgres14-root.yml,missing-compose.yml",
   });
 
   assert.notEqual(result.status, 0);
   assert.match(
     `${result.stdout}\n${result.stderr}`,
-    /Set DB_EXPORT_RISK_CONFIRM=export:db\.example\.test:5432\/nonprofit_manager/
+    /Extra compose file not found:/,
+  );
+  assert.match(`${result.stdout}\n${result.stderr}`, /missing-compose\.yml/);
+});
+
+test("archive restore requires explicit confirmation before destructive work", () => {
+  const tempDir = createTempDir();
+  const archiveFile = path.join(tempDir, "example.dump");
+  fs.writeFileSync(archiveFile, "placeholder");
+
+  const result = run("bash", ["scripts/db-restore-archive.sh", archiveFile], {
+    DB_RESTORE_CONFIRM: "0",
+  });
+
+  assert.notEqual(result.status, 0);
+  assert.match(
+    `${result.stdout}\n${result.stderr}`,
+    /Set DB_RESTORE_CONFIRM=1/,
   );
 });
 
-test('db-at-rest validation can load required production values from an env file', () => {
+test("archive export requires explicit risk confirmation for remote targets", () => {
   const tempDir = createTempDir();
-  const envFile = path.join(tempDir, 'db-at-rest.env');
+  const archiveFile = path.join(tempDir, "example.dump");
+
+  const result = run("bash", ["scripts/db-export-archive.sh", archiveFile], {
+    DB_HOST: "db.example.test",
+    DB_PORT: "5432",
+    DB_NAME: "nonprofit_manager",
+  });
+
+  assert.notEqual(result.status, 0);
+  assert.match(
+    `${result.stdout}\n${result.stderr}`,
+    /Set DB_EXPORT_RISK_CONFIRM=export:db\.example\.test:5432\/nonprofit_manager/,
+  );
+});
+
+test("db-at-rest validation can load required production values from an env file", () => {
+  const tempDir = createTempDir();
+  const envFile = path.join(tempDir, "db-at-rest.env");
 
   fs.writeFileSync(
     envFile,
     [
-      'DB_AT_REST_ENCRYPTION_MODE=luks',
-      'DB_HOST=postgres',
-      'POSTGRES_DATA_DIR=/var/lib/nonprofit-manager/postgres',
-      'DB_LUKS_MAPPING_NAME=nonprofit-manager-db',
-      'BACKUP_DIR=/var/lib/nonprofit-manager/backups/database',
-    ].join('\n')
+      "DB_AT_REST_ENCRYPTION_MODE=luks",
+      "DB_HOST=postgres",
+      "POSTGRES_DATA_DIR=/var/lib/nonprofit-manager/postgres",
+      "DB_LUKS_MAPPING_NAME=nonprofit-manager-db",
+      "BACKUP_DIR=/var/lib/nonprofit-manager/backups/database",
+    ].join("\n"),
   );
 
-  const result = run('bash', [
-    '-c',
+  const result = run("bash", [
+    "-c",
     'source scripts/lib/db-at-rest.sh && load_env_file_defaults "$1" && NODE_ENV=production validate_production_db_at_rest_contract',
-    '_',
+    "_",
     envFile,
   ]);
 
   assert.equal(result.status, 0, result.stderr);
 });
 
-test('db-at-rest env loader preserves existing shell values over env-file defaults', () => {
+test("db-at-rest env loader preserves existing shell values over env-file defaults", () => {
   const tempDir = createTempDir();
-  const envFile = path.join(tempDir, 'db-at-rest.env');
+  const envFile = path.join(tempDir, "db-at-rest.env");
 
   fs.writeFileSync(
     envFile,
-    [
-      'DB_HOST=postgres',
-      'export DB_AT_REST_PROVIDER=other',
-    ].join('\n')
+    ["DB_HOST=postgres", "export DB_AT_REST_PROVIDER=other"].join("\n"),
   );
 
   const result = run(
-    'bash',
+    "bash",
     [
-      '-c',
+      "-c",
       'source scripts/lib/db-at-rest.sh && load_env_file_defaults "$1" && printf "%s\\n%s\\n" "$DB_HOST" "$DB_AT_REST_PROVIDER"',
-      '_',
+      "_",
       envFile,
     ],
     {
-      DB_HOST: 'managed.example.test',
-    }
+      DB_HOST: "managed.example.test",
+    },
   );
 
   assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(result.stdout.trim().split('\n'), ['managed.example.test', 'other']);
+  assert.deepEqual(result.stdout.trim().split("\n"), [
+    "managed.example.test",
+    "other",
+  ]);
 });
 
-test('db-at-rest env loader rejects command substitution without executing it', () => {
+test("db-at-rest env loader rejects command substitution without executing it", () => {
   const tempDir = createTempDir();
-  const envFile = path.join(tempDir, 'db-at-rest.env');
-  const marker = path.join(tempDir, 'executed');
+  const envFile = path.join(tempDir, "db-at-rest.env");
+  const marker = path.join(tempDir, "executed");
 
   fs.writeFileSync(envFile, `DB_HOST=$(touch ${marker})\n`);
 
-  const result = run('bash', [
-    '-c',
+  const result = run("bash", [
+    "-c",
     'source scripts/lib/db-at-rest.sh && load_env_file_defaults "$1"',
-    '_',
+    "_",
     envFile,
   ]);
 
   assert.notEqual(result.status, 0);
-  assert.match(`${result.stdout}\n${result.stderr}`, /Unsafe env value rejected/);
+  assert.match(
+    `${result.stdout}\n${result.stderr}`,
+    /Unsafe env value rejected/,
+  );
   assert.equal(fs.existsSync(marker), false);
 });
 
-test('db-at-rest env loader rejects standalone shell commands without executing them', () => {
+test("db-at-rest env loader rejects standalone shell commands without executing them", () => {
   const tempDir = createTempDir();
-  const envFile = path.join(tempDir, 'db-at-rest.env');
-  const marker = path.join(tempDir, 'executed');
+  const envFile = path.join(tempDir, "db-at-rest.env");
+  const marker = path.join(tempDir, "executed");
 
   fs.writeFileSync(envFile, `touch ${marker}\n`);
 
-  const result = run('bash', [
-    '-c',
+  const result = run("bash", [
+    "-c",
     'source scripts/lib/db-at-rest.sh && load_env_file_defaults "$1"',
-    '_',
+    "_",
     envFile,
   ]);
 
@@ -1642,9 +1889,9 @@ test('db-at-rest env loader rejects standalone shell commands without executing 
   assert.equal(fs.existsSync(marker), false);
 });
 
-test('security scan uses the root production audit lane once', () => {
+test("security scan uses the root production audit lane once", () => {
   const tempDir = createTempDir();
-  const npmCallLog = path.join(tempDir, 'npm-calls.log');
+  const npmCallLog = path.join(tempDir, "npm-calls.log");
   const fakeBin = createFakeBin({
     npm: `#!/usr/bin/env bash
 printf "%s\\n" "$*" >> "$NPM_CALL_LOG"
@@ -1655,68 +1902,70 @@ exit 0
 `,
   });
 
-  const result = run('bash', ['scripts/security-scan.sh'], {
+  const result = run("bash", ["scripts/security-scan.sh"], {
     PATH: `${fakeBin}:${process.env.PATH}`,
     NPM_CALL_LOG: npmCallLog,
   });
 
   assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(fs.readFileSync(npmCallLog, 'utf8').trim().split('\n'), ['run audit:prod']);
+  assert.deepEqual(fs.readFileSync(npmCallLog, "utf8").trim().split("\n"), [
+    "run audit:prod",
+  ]);
 });
 
-test('verify compatibility wrapper prints selector-backed commands without running them', () => {
-  const result = run('bash', [
-    'scripts/verify.sh',
-    '--mode',
-    'fast',
-    '--files',
-    'scripts/verify.sh docs/verification/VERIFICATION_SYSTEM.md',
-    '--print-only',
+test("verify compatibility wrapper prints selector-backed commands without running them", () => {
+  const result = run("bash", [
+    "scripts/verify.sh",
+    "--mode",
+    "fast",
+    "--files",
+    "scripts/verify.sh docs/verification/VERIFICATION_SYSTEM.md",
+    "--print-only",
   ]);
 
   assert.equal(result.status, 0, result.stderr);
 
-  const commands = result.stdout.trim().split('\n').filter(Boolean);
+  const commands = result.stdout.trim().split("\n").filter(Boolean);
   assert.deepEqual(commands, [
-    'make check-links',
-    'make test-tooling',
-    'make test-e2e-docker-smoke',
+    "make check-links",
+    "make test-tooling",
+    "make test-e2e-docker-smoke",
   ]);
 });
 
-test('PR verification compatibility wrapper delegates gh file lists to selector', () => {
+test("PR verification compatibility wrapper delegates gh file lists to selector", () => {
   const tempDir = createTempDir();
-  const fakeGhPath = path.join(tempDir, 'gh');
+  const fakeGhPath = path.join(tempDir, "gh");
   fs.writeFileSync(
     fakeGhPath,
     [
-      '#!/usr/bin/env bash',
-      'set -euo pipefail',
+      "#!/usr/bin/env bash",
+      "set -euo pipefail",
       'if [[ "$1" == "pr" && "$2" == "diff" && "$3" == "123" && "$4" == "--name-only" ]]; then',
       '  printf "%s\\n" "e2e/tests/public-browser-proof.spec.ts" "scripts/verify-pr.sh"',
-      '  exit 0',
-      'fi',
+      "  exit 0",
+      "fi",
       'echo "unexpected gh invocation: $*" >&2',
-      'exit 1',
-      '',
-    ].join('\n')
+      "exit 1",
+      "",
+    ].join("\n"),
   );
   fs.chmodSync(fakeGhPath, 0o755);
 
   const result = run(
-    'bash',
-    ['scripts/verify-pr.sh', '123', '--mode', 'fast', '--print-only'],
+    "bash",
+    ["scripts/verify-pr.sh", "123", "--mode", "fast", "--print-only"],
     {
-      PATH: `${tempDir}${path.delimiter}${process.env.PATH || ''}`,
-    }
+      PATH: `${tempDir}${path.delimiter}${process.env.PATH || ""}`,
+    },
   );
 
   assert.equal(result.status, 0, result.stderr);
 
-  const commands = result.stdout.trim().split('\n').filter(Boolean);
+  const commands = result.stdout.trim().split("\n").filter(Boolean);
   assert.deepEqual(commands, [
-    'make test-tooling',
-    'cd e2e && npm run test:smoke',
-    'make test-e2e-docker-smoke',
+    "make test-tooling",
+    "cd e2e && npm run test:smoke",
+    "make test-e2e-docker-smoke",
   ]);
 });

@@ -31,8 +31,8 @@ Out of scope:
 
 ## Validation Log
 
-| Command | Result |
-|---|---|
-| `make test-tooling` | Passed: 65 tooling/selector/policy tests. |
-| `make check-links` | Passed: checked 267 files and 1518 local links. |
-| `git diff --check` | Passed. |
+| Command             | Result                                          |
+| ------------------- | ----------------------------------------------- |
+| `make test-tooling` | Passed: 65 tooling/selector/policy tests.       |
+| `make check-links`  | Passed: checked 267 files and 1518 local links. |
+| `git diff --check`  | Passed.                                         |

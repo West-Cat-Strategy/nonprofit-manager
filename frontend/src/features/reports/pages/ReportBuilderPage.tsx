@@ -324,21 +324,14 @@ function ReportBuilder() {
               </>
             )}
           </div>
-          {loading && (
-            <LoadingState
-              className="mt-4"
-              label="Generating report preview..."
-            />
-          )}
+          {loading && <LoadingState className="mt-4" label="Generating report preview..." />}
         </SectionCard>
 
         <SectionCard
           title="9. Recent Exports"
           subtitle="Manual CSV and Excel exports now run through shared export jobs so they can be retried and downloaded later."
         >
-          {exportJobError && (
-            <ErrorState className="mb-4" message={exportJobError} />
-          )}
+          {exportJobError && <ErrorState className="mb-4" message={exportJobError} />}
 
           {manualExportJobs.length === 0 ? (
             exportJobsLoading ? (
