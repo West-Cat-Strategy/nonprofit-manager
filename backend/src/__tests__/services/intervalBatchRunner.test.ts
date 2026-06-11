@@ -30,6 +30,7 @@ describe('IntervalBatchRunner', () => {
   >;
 
   beforeEach(() => {
+    jest.useRealTimers();
     jest.clearAllMocks();
   });
 
@@ -72,6 +73,9 @@ describe('IntervalBatchRunner', () => {
     await flushMicrotasks();
 
     expect(runBatch).toHaveBeenCalledTimes(2);
+
+    resolveBatch?.(1);
+    await flushMicrotasks();
 
     runner.stop();
   });
@@ -182,6 +186,8 @@ describe('IntervalBatchRunner', () => {
   });
 
   it('retries failed batches with bounded attempts', async () => {
+    jest.useFakeTimers();
+
     const runBatch = jest
       .fn<Promise<number>, []>()
       .mockRejectedValueOnce(new Error('retry-me'))
@@ -196,7 +202,11 @@ describe('IntervalBatchRunner', () => {
       retryDelayMs: 0,
     });
 
-    const processed = await runner.tick();
+    const tickPromise = runner.tick();
+    await flushMicrotasks();
+    await jest.advanceTimersByTimeAsync(0);
+    await flushMicrotasks();
+    const processed = await tickPromise;
 
     expect(processed).toBe(3);
     expect(runBatch).toHaveBeenCalledTimes(2);
