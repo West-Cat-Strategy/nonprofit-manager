@@ -6,23 +6,42 @@ interface CampaignPreviewModalProps {
   onClose: () => void;
 }
 
-export default function CampaignPreviewModal({
-  preview,
-  onClose,
-}: CampaignPreviewModalProps) {
+export default function CampaignPreviewModal({ preview, onClose }: CampaignPreviewModalProps) {
   return (
     <div className="fixed inset-0 app-popup-backdrop z-50 flex items-center justify-center overflow-y-auto">
-      <div className="mx-4 my-8 w-full max-w-6xl rounded-lg border border-app-border bg-app-surface shadow-xl">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="campaign-preview-modal-title"
+        aria-describedby="campaign-preview-modal-summary"
+        className="mx-4 my-8 w-full max-w-6xl rounded-lg border border-app-border bg-app-surface shadow-xl"
+      >
         <div className="flex items-center justify-between border-b border-app-border px-6 py-4">
           <div>
-            <h3 className="text-xl font-medium text-app-text-heading">Campaign Preview</h3>
-            <p className="mt-1 text-sm text-app-text-muted">
+            <h3
+              id="campaign-preview-modal-title"
+              className="text-xl font-medium text-app-text-heading"
+            >
+              Campaign Preview
+            </h3>
+            <p id="campaign-preview-modal-summary" className="mt-1 text-sm text-app-text-muted">
               Subject: {preview.subject}
               {preview.previewText ? ` · Inbox preview: ${preview.previewText}` : ''}
             </p>
           </div>
-          <button onClick={onClose} className="text-app-text-subtle hover:text-app-text-muted">
-            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-app-text-subtle hover:text-app-text-muted"
+            aria-label="Close campaign preview"
+          >
+            <svg
+              className="h-6 w-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -44,27 +63,44 @@ export default function CampaignPreviewModal({
 
           <div className="space-y-4">
             {preview.warnings.length > 0 && (
-              <div className="rounded-lg border border-app-input-border bg-app-surface-muted p-4">
-                <h4 className="text-sm font-semibold text-app-text-heading">Preview Warnings</h4>
+              <section
+                aria-labelledby="campaign-preview-warnings-title"
+                className="rounded-lg border border-app-input-border bg-app-surface-muted p-4"
+              >
+                <h4
+                  id="campaign-preview-warnings-title"
+                  className="text-sm font-semibold text-app-text-heading"
+                >
+                  Preview Warnings
+                </h4>
                 <ul className="mt-2 space-y-2 text-sm text-app-text-muted">
                   {preview.warnings.map((warning) => (
                     <li key={warning}>{warning}</li>
                   ))}
                 </ul>
-              </div>
+              </section>
             )}
 
-            <div className="rounded-lg border border-app-border bg-app-surface p-4">
-              <h4 className="text-sm font-semibold text-app-text-heading">Plain Text Fallback</h4>
+            <section
+              aria-labelledby="campaign-preview-plain-text-title"
+              className="rounded-lg border border-app-border bg-app-surface p-4"
+            >
+              <h4
+                id="campaign-preview-plain-text-title"
+                className="text-sm font-semibold text-app-text-heading"
+              >
+                Plain Text Fallback
+              </h4>
               <pre className="mt-3 whitespace-pre-wrap break-words rounded-lg bg-app-surface-muted p-3 text-sm text-app-text-muted">
                 {preview.plainText}
               </pre>
-            </div>
+            </section>
           </div>
         </div>
 
         <div className="border-t border-app-border px-6 py-4">
           <button
+            type="button"
             onClick={onClose}
             className="rounded-lg bg-app-accent px-4 py-2 text-[var(--app-accent-foreground)] hover:bg-app-accent-hover"
           >

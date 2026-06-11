@@ -122,6 +122,7 @@ export default function MobileNavigationDrawer({
 
   return (
     <div
+      id="mobile-navigation-drawer"
       ref={panelRef}
       data-shell-transition
       className="app-popup-surface-translucent fixed inset-y-0 right-0 z-50 flex w-full max-w-[22rem] flex-col overflow-y-auto shadow-xl lg:hidden"
@@ -133,7 +134,10 @@ export default function MobileNavigationDrawer({
     >
       <div className="flex items-center justify-between border-b border-app-border px-4 py-4">
         <div>
-          <p id="mobile-navigation-drawer-title" className="text-sm font-semibold text-app-text-heading">
+          <p
+            id="mobile-navigation-drawer-title"
+            className="text-sm font-semibold text-app-text-heading"
+          >
             {appName}
           </p>
           <p className="text-xs text-app-text-muted">Staff workspace</p>
@@ -227,7 +231,7 @@ export default function MobileNavigationDrawer({
                 key={link.id}
                 to={link.path}
                 onClick={onClose}
-              className="flex items-center gap-3 rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-3 py-3 text-sm font-medium text-app-text transition hover:bg-app-hover"
+                className="flex items-center gap-3 rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface px-3 py-3 text-sm font-medium text-app-text transition hover:bg-app-hover"
               >
                 <span aria-hidden="true">{link.icon}</span>
                 <span>{link.label}</span>

@@ -231,7 +231,9 @@ export default function Navigation() {
             }
             className={classNames(
               topActionButtonClass,
-              isNavItemActive(mobileAlertsLink.id, mobileAlertsLink.path) ? activeTopButtonClass : ''
+              isNavItemActive(mobileAlertsLink.id, mobileAlertsLink.path)
+                ? activeTopButtonClass
+                : ''
             )}
           >
             <span aria-hidden="true">{mobileAlertsLink.icon}</span>
@@ -416,6 +418,7 @@ export default function Navigation() {
             className="inline-flex h-10 w-10 items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface text-app-text shadow-sm transition hover:border-app-border hover:bg-app-surface-muted hover:text-app-text-heading focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 lg:hidden"
             aria-label="Main menu"
             aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-navigation-drawer"
           >
             <svg
               className="h-6 w-6"

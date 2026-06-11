@@ -23,6 +23,7 @@ export default function CaseDetailTabs<T extends string = string>({
           return (
             <button
               key={tab.key}
+              id={`tab-${tab.key}`}
               onClick={() => onTabChange(tab.key)}
               role="tab"
               aria-selected={isActive}

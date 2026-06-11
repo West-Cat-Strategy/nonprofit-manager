@@ -29,8 +29,8 @@ const GenericStylePropertyEditor: React.FC<GenericStylePropertyEditorProps> = ({
         )}
       </PropertyPanelField>
 
-      <div>
-        <label className="mb-1 block text-sm font-medium text-app-text-muted">Margin</label>
+      <fieldset className="m-0 min-w-0 border-0 p-0">
+        <legend className="mb-1 block text-sm font-medium text-app-text-muted">Margin</legend>
         <div className="grid grid-cols-2 gap-2">
           <PropertyPanelField label="Top" labelClassName="text-xs text-app-text-muted">
             {(fieldId) => (
@@ -97,10 +97,10 @@ const GenericStylePropertyEditor: React.FC<GenericStylePropertyEditorProps> = ({
             )}
           </PropertyPanelField>
         </div>
-      </div>
+      </fieldset>
 
-      <div>
-        <label className="mb-1 block text-sm font-medium text-app-text-muted">Padding</label>
+      <fieldset className="m-0 min-w-0 border-0 p-0">
+        <legend className="mb-1 block text-sm font-medium text-app-text-muted">Padding</legend>
         <div className="grid grid-cols-2 gap-2">
           <PropertyPanelField label="Top" labelClassName="text-xs text-app-text-muted">
             {(fieldId) => (
@@ -167,7 +167,7 @@ const GenericStylePropertyEditor: React.FC<GenericStylePropertyEditorProps> = ({
             )}
           </PropertyPanelField>
         </div>
-      </div>
+      </fieldset>
     </>
   );
 };

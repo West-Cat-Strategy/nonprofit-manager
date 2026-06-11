@@ -223,9 +223,18 @@ describe('Navigation', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /^alerts$/i })).toHaveAttribute('href', '/alerts');
     expect(screen.getByRole('button', { name: /user menu/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /main menu/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /main menu/i })).toHaveAttribute(
+      'aria-controls',
+      'mobile-navigation-drawer'
+    );
+    expect(screen.getByRole('button', { name: /main menu/i })).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
 
-    expect(screen.queryByRole('navigation', { name: /primary navigation/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('navigation', { name: /primary navigation/i })
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /more navigation/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /theme settings/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /admin quick actions/i })).not.toBeInTheDocument();
@@ -237,7 +246,9 @@ describe('Navigation', () => {
     renderWithProviders(<StaffSideNavigation />, { route: '/dashboard' });
 
     const sideRail = screen.getByRole('complementary', { name: /workspace navigation/i });
-    const primaryNav = within(sideRail).getByRole('navigation', { name: /primary workspace areas/i });
+    const primaryNav = within(sideRail).getByRole('navigation', {
+      name: /primary workspace areas/i,
+    });
 
     expect(document.getElementById('side-nav-Home')).toHaveTextContent('Work');
     expect(document.getElementById('side-nav-Service')).toHaveTextContent('Service');
@@ -353,6 +364,7 @@ describe('Navigation', () => {
 
     const userMenuButton = await screen.findByRole('button', { name: /user menu/i });
     expect(userMenuButton).toHaveAttribute('aria-expanded', 'false');
+    expect(userMenuButton).toHaveAttribute('aria-controls', 'topnav-user-menu');
 
     fireEvent.click(userMenuButton);
     expect(userMenuButton).toHaveAttribute('aria-expanded', 'true');
@@ -373,13 +385,17 @@ describe('Navigation', () => {
       name: /search people, cases, notes, donations, and routes/i,
     });
     expect(searchButton).not.toHaveFocus();
+    expect(searchButton).toHaveAttribute('aria-expanded', 'false');
+    expect(searchButton).toHaveAttribute('aria-controls', 'navigation-quick-lookup-dialog');
     fireEvent.click(searchButton);
     expect(await screen.findByRole('dialog', { name: /search people/i })).toBeInTheDocument();
     expect(searchButton).toHaveAttribute('aria-haspopup', 'dialog');
+    expect(searchButton).toHaveAttribute('aria-expanded', 'true');
 
     fireEvent.click(screen.getByRole('button', { name: /close search dialog/i }));
     await waitFor(() => {
       expect(searchButton).toHaveFocus();
+      expect(searchButton).toHaveAttribute('aria-expanded', 'false');
     });
   });
 
@@ -403,12 +419,23 @@ describe('Navigation', () => {
   it('opens the mobile drawer as a dialog and focuses its close button', async () => {
     renderWithProviders(<Navigation />, { route: '/dashboard' });
 
-    fireEvent.click(screen.getByRole('button', { name: /main menu/i }));
+    const mainMenuButton = screen.getByRole('button', { name: /main menu/i });
+    fireEvent.click(mainMenuButton);
+    expect(mainMenuButton).toHaveAttribute('aria-expanded', 'true');
 
     const drawer = await screen.findByRole('dialog', { name: /nonprofit manager/i });
+    expect(drawer).toHaveAttribute('id', 'mobile-navigation-drawer');
     expect(drawer).toHaveAttribute('aria-modal', 'true');
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /close menu/i })).toHaveFocus();
+    });
+
+    fireEvent.keyDown(drawer, { key: 'Escape' });
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: /nonprofit manager/i })).not.toBeInTheDocument();
+      expect(mainMenuButton).toHaveAttribute('aria-expanded', 'false');
+      expect(mainMenuButton).toHaveFocus();
     });
   });
 
@@ -427,7 +454,8 @@ describe('Navigation', () => {
     ).toBe(true);
     expect(
       Boolean(
-        adminSettingsLinks[0].compareDocumentPosition(themeHeading) & Node.DOCUMENT_POSITION_FOLLOWING
+        adminSettingsLinks[0].compareDocumentPosition(themeHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING
       )
     ).toBe(true);
     expect(userMenuPanel?.className).toContain('max-h-[min(28rem,calc(100vh-6rem))]');
