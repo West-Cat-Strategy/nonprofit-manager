@@ -1,6 +1,6 @@
 # Phase 5 Development Plan
 
-**Last Updated:** 2026-05-07
+**Last Updated:** 2026-06-10
 
 Use this document for the Phase 5 roadmap and sequencing. Use [planning-and-progress.md](planning-and-progress.md) for row-level status, ownership, blockers, and review state.
 
@@ -12,18 +12,18 @@ Phase 5 moved the project from Phase 4 modularization and hardening into product
 - Website builder, website console, public website runtime, public actions, and publishing reliability
 - Client portal workflows, public intake, appointments, messaging, forms, and operational review surfaces
 
-Most early Phase 5 groundwork is now signed off and archived. The live board currently keeps `P5-T6` as the later-wave backlog scope-control gate, several review rows for May 2026 remediation/proof, and the time-gated `P5-T75` auth-alias blocker.
+Most Phase 5 groundwork is now signed off and archived. The live board currently keeps `P5-T6` as the later-wave backlog scope-control gate, two Ready candidate follow-ups promoted from `P5-T136`, and the time-gated `P5-T75` auth-alias blocker.
 
 ## Current Roadmap
 
-| Area | Current Posture | Source |
-|---|---|---|
-| Live tracked work | Review/blocker state only; no Ready rows on this branch snapshot | [planning-and-progress.md](planning-and-progress.md) |
-| Email and communications | Local Email is the primary newsletter/blast path; Mailchimp remains explicit optional-provider compatibility | [archive/P5_COMMUNICATIONS_LOCAL_FIRST_CLOSEOUT_2026-05-01.md](archive/P5_COMMUNICATIONS_LOCAL_FIRST_CLOSEOUT_2026-05-01.md), [../validation/P5-T36_COMMUNICATIONS_LOCAL_FIRST_PROOF_2026-05-01.md](../validation/P5-T36_COMMUNICATIONS_LOCAL_FIRST_PROOF_2026-05-01.md) |
-| Website and public runtime | Managed forms, public actions, site console polish, browser proof, and public workflow proof are review/signoff or archived proof lanes | [../validation/README.md](../validation/README.md) |
-| Client portal | Portal appointments, forms, messages, intake, queue views, and escalation work are signed off or review-state proof rows | [planning-and-progress.md](planning-and-progress.md), [../validation/README.md](../validation/README.md) |
-| Security and reliability | Auth/session, tenant/RLS, approval transitions, Docker efficiency, and auth-alias deprecation are tracked in review or blocked rows | [planning-and-progress.md](planning-and-progress.md), [../security/AUTH_ALIAS_DEPRECATION_CHECKLIST.md](../security/AUTH_ALIAS_DEPRECATION_CHECKLIST.md) |
-| Later-wave backlog | `P5-T6` remains a scope gate, not runtime authorization | [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md), [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md) |
+| Area                       | Current Posture                                                                                                                                                      | Source                                                                                                                                                                                                                                                                   |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Live tracked work          | `P5-T6` backlog gate, two Ready candidate rows promoted from the reconciled `P5-T136` deferred backlog, and `P5-T75` time-gated blocker                              | [planning-and-progress.md](planning-and-progress.md)                                                                                                                                                                                                                     |
+| Email and communications   | Local Email is the primary newsletter/blast path; Mailchimp remains explicit optional-provider compatibility                                                         | [archive/P5_COMMUNICATIONS_LOCAL_FIRST_CLOSEOUT_2026-05-01.md](archive/P5_COMMUNICATIONS_LOCAL_FIRST_CLOSEOUT_2026-05-01.md), [../validation/P5-T36_COMMUNICATIONS_LOCAL_FIRST_PROOF_2026-05-01.md](../validation/P5-T36_COMMUNICATIONS_LOCAL_FIRST_PROOF_2026-05-01.md) |
+| Website and public runtime | Managed forms, public actions, site console polish, browser proof, and public workflow proof are signed off or archived proof lanes                                  | [../validation/README.md](../validation/README.md)                                                                                                                                                                                                                       |
+| Client portal              | Portal appointments, forms, messages, intake, queue views, and escalation work are signed off or archived proof rows                                                 | [planning-and-progress.md](planning-and-progress.md), [../validation/README.md](../validation/README.md)                                                                                                                                                                 |
+| Security and reliability   | Auth/session, tenant/RLS, approval transitions, Docker efficiency, and code-review remediation are signed off or archived; auth-alias deprecation remains time-gated | [planning-and-progress.md](planning-and-progress.md), [../security/AUTH_ALIAS_DEPRECATION_CHECKLIST.md](../security/AUTH_ALIAS_DEPRECATION_CHECKLIST.md)                                                                                                                 |
+| Later-wave backlog         | `P5-T6` remains a scope gate, not runtime authorization                                                                                                              | [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md), [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md)                                                                                                           |
 
 ## Phase Goals
 

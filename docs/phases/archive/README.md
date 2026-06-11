@@ -1,6 +1,6 @@
 # Phase Documentation Archive
 
-**Last Updated:** 2026-05-16
+**Last Updated:** 2026-06-10
 
 Use this directory for historical phase notes, closeout artifacts, and earlier workboard material.
 
@@ -36,6 +36,7 @@ Do not use the files in this archive as the source of truth for current status.
 - [P5_REVIEW_SUBAGENT_WAVE_CLOSEOUT_2026-05-09.md](P5_REVIEW_SUBAGENT_WAVE_CLOSEOUT_2026-05-09.md) - May 9 review-wave closeout, May 10 remaining-blocker removals, and May 11 main-merge reconciliation for `P5-T93` through `P5-T97`.
 - [P5_REVIEW_QUEUE_RECONCILIATION_CLOSEOUT_2026-05-15.md](P5_REVIEW_QUEUE_RECONCILIATION_CLOSEOUT_2026-05-15.md) - May 15 review-queue reconciliation that removed proof-complete `P5-T98` through `P5-T110`, `P5-T112`, `P5-T113`, `P5-T116` through `P5-T118`, and `P5-T120` through `P5-T123` from the live board while keeping caveat rows visible.
 - [P5_CODEBASE_REVIEW_CLEANUP_CLOSEOUT_2026-05-16.md](P5_CODEBASE_REVIEW_CLEANUP_CLOSEOUT_2026-05-16.md) - May 16 conservative codebase cleanup audit that cleared prior DB/Docker caveats, removed proof-complete `P5-T111`, `P5-T114`, `P5-T115`, `P5-T119`, and `P5-T124` through `P5-T134` from the live board, and left only `P5-T6`, `P5-T75`, and `P5-T135` live.
+- [P5_MAINLINE_PROOF_RECONCILIATION_CLOSEOUT_2026-06-10.md](P5_MAINLINE_PROOF_RECONCILIATION_CLOSEOUT_2026-06-10.md) - June 10 mainline proof reconciliation that removed proof-complete `P5-T135`, `P5-T136`, `P5-T137`, `P5-T138`, and `P5-T139` from the live board while keeping `P5-T6` as the backlog gate, `P5-T140` and `P5-T141` as Ready follow-ups, and `P5-T75` as the time-gated blocker.
 
 ### Phase 4 Transition And Closeout
 

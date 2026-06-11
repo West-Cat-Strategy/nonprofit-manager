@@ -1,7 +1,7 @@
 # P5-T138 Complete Modularization Remediation Proof
 
 **Date:** 2026-06-06  
-**Status:** Review; fixture drift closed and full coverage gate green
+**Status:** Proof-complete; archived from the live board after the 2026-06-10 mainline proof reconciliation
 **Branch:** `codex/p5-t138-coverage-fixtures` follow-up to `codex/p5-t138-modularization-remediation`
 
 ## Scope
@@ -27,24 +27,24 @@ Excluded unless separately signed out:
 
 Raw scout inventory captured before implementation:
 
-| Metric | Baseline |
-|---|---:|
-| Backend non-test module imports from `@services/*` | 234 |
-| Backend root service TypeScript files under `backend/src/services` | 139 |
-| Frontend non-test feature imports through shared service paths | 189 |
-| Direct `.query(` calls in backend module controllers | 46 |
-| Direct E2E imports from `backend/src` or `frontend/src` | 6 |
+| Metric                                                             | Baseline |
+| ------------------------------------------------------------------ | -------: |
+| Backend non-test module imports from `@services/*`                 |      234 |
+| Backend root service TypeScript files under `backend/src/services` |      139 |
+| Frontend non-test feature imports through shared service paths     |      189 |
+| Direct `.query(` calls in backend module controllers               |       46 |
+| Direct E2E imports from `backend/src` or `frontend/src`            |        6 |
 
 Normalized active ratchet counts enforced by `scripts/check-modularization-boundary-ratchet.ts`:
 
-| Metric | Ratchet cap |
-|---|---:|
-| Backend module imports from root services | 203 |
-| Backend root service TypeScript files | 139 |
-| Frontend feature imports through shared services | 153 |
-| Direct `.query(` calls in backend module controllers | 46 |
-| Direct E2E app-source imports | 4 |
-| Direct E2E app-source imports outside `e2e/helpers/testSupport` | 0 |
+| Metric                                                          | Ratchet cap |
+| --------------------------------------------------------------- | ----------: |
+| Backend module imports from root services                       |         203 |
+| Backend root service TypeScript files                           |         139 |
+| Frontend feature imports through shared services                |         153 |
+| Direct `.query(` calls in backend module controllers            |          46 |
+| Direct E2E app-source imports                                   |           4 |
+| Direct E2E app-source imports outside `e2e/helpers/testSupport` |           0 |
 
 The ratchet baseline lives in `scripts/baselines/modularization-boundaries.json`.
 

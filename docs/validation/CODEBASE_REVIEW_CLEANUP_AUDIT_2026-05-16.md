@@ -1,7 +1,7 @@
 # Codebase Review Cleanup Audit - 2026-05-16
 
 **Workboard Row:** `P5-T135`
-**Status:** Review-ready conservative cleanup audit
+**Status:** Proof-complete; archived from the live board after the 2026-06-10 mainline proof reconciliation
 
 ## Scope
 

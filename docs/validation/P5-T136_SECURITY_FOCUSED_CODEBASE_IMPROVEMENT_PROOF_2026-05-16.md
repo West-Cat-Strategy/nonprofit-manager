@@ -1,7 +1,7 @@
 # P5-T136 Security-Focused Codebase Improvement Proof - 2026-05-16
 
 **Workboard Row:** `P5-T136`
-**Status:** Review-ready focused security/tooling batch
+**Status:** Proof-complete; archived from the live board after the 2026-06-10 mainline proof reconciliation
 
 ## Scope
 
@@ -15,12 +15,12 @@ In scope for this row:
 - Communications provider bulk-sync contact-scope enforcement.
 - Focused DB/tooling safety fixes only when needed to prove the security batch.
 
-Deferred candidate backlog from the same review:
+Deferred candidate backlog from the same review, reconciled on 2026-06-10:
 
-- Meeting tenant-boundary schema and route hardening, because it requires a migration and cross-surface backfill policy.
-- Mautic DNS pinning SSRF parity, because it should reuse the outbound pinned-dispatcher pattern as a focused follow-up.
-- Side-effect-free tooling contract fixtures.
-- Frontend accessibility polish for event registration controls, navigation toggles, builder style fields, case tabs, report dialogs, and campaign preview modal semantics.
+- Superseded: meeting tenant-boundary schema and route hardening. The June 5 security remediation proof records migration `135_meeting_tenant_scope.sql`, active organization context on meeting routes, and scoped list/read/write service behavior.
+- Superseded: Mautic DNS-pinning SSRF parity. The June 5 security remediation and code-review remediation proofs record guarded DNS resolution, private-address rejection, DNS-pinned Undici dispatchers, and manual redirect rejection for Mautic outbound requests.
+- Promoted to `P5-T140`: side-effect-free tooling contract fixtures, focused on removing repository-root mutation from selector/OpenAPI and `knip.json` fixture probes while preserving static selector output and Make/script contracts.
+- Promoted to `P5-T141`: targeted frontend semantics follow-through for the still-unproven event registration controls, navigation toggles, builder event/style fields, case tabs, report dialogs, and campaign preview modal semantics. `P5-T133`, `P5-T137`, and the June 5 code-review remediation covered adjacent property-panel, route-shell, and Calm Ops UI proof, but did not explicitly close this exact May 16 residual set.
 
 Out of scope:
 
@@ -73,3 +73,12 @@ Out of scope:
 - `node scripts/check-migration-manifest-policy.ts` - passed.
 - `make db-verify` - passed.
 - `npm run knip` - passed with the existing Node `module.register()` deprecation warning from the toolchain.
+
+## Deferred Follow-Up Reconciliation - 2026-06-10
+
+| Original deferred item                             | Disposition                                             | Current evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| -------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Meeting tenant-boundary schema and route hardening | Not promoted; superseded by later security remediation. | [SECURITY_REMEDIATION_PROOF_2026-06-05.md](SECURITY_REMEDIATION_PROOF_2026-06-05.md) records migration `135_meeting_tenant_scope.sql`, active organization context on meeting routes, and organization-scoped meeting service queries.                                                                                                                                                                                                                                                                                                                                          |
+| Mautic DNS-pinning SSRF parity                     | Not promoted; superseded by later security remediation. | [SECURITY_REMEDIATION_PROOF_2026-06-05.md](SECURITY_REMEDIATION_PROOF_2026-06-05.md) and [CODE_REVIEW_REMEDIATION_PROOF_2026-06-05.md](CODE_REVIEW_REMEDIATION_PROOF_2026-06-05.md) record guarded DNS resolution, private-address rejection, pinned Undici dispatch, and manual redirect rejection.                                                                                                                                                                                                                                                                            |
+| Side-effect-free tooling contract fixtures         | Promoted to Ready row `P5-T140`.                        | `scripts/tests/tooling-contracts.test.cjs` still has repo-root fixture probes for selector/OpenAPI and `knip.json`; [TESTING_STRATEGY_REVIEW_2026-06-05.md](TESTING_STRATEGY_REVIEW_2026-06-05.md) keeps selector output static and tooling-contract coverage central, so this remains a precise test/tooling cleanup row.                                                                                                                                                                                                                                                      |
+| Frontend accessibility polish                      | Promoted to Ready row `P5-T141`.                        | [P5-T133_DENSE_CONTROL_REPORT_BUILDER_ACCESSIBILITY_PROOF_2026-05-15.md](P5-T133_DENSE_CONTROL_REPORT_BUILDER_ACCESSIBILITY_PROOF_2026-05-15.md), [P5-T137_CALM_OPS_UI_UX_OVERHAUL_PROOF_2026-06-05.md](P5-T137_CALM_OPS_UI_UX_OVERHAUL_PROOF_2026-06-05.md), and [CODE_REVIEW_REMEDIATION_PROOF_2026-06-05.md](CODE_REVIEW_REMEDIATION_PROOF_2026-06-05.md) cover adjacent UI/property-panel work, but the exact event registration, navigation toggle, case tab, report dialog, and campaign preview modal semantics set remains useful as a bounded frontend follow-through. |

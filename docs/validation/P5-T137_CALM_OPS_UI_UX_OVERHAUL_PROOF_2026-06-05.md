@@ -1,7 +1,7 @@
 # P5-T137 Calm Ops UI/UX Overhaul Proof
 
 **Date:** 2026-06-05  
-**Status:** Review  
+**Status:** Proof-complete; archived from the live board after the 2026-06-10 mainline proof reconciliation
 **Workboard row:** [P5-T137](../phases/planning-and-progress.md)
 
 ## Scope
