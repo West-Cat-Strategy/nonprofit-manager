@@ -1,7 +1,7 @@
 # P5-T140 Tooling Fixture Isolation Proof - 2026-06-10
 
 **Workboard Row:** `P5-T140`
-**Status:** Review
+**Status:** Proof-complete; removed from live board ownership by 2026-06-12 docs-only reconciliation
 **Branch:** `chore/p5-t140-tooling-fixtures`
 
 ## Scope
@@ -20,6 +20,12 @@ Out of scope:
 - Make target or package script changes.
 - Runtime behavior, route, API, OpenAPI contract, or application code changes.
 - Unrelated dirty docs/proof reconciliation already present in the main checkout.
+
+## Mainline Disposition
+
+This row landed on `main` via `0d3c53ba` (`Merge branch 'chore/p5-t140-tooling-fixtures'`). The June 12 docs-only reconciliation removed `P5-T140` from the live workboard as proof-complete while keeping this row-local proof indexed in [archive/README.md](README.md).
+
+Future selector-fixture or tooling-contract follow-up should open as a new signed-out row rather than reusing `P5-T140`.
 
 ## Implementation Notes
 

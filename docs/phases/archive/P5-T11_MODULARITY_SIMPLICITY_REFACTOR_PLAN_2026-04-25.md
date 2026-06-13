@@ -4,7 +4,7 @@
 
 **Task:** `P5-T11`  
 **Status:** Planning artifact  
-**Inputs:** [planning-and-progress.md](planning-and-progress.md), [../development/SUBAGENT_MODULARIZATION_GUIDE.md](../development/SUBAGENT_MODULARIZATION_GUIDE.md), [../development/BACKEND_MODULE_OWNERSHIP_MAP.md](../development/BACKEND_MODULE_OWNERSHIP_MAP.md), [../development/COMPATIBILITY_SHIM_DEPRECATION_LEDGER.md](../development/COMPATIBILITY_SHIM_DEPRECATION_LEDGER.md), [../validation/P5-T9_DEAD_CODE_REVIEW_2026-04-25.md](../validation/P5-T9_DEAD_CODE_REVIEW_2026-04-25.md), and [../validation/P5-T10_DEAD_DOCS_REVIEW_2026-04-25.md](../validation/P5-T10_DEAD_DOCS_REVIEW_2026-04-25.md).
+**Inputs:** [planning-and-progress.md](../planning-and-progress.md), [../development/SUBAGENT_MODULARIZATION_GUIDE.md](../../development/SUBAGENT_MODULARIZATION_GUIDE.md), [../development/BACKEND_MODULE_OWNERSHIP_MAP.md](../../development/BACKEND_MODULE_OWNERSHIP_MAP.md), [../development/COMPATIBILITY_SHIM_DEPRECATION_LEDGER.md](../../development/COMPATIBILITY_SHIM_DEPRECATION_LEDGER.md), [../validation/P5-T9_DEAD_CODE_REVIEW_2026-04-25.md](../../validation/P5-T9_DEAD_CODE_REVIEW_2026-04-25.md), and [../validation/P5-T10_DEAD_DOCS_REVIEW_2026-04-25.md](../../validation/P5-T10_DEAD_DOCS_REVIEW_2026-04-25.md).
 
 ## Summary
 
@@ -48,10 +48,10 @@ The final sweep also ran `make lint`; it passed policy checks until the implemen
 
 - Preserve active `/api/v2/*` APIs, health aliases, route registrars, frontend route catalogs, root store shape, auth/permission policy, workspace-module behavior, and browser URLs.
 - Preserve feature-owned implementations under `backend/src/modules/**` and `frontend/src/features/**`; cleanup rows target wrappers, indexes, and navigation first.
-- Keep compatibility-shim decisions in [../development/COMPATIBILITY_SHIM_DEPRECATION_LEDGER.md](../development/COMPATIBILITY_SHIM_DEPRECATION_LEDGER.md) when a row retires a compatibility-shaped surface.
+- Keep compatibility-shim decisions in [../development/COMPATIBILITY_SHIM_DEPRECATION_LEDGER.md](../../development/COMPATIBILITY_SHIM_DEPRECATION_LEDGER.md) when a row retires a compatibility-shaped surface.
 
 ## Assumptions
 
 - `P5-T9` and `P5-T10` remain review artifacts only; removals happen under future scoped rows.
 - `P5-T12` waits until cleanup rows, including `P5-T11A`, are either complete, explicitly deferred, or ruled unnecessary.
-- Any new modularization sub-lane must follow [../development/SUBAGENT_MODULARIZATION_GUIDE.md](../development/SUBAGENT_MODULARIZATION_GUIDE.md) before edits start.
+- Any new modularization sub-lane must follow [../development/SUBAGENT_MODULARIZATION_GUIDE.md](../../development/SUBAGENT_MODULARIZATION_GUIDE.md) before edits start.

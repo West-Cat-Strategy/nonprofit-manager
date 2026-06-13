@@ -16,20 +16,20 @@ Read the contributor path in this order when you are taking on a task:
 
 Use the narrower guides only when your change needs them:
 
-| Need | Guide |
-|---|---|
-| Product context | [README.md](README.md), [docs/product/README.md](docs/product/README.md), [docs/features/FEATURE_MATRIX.md](docs/features/FEATURE_MATRIX.md) |
-| Agent terminology and root-level orientation | [agents.md](agents.md) |
-| Live tracked work and current phase roadmap | [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md), [docs/phases/PHASE_5_DEVELOPMENT_PLAN.md](docs/phases/PHASE_5_DEVELOPMENT_PLAN.md) |
-| Historical closeouts and archive notes | [docs/phases/archive/README.md](docs/phases/archive/README.md) |
-| Validation and audit artifacts | [docs/validation/README.md](docs/validation/README.md) |
-| Backend API, public-site, or worker runtime work | [backend/README.md](backend/README.md) |
-| API reference and route summaries | [docs/api/README.md](docs/api/README.md) |
-| Frontend feature and route work | [frontend/README.md](frontend/README.md) |
-| Playwright and browser validation | [e2e/README.md](e2e/README.md) |
-| Shared type contracts | [contracts/README.md](contracts/README.md) |
-| Database contract and migration orientation | [database/README.md](database/README.md) |
-| Helper scripts | [scripts/README.md](scripts/README.md) |
+| Need                                             | Guide                                                                                                                                                            |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Product context                                  | [README.md](README.md), [docs/product/README.md](docs/product/README.md), [docs/features/FEATURE_MATRIX.md](docs/features/FEATURE_MATRIX.md)                     |
+| Agent terminology and root-level orientation     | [AGENTS.md](AGENTS.md)                                                                                                                                           |
+| Live tracked work and current phase roadmap      | [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md), [docs/phases/PHASE_5_DEVELOPMENT_PLAN.md](docs/phases/PHASE_5_DEVELOPMENT_PLAN.md) |
+| Historical closeouts and archive notes           | [docs/phases/archive/README.md](docs/phases/archive/README.md)                                                                                                   |
+| Validation and audit artifacts                   | [docs/validation/README.md](docs/validation/README.md)                                                                                                           |
+| Backend API, public-site, or worker runtime work | [backend/README.md](backend/README.md)                                                                                                                           |
+| API reference and route summaries                | [docs/api/README.md](docs/api/README.md)                                                                                                                         |
+| Frontend feature and route work                  | [frontend/README.md](frontend/README.md)                                                                                                                         |
+| Playwright and browser validation                | [e2e/README.md](e2e/README.md)                                                                                                                                   |
+| Shared type contracts                            | [contracts/README.md](contracts/README.md)                                                                                                                       |
+| Database contract and migration orientation      | [database/README.md](database/README.md)                                                                                                                         |
+| Helper scripts                                   | [scripts/README.md](scripts/README.md)                                                                                                                           |
 
 ## What Contributions Can Include
 
@@ -78,16 +78,16 @@ For implementation-specific rules, defer to [docs/development/AGENT_INSTRUCTIONS
 
 Use the smallest validation set that still covers your change.
 
-| Change Type | Recommended Commands |
-|---|---|
-| Docs-only | `make check-links` |
-| Docs with API wording/examples | `make check-links` and `make lint-doc-api-versioning` |
-| Runtime-facing docs or test-wrapper wording | `make check-links` and `./scripts/select-checks.sh --base HEAD~1 --mode strict` |
-| Database, migration, or DB contract work | `make db-verify` and the narrowest behavior check that matches the changed surface |
-| Smaller scoped code change | `./scripts/select-checks.sh --base HEAD~1 --mode fast` (use `--mode strict` for shared runtime, hook, Docker, or runtime-doc changes) |
-| Broader code change | `make lint`, `make typecheck`, and `make test` |
-| Higher-confidence validation | `make ci` for lint/typecheck/test/build, or `make ci-full` for the coverage/full gate plus build and `make security-audit` |
-| Release-facing validation | `make release-check` |
+| Change Type                                 | Recommended Commands                                                                                                       |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Docs-only                                   | `make check-links`                                                                                                         |
+| Docs with API wording/examples              | `make check-links` and `make lint-doc-api-versioning`                                                                      |
+| Runtime-facing docs or test-wrapper wording | `make check-links` and `./scripts/select-checks.sh --mode strict`                                                          |
+| Database, migration, or DB contract work    | `make db-verify` and the narrowest behavior check that matches the changed surface                                         |
+| Smaller scoped code change                  | `./scripts/select-checks.sh --mode fast` (use `--mode strict` for shared runtime, hook, Docker, or runtime-doc changes)    |
+| Broader code change                         | `make lint`, `make typecheck`, and `make test`                                                                             |
+| Higher-confidence validation                | `make ci` for lint/typecheck/test/build, or `make ci-full` for the coverage/full gate plus build and `make security-audit` |
+| Release-facing validation                   | `make release-check`                                                                                                       |
 
 Prefer root commands first. Use package-level scripts only when the change is narrow enough that a package-specific check is the clearest fit. The validation ladder is: docs/static checks, package-surface selector proof, cross-layer `make test`, coverage/full `make test-coverage-full` or `make ci-full`, then release/security follow-ons.
 
@@ -97,7 +97,7 @@ Prefer root commands first. Use package-level scripts only when the change is na
 
 `cd backend && npm test` is the supported backend runner. It invokes `backend/scripts/run-full-tests.sh`, prepares and verifies the isolated test DB on `127.0.0.1:8012/nonprofit_manager_test`, then runs Jest.
 
-Use selector `--mode fast` for scoped changes where one owned surface changed. Use `--mode strict` when docs or scripts change runtime semantics, Docker modes, wrapper behavior, ports, hooks, shared orchestration, or confidence-sensitive review expectations; strict runtime-doc changes include `make test-tooling` before they broaden into `make test-coverage-full`. The selector includes committed, dirty, staged, and untracked files by default, or an explicit planned path set when you pass `--files "<file list>"`.
+Use selector `--mode fast` for scoped changes where one owned surface changed. Use `--mode strict` when docs or scripts change runtime semantics, Docker modes, wrapper behavior, ports, hooks, shared orchestration, or confidence-sensitive review expectations; strict runtime-doc changes include `make test-tooling` before they broaden into `make test-coverage-full`. The selector includes committed changes from its default base plus dirty, staged, and untracked files by default. Pass `--base <ref>` only when you intentionally need a different comparison point, or pass `--files "<file list>"` for an exact planned/final path-set proof.
 
 Use [docs/testing/TESTING.md](docs/testing/TESTING.md) for the current meaning of `make ci*`, `make test-coverage*`, and `make db-verify`, including current review-lane caveats.
 

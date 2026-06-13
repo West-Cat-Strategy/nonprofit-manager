@@ -1,6 +1,6 @@
 # Reference Repos Workspace
 
-**Last Updated:** 2026-05-01
+**Last Updated:** 2026-06-12
 
 This directory is the tracked orientation and manifest surface for central upstream clones used during benchmark and reference-pattern work. For the contributor-facing routing guide, see [../docs/reference-repos.md](../docs/reference-repos.md).
 
@@ -17,6 +17,7 @@ This directory is the tracked orientation and manifest surface for central upstr
 - Newsletter operability wave: `P5-T26-newsletter-reference-refresh`.
 - Planning-only finance, governance, and evidence candidate wave: `P5-T35-finance-governance-evidence-reference-refresh`.
 - Case-form template builder implementation reference wave: `P5-T41-form-builder-template-refresh`.
+- Metadata-first reference-corpus expansion wave: `P5-T111-reference-corpus-expansion-2026-05`.
 - Canonical clone root for all waves: `/Users/bryan/projects/reference-repos/repos/`.
 - Compatibility paths remain under `reference-repos/external/` so existing check matrices and source-path notes continue to resolve.
 
@@ -87,11 +88,24 @@ This wave is implementation support for the case-form template library, autosave
 - `nm--opnform`
 - `nm--survey-creator`
 
+## `P5-T111-reference-corpus-expansion-2026-05` Metadata Set
+
+This wave is metadata-first. It sharpens later fundraising, logistics, field evidence, program analytics, health/service evidence, and social-protection planning without authorizing source-level claims, clone-cache hydration, compatibility aliases, runtime implementation, or direct source copying.
+
+- `nm--houdini`
+- `nm--openboxes`
+- `nm--kpi`
+- `nm--dhis2-core`
+- `nm--openmrs-core`
+- `nm--openimis-be-py`
+- `nm--openimis-dist-dkr`
+
 ## Research Docs
 
 - `docs/development/reference-patterns/P5-T6-oss-benchmark/` keeps the locked wave-one OSS nonprofit benchmark findings.
 - `docs/development/reference-patterns/P5-T6-reference-expansion-2026-04/` keeps the expanded reference-repo improvement opportunities and verification notes.
 - `docs/development/reference-patterns/P5-T6-reference-repo-consolidation-2026-05-01.md` consolidates the May 1 read-only subagent review across communications, finance, service delivery, evidence, and workflow references.
+- `docs/validation/archive/P5-T111_T119_REFERENCE_REPO_IMPROVEMENT_SYNTHESIS_2026-05-12.md` records the May 12 reference-repo improvement synthesis.
 - `docs/development/reference-patterns/P5-T26-newsletter-reference-refresh.md` keeps the newsletter-specific reference refresh.
 - `docs/development/reference-patterns/P5-T35-finance-governance-evidence-reference-refresh.md` keeps the finance/governance/evidence planning-only refresh.
 - `docs/development/reference-patterns/P5-T41-form-builder-reference-refresh.md` keeps the case-form template-builder reference refresh.

@@ -42,7 +42,7 @@ Added Ready follow-ups:
 
 ## Evidence
 
-- The archive closeout lives at [../phases/archive/P5_REVIEW_QUEUE_RECONCILIATION_CLOSEOUT_2026-05-15.md](../phases/archive/P5_REVIEW_QUEUE_RECONCILIATION_CLOSEOUT_2026-05-15.md).
+- The archive closeout lives at [../phases/archive/P5_REVIEW_QUEUE_RECONCILIATION_CLOSEOUT_2026-05-15.md](../../phases/archive/P5_REVIEW_QUEUE_RECONCILIATION_CLOSEOUT_2026-05-15.md).
 - The live workboard now reports 12 active rows: 5 Review, 6 Ready, 1 Blocked, and 0 In Progress.
 - Rows retained in Review are retained because their proof notes still document unresolved local environment or inherited type-check caveats.
 

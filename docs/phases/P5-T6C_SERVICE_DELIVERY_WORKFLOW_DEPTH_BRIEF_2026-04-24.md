@@ -1,6 +1,6 @@
 # P5-T6C Service-Delivery Workflow Depth Brief (2026-04-24)
 
-**Last Updated:** 2026-04-24
+**Last Updated:** 2026-06-12
 
 This brief scopes the smallest later-wave service-delivery workflow depth slice for `P5-T6C`. It is planning-only: it records repo evidence, inferred future scope, landing zones, sequencing, and handoff notes without authorizing runtime implementation.
 
@@ -22,19 +22,19 @@ This brief scopes the smallest later-wave service-delivery workflow depth slice 
 
 `P5-T6C` should tighten five service-delivery gaps already visible in the persona audit:
 
-| Capability | Current posture | Later-wave intent |
-|---|---|---|
-| Reassessment cadence | `partial`: cases, notes, services, follow-ups, and reports exist, but recurring reassessment is not one explicit cycle | Add a case-scoped reassessment cadence with due dates, owner, status, summary, and follow-up linkage |
-| Structured handoff packets | `partial`: case detail, notes, outcomes, documents, follow-ups, portal forms, and appointments can supply context, but no packet owns transfer readiness | Add a lightweight handoff packet that assembles current status, risks, next actions, visibility boundaries, and linked artifacts |
-| Closure continuity | `partial`: closure reason and case history exist, but continuity after closure is procedural | Add a closure-continuity checklist with final summary, open follow-ups, portal-visible materials, and reassignment or referral notes |
-| Rehab planning artifacts | `missing` for individualized employment plan workflow and `partial` for rehab-specific templates | Add shared case/service planning artifacts that can carry rehab goals, service plan updates, and placement/outcome context before any rehab-only module |
-| Authorization and referral depth | `partial`: referral source, services, appointments, forms, messages, and follow-ups exist, but authorization or referral transitions are not first-class | Add typed referral or authorization handoff metadata on top of case services, appointments, case forms, and follow-ups |
+| Capability                       | Current posture                                                                                                                                          | Later-wave intent                                                                                                                                       |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Reassessment cadence             | `partial`: cases, notes, services, follow-ups, and reports exist, but recurring reassessment is not one explicit cycle                                   | Add a case-scoped reassessment cadence with due dates, owner, status, summary, and follow-up linkage                                                    |
+| Structured handoff packets       | `partial`: case detail, notes, outcomes, documents, follow-ups, portal forms, and appointments can supply context, but no packet owns transfer readiness | Add a lightweight handoff packet that assembles current status, risks, next actions, visibility boundaries, and linked artifacts                        |
+| Closure continuity               | `partial`: closure reason and case history exist, but continuity after closure is procedural                                                             | Add a closure-continuity checklist with final summary, open follow-ups, portal-visible materials, and reassignment or referral notes                    |
+| Rehab planning artifacts         | `missing` for individualized employment plan workflow and `partial` for rehab-specific templates                                                         | Add shared case/service planning artifacts that can carry rehab goals, service plan updates, and placement/outcome context before any rehab-only module |
+| Authorization and referral depth | `partial`: referral source, services, appointments, forms, messages, and follow-ups exist, but authorization or referral transitions are not first-class | Add typed referral or authorization handoff metadata on top of case services, appointments, case forms, and follow-ups                                  |
 
 ## Confirmed Repo Evidence
 
 - Case Manager maps to inferred `staff` with high confidence and already has case lifecycle, follow-ups, notes, services, appointments, portal visibility controls, documents, outcomes, and selective client sharing. The repo does not prove a standardized reassessment cycle, structured handoff packet, or closure-continuity workflow.
 - Rehab Worker maps to inferred `staff` with high confidence and reuses case, service, follow-up, appointment, form, and portal collaboration surfaces. The repo does not prove an individualized employment plan workflow, rehab-specific templates, placement benchmarking, or first-class authorization routing.
-- The `P5-T5` portal forms inbox slice and case-aware appointments-continuity slice give later service-delivery work stable portal/case context to build on, but focused portal Playwright follow-through and broad Docker signoff still stay with `P5-T2B` and `P5-T5`.
+- The landed `P5-T5` portal forms inbox slice and case-aware appointments-continuity slice give later service-delivery work stable portal/case context to build on. The `P5-T2B` and `P5-T5` proof is historical; any new service-delivery runtime follow-through needs a separately signed-out row.
 - The `P5-T6` capability packet marks public-intake resolution, queue view definitions, typed portal review requests, volunteer dispatch ergonomics, workflow-program operations, service-site routing, and revision-capable case-form review as inputs. Only separately signed-out rows may turn those planning targets into runtime implementation.
 - Current proof lives in route contracts, persona route smoke coverage, portal workflow tests, case/portal feature docs, and the persona workflow audit. The audit also records that browser proof was implemented but local host proof was blocked by a non-default admin credential precondition.
 
@@ -42,26 +42,26 @@ This brief scopes the smallest later-wave service-delivery workflow depth slice 
 
 These are future planning targets, not current product claims:
 
-| Future target | Type intent | Concrete landing zones |
-|---|---|---|
-| `case_reassessment_cycle` | Case-scoped review cadence with owner, due date, status, summary, and linked follow-up outcomes | `backend/src/modules/cases/**`, `frontend/src/features/cases/**`, `frontend/src/features/followUps/**` |
-| `case_handoff_packet` | A generated or saved transfer summary built from case detail, notes, documents, outcomes, services, appointments, forms, and portal visibility state | `frontend/src/features/cases/pages/CaseDetailPage.tsx`, `frontend/src/features/cases/caseForms/**`, `backend/src/modules/cases/**` |
-| `closure_continuity_checklist` | A closure-support artifact that records unresolved actions, continuity owner, portal-facing materials, and referral or reassignment context | `backend/src/modules/cases/queries/lifecycleQueries.ts`, `frontend/src/features/cases/**`, `frontend/src/features/portal/**` |
-| `service_plan_artifact` | Shared case/service planning records for rehab goals, service plan updates, and placement or outcome context before a rehab-only fork | `frontend/src/components/cases/CaseServices.tsx`, `backend/src/modules/cases/queries/servicesQueries.ts`, `backend/src/modules/cases/repositories/caseServicesRepository.ts` |
-| `referral_authorization_handoff` | Typed authorization, referral, or partner-handoff metadata connected to services, appointments, case forms, and follow-ups | `backend/src/modules/cases/usecases/caseForms.usecase.staff.ts`, `backend/src/modules/portalAdmin/services/portalAppointmentStatusWorkflow.ts`, `frontend/src/features/followUps/**` |
-| `service_site` | Optional typed site reference and snapshot label/status for services and appointment slots while preserving current free-text location fallback | `backend/src/modules/portalAdmin/services/portalAppointmentSlotService/**`, `backend/src/modules/portal/mappers/**`, `frontend/src/components/cases/CaseServices.tsx` |
+| Future target                    | Type intent                                                                                                                                          | Concrete landing zones                                                                                                                                                               |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `case_reassessment_cycle`        | Case-scoped review cadence with owner, due date, status, summary, and linked follow-up outcomes                                                      | `backend/src/modules/cases/**`, `frontend/src/features/cases/**`, `frontend/src/features/followUps/**`                                                                               |
+| `case_handoff_packet`            | A generated or saved transfer summary built from case detail, notes, documents, outcomes, services, appointments, forms, and portal visibility state | `frontend/src/features/cases/pages/CaseDetailPage.tsx`, `frontend/src/features/cases/caseForms/**`, `backend/src/modules/cases/**`                                                   |
+| `closure_continuity_checklist`   | A closure-support artifact that records unresolved actions, continuity owner, portal-facing materials, and referral or reassignment context          | `backend/src/modules/cases/queries/lifecycleQueries.ts`, `frontend/src/features/cases/**`, `frontend/src/features/portal/**`                                                         |
+| `service_plan_artifact`          | Shared case/service planning records for rehab goals, service plan updates, and placement or outcome context before a rehab-only fork                | `frontend/src/components/cases/CaseServices.tsx`, `backend/src/modules/cases/queries/servicesQueries.ts`, `backend/src/modules/cases/repositories/caseServicesRepository.ts`         |
+| `referral_authorization_handoff` | Typed authorization, referral, or partner-handoff metadata connected to services, appointments, case forms, and follow-ups                           | `backend/src/modules/cases/usecases/caseForms.usecase.staff.ts`, `backend/src/modules/portalAdmin/services/portalAppointmentStatusWorkflow.ts`, `frontend/src/features/followUps/**` |
+| `service_site`                   | Optional typed site reference and snapshot label/status for services and appointment slots while preserving current free-text location fallback      | `backend/src/modules/portalAdmin/services/portalAppointmentSlotService/**`, `backend/src/modules/portal/mappers/**`, `frontend/src/components/cases/CaseServices.tsx`                |
 
 ## Reference Expansion Queue Additions
 
 The final reference-repo pass sharpens the later service-delivery targets without authorizing runtime work. Keep these as queued refinements behind `P5-T6C` unless a future scoped row signs them out.
 
-| Future pattern | Source pressure | Later typed record intent | Boundary |
-|---|---|---|---|
-| Reassessment windows and checklist timing | Avni program encounters and checklists | `case_reassessment_cycle` with earliest/latest review windows, cancellation reason, completion marker, and dependent checklist timing | Do not create a generic program engine |
-| Case-plan intervention ledger | Primero case plan, service, follow-up, and task patterns | `case_plan_intervention` with service/provider, goal, target date, success marker, and due-task linkage | Keep attached to cases/services before any workflow kernel |
-| Consent-aware referral and transfer status | Primero referral and transfer status model | `referral_transfer_status` with consent/override, accepted/rejected/done/revoked states, response timestamp, service linkage, and rejection notes | Do not claim authorization compliance or grievance parity |
-| Closure readiness evidence | OpenSPP graduation and Primero closure forms | `closure_readiness_evidence` with optional assessment history and unresolved continuity cues | Treat as closure-support evidence, not eligibility adjudication |
-| Field-ready case packet | CommCare and Sahana field/mobile packet patterns | `field_case_packet` for handoff or field review assembled from existing case/form/service data | Reject offline sync, device conflict resolution, and mobile replication engines |
+| Future pattern                             | Source pressure                                          | Later typed record intent                                                                                                                         | Boundary                                                                        |
+| ------------------------------------------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Reassessment windows and checklist timing  | Avni program encounters and checklists                   | `case_reassessment_cycle` with earliest/latest review windows, cancellation reason, completion marker, and dependent checklist timing             | Do not create a generic program engine                                          |
+| Case-plan intervention ledger              | Primero case plan, service, follow-up, and task patterns | `case_plan_intervention` with service/provider, goal, target date, success marker, and due-task linkage                                           | Keep attached to cases/services before any workflow kernel                      |
+| Consent-aware referral and transfer status | Primero referral and transfer status model               | `referral_transfer_status` with consent/override, accepted/rejected/done/revoked states, response timestamp, service linkage, and rejection notes | Do not claim authorization compliance or grievance parity                       |
+| Closure readiness evidence                 | OpenSPP graduation and Primero closure forms             | `closure_readiness_evidence` with optional assessment history and unresolved continuity cues                                                      | Treat as closure-support evidence, not eligibility adjudication                 |
+| Field-ready case packet                    | CommCare and Sahana field/mobile packet patterns         | `field_case_packet` for handoff or field review assembled from existing case/form/service data                                                    | Reject offline sync, device conflict resolution, and mobile replication engines |
 
 ## Sequencing
 
@@ -79,7 +79,7 @@ The final reference-repo pass sharpens the later service-delivery targets withou
 - Do not claim full eligibility governance, authorization compliance, placement benchmarking, service-point operations, or grievance-management parity.
 - Do not replace current free-text provider or location fields in the first slice; typed service-site routing should be additive and snapshot-based.
 - Do not treat generic portal messages as typed escalations, authorization decisions, or referral approvals without a separately scoped model and tests.
-- Do not move runtime implementation out of `P5-T2B`, `P5-T5`, or future scoped rows just because this planning artifact exists.
+- Do not treat historical `P5-T2B` or `P5-T5` proof as authorization for new runtime implementation; future work needs its own scoped row.
 
 ## Validation And Handoff Notes
 

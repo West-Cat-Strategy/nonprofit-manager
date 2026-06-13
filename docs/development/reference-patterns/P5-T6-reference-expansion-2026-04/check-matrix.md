@@ -2,21 +2,23 @@
 
 **Last Updated:** 2026-04-25
 
+> Replay precondition: this matrix records the April 2026 compatibility-alias review. The `reference-repos/external/*` paths may be absent in a fresh checkout unless the central reference-repos workspace and ignored compatibility symlinks have been restored; use [../../../reference-repos.md](../../../reference-repos.md) and [../../../../reference-repos/README.md](../../../../reference-repos/README.md) for the current metadata-first posture before rerunning these commands.
+
 ## Workspace Integrity
 
 1. `git status --short --ignored=matching -- reference-repos`
-Reason: confirm only `reference-repos/README.md` and `reference-repos/manifest.lock.json` are tracked while clone compatibility symlinks remain ignored.
+   Reason: confirm only `reference-repos/README.md` and `reference-repos/manifest.lock.json` are tracked while clone compatibility symlinks remain ignored.
 
 2. `for repo in nm--primero nm--commcare-hq nm--avni-server nm--avni-webapp nm--givewp nm--oca-donation nm--oca-vertical-association nm--pretix nm--opencollective-api nm--opencollective-frontend nm--opencrvs-core nm--mautic; do git -C "reference-repos/external/$repo" rev-parse HEAD; done`
-Reason: verify the expansion clone set exists through compatibility symlinks and matches the pinned commits in `reference-repos/manifest.lock.json`.
+   Reason: verify the expansion clone set exists through compatibility symlinks and matches the pinned commits in `reference-repos/manifest.lock.json`.
 
 ## Tracked Docs
 
 1. `make check-links`
-Reason: validate the reference workspace README and expansion research docs.
+   Reason: validate the reference workspace README and expansion research docs.
 
 2. `make lint-doc-api-versioning`
-Reason: run only if a future edit adds or changes `/api/v2` examples in this wave. The initial expansion docs do not change API examples.
+   Reason: run only if a future edit adds or changes `/api/v2` examples in this wave. The initial expansion docs do not change API examples.
 
 ## Runtime Evidence
 

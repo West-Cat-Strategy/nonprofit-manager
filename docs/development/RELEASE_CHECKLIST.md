@@ -23,8 +23,8 @@ Run stricter checks when the change is high-risk or release-facing:
 - [ ] `make ci`
 - [ ] `make ci-full`
 - [ ] `cd backend && npm test -- src/__tests__/integration`
-- [ ] `make test-e2e-docker-smoke`
-- [ ] `cd e2e && npm run test:ci`
+
+`make ci-full` already includes the host Playwright CI matrix and the isolated Docker-backed smoke gate. Run standalone E2E follow-ons such as `make test-e2e-docker-smoke`, `cd e2e && npm run test:ci`, `cd e2e && npm run test:docker:ci`, or `cd e2e && npm run test:docker:audit` only when the first run failed before that slice, the review asks for a fresh artifact, or the changed surface has Docker/browser risk outside the default gate.
 
 Use [../../scripts/select-checks.sh](../../scripts/select-checks.sh) or the repo check matrix when the change set is smaller and you need a narrower validated sequence. Prefer `--mode strict` for shared runtime, hook, Docker, deploy, or runtime-doc changes.
 

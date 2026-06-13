@@ -84,8 +84,8 @@ make check-links
 make lint-doc-api-versioning
 make lint-openapi
 make test-tooling
-./scripts/select-checks.sh --base HEAD~1 --mode fast
-./scripts/select-checks.sh --base HEAD~1 --mode strict
+./scripts/select-checks.sh --mode fast
+./scripts/select-checks.sh --mode strict
 ```
 
 `cd backend && npm test` is the supported backend test runner. It delegates to `backend/scripts/run-full-tests.sh`, prepares/verifies the isolated test DB on `127.0.0.1:8012/nonprofit_manager_test`, then runs Jest in band.

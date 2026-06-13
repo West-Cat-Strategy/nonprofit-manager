@@ -1,15 +1,16 @@
 # Phase Documentation Archive
 
-**Last Updated:** 2026-06-10
+**Last Updated:** 2026-06-12
 
 Use this directory for historical phase notes, closeout artifacts, and earlier workboard material.
 
 ## Current Live Planning
 
-Top-level `docs/phases/` is now reserved for live planning only:
+Top-level `docs/phases/` is reserved for live planning and current-facing scope-control packets:
 
 - [../planning-and-progress.md](../planning-and-progress.md) — current tracked workboard
 - [../PHASE_5_DEVELOPMENT_PLAN.md](../PHASE_5_DEVELOPMENT_PLAN.md) — current Phase 5 roadmap
+- `P5-T6*` planning packets — retained as landed-baseline and backlog scope-control references, not active `P5-T3`/`P5-T5` pickups
 
 Do not use the files in this archive as the source of truth for current status.
 
@@ -22,6 +23,7 @@ Do not use the files in this archive as the source of truth for current status.
 - [P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md](P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md)
 - [P5_RUNTIME_REVIEW_CLOSEOUT_BATCH_2026-04-25.md](P5_RUNTIME_REVIEW_CLOSEOUT_BATCH_2026-04-25.md)
 - [P5_REVIEW_CLEANUP_PLANNING_CLOSEOUT_2026-04-25.md](P5_REVIEW_CLEANUP_PLANNING_CLOSEOUT_2026-04-25.md)
+- [P5-T11_MODULARITY_SIMPLICITY_REFACTOR_PLAN_2026-04-25.md](P5-T11_MODULARITY_SIMPLICITY_REFACTOR_PLAN_2026-04-25.md) - Historical modularity and simplicity refactor planning artifact; current modularization guardrails live in development Architecture, Ownership Map, Compatibility Ledger, and Testing docs.
 - [P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md](P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md)
 - [P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md](P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md)
 - [P5_REVIEW_QUEUE_CLOSEOUT_2026-04-30.md](P5_REVIEW_QUEUE_CLOSEOUT_2026-04-30.md)
@@ -36,7 +38,7 @@ Do not use the files in this archive as the source of truth for current status.
 - [P5_REVIEW_SUBAGENT_WAVE_CLOSEOUT_2026-05-09.md](P5_REVIEW_SUBAGENT_WAVE_CLOSEOUT_2026-05-09.md) - May 9 review-wave closeout, May 10 remaining-blocker removals, and May 11 main-merge reconciliation for `P5-T93` through `P5-T97`.
 - [P5_REVIEW_QUEUE_RECONCILIATION_CLOSEOUT_2026-05-15.md](P5_REVIEW_QUEUE_RECONCILIATION_CLOSEOUT_2026-05-15.md) - May 15 review-queue reconciliation that removed proof-complete `P5-T98` through `P5-T110`, `P5-T112`, `P5-T113`, `P5-T116` through `P5-T118`, and `P5-T120` through `P5-T123` from the live board while keeping caveat rows visible.
 - [P5_CODEBASE_REVIEW_CLEANUP_CLOSEOUT_2026-05-16.md](P5_CODEBASE_REVIEW_CLEANUP_CLOSEOUT_2026-05-16.md) - May 16 conservative codebase cleanup audit that cleared prior DB/Docker caveats, removed proof-complete `P5-T111`, `P5-T114`, `P5-T115`, `P5-T119`, and `P5-T124` through `P5-T134` from the live board, and left only `P5-T6`, `P5-T75`, and `P5-T135` live.
-- [P5_MAINLINE_PROOF_RECONCILIATION_CLOSEOUT_2026-06-10.md](P5_MAINLINE_PROOF_RECONCILIATION_CLOSEOUT_2026-06-10.md) - June 10 mainline proof reconciliation that removed proof-complete `P5-T135`, `P5-T136`, `P5-T137`, `P5-T138`, and `P5-T139` from the live board while keeping `P5-T6` as the backlog gate, `P5-T140` and `P5-T141` as Ready follow-ups, and `P5-T75` as the time-gated blocker.
+- [P5_MAINLINE_PROOF_RECONCILIATION_CLOSEOUT_2026-06-10.md](P5_MAINLINE_PROOF_RECONCILIATION_CLOSEOUT_2026-06-10.md) - June 10 mainline proof reconciliation that removed proof-complete `P5-T135`, `P5-T136`, `P5-T137`, `P5-T138`, and `P5-T139` from the live board, plus the June 12 follow-up that removed proof-complete `P5-T140` and `P5-T141` after their mainline merges while keeping `P5-T6` as the backlog gate and `P5-T75` as the time-gated blocker.
 
 ### Phase 4 Transition And Closeout
 

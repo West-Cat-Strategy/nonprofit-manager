@@ -12,17 +12,17 @@ The review compared the live nonprofit-manager repo against the central referenc
 
 ## Added Ready Rows
 
-| Row | Opportunity | Source pressure | First implementation boundary |
-|---|---|---|---|
-| `P5-T111` | Reference corpus clone-cache hygiene | Central profiles and manifest paths point at rebuildable clone targets that are not present locally | Prove metadata validity and re-cloneability; reconcile profile/manifest drift before source-level claims |
-| `P5-T112` | Typed appeal and campaign spine | CiviCRM and SuiteCRM campaign/appeal history; communications provider summaries | Add a local typed spine before broader campaign parity claims |
-| `P5-T113` | Donation batch close and control totals | OpenPetra batch controls; Fineract maker-checker posture; typed fund designations already exist | Add batch review, totals, exceptions, and audit events before deeper finance breadth |
-| `P5-T114` | Field-ready case packet | OpenSPP handoff/status patterns; Sahana field packet ergonomics | Extend the existing handoff packet; no offline sync or service-site routing in the first slice |
-| `P5-T115` | Service-site snapshot | OpenSPP and Sahana service-site routing pressure | Add optional typed service-site references while preserving free-text fallback |
-| `P5-T116` | Board and governance packet | SuiteCRM dashboard/list views; CiviCRM/OpenPetra governance reporting | Package existing report/dashboard/public-snapshot data as read-only packets |
-| `P5-T117` | Provider-fed campaign evidence ledger | Mautic, Mailchimp, listmonk, Keila, Mailtrain, and SendPortal campaign state vocabulary | Store provider summaries without tracking pixels or automation-canvas scope |
-| `P5-T118` | Public-action review polish | CiviCRM/SuiteCRM public-action and staff-review patterns | Improve history/artifact visibility in the existing Website Forms console |
-| `P5-T119` | Case-form condition authoring | Form.io, RJSF, OpnForm, and SurveyJS builder separation patterns | Add local controls over the current schema; do not adopt external runtimes |
+| Row       | Opportunity                             | Source pressure                                                                                     | First implementation boundary                                                                            |
+| --------- | --------------------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `P5-T111` | Reference corpus clone-cache hygiene    | Central profiles and manifest paths point at rebuildable clone targets that are not present locally | Prove metadata validity and re-cloneability; reconcile profile/manifest drift before source-level claims |
+| `P5-T112` | Typed appeal and campaign spine         | CiviCRM and SuiteCRM campaign/appeal history; communications provider summaries                     | Add a local typed spine before broader campaign parity claims                                            |
+| `P5-T113` | Donation batch close and control totals | OpenPetra batch controls; Fineract maker-checker posture; typed fund designations already exist     | Add batch review, totals, exceptions, and audit events before deeper finance breadth                     |
+| `P5-T114` | Field-ready case packet                 | OpenSPP handoff/status patterns; Sahana field packet ergonomics                                     | Extend the existing handoff packet; no offline sync or service-site routing in the first slice           |
+| `P5-T115` | Service-site snapshot                   | OpenSPP and Sahana service-site routing pressure                                                    | Add optional typed service-site references while preserving free-text fallback                           |
+| `P5-T116` | Board and governance packet             | SuiteCRM dashboard/list views; CiviCRM/OpenPetra governance reporting                               | Package existing report/dashboard/public-snapshot data as read-only packets                              |
+| `P5-T117` | Provider-fed campaign evidence ledger   | Mautic, Mailchimp, listmonk, Keila, Mailtrain, and SendPortal campaign state vocabulary             | Store provider summaries without tracking pixels or automation-canvas scope                              |
+| `P5-T118` | Public-action review polish             | CiviCRM/SuiteCRM public-action and staff-review patterns                                            | Improve history/artifact visibility in the existing Website Forms console                                |
+| `P5-T119` | Case-form condition authoring           | Form.io, RJSF, OpnForm, and SurveyJS builder separation patterns                                    | Add local controls over the current schema; do not adopt external runtimes                               |
 
 ## Metadata-First Reference Expansion
 
@@ -59,4 +59,4 @@ No central clone cache was hydrated, no compatibility symlinks were added, and n
 - This pass intentionally preserved the dirty runtime checkout and changed only tracking/proof docs.
 - No new reference clone cache was hydrated. The sync dry-run proves the seven additions are re-cloneable candidates without changing `/Users/bryan/projects/reference-repos/repos`.
 - The first implementation follow-up should pick one Ready row, update the workboard owner/status before runtime edits, and use focused tests for that row's seam.
-- Follow-up synthesis for the comprehensive strengthening batch is recorded in [../development/reference-patterns/P5-T111-comprehensive-strengthening-reference-synthesis-2026-05-15.md](../development/reference-patterns/P5-T111-comprehensive-strengthening-reference-synthesis-2026-05-15.md). It records the broader central-corpus groups and candidate metadata rows without authorizing source copying or product expansion beyond signed-out rows.
+- Follow-up synthesis for the comprehensive strengthening batch is recorded in [../development/reference-patterns/P5-T111-comprehensive-strengthening-reference-synthesis-2026-05-15.md](../../development/reference-patterns/P5-T111-comprehensive-strengthening-reference-synthesis-2026-05-15.md). It records the broader central-corpus groups and candidate metadata rows without authorizing source copying or product expansion beyond signed-out rows.

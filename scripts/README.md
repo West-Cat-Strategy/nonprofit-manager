@@ -35,7 +35,7 @@ Prefer the `make` targets when they exist. Call the scripts directly when you ne
 | [e2e-playwright.sh](e2e-playwright.sh)                             | Apply the repo's standard host or Docker Playwright defaults before delegating to the shared runner, while still honoring explicit runtime overrides such as `BASE_URL`, `API_URL`, and `E2E_*_PORT`.                                               | `e2e` package scripts                                                                                                                        |
 | [e2e-run-with-lock.sh](e2e-run-with-lock.sh)                       | Run Playwright with the shared lock plus built-in port safeguards and externally managed HTTP-readiness preflight/retry checks.                                                                                                                     | `e2e` package scripts                                                                                                                        |
 | [e2e-host-ci-report.sh](e2e-host-ci-report.sh)                     | Run the host Playwright CI lane with timestamped archived report artifacts under `tmp/e2e-reports/`, then open the matching preserved report in the background.                                                                                     | `cd e2e && npm run test:ci:report`                                                                                                           |
-| [e2e-docker-ci-report.sh](e2e-docker-ci-report.sh)                 | Run Docker-backed CI or dark-mode audit review lanes with timestamped per-slice report artifacts under `tmp/e2e-reports/` so `e2e/test-results.json` is not reused between slices.                                                                  | `cd e2e && npm run test:docker:ci:report` / `npm run test:docker:audit:report`                                                               |
+| [e2e-docker-ci-report.sh](e2e-docker-ci-report.sh)                 | Run Docker-backed CI or dark-mode audit review lanes with timestamped per-slice report artifacts under `tmp/e2e-reports/` so `e2e/test-results.json` is not reused between slices.                                                                  | `cd e2e && npm run test:docker:ci:report` / `cd e2e && npm run test:docker:audit:report`                                                     |
 | [wait-for-http-ready.sh](wait-for-http-ready.sh)                   | Poll one or more local HTTP endpoints until they answer successfully.                                                                                                                                                                               | `make docker-up-dev` / `make test-e2e-docker-smoke`                                                                                          |
 
 ## Policy Checks
@@ -109,12 +109,12 @@ Add `make lint-doc-api-versioning` only when API route wording, examples, or ver
 If you need a narrower sequence, ask the selector helper for a recommendation:
 
 ```bash
-./scripts/select-checks.sh --base HEAD~1 --mode fast
+./scripts/select-checks.sh --mode fast
 ```
 
 Use `--mode fast` for scoped changes where one owned package or tool surface changed. Use `--mode strict` when the change touches shared runtime orchestration, Docker/test wrappers, hooks, E2E config, runtime-facing docs, or review work that needs higher-confidence root checks.
 Runtime-facing docs in strict mode emit `make test-tooling` before the broader coverage gate.
-The selector includes committed, dirty, staged, and untracked files unless you pass an explicit `--files` list. Package and lockfile changes route to `npm run knip` plus `make security-audit`; `knip.json` routes to `npm run knip`; OpenAPI changes route to `make lint-openapi`; Docker/public-site runtime files route through Docker overlay or smoke proof when the file set requires it.
+The selector includes committed changes from its default base plus dirty, staged, and untracked files unless you pass an explicit `--files` list. Pass `--base <ref>` only for intentional branch or base comparisons. Package and lockfile changes route to `npm run knip` plus `make security-audit`; `knip.json` routes to `npm run knip`; OpenAPI changes route to `make lint-openapi`; Docker/public-site runtime files route through Docker overlay or smoke proof when the file set requires it.
 Code and runtime changes should emit at least one behavior-test command. Docs-only changes stay on docs validation.
 
 The legacy `verify.sh` and `verify-pr.sh` scripts are retained only for

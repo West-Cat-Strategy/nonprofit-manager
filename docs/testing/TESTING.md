@@ -8,15 +8,15 @@ CI/CD is local-only. GitHub remains the repository host, but tracked GitHub Acti
 
 ## Guide Map
 
-| Need | Status | Doc |
-|---|---|---|
-| Repo-wide validation choices and command defaults | Active | This file |
-| Frontend component-test patterns | Active, scoped | [COMPONENT_TESTING.md](COMPONENT_TESTING.md) |
-| Backend Jest integration workflow | Active, scoped | [INTEGRATION_TEST_GUIDE.md](INTEGRATION_TEST_GUIDE.md) |
-| Playwright runtime wrappers and browser contracts | Active, scoped | [../../e2e/README.md](../../e2e/README.md) |
-| Dark-mode accessibility audit flow | Active, focused | [DARK_MODE_ACCESSIBILITY_AUDIT.md](DARK_MODE_ACCESSIBILITY_AUDIT.md) |
-| Legacy verifier reproduction notes | Historical only | [../verification/VERIFICATION_SYSTEM.md](../verification/VERIFICATION_SYSTEM.md) |
-| Historical testing references | Historical only | [archive/README.md](archive/README.md) |
+| Need                                              | Status          | Doc                                                                              |
+| ------------------------------------------------- | --------------- | -------------------------------------------------------------------------------- |
+| Repo-wide validation choices and command defaults | Active          | This file                                                                        |
+| Frontend component-test patterns                  | Active, scoped  | [COMPONENT_TESTING.md](COMPONENT_TESTING.md)                                     |
+| Backend Jest integration workflow                 | Active, scoped  | [INTEGRATION_TEST_GUIDE.md](INTEGRATION_TEST_GUIDE.md)                           |
+| Playwright runtime wrappers and browser contracts | Active, scoped  | [../../e2e/README.md](../../e2e/README.md)                                       |
+| Dark-mode accessibility audit flow                | Active, focused | [DARK_MODE_ACCESSIBILITY_AUDIT.md](DARK_MODE_ACCESSIBILITY_AUDIT.md)             |
+| Legacy verifier reproduction notes                | Historical only | [../verification/VERIFICATION_SYSTEM.md](../verification/VERIFICATION_SYSTEM.md) |
+| Historical testing references                     | Historical only | [archive/README.md](archive/README.md)                                           |
 
 ## Validation Lanes
 
@@ -24,20 +24,20 @@ Choose the smallest lane that proves the changed behavior. Broaden only when the
 
 Use this confidence ladder before choosing commands:
 
-| Risk Level | Use When | Default Proof |
-|---|---|---|
-| Docs/static | Markdown, policy text, or static helper docs changed without runtime semantics | `make check-links`, plus API/OpenAPI docs checks only when those docs changed |
-| Package surface | One backend, frontend, E2E, contracts, database, or tooling surface changed | `./scripts/select-checks.sh --base HEAD~1 --mode fast`, then run the emitted package/tooling checks |
-| Cross-layer behavior | More than one runtime surface changed, or the change depends on backend/frontend/E2E interaction | `make lint`, `make typecheck`, and `make test` |
-| Coverage/full | Runtime orchestration, wrapper behavior, coverage posture, or high-confidence review proof changed | `make test-coverage-full`, or `make ci-full` when lint/typecheck/build/security-audit should run with it |
-| Release/security | Release candidates, dependency/security evidence, Docker packaging, or secret-scan proof is needed | `make release-check`, `make security-scan`, and explicit Docker/E2E review follow-ons when they prove risk outside the default gate |
+| Risk Level           | Use When                                                                                           | Default Proof                                                                                                                       |
+| -------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Docs/static          | Markdown, policy text, or static helper docs changed without runtime semantics                     | `make check-links`, plus API/OpenAPI docs checks only when those docs changed                                                       |
+| Package surface      | One backend, frontend, E2E, contracts, database, or tooling surface changed                        | `./scripts/select-checks.sh --mode fast`, then run the emitted package/tooling checks                                               |
+| Cross-layer behavior | More than one runtime surface changed, or the change depends on backend/frontend/E2E interaction   | `make lint`, `make typecheck`, and `make test`                                                                                      |
+| Coverage/full        | Runtime orchestration, wrapper behavior, coverage posture, or high-confidence review proof changed | `make test-coverage-full`, or `make ci-full` when lint/typecheck/build/security-audit should run with it                            |
+| Release/security     | Release candidates, dependency/security evidence, Docker packaging, or secret-scan proof is needed | `make release-check`, `make security-scan`, and explicit Docker/E2E review follow-ons when they prove risk outside the default gate |
 
-| Lane | Use When | Primary Commands |
-|---|---|---|
-| Narrow selector/package proof | Small docs, backend, frontend, E2E, tooling, or database changes where one owned surface changed | `./scripts/select-checks.sh --base HEAD~1 --mode fast`, or a targeted package command from the selector output |
-| Repo behavior gate | Cross-layer behavior needs the normal repo acceptance path without coverage/release overhead | `make lint`, `make typecheck`, `make test` |
-| Coverage/full gate | Coverage, CI-parity, runtime-doc strict-mode, or high-confidence review proof is needed | `make test-coverage-full`, or `make ci-full` when lint/typecheck/build/security-audit should run with it |
-| Release/review follow-ons | Release candidates, broad browser/runtime review, Docker-only risk, dark-mode route audit, MFA/setup/session risk, or explicit reviewer/workboard follow-up | `make release-check`, `cd e2e && npm run test:docker:ci`, `cd e2e && npm run test:docker:audit`, or the fresh starter-only MFA command in [../../e2e/README.md](../../e2e/README.md) |
+| Lane                          | Use When                                                                                                                                                    | Primary Commands                                                                                                                                                                     |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Narrow selector/package proof | Small docs, backend, frontend, E2E, tooling, or database changes where one owned surface changed                                                            | `./scripts/select-checks.sh --mode fast`, or a targeted package command from the selector output                                                                                     |
+| Repo behavior gate            | Cross-layer behavior needs the normal repo acceptance path without coverage/release overhead                                                                | `make lint`, `make typecheck`, `make test`                                                                                                                                           |
+| Coverage/full gate            | Coverage, CI-parity, runtime-doc strict-mode, or high-confidence review proof is needed                                                                     | `make test-coverage-full`, or `make ci-full` when lint/typecheck/build/security-audit should run with it                                                                             |
+| Release/review follow-ons     | Release candidates, broad browser/runtime review, Docker-only risk, dark-mode route audit, MFA/setup/session risk, or explicit reviewer/workboard follow-up | `make release-check`, `cd e2e && npm run test:docker:ci`, `cd e2e && npm run test:docker:audit`, or the fresh starter-only MFA command in [../../e2e/README.md](../../e2e/README.md) |
 
 Docs-only changes normally stay on `make check-links`. Add `make lint-doc-api-versioning` only when API route wording, API examples, or versioned API docs changed; add `make lint-openapi` only when `docs/api/openapi.yaml` changed. Runtime-facing docs such as this file, [../development/AGENT_INSTRUCTIONS.md](../development/AGENT_INSTRUCTIONS.md), [../../e2e/README.md](../../e2e/README.md), and [../../scripts/README.md](../../scripts/README.md) should use selector strict-mode when the wording changes command semantics, ports, wrappers, or orchestration expectations; that strict lane includes tooling-contract proof before broader runtime proof.
 
@@ -45,23 +45,23 @@ Use selector modes this way:
 
 - `--mode fast` is the default for scoped implementation work. It emits the smallest safe package/tooling/database/E2E slice for the changed files and still includes dependency, security-audit, Knip, Docker-smoke, or DB verification when the file set calls for them.
 - `--mode strict` is for shared runtime or confidence-sensitive changes: Make/script orchestration, Docker/test wrappers, hooks, runtime-facing docs, database orchestration, E2E config, and review lanes where a focused proof would miss integration risk.
-- Pass `--files "<file list>"` when you need a planned or exact final-diff proof. Without `--files`, the selector includes committed changes from the chosen base plus dirty, staged, and untracked files in the current worktree.
+- Pass `--files "<file list>"` when you need a planned or exact final-diff proof. Without `--files`, the selector includes committed changes from its default base plus dirty, staged, and untracked files in the current worktree. Pass `--base <ref>` only for intentional branch or base comparisons.
 - Run the emitted commands in order. `make check-changed ARGS=--run` shells through selector output, so selector commands must remain static repo-owned strings and covered by `make test-tooling`.
 
 ## Test Layers
 
-| Layer | Primary Command | Notes |
-|------|------------------|-------|
-| DB contract verification | `make db-verify` | Rebuilds the isolated `_test` database and checks manifest/initdb parity, starter bootstrap seeds, the disposable app-role/RLS probe, known superseded indexes, and the audit-log future partition window. Required when migrations, `database/migrations/manifest.tsv`, or `database/initdb/000_init.sql` change. |
-| Contracts export smoke | `make typecheck` | Verifies the type-only `contracts` workspace through its export/type smoke check; this is part of repo-wide type validation, not a runtime test or coverage lane |
-| Repo-wide validation | `make test` | Runs backend/frontend tests, the host Playwright CI matrix, and the isolated Docker-backed smoke gate |
-| Coverage variant (fast local lane) | `make test-coverage` | Runs backend/frontend coverage, host Playwright smoke, and the isolated Docker-backed smoke gate |
-| Coverage gate (full behavior lane) | `make test-coverage-full` | Runs backend/frontend coverage, the host Playwright CI matrix, and the isolated Docker-backed smoke gate |
-| Backend unit/integration | `cd backend && npm test` / `cd backend && npm test -- src/__tests__/integration` | `npm test` invokes `backend/scripts/run-full-tests.sh`, prepares the isolated test DB, verifies `127.0.0.1:8012/nonprofit_manager_test`, then runs Jest in band. Use direct `npx jest ...` only after that DB contract is already prepared or explicitly pinned. |
-| Frontend unit/component | `cd frontend && npm test -- --run` | Frontend uses Vitest |
-| E2E | `cd e2e && npm test` | Host wrappers use Playwright-managed `5173/3001`; Docker wrappers default to externally managed `8005/8004/8006`; the root smoke gate provisions isolated `18005/18004/18006`. See [../../e2e/README.md](../../e2e/README.md) for wrapper flags, preserved reports, Docker review env, MFA proof, and manual mobile projects. |
-| Docs validation | `make check-links` | Use for any docs change; add `make lint-doc-api-versioning` when API wording/examples or versioned API docs changed; add `make lint-openapi` when `docs/api/openapi.yaml` changed |
-| Tooling regression coverage | `make test-tooling` | Targeted contract suite for route-audit, OpenAPI contract lint, selector, helper-script, and wrapper changes |
+| Layer                              | Primary Command                                                                  | Notes                                                                                                                                                                                                                                                                                                                         |
+| ---------------------------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DB contract verification           | `make db-verify`                                                                 | Rebuilds the isolated `_test` database and checks manifest/initdb parity, starter bootstrap seeds, the disposable app-role/RLS probe, known superseded indexes, and the audit-log future partition window. Required when migrations, `database/migrations/manifest.tsv`, or `database/initdb/000_init.sql` change.            |
+| Contracts export smoke             | `make typecheck`                                                                 | Verifies the type-only `contracts` workspace through its export/type smoke check; this is part of repo-wide type validation, not a runtime test or coverage lane                                                                                                                                                              |
+| Repo-wide validation               | `make test`                                                                      | Runs backend/frontend tests, the host Playwright CI matrix, and the isolated Docker-backed smoke gate                                                                                                                                                                                                                         |
+| Coverage variant (fast local lane) | `make test-coverage`                                                             | Runs backend/frontend coverage, host Playwright smoke, and the isolated Docker-backed smoke gate                                                                                                                                                                                                                              |
+| Coverage gate (full behavior lane) | `make test-coverage-full`                                                        | Runs backend/frontend coverage, the host Playwright CI matrix, and the isolated Docker-backed smoke gate                                                                                                                                                                                                                      |
+| Backend unit/integration           | `cd backend && npm test` / `cd backend && npm test -- src/__tests__/integration` | `npm test` invokes `backend/scripts/run-full-tests.sh`, prepares the isolated test DB, verifies `127.0.0.1:8012/nonprofit_manager_test`, then runs Jest in band. Use direct `npx jest ...` only after that DB contract is already prepared or explicitly pinned.                                                              |
+| Frontend unit/component            | `cd frontend && npm test -- --run`                                               | Frontend uses Vitest                                                                                                                                                                                                                                                                                                          |
+| E2E                                | `cd e2e && npm test`                                                             | Host wrappers use Playwright-managed `5173/3001`; Docker wrappers default to externally managed `8005/8004/8006`; the root smoke gate provisions isolated `18005/18004/18006`. See [../../e2e/README.md](../../e2e/README.md) for wrapper flags, preserved reports, Docker review env, MFA proof, and manual mobile projects. |
+| Docs validation                    | `make check-links`                                                               | Use for any docs change; add `make lint-doc-api-versioning` when API wording/examples or versioned API docs changed; add `make lint-openapi` when `docs/api/openapi.yaml` changed                                                                                                                                             |
+| Tooling regression coverage        | `make test-tooling`                                                              | Targeted contract suite for route-audit, OpenAPI contract lint, selector, helper-script, and wrapper changes                                                                                                                                                                                                                  |
 
 ## Runtime Preflight
 
@@ -71,25 +71,25 @@ When `SKIP_INTEGRATION_DB_PREP=1` is set, the preflight requires the isolated DB
 
 ## Local Release Gates
 
-| Need | Command | Notes |
-|---|---|---|
-| Release proof without deploy | `make release-check` | Runs `make ci-full`, `make security-scan`, `make docker-validate`, generates a local CycloneDX SBOM, and validates the SBOM JSON under ignored `tmp/local-release/<timestamp>/` |
-| Staging release handoff | `make release-staging` | Runs the same local gate before delegating to `scripts/deploy.sh staging`; deployment remains a dry run unless `DEPLOY_EXECUTE=1` is set |
-| Production release handoff | `make release-production` | Runs the same local gate before delegating to `scripts/deploy.sh production`; deployment remains a dry run unless `DEPLOY_EXECUTE=1` is set |
+| Need                         | Command                   | Notes                                                                                                                                                                           |
+| ---------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Release proof without deploy | `make release-check`      | Runs `make ci-full`, `make security-scan`, `make docker-validate`, generates a local CycloneDX SBOM, and validates the SBOM JSON under ignored `tmp/local-release/<timestamp>/` |
+| Staging release handoff      | `make release-staging`    | Runs the same local gate before delegating to `scripts/deploy.sh staging`; deployment remains a dry run unless `DEPLOY_EXECUTE=1` is set                                        |
+| Production release handoff   | `make release-production` | Runs the same local gate before delegating to `scripts/deploy.sh production`; deployment remains a dry run unless `DEPLOY_EXECUTE=1` is set                                     |
 
 Use `make release-check` for release-facing proof and before cutting a deploy candidate. Keep GitHub-native repository security settings such as npm Dependabot, vulnerability alerts, and secret scanning enabled when available, but do not treat them as CI/CD gates.
 
 ## Runtime Matrix
 
-| Context | Frontend | Backend | Public Site | Notes |
-|---------|----------|---------|-------------|-------|
-| Docker development, lean | `8005` | `8004` | n/a | Started with `make dev-lite`; omits public-site/Caddy for daily API/app work |
-| Docker development, full | `8005` | `8004` | `8006` | Started with `make dev`; includes public-site runtime |
-| Direct backend runtime | n/a | `3000` | n/a | `cd backend && npm run dev` |
-| Direct public-site runtime | n/a | n/a | `8006` | `cd backend && PORT=8006 npm run dev:public` |
-| Playwright host harness | `5173` | `3001` | `3001` | Started by Playwright; host wrappers may auto-select a frontend port starting at `5317` if `5173` is occupied |
-| Docker-backed E2E review stack | `8005` | `8004` | `8006` | Start a long-lived stack with review env flags, then run `cd e2e && npm run test:docker*` |
-| Docker-backed E2E isolated smoke gate | `18005` | `18004` | `18006` | Provisioned by `make test-e2e-docker-smoke`; uses compose project `nonprofit-smoke` and tears down unless `KEEP_SMOKE_STACK=1` |
+| Context                               | Frontend | Backend | Public Site | Notes                                                                                                                          |
+| ------------------------------------- | -------- | ------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Docker development, lean              | `8005`   | `8004`  | n/a         | Started with `make dev-lite`; omits public-site/Caddy for daily API/app work                                                   |
+| Docker development, full              | `8005`   | `8004`  | `8006`      | Started with `make dev`; includes public-site runtime                                                                          |
+| Direct backend runtime                | n/a      | `3000`  | n/a         | `cd backend && npm run dev`                                                                                                    |
+| Direct public-site runtime            | n/a      | n/a     | `8006`      | `cd backend && PORT=8006 npm run dev:public`                                                                                   |
+| Playwright host harness               | `5173`   | `3001`  | `3001`      | Started by Playwright; host wrappers may auto-select a frontend port starting at `5317` if `5173` is occupied                  |
+| Docker-backed E2E review stack        | `8005`   | `8004`  | `8006`      | Start a long-lived stack with review env flags, then run `cd e2e && npm run test:docker*`                                      |
+| Docker-backed E2E isolated smoke gate | `18005`  | `18004` | `18006`     | Provisioned by `make test-e2e-docker-smoke`; uses compose project `nonprofit-smoke` and tears down unless `KEEP_SMOKE_STACK=1` |
 
 The host Playwright harness starts its own frontend/backend processes. The Docker dev/review mode targets an already-running compose stack and requires `SKIP_WEBSERVER=1`; for review commands, launch that stack with `DEV_NODE_ENV=test DEV_BYPASS_REGISTRATION_POLICY_IN_TEST=true DEV_BYPASS_MFA_FOR_TESTS=true`. The isolated smoke gate is separate from the long-lived dev stack and self-provisions the full app plus public-site runtime.
 
@@ -149,13 +149,12 @@ Use this lane when the workboard calls for the Phase 5-style browser and runtime
 
 ```bash
 make ci-full
-make test-e2e-docker-smoke
 cd e2e && npm run test:docker:ci
 cd e2e && npm run test:docker:audit
 ```
 
 `make ci-full` is the plain repo-root host/full lane. It already covers lint, typecheck, backend/frontend coverage, the host Playwright CI matrix, build, and the isolated Docker smoke gate.
-Because `make ci-full` already includes `make test-e2e-docker-smoke`, do not rerun the isolated smoke gate just for ceremony. Keep `make test-e2e-docker-smoke` in the review sequence when you want a fresh standalone smoke proof after the host lane, when the first run failed before that target, or when you reached host confidence through a narrower rerun instead of a clean repo-root `make ci-full`.
+Because `make ci-full` already includes `make test-e2e-docker-smoke`, do not rerun the isolated smoke gate just for ceremony. Run `make test-e2e-docker-smoke` as a conditional follow-on when you want a fresh standalone smoke proof after the host lane, when the first run failed before that target, or when you reached host confidence through a narrower rerun instead of a clean repo-root `make ci-full`.
 If `make ci-full` already finished cleanly and you do not need a separate smoke rerun artifact, proceed directly to `cd e2e && npm run test:docker:ci` and `cd e2e && npm run test:docker:audit`.
 Docker must still be running locally for `make ci-full`, because the host review lane still depends on the Docker-backed Redis sidecar and isolated test DB bootstrap before Playwright starts.
 If the host frontend port `5173` is already occupied, the Playwright host wrapper now auto-selects an alternate frontend port starting with `5317`. You can still pin one explicitly with `E2E_FRONTEND_PORT=<open-port>` such as `E2E_FRONTEND_PORT=5317 make ci-full` or `cd e2e && E2E_FRONTEND_PORT=5317 npm run test:ci:report`.
@@ -312,18 +311,18 @@ make lint-doc-api-versioning
 
 - Add `make lint-doc-api-versioning` when API wording, API examples, or versioned API docs changed.
 - Add `make db-verify` when migration docs, manifest/initdb parity, or database contract expectations changed.
-- Use `./scripts/select-checks.sh --base HEAD~1 --mode strict` for runtime-facing docs when command meanings, ports, wrappers, Docker modes, or orchestration expectations changed; run the emitted `make test-tooling` before the broader runtime gate so selector and wrapper assumptions are proved cheaply.
+- Use `./scripts/select-checks.sh --mode strict` for runtime-facing docs when command meanings, ports, wrappers, Docker modes, or orchestration expectations changed; run the emitted `make test-tooling` before the broader runtime gate so selector and wrapper assumptions are proved cheaply. Pass `--base <ref>` only when intentionally comparing against a non-default base.
 
 ## Choosing A Smaller Check Set
 
 When the change set does not justify the full suite, use the repo selector:
 
 ```bash
-./scripts/select-checks.sh --base HEAD~1 --mode fast
+./scripts/select-checks.sh --mode fast
 ```
 
 Use `--mode strict` when the change touches shared runtime orchestration, Docker/test wrappers, hooks, or runtime-facing docs and you want the selector to broaden into higher-confidence root checks. Runtime-facing docs in strict mode include `make test-tooling` before the broader coverage gate.
-The selector includes committed changes, staged changes, dirty tracked files, and untracked files by default. Pass `--files "<file list>"` when you need to test a planned or synthetic file set instead of the current worktree.
+The selector includes committed changes from its default base plus staged, dirty tracked, and untracked files by default. Pass `--base <ref>` only for intentional comparisons, or pass `--files "<file list>"` when you need to test a planned or synthetic file set instead of the current worktree.
 Run the emitted commands in order.
 Code and runtime changes should include at least one behavior-test command; docs-only changes stay on `make check-links` unless API wording/examples changed.
 

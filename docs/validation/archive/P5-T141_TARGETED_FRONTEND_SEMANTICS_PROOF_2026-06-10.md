@@ -1,7 +1,7 @@
 # P5-T141 Targeted Frontend Semantics Proof - 2026-06-10
 
 **Workboard Row:** `P5-T141`
-**Status:** Review-ready targeted frontend semantics follow-through
+**Status:** Proof-complete; removed from live board ownership by 2026-06-12 docs-only reconciliation
 
 ## Scope
 
@@ -18,6 +18,12 @@ Out of scope:
 - Route path, permission, API contract, response shape, backend, migration, production, and visual redesign changes.
 - Broader UI copy, layout, or workflow expansion.
 - `P5-T140` side-effect-free tooling fixture cleanup.
+
+## Mainline Disposition
+
+This row landed on `main` via `b88abf5d` (`Merge branch 'p5-t141-targeted-frontend-semantics'`). The June 12 docs-only reconciliation removed `P5-T141` from the live workboard as proof-complete while keeping this row-local proof indexed in [archive/README.md](README.md).
+
+Future frontend-semantics follow-up should open as a new signed-out row rather than reusing `P5-T141`.
 
 ## Changes
 

@@ -16,12 +16,12 @@
 
 Read-only subagents split 121 sorted candidate duplicate-name groups into thirds and returned decision evidence only.
 
-| Lane | Groups | Held rows | `merge_to_anchor` | `keep_held` |
-|---|---:|---:|---:|---:|
-| A | 41 | 72 | 71 | 1 |
-| B | 41 | 67 | 67 | 0 |
-| C | 39 | 57 | 56 | 1 |
-| Reconciled | 121 | 196 | 194 | 2 |
+| Lane       | Groups | Held rows | `merge_to_anchor` | `keep_held` |
+| ---------- | -----: | --------: | ----------------: | ----------: |
+| A          |     41 |        72 |                71 |           1 |
+| B          |     41 |        67 |                67 |           0 |
+| C          |     39 |        57 |                56 |           1 |
+| Reconciled |    121 |       196 |               194 |           2 |
 
 The two `keep_held` rows remain held for manual review:
 
@@ -49,28 +49,28 @@ Baseline: `/Users/bryan/Desktop/CBIS Data/normalized_candidate_bundle_20260512T1
 
 New: `/Users/bryan/Desktop/CBIS Data/normalized_candidate_bundle_20260512T205918Z`
 
-| Metric | Baseline | New | Delta |
-|---|---:|---:|---:|
-| Contact rows | 1560 | 1366 | -194 |
-| Contacts `ready` | 1293 | 1293 | 0 |
-| Contacts `review_required` | 267 | 73 | -194 |
-| Duplicate contact review rows | 597 | 285 | -312 |
-| Decision audit rows | 0 | 196 | +196 |
-| Entity mapping rows | 37106 | 37106 | 0 |
-| Gap rows | 103 | 103 | 0 |
-| Total ready rows | 17026 | 17026 | 0 |
-| Total review-required rows | 280 | 86 | -194 |
+| Metric                        | Baseline |   New | Delta |
+| ----------------------------- | -------: | ----: | ----: |
+| Contact rows                  |     1560 |  1366 |  -194 |
+| Contacts `ready`              |     1293 |  1293 |     0 |
+| Contacts `review_required`    |      267 |    73 |  -194 |
+| Duplicate contact review rows |      597 |   285 |  -312 |
+| Decision audit rows           |        0 |   196 |  +196 |
+| Entity mapping rows           |    37106 | 37106 |     0 |
+| Gap rows                      |      103 |   103 |     0 |
+| Total ready rows              |    17026 | 17026 |     0 |
+| Total review-required rows    |      280 |    86 |  -194 |
 
 Dependent held-cluster redirect proof:
 
-| Entity | Baseline held contact refs | New held contact refs | New anchor redirects |
-|---|---:|---:|---:|
-| Activities | 916 | 0 | 916 |
-| Event registrations | 763 | 0 | 763 |
-| Cases | 0 | 0 | 0 |
-| Volunteers | 0 | 0 | 0 |
-| Volunteer hours | 0 | 0 | 0 |
-| Follow-ups | 0 | 0 | 0 |
+| Entity              | Baseline held contact refs | New held contact refs | New anchor redirects |
+| ------------------- | -------------------------: | --------------------: | -------------------: |
+| Activities          |                        916 |                     0 |                  916 |
+| Event registrations |                        763 |                     0 |                  763 |
+| Cases               |                          0 |                     0 |                    0 |
+| Volunteers          |                          0 |                     0 |                    0 |
+| Volunteer hours     |                          0 |                     0 |                    0 |
+| Follow-ups          |                          0 |                     0 |                    0 |
 
 Additional checks:
 

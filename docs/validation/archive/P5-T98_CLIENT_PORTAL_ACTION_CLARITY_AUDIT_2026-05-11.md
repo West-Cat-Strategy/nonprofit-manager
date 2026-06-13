@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-11  
 **Status:** Review  
-**Workboard row:** [P5-T98](../phases/planning-and-progress.md)
+**Workboard row:** [P5-T98](../../phases/planning-and-progress.md)
 
 ## Scope
 

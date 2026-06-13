@@ -6,7 +6,7 @@ Use this guide when the repo is not behaving like the setup or validation docs s
 
 ## Start With The Right Contract
 
-- Docker development uses frontend `8005`, backend `8004`, Postgres `8002`, and Redis `8003`.
+- Docker development uses lean `make dev-lite` or full `make dev`; [GETTING_STARTED.md](GETTING_STARTED.md) owns the full runtime matrix. Both expose frontend `8005`, backend `8004`, Postgres `8002`, and Redis `8003`; full `make dev` also starts the public-site runtime and worker.
 - Direct backend runtime uses `3000` unless you changed `backend/.env`.
 - The Playwright harness defaults to frontend `5173` and backend `3001`.
 - If a doc, script, or test assumes a different host or port, verify which runtime you actually chose before debugging deeper.

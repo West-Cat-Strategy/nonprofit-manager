@@ -53,7 +53,7 @@ cd backend && SKIP_INTEGRATION_DB_PREP=1 npm test -- src/__tests__/integration/p
 cd backend && npm test -- src/__tests__/services/donationService.test.ts src/modules/events/services/__tests__/eventCatalogService.webhooks.test.ts src/__tests__/services/webhookService.delivery.test.ts src/modules/events/controllers/__tests__/events.controller.test.ts src/modules/webhooks/controllers/__tests__/webhookController.test.ts --runInBand
 cd backend && SKIP_INTEGRATION_DB_PREP=1 npm test -- src/__tests__/integration/webhooks.test.ts --runInBand
 make check-links
-./scripts/select-checks.sh --base HEAD~1 --mode fast
+./scripts/select-checks.sh --mode fast
 make security-audit
 cd frontend && npm test -- --run
 cd backend && npm test -- src/__tests__/integration/contacts.test.ts --runInBand

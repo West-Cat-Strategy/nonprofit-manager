@@ -19,15 +19,15 @@ Nonprofit Manager is worth evaluating if your organization needs to:
 
 ## Who Benefits
 
-| Audience | Adoption value |
-|---|---|
-| Executive directors and leadership teams | Organization-wide visibility, operating discipline, governance support, risk review, and board-ready reporting |
-| Operations leads and administrators | Shared records, role-aware staff workflows, repeatable processes, integrations, and deployment control |
-| Program and service teams | Intake, cases, forms, appointments, documents, follow-ups, reminders, and service-delivery coordination |
-| Volunteer coordinators | Volunteer profiles, assignments, opportunities, hour tracking, events, attendance, and follow-up |
-| Fundraising and development teams | Donors, gifts, recurring giving, reconciliation, campaigns, receipts, stewardship, grants, and reports |
-| Communications staff | Website publishing, newsletters, public forms, events, public engagement workflows, and operational dashboards |
-| Clients, participants, and community members | Portal access for selected forms, messages, appointments, cases, documents, and reminders |
+| Audience                                     | Adoption value                                                                                                 |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Executive directors and leadership teams     | Organization-wide visibility, operating discipline, governance support, risk review, and board-ready reporting |
+| Operations leads and administrators          | Shared records, role-aware staff workflows, repeatable processes, integrations, and deployment control         |
+| Program and service teams                    | Intake, cases, forms, appointments, documents, follow-ups, reminders, and service-delivery coordination        |
+| Volunteer coordinators                       | Volunteer profiles, assignments, opportunities, hour tracking, events, attendance, and follow-up               |
+| Fundraising and development teams            | Donors, gifts, recurring giving, reconciliation, campaigns, receipts, stewardship, grants, and reports         |
+| Communications staff                         | Website publishing, newsletters, public forms, events, public engagement workflows, and operational dashboards |
+| Clients, participants, and community members | Portal access for selected forms, messages, appointments, cases, documents, and reminders                      |
 
 ## What It Helps Organizations Do
 
@@ -79,7 +79,7 @@ Start with the product material, then move into implementation detail only when 
 
 For the full documentation catalog, use [docs/README.md](docs/README.md). For API integration details, use [docs/api/README.md](docs/api/README.md). For contributor workflow, start with [CONTRIBUTING.md](CONTRIBUTING.md).
 
-For terminology around developer agents, multi-agent coordination, and HTTP `User-Agent` tracking, see [agents.md](agents.md).
+For terminology around developer agents, multi-agent coordination, and HTTP `User-Agent` tracking, see [AGENTS.md](AGENTS.md).
 
 ## License
 

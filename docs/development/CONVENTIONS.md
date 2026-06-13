@@ -22,7 +22,7 @@ Package-level type checking uses `npm run type-check`, not `npm run typecheck`.
 
 ## Runtime And Env Conventions
 
-- Docker development uses `make dev` and exposes frontend `8005`, backend `8004`, Postgres `8002`, and Redis `8003`.
+- Docker development uses either lean `make dev-lite` or full `make dev`; [GETTING_STARTED.md](GETTING_STARTED.md) owns the runtime matrix. Both expose frontend `8005`, backend `8004`, Postgres `8002`, and Redis `8003`; the full stack also starts the public-site runtime and worker.
 - Direct backend runtime defaults to `3000`.
 - Direct frontend runtime defaults to `8005` and should point at the backend you choose.
 - The Playwright harness defaults to frontend `5173` and backend `3001`.
