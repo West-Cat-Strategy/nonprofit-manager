@@ -186,7 +186,7 @@ describe('AvailabilityCalendar', () => {
     }
   });
 
-  it('should not call onDateClick when clicking on a date without assignments', () => {
+  it('should not call onDateClick when clicking on a current-month date without assignments', () => {
     const mockOnDateClick = vi.fn();
     renderWithProviders(
       <AvailabilityCalendar
@@ -195,9 +195,11 @@ describe('AvailabilityCalendar', () => {
       />
     );
 
-    // Try to find a date without assignments and click it
-    // This would need to find an empty date cell, which is harder to test
-    // without more specific test IDs
+    const emptyDate = screen.getByText('16').closest('div[class*="min-h-[80px]"]');
+
+    expect(emptyDate).not.toBeNull();
+    fireEvent.click(emptyDate as HTMLElement);
+    expect(mockOnDateClick).not.toHaveBeenCalled();
   });
 
   it('should show "+X more" indicator when there are more than 2 assignments on a date', () => {
@@ -266,9 +268,11 @@ describe('AvailabilityCalendar', () => {
   it('should highlight today\'s date', () => {
     renderWithProviders(<AvailabilityCalendar assignments={[]} />);
 
-    // June 10, 2024 should be highlighted (our mocked current date)
-    // This would require checking for specific styling on the date cell
-    // The exact implementation depends on how "today" is styled
+    const todayLabel = screen.getByText('10');
+    const todayCell = todayLabel.closest('div[class*="min-h-[80px]"]');
+
+    expect(todayCell).toHaveClass('border-app-accent', 'bg-app-accent-soft');
+    expect(todayLabel).toHaveClass('text-app-accent');
   });
 
   it('should navigate through multiple months correctly', () => {

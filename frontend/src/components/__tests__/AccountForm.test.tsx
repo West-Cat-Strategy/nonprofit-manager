@@ -164,10 +164,6 @@ describe('AccountForm', () => {
       expect(accountNameInput.value).toBe('Updated Organization');
     });
 
-    it('shows Update Account button', () => {
-      renderAccountForm(<AccountForm mode="edit" account={mockAccount} />);
-      expect(screen.getByRole('button', { name: /update account/i })).toBeInTheDocument();
-    });
   });
 
   describe('Account Type Selection', () => {

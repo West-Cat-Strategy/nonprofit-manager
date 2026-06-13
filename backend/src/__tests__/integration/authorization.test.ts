@@ -612,7 +612,7 @@ describe('Authorization Integration Tests', () => {
       });
 
       it('should require authentication', async () => {
-        const response = await request(app).get('/api/v2/contacts');
+        const response = await request(app).get('/api/v2/contacts').set('Accept', 'application/json');
         expect(response.status).toBe(401);
         expectCanonicalUnauthorized(response);
       });

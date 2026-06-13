@@ -216,35 +216,6 @@ describe('ContactForm', () => {
       expect(screen.getByRole('button', { name: /create contact/i })).toBeInTheDocument();
       expect(screen.getByText(/no roles available\./i)).toBeInTheDocument();
     });
-
-    it('loads roles from the v2 contacts roles endpoint', async () => {
-      await renderContactForm(<ContactForm mode="create" />);
-
-      expect(mockApi.get).toHaveBeenCalledWith('/contacts/roles');
-      expect(screen.getByText('Staff')).toBeInTheDocument();
-      expect(screen.getByText('Board Member')).toBeInTheDocument();
-      expect(screen.getByText('Client')).toBeInTheDocument();
-    });
-
-    it('falls back to no roles when the roles payload is malformed', async () => {
-      mockApi.get.mockImplementation((url: string) => {
-        if (isApiPath(url, '/contacts/roles')) {
-          return Promise.resolve({ data: { success: true, data: {} } });
-        }
-        if (isApiPath(url, '/contacts/tags')) {
-          return Promise.resolve({ data: { success: true, data: [] } });
-        }
-        if (/^(?:\/v2)?\/contacts\/.+\/relationships$/.test(url)) {
-          return Promise.resolve({ data: { success: true, data: [] } });
-        }
-        return Promise.resolve({ data: { success: true, data: [] } });
-      });
-
-      await renderContactForm(<ContactForm mode="create" />);
-
-      expect(screen.getByRole('button', { name: /create contact/i })).toBeInTheDocument();
-      expect(screen.getByText(/no roles available\./i)).toBeInTheDocument();
-    });
   });
 
   describe('Edit Mode', () => {

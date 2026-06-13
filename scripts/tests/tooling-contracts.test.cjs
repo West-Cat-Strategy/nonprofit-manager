@@ -513,6 +513,26 @@ exit 0
   );
 });
 
+test("db migrate keeps caller-provided test DB contract when explicitly allowed", () => {
+  const script = fs.readFileSync(
+    path.join(repoRoot, "scripts/db-migrate.sh"),
+    "utf8",
+  );
+
+  assert.match(
+    script,
+    /DB_ALLOW_CUSTOM_TEST_DB_CONTRACT="\$\{DB_ALLOW_CUSTOM_TEST_DB_CONTRACT:-0\}"/,
+  );
+  assert.match(
+    script,
+    /is_test_db\(\) \{[\s\S]*DB_ALLOW_CUSTOM_TEST_DB_CONTRACT[\s\S]*\}/,
+  );
+  assert.match(
+    script,
+    /if \[\[ "\$DB_ALLOW_CUSTOM_TEST_DB_CONTRACT" == "1" \]\]; then\s+return 0\s+fi[\s\S]*DB_PORT="8012"/,
+  );
+});
+
 test("root wrappers call validation preflight before Docker and DB-backed work", () => {
   const makefile = fs.readFileSync(path.join(repoRoot, "Makefile"), "utf8");
   const overlayScript = fs.readFileSync(
@@ -1003,6 +1023,31 @@ test("e2e playwright docker wrapper carries ports and readiness URLs through the
   assert.equal(env.SKIP_WEBSERVER, "1");
 });
 
+test("isolated Docker smoke target scrubs inherited host DB contract", () => {
+  const makefile = fs.readFileSync(path.join(repoRoot, "Makefile"), "utf8");
+  const target = makefile.match(
+    /test-e2e-docker-smoke:[\s\S]*?\nquality-baseline:/,
+  )?.[0];
+
+  assert.ok(target, "expected test-e2e-docker-smoke target to exist");
+  assert.match(
+    target,
+    /env -u DB_HOST -u DB_PORT -u DB_NAME -u DB_USER -u DB_PASSWORD/,
+  );
+  assert.match(
+    target,
+    /-u E2E_DB_HOST -u E2E_DB_NAME -u E2E_DB_USER -u E2E_DB_PASSWORD/,
+  );
+  assert.match(
+    target,
+    /-u TEST_DB_ADMIN_USER -u TEST_DB_ADMIN_PASSWORD/,
+  );
+  assert.match(
+    target,
+    /E2E_DB_PORT=\$\(SMOKE_DB_PORT\)[\s\S]*npm run test:docker:smoke/,
+  );
+});
+
 test("e2e playwright docker wrapper keeps explicit lock kill opt-in", () => {
   const result = run(
     "bash",
@@ -1043,6 +1088,19 @@ test("e2e shared runner fails lock contention by default", () => {
     /Another E2E run is active/,
   );
   assert.match(`${result.stdout}\n${result.stderr}`, /E2E_RUNNER_ACTION=kill/);
+});
+
+test("e2e shared runner retries transient readiness failures", () => {
+  const runner = fs.readFileSync(
+    path.join(repoRoot, "scripts/e2e-run-with-lock.sh"),
+    "utf8",
+  );
+
+  assert.match(runner, /Timed out waiting for HTTP readiness/);
+  assert.match(
+    runner,
+    /Detected transient Playwright startup\/readiness failure/,
+  );
 });
 
 test("e2e playwright usage documents the Docker public-site port", () => {
@@ -2014,7 +2072,7 @@ test("PR verification compatibility wrapper delegates gh file lists to selector"
       "#!/usr/bin/env bash",
       "set -euo pipefail",
       'if [[ "$1" == "pr" && "$2" == "diff" && "$3" == "123" && "$4" == "--name-only" ]]; then',
-      '  printf "%s\\n" "e2e/tests/public-browser-proof.spec.ts" "scripts/verify-pr.sh"',
+      '  printf "%s\\n" "e2e/tests/public-website.spec.ts" "scripts/verify-pr.sh"',
       "  exit 0",
       "fi",
       'echo "unexpected gh invocation: $*" >&2',

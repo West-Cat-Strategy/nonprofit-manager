@@ -9,6 +9,7 @@ This directory contains historical testing notes and superseded rollout guides t
 - [MANUAL_TESTING_GUIDE.md](MANUAL_TESTING_GUIDE.md) - volunteer-management manual QA checklist kept for narrow historical reference only.
 - [INTEGRATION_TESTING_PHASE2.md](INTEGRATION_TESTING_PHASE2.md) - original Phase 2 integration rollout map retained for historical context.
 - [TESTING_STATUS.md](TESTING_STATUS.md) - older frontend coverage snapshot preserved as a dated reference.
+- The retired backend shell-script directories formerly under `backend/tests/integration/` and `backend/tests/manual/` are no longer active tree content; use this archive for historical scenario context.
 
 ## 2026-04-19 Prune Summary
 

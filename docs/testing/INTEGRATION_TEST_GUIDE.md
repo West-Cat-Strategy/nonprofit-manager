@@ -49,9 +49,9 @@ npm test -- <focused spec path>
 
 Broaden from a single spec to `src/__tests__/integration` only when the change spans multiple backend contract seams.
 
-## Unsupported Legacy Path
+## Retired Legacy Shell Scripts
 
-The shell scripts under `backend/tests/integration/` are historical artifacts, not the active contributor workflow.
+The shell-driven integration scenarios formerly stored under `backend/tests/integration/` have been retired from the active tree. They are historical context only; the maintained scenario map lives in [archive/INTEGRATION_TESTING_PHASE2.md](archive/INTEGRATION_TESTING_PHASE2.md).
 
 Do not use them as the supported path for:
 
@@ -68,4 +68,3 @@ For historical rollout context only, see [archive/INTEGRATION_TESTING_PHASE2.md]
 - [TESTING.md](TESTING.md)
 - [archive/INTEGRATION_TESTING_PHASE2.md](archive/INTEGRATION_TESTING_PHASE2.md) for historical scenario mapping
 - [../../backend/README.md](../../backend/README.md)
-- [../../backend/tests/integration/README.md](../../backend/tests/integration/README.md) for the historical shell-script directory

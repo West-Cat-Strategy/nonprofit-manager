@@ -20,6 +20,7 @@ DB_PASSWORD="${DB_PASSWORD:-nonprofit_app_password}"
 DB_ADMIN_USER="${DB_ADMIN_USER:-postgres}"
 DB_ADMIN_PASSWORD="${DB_ADMIN_PASSWORD:-postgres}"
 DB_REUSE_IF_READY="${DB_REUSE_IF_READY:-0}"
+DB_ALLOW_CUSTOM_TEST_DB_CONTRACT="${DB_ALLOW_CUSTOM_TEST_DB_CONTRACT:-0}"
 TEST_CONTAINER_NAME="${DB_TEST_CONTAINER_NAME:-nonprofit-manager-test-postgres}"
 TEST_VOLUME_NAME="${DB_TEST_VOLUME_NAME:-nonprofit-manager-test-postgres-data}"
 TEST_IMAGE="${DB_TEST_IMAGE:-postgres:18-alpine@sha256:54451ecb8ab38c24c3ec123f2fd501303a3a1856a5c66e98cecf2460d5e1e9d7}"
@@ -42,11 +43,15 @@ case "${1:-}" in
 esac
 
 is_test_db() {
-  [[ "$DB_PORT" == "8012" || "$DB_NAME" == "nonprofit_manager_test" || "$MODE" == "ci" ]]
+  [[ "$DB_ALLOW_CUSTOM_TEST_DB_CONTRACT" == "1" || "$DB_PORT" == "8012" || "$DB_NAME" == "nonprofit_manager_test" || "$MODE" == "ci" ]]
 }
 
 normalize_test_db_contract() {
   if ! is_test_db; then
+    return 0
+  fi
+
+  if [[ "$DB_ALLOW_CUSTOM_TEST_DB_CONTRACT" == "1" ]]; then
     return 0
   fi
 

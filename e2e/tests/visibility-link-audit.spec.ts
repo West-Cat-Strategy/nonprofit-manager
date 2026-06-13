@@ -33,6 +33,7 @@ type RouteAuditConfig = {
   heading?: RegExp;
   primaryAction?: RegExp;
   requiredTabs?: RegExp[];
+  selectedTab?: RegExp;
   interaction?: {
     revealAction?: RegExp;
     keyFields?: RegExp[];
@@ -45,7 +46,7 @@ type ClickthroughAuditLink = {
   label: string;
   href: string;
   surface: 'staff' | 'portal';
-  scope?: 'workspace-navigation' | 'alerts-shortcut';
+  scope?: 'workspace-navigation' | 'alerts-shortcut' | 'portal-sidebar';
 };
 
 type LinkAuditRow = {
@@ -310,6 +311,7 @@ const staffRouteAudits: RouteAuditConfig[] = [
     surface: 'staff',
     expectedEntryId: 'admin-settings-users',
     heading: /admin hub|account lookup|users & security|admin settings/i,
+    selectedTab: /^users & security$/i,
   },
   {
     name: 'admin settings audit logs',
@@ -317,6 +319,7 @@ const staffRouteAudits: RouteAuditConfig[] = [
     surface: 'staff',
     expectedEntryId: 'admin-settings-audit-logs',
     heading: /admin hub|audit logs|admin settings/i,
+    selectedTab: /^audit logs/i,
   },
   {
     name: 'portal admin access',
@@ -416,11 +419,10 @@ const staffNavigationLinks: ClickthroughAuditLink[] = [
 ];
 
 const portalNavigationLinks = (portalCaseId?: string): ClickthroughAuditLink[] => [
-  {
-    label: portalCaseId ? 'Open Case' : 'View Shared Cases',
-    href: portalCaseId ? `/portal/cases/${portalCaseId}` : '/portal/cases',
-    surface: 'portal',
-  },
+  { label: 'Cases', href: '/portal/cases', surface: 'portal', scope: 'portal-sidebar' },
+  ...(portalCaseId
+    ? [{ label: 'Open Case', href: `/portal/cases/${portalCaseId}`, surface: 'portal' } as const]
+    : []),
   { label: 'Message Staff', href: '/portal/messages', surface: 'portal' },
   { label: 'Manage Appointments', href: '/portal/appointments', surface: 'portal' },
   { label: 'Shared Documents', href: '/portal/documents', surface: 'portal' },
@@ -966,6 +968,13 @@ const assertRequiredChrome = async (page: Page, config: RouteAuditConfig) => {
   for (const tabName of config.requiredTabs ?? []) {
     await expect(page.getByRole('tab', { name: tabName }).first()).toBeVisible();
   }
+
+  if (config.selectedTab) {
+    await expect(page.getByRole('tab', { name: config.selectedTab }).first()).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+  }
 };
 
 const assertInteractionExpectations = async (page: Page, config: RouteAuditConfig) => {
@@ -1208,10 +1217,17 @@ base.describe('Portal text visibility and link audit', () => {
       recoveryOptions
     );
     await expect(page.getByRole('heading', { name: /quick actions/i })).toBeVisible();
+    const portalSidebarNavigation = page.getByRole('navigation', {
+      name: /browse portal/i,
+    });
+    await expect(portalSidebarNavigation).toBeVisible();
 
     for (const linkConfig of portalNavigationLinks(portalFixture.caseId)) {
       const targetHref = normalizeRouteLocation(linkConfig.href);
-      const link = page.getByRole('link', { name: toNamePattern(linkConfig.label) }).first();
+      const link =
+        linkConfig.scope === 'portal-sidebar'
+          ? portalSidebarNavigation.getByRole('link', { name: toNamePattern(linkConfig.label) }).first()
+          : page.getByRole('link', { name: toNamePattern(linkConfig.label) }).first();
 
       await expect(link, `missing visible portal nav link for ${linkConfig.label}`).toBeVisible();
       await link.scrollIntoViewIfNeeded();

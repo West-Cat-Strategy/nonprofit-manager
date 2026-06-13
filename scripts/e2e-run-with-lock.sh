@@ -143,9 +143,9 @@ e2e_acquire_lock
 
 e2e_fail_fast_for_background_webkit "$@"
 
-is_port_conflict_failure() {
+is_retryable_startup_failure() {
   local log_file="$1"
-  grep -Eq "Port ${FRONTEND_PORT} is already in use|Port ${BACKEND_PORT} is already in use|EADDRINUSE|Process from config\\.webServer was not able to start" "$log_file"
+  grep -Eq "Port ${FRONTEND_PORT} is already in use|Port ${BACKEND_PORT} is already in use|EADDRINUSE|Process from config\\.webServer was not able to start|Timed out waiting for HTTP readiness" "$log_file"
 }
 
 write_runner_metadata() {
@@ -250,8 +250,8 @@ run_with_retry() {
       return 0
     fi
 
-    if [[ "$attempt" -lt "$MAX_ATTEMPTS" ]] && is_port_conflict_failure "$attempt_log"; then
-      echo "Detected Playwright startup port conflict. Retrying (attempt $((attempt + 1))/$MAX_ATTEMPTS)." >&2
+    if [[ "$attempt" -lt "$MAX_ATTEMPTS" ]] && is_retryable_startup_failure "$attempt_log"; then
+      echo "Detected transient Playwright startup/readiness failure. Retrying (attempt $((attempt + 1))/$MAX_ATTEMPTS)." >&2
       e2e_preflight_ports || true
       attempt=$((attempt + 1))
       continue

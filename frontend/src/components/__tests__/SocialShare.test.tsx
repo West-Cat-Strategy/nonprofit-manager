@@ -195,6 +195,7 @@ describe('SocialShare', () => {
   });
 
   it('should reset "Copied!" message after 2 seconds', async () => {
+    vi.useFakeTimers();
     renderWithProviders(<SocialShare data={mockData} />);
 
     const button = screen.getByRole('button', { name: /share/i });
@@ -203,9 +204,13 @@ describe('SocialShare', () => {
     const copyButton = screen.getByText('Copy Link');
     fireEvent.click(copyButton);
 
-    expect(await screen.findByText('Copied!')).toBeInTheDocument();
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 2100));
+      await Promise.resolve();
+    });
+    expect(screen.getByText('Copied!')).toBeInTheDocument();
+
+    await act(async () => {
+      vi.advanceTimersByTime(2100);
     });
 
     expect(screen.getByText('Copy Link')).toBeInTheDocument();

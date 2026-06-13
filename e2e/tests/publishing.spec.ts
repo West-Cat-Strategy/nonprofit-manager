@@ -331,10 +331,16 @@ test.describe('Publishing Workflows', () => {
       await publicContactForm.getByRole('button', { name: submitTextOverride }).click();
 
       const publicSubmitResponse = await publicSubmitResponsePromise;
+      const publicSubmitRawBody = await publicSubmitResponse.text();
       expect(
         publicSubmitResponse.ok(),
-        `Public contact submit failed (${publicSubmitResponse.status()})`
+        `Public contact submit failed (${publicSubmitResponse.status()}): ${publicSubmitRawBody}`
       ).toBeTruthy();
+      const publicSubmitBody = unwrapBody<{ contactId?: string; message?: string }>(
+        JSON.parse(publicSubmitRawBody)
+      );
+      expect(publicSubmitBody.message).toBe(successMessageOverride);
+      expect(publicSubmitBody.contactId).toBeTruthy();
 
       await expect(publicContactForm.locator('[data-form-status]')).toHaveText(
         successMessageOverride

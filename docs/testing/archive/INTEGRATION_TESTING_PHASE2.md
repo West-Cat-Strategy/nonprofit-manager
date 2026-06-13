@@ -4,7 +4,7 @@
 
 This document keeps the original Phase 2 integration goals visible while mapping them to the current supported backend test workflow.
 
-The active workflow is Jest-first. Historical shell scripts under `backend/tests/integration/` are archival only and are not the supported contributor path.
+The active workflow is Jest-first. The historical shell scripts formerly stored under `backend/tests/integration/` were removed from the active tree; this archive keeps the scenario map so old rollout notes still have context.
 
 If you need current commands, use [../INTEGRATION_TEST_GUIDE.md](../INTEGRATION_TEST_GUIDE.md) and [../TESTING.md](../TESTING.md) instead of this historical map.
 
@@ -47,4 +47,3 @@ The original Phase 2 rollout used shell-based scenarios to prove multi-module be
 
 - [../INTEGRATION_TEST_GUIDE.md](../INTEGRATION_TEST_GUIDE.md)
 - [../TESTING.md](../TESTING.md)
-- [../../../backend/tests/integration/README.md](../../../backend/tests/integration/README.md)

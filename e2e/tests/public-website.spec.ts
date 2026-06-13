@@ -78,6 +78,28 @@ type EventRegistrationRecord = {
   notes: string | null;
 };
 
+type PublicActionType = 'petition_signature' | 'donation_pledge' | 'support_letter_request';
+
+type PublicActionRecord = {
+  id: string;
+  action_type: PublicActionType;
+  review_status: string;
+  contact_id: string | null;
+  amount: string | null;
+  pledge_id: string | null;
+  support_letter_id: string | null;
+  letter_title: string | null;
+};
+
+type PublicActionTransitionResult = {
+  submission?: {
+    reviewStatus?: string;
+  };
+  contactId?: string;
+  pledgeId?: string;
+  supportLetterId?: string;
+};
+
 const slugifyPublicEventName = (value: string): string =>
   value
     .trim()
@@ -261,6 +283,54 @@ async function waitForEventRegistrationTelemetry(input: {
   );
 }
 
+async function waitForPublicActionSubmission(input: {
+  siteId: string;
+  actionType: PublicActionType;
+  email: string;
+  timeoutMs?: number;
+}): Promise<PublicActionRecord> {
+  const client = new PgClient(getDatabaseConfig());
+  const timeoutMs = input.timeoutMs ?? 15_000;
+  const deadline = Date.now() + timeoutMs;
+
+  try {
+    await client.connect();
+    while (Date.now() < deadline) {
+      const result = await client.query<PublicActionRecord>(
+        `SELECT submissions.id,
+                submissions.action_type,
+                submissions.review_status,
+                submissions.contact_id,
+                submissions.payload_redacted->>'amount' AS amount,
+                pledges.id AS pledge_id,
+                support_letters.id AS support_letter_id,
+                support_letters.letter_title
+           FROM website_public_action_submissions submissions
+           LEFT JOIN website_public_pledges pledges
+             ON pledges.submission_id = submissions.id
+           LEFT JOIN website_support_letters support_letters
+             ON support_letters.submission_id = submissions.id
+          WHERE submissions.site_id = $1
+            AND submissions.action_type = $2
+            AND LOWER(submissions.payload_redacted->>'email') = LOWER($3)
+          ORDER BY submissions.submitted_at DESC
+          LIMIT 1`,
+        [input.siteId, input.actionType, input.email]
+      );
+      if (result.rows[0]) {
+        return result.rows[0];
+      }
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+
+  throw new Error(
+    `Timed out waiting for ${input.actionType} submission from ${input.email}`
+  );
+}
+
 async function getSystemTemplateId(page: import('@playwright/test').Page, authToken: string): Promise<string> {
   const headers = await getAuthHeaders(page, authToken);
   const response = await page.request.get(`${API_URL}/api/v2/templates/system`, { headers });
@@ -298,6 +368,7 @@ async function configureDonationHomepage(
             description: 'Back the programs with a public donation.',
             successMessage: 'Donation started.',
             suggestedAmounts: [25, 50, 100],
+            allowCustomAmount: true,
             submitText: 'Donate now',
           },
         ],
@@ -320,6 +391,173 @@ async function configureDonationHomepage(
   } finally {
     await client.end().catch(() => undefined);
   }
+}
+
+async function configurePublicActionHomepage(input: {
+  templateId: string;
+  slugs: {
+    petition: string;
+    pledge: string;
+    supportLetter: string;
+  };
+}): Promise<void> {
+  const client = new PgClient(getDatabaseConfig());
+  try {
+    await client.connect();
+    const sections = [
+      {
+        id: 'section-public-actions',
+        name: 'Public actions',
+        components: [
+          {
+            id: 'public-action-heading',
+            type: 'heading',
+            content: 'Public action proof',
+            level: 1,
+            align: 'center',
+          },
+          {
+            id: 'petition-proof',
+            type: 'petition-form',
+            actionSlug: input.slugs.petition,
+            heading: 'Protect community hours',
+            description: 'Add your name to the public petition.',
+            petitionStatement: 'I support keeping community hours open.',
+            submitText: 'Sign petition',
+            includePhone: true,
+          },
+          {
+            id: 'pledge-proof',
+            type: 'donation-pledge-form',
+            actionSlug: input.slugs.pledge,
+            heading: 'Make a pledge',
+            description: 'Promise future support for the campaign.',
+            submitText: 'Send pledge',
+            currency: 'CAD',
+            pledgeSchedule: 'monthly',
+          },
+          {
+            id: 'support-letter-proof',
+            type: 'support-letter-request',
+            actionSlug: input.slugs.supportLetter,
+            heading: 'Request a support letter',
+            description: 'Ask staff to prepare a support letter.',
+            submitText: 'Request letter',
+            includePhone: true,
+          },
+        ],
+      },
+    ];
+
+    const result = await client.query<{ id: string }>(
+      `
+        UPDATE template_pages
+        SET sections = $1::jsonb,
+            updated_at = NOW()
+        WHERE template_id = $2
+          AND is_homepage = TRUE
+        RETURNING id
+      `,
+      [JSON.stringify(sections), input.templateId]
+    );
+
+    expect(result.rows[0]?.id).toBeTruthy();
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+}
+
+async function createPublicAction(input: {
+  page: import('@playwright/test').Page;
+  authToken: string;
+  siteId: string;
+  actionType: PublicActionType;
+  slug: string;
+  title: string;
+  confirmationMessage: string;
+  settings?: Record<string, unknown>;
+}): Promise<string> {
+  const headers = await getAuthHeaders(input.page, input.authToken);
+  const response = await input.page.request.post(
+    `${API_URL}/api/v2/sites/${input.siteId}/actions`,
+    {
+      headers,
+      data: {
+        actionType: input.actionType,
+        status: 'published',
+        slug: input.slug,
+        title: input.title,
+        confirmationMessage: input.confirmationMessage,
+        settings: input.settings || {},
+      },
+    }
+  );
+
+  expect(
+    response.ok(),
+    `Failed to create public action ${input.slug} (${response.status()}): ${await response.text()}`
+  ).toBeTruthy();
+  const body = unwrapBody<{ id?: string }>(await response.json());
+  expect(body.id).toBeTruthy();
+  return body.id as string;
+}
+
+async function transitionPublicActionSubmission(input: {
+  page: import('@playwright/test').Page;
+  authToken: string;
+  siteId: string;
+  actionId: string;
+  submissionId: string;
+  transition: 'accept' | 'fulfill';
+}): Promise<PublicActionTransitionResult> {
+  const headers = await getAuthHeaders(input.page, input.authToken);
+  const response = await input.page.request.post(
+    `${API_URL}/api/v2/sites/${input.siteId}/actions/${input.actionId}/submissions/${input.submissionId}/${input.transition}`,
+    {
+      headers,
+      data: {},
+    }
+  );
+
+  expect(
+    response.ok(),
+    `Failed to ${input.transition} public action submission (${response.status()}): ${await response.text()}`
+  ).toBeTruthy();
+  return unwrapBody<PublicActionTransitionResult>(await response.json());
+}
+
+async function readSuccessBody<T>(
+  response: import('@playwright/test').Response,
+  label: string
+): Promise<T> {
+  const raw = await response.text();
+  expect(
+    response.ok(),
+    `${label} failed (${response.status()}): ${raw}`
+  ).toBeTruthy();
+  return unwrapBody<T>(JSON.parse(raw));
+}
+
+async function submitNamedPublicForm(input: {
+  page: import('@playwright/test').Page;
+  buttonName: RegExp;
+  expectedUrlPart: string;
+  fill: (form: import('@playwright/test').Locator) => Promise<void>;
+}): Promise<import('@playwright/test').Response> {
+  const form = input.page
+    .locator('form[data-public-site-form="true"]')
+    .filter({ has: input.page.getByRole('button', { name: input.buttonName }) });
+  await expect(form).toHaveCount(1);
+  await input.fill(form);
+
+  const responsePromise = input.page.waitForResponse((response) => {
+    return (
+      response.request().method() === 'POST' &&
+      response.url().includes(input.expectedUrlPart)
+    );
+  });
+  await form.getByRole('button', { name: input.buttonName }).click();
+  return responsePromise;
 }
 
 async function deletePublicSubmissionArtifacts(input: {
@@ -351,8 +589,15 @@ async function deletePublicSubmissionArtifacts(input: {
     if (donationIds.length > 0) {
       await client.query('DELETE FROM donations WHERE id = ANY($1::uuid[])', [donationIds]);
     }
-    if (caseIds.length > 0) {
-      await client.query('DELETE FROM cases WHERE id = ANY($1::uuid[])', [caseIds]);
+    if (caseIds.length > 0 || contactIds.length > 0) {
+      await client.query(
+        `
+          DELETE FROM cases
+          WHERE id = ANY($1::uuid[])
+             OR contact_id = ANY($2::uuid[])
+        `,
+        [caseIds, contactIds],
+      );
     }
     if (contactIds.length > 0) {
       await client.query('DELETE FROM contacts WHERE id = ANY($1::uuid[])', [contactIds]);
@@ -553,6 +798,266 @@ test.describe('Public website starter', () => {
     }
   });
 
+  test('submits public action blocks and completes review transitions', async ({
+    authenticatedPage,
+    authToken,
+  }) => {
+    test.setTimeout(180000);
+
+    const runId = `${Date.now().toString(36)}-${Math.floor(Math.random() * 10000)}`;
+    const templateId = await createTemplate(authenticatedPage, authToken);
+    const customDomain = `public-actions-${runId}.localhost`;
+    const slugs = {
+      petition: `petition-${runId}`,
+      pledge: `pledge-${runId}`,
+      supportLetter: `support-letter-${runId}`,
+    };
+    const createdContactIds: string[] = [];
+    let siteId = '';
+
+    try {
+      await configurePublicActionHomepage({
+        templateId,
+        slugs,
+      });
+
+      siteId = await createWebsiteSite(authenticatedPage, authToken, templateId, {
+        name: `Public Action Proof ${runId}`,
+        customDomain,
+      });
+
+      const actionIds = {
+        petition: await createPublicAction({
+          page: authenticatedPage,
+          authToken,
+          siteId,
+          actionType: 'petition_signature',
+          slug: slugs.petition,
+          title: 'Protect community hours',
+          confirmationMessage: 'Signature received.',
+        }),
+        pledge: await createPublicAction({
+          page: authenticatedPage,
+          authToken,
+          siteId,
+          actionType: 'donation_pledge',
+          slug: slugs.pledge,
+          title: 'Community pledge',
+          confirmationMessage: 'Pledge received.',
+          settings: {
+            currency: 'CAD',
+            pledgeSchedule: 'monthly',
+          },
+        }),
+        supportLetter: await createPublicAction({
+          page: authenticatedPage,
+          authToken,
+          siteId,
+          actionType: 'support_letter_request',
+          slug: slugs.supportLetter,
+          title: 'Support letter desk',
+          confirmationMessage: 'Letter request received.',
+          settings: {
+            letterTitle: 'Public support letter',
+            templateVersion: 'p5-t142',
+          },
+        }),
+      };
+
+      await publishWebsiteSite(authenticatedPage, authToken, {
+        siteId,
+        templateId,
+      });
+
+      const publicBase = `http://${customDomain}:${getPublicSitePort()}`;
+      await authenticatedPage.goto(`${publicBase}/`, { waitUntil: 'domcontentloaded' });
+      await expect(
+        authenticatedPage.getByRole('heading', { name: 'Public action proof' })
+      ).toBeVisible();
+
+      const signerEmail = `p5-t142-signer-${runId}@example.com`;
+      const petitionResponse = await submitNamedPublicForm({
+        page: authenticatedPage,
+        buttonName: /^sign petition$/i,
+        expectedUrlPart: `/api/v2/public/actions/${siteId}/${slugs.petition}/submissions`,
+        fill: async (form) => {
+          await form.locator('input[name="first_name"]').fill('Pat');
+          await form.locator('input[name="last_name"]').fill('Petition');
+          await form.locator('input[name="email"]').fill(signerEmail);
+          await form.locator('input[name="phone"]').fill('(604) 555-7102');
+          await form.locator('textarea[name="message"]').fill('Please keep hours open.');
+          await form.locator('input[name="consent"]').check();
+        },
+      });
+      const petitionBody = await readSuccessBody<{
+        actionType?: string;
+        contactId?: string;
+        submissionId?: string;
+      }>(petitionResponse, 'Petition action block');
+      expect(petitionBody.actionType).toBe('petition_signature');
+      expect(petitionBody.submissionId).toBeTruthy();
+      expect(petitionBody.contactId).toBeFalsy();
+      await expect(
+        authenticatedPage
+          .locator('form[data-public-site-form="true"]')
+          .filter({ has: authenticatedPage.getByRole('button', { name: /^sign petition$/i }) })
+          .locator('[data-form-status]')
+      ).toHaveText('Signature received.');
+      const petition = await waitForPublicActionSubmission({
+        siteId,
+        actionType: 'petition_signature',
+        email: signerEmail,
+      });
+      expect(petition).toMatchObject({
+        action_type: 'petition_signature',
+        review_status: 'new',
+      });
+      expect(petition.contact_id).toBeNull();
+      const acceptedPetition = await transitionPublicActionSubmission({
+        page: authenticatedPage,
+        authToken,
+        siteId,
+        actionId: actionIds.petition,
+        submissionId: petition.id,
+        transition: 'accept',
+      });
+      expect(acceptedPetition.submission?.reviewStatus).toBe('accepted');
+      expect(acceptedPetition.contactId).toBeTruthy();
+      if (acceptedPetition.contactId) {
+        createdContactIds.push(acceptedPetition.contactId);
+      }
+
+      const pledgeEmail = `p5-t142-pledge-${runId}@example.com`;
+      const pledgeResponse = await submitNamedPublicForm({
+        page: authenticatedPage,
+        buttonName: /^send pledge$/i,
+        expectedUrlPart: `/api/v2/public/actions/${siteId}/${slugs.pledge}/submissions`,
+        fill: async (form) => {
+          await form.locator('input[name="first_name"]').fill('Morgan');
+          await form.locator('input[name="last_name"]').fill('Pledge');
+          await form.locator('input[name="email"]').fill(pledgeEmail);
+          await form.locator('input[name="phone"]').fill('(604) 555-7103');
+          await form.locator('input[name="amount"]').fill('75');
+          await form.locator('select[name="schedule"]').selectOption('monthly');
+          await form.locator('textarea[name="message"]').fill('Monthly public pledge proof.');
+          await form.locator('input[name="consent"]').check();
+        },
+      });
+      const pledgeBody = await readSuccessBody<{
+        actionType?: string;
+        contactId?: string;
+        pledgeId?: string;
+        reviewStatus?: string;
+        submissionId?: string;
+      }>(pledgeResponse, 'Pledge action block');
+      expect(pledgeBody.actionType).toBe('donation_pledge');
+      expect(pledgeBody.reviewStatus).toBe('new');
+      expect(pledgeBody.submissionId).toBeTruthy();
+      expect(pledgeBody.pledgeId).toBeUndefined();
+      expect(pledgeBody.contactId).toBeFalsy();
+      await expect(
+        authenticatedPage
+          .locator('form[data-public-site-form="true"]')
+          .filter({ has: authenticatedPage.getByRole('button', { name: /^send pledge$/i }) })
+          .locator('[data-form-status]')
+      ).toHaveText('Pledge received.');
+      const pledge = await waitForPublicActionSubmission({
+        siteId,
+        actionType: 'donation_pledge',
+        email: pledgeEmail,
+      });
+      expect(pledge).toMatchObject({
+        action_type: 'donation_pledge',
+        review_status: 'new',
+        amount: '75',
+      });
+      expect(pledge.pledge_id).toBeNull();
+      expect(pledge.contact_id).toBeNull();
+      const acceptedPledge = await transitionPublicActionSubmission({
+        page: authenticatedPage,
+        authToken,
+        siteId,
+        actionId: actionIds.pledge,
+        submissionId: pledge.id,
+        transition: 'accept',
+      });
+      expect(acceptedPledge.submission?.reviewStatus).toBe('accepted');
+      expect(acceptedPledge.pledgeId).toBeTruthy();
+      expect(acceptedPledge.contactId).toBeTruthy();
+      if (acceptedPledge.contactId) {
+        createdContactIds.push(acceptedPledge.contactId);
+      }
+
+      const letterEmail = `p5-t142-letter-${runId}@example.com`;
+      const letterResponse = await submitNamedPublicForm({
+        page: authenticatedPage,
+        buttonName: /^request letter$/i,
+        expectedUrlPart: `/api/v2/public/actions/${siteId}/${slugs.supportLetter}/submissions`,
+        fill: async (form) => {
+          await form.locator('input[name="first_name"]').fill('Riley');
+          await form.locator('input[name="last_name"]').fill('Letter');
+          await form.locator('input[name="email"]').fill(letterEmail);
+          await form.locator('input[name="phone"]').fill('(604) 555-7104');
+          await form.locator('input[name="purpose"]').fill('Housing application');
+          await form.locator('textarea[name="message"]').fill('Please include program history.');
+          await form.locator('input[name="consent"]').check();
+        },
+      });
+      const letterBody = await readSuccessBody<{
+        actionType?: string;
+        contactId?: string;
+        reviewStatus?: string;
+        submissionId?: string;
+        supportLetterId?: string;
+      }>(letterResponse, 'Support-letter action block');
+      expect(letterBody.actionType).toBe('support_letter_request');
+      expect(letterBody.reviewStatus).toBe('needs_review');
+      expect(letterBody.submissionId).toBeTruthy();
+      expect(letterBody.supportLetterId).toBeUndefined();
+      expect(letterBody.contactId).toBeFalsy();
+      await expect(
+        authenticatedPage
+          .locator('form[data-public-site-form="true"]')
+          .filter({ has: authenticatedPage.getByRole('button', { name: /^request letter$/i }) })
+          .locator('[data-form-status]')
+      ).toHaveText('Letter request received.');
+      const supportLetter = await waitForPublicActionSubmission({
+        siteId,
+        actionType: 'support_letter_request',
+        email: letterEmail,
+      });
+      expect(supportLetter).toMatchObject({
+        action_type: 'support_letter_request',
+        review_status: 'needs_review',
+      });
+      expect(supportLetter.letter_title).toBeNull();
+      expect(supportLetter.support_letter_id).toBeNull();
+      expect(supportLetter.contact_id).toBeNull();
+      const fulfilledSupportLetter = await transitionPublicActionSubmission({
+        page: authenticatedPage,
+        authToken,
+        siteId,
+        actionId: actionIds.supportLetter,
+        submissionId: supportLetter.id,
+        transition: 'fulfill',
+      });
+      expect(fulfilledSupportLetter.submission?.reviewStatus).toBe('fulfilled');
+      expect(fulfilledSupportLetter.supportLetterId).toBeTruthy();
+      expect(fulfilledSupportLetter.contactId).toBeTruthy();
+      if (fulfilledSupportLetter.contactId) {
+        createdContactIds.push(fulfilledSupportLetter.contactId);
+      }
+    } finally {
+      if (siteId) {
+        await deleteWebsiteSite(authenticatedPage, authToken, siteId).catch(() => undefined);
+      }
+      await deletePublicSubmissionArtifacts({
+        contactIds: Array.from(new Set(createdContactIds)),
+      });
+      await deleteTemplate(authenticatedPage, authToken, templateId).catch(() => undefined);
+    }
+  });
+
   test('submits a public donation form with the configured site payment provider', async ({
     authenticatedPage,
     authToken,
@@ -595,31 +1100,31 @@ test.describe('Public website starter', () => {
 
       await expect(authenticatedPage.getByRole('heading', { name: /support the work/i })).toBeVisible();
       const donorEmail = `donor-${Date.now()}@example.com`;
-      const submitResponse = await authenticatedPage.request.post(
-        `${API_URL}/api/v2/public/forms/${siteId}/donation-form-1/submit`,
-        {
-          headers: {
-            Referer: `${publicBase}/`,
-          },
-          data: {
-            first_name: 'Grace',
-            last_name: 'Hopper',
-            email: donorEmail,
-            amount: 50,
-          },
-        }
-      );
-      const submitRawBody = await submitResponse.text();
-      expect(
-        submitResponse.ok(),
-        `Public donation submit failed (${submitResponse.status()}): ${submitRawBody}`
-      ).toBeTruthy();
-      const submitBody = unwrapBody<{ donationId?: string; contactId?: string; message?: string }>(
-        JSON.parse(submitRawBody)
-      );
+      const submitResponse = await submitNamedPublicForm({
+        page: authenticatedPage,
+        buttonName: /^donate now$/i,
+        expectedUrlPart: `/api/v2/public/forms/${siteId}/donation-form-1/submit`,
+        fill: async (form) => {
+          await form.locator('input[name="first_name"]').fill('Grace');
+          await form.locator('input[name="last_name"]').fill('Hopper');
+          await form.locator('input[name="email"]').fill(donorEmail);
+          await form.locator('input[name="amount"]').fill('50');
+        },
+      });
+      const submitBody = await readSuccessBody<{
+        donationId?: string;
+        contactId?: string;
+        message?: string;
+      }>(submitResponse, 'Public donation submit');
       expect(submitBody.message).toBe('Donation started.');
       expect(submitBody.donationId).toBeTruthy();
       expect(submitBody.contactId).toBeTruthy();
+      await expect(
+        authenticatedPage
+          .locator('form[data-public-site-form="true"]')
+          .filter({ has: authenticatedPage.getByRole('button', { name: /^donate now$/i }) })
+          .locator('[data-form-status]')
+      ).toHaveText('Donation started.');
 
       if (submitBody.donationId) {
         createdDonationIds.push(submitBody.donationId);

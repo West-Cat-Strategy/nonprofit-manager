@@ -585,6 +585,10 @@ test-e2e-docker-smoke:
 	E2E_FRONTEND_PORT=$(SMOKE_FRONTEND_PORT) \
 	E2E_PUBLIC_SITE_PORT=$(SMOKE_PUBLIC_SITE_PORT) \
 	E2E_DB_PORT=$(SMOKE_DB_PORT) \
+	env -u DB_HOST -u DB_PORT -u DB_NAME -u DB_USER -u DB_PASSWORD \
+	  -u E2E_DB_HOST -u E2E_DB_NAME -u E2E_DB_USER -u E2E_DB_PASSWORD \
+	  -u E2E_DB_ADMIN_USER -u E2E_DB_ADMIN_PASSWORD \
+	  -u TEST_DB_ADMIN_USER -u TEST_DB_ADMIN_PASSWORD \
 	npm run test:docker:smoke; \
 	echo "$(GREEN)Docker-backed Playwright smoke gate complete!$(RESET)"
 
