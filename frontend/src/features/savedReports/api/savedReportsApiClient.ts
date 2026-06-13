@@ -41,7 +41,7 @@ export class SavedReportsApiClient {
       summary?: boolean;
     } = {}
   ): Promise<SavedReportsListPage> {
-    const response = await api.get<SavedReportsListPage>('/v2/saved-reports', {
+    const response = await api.get<SavedReportsListPage>('/saved-reports', {
       params: {
         ...(options.entity ? { entity: options.entity } : {}),
         ...(typeof options.page === 'number' ? { page: options.page } : {}),
@@ -53,26 +53,26 @@ export class SavedReportsApiClient {
   }
 
   async fetchSavedReportById(id: string): Promise<SavedReport> {
-    const response = await api.get<SavedReport>(`/v2/saved-reports/${id}`);
+    const response = await api.get<SavedReport>(`/saved-reports/${id}`);
     return response.data;
   }
 
   async createSavedReport(data: CreateSavedReportRequest): Promise<SavedReport> {
-    const response = await api.post<SavedReport>('/v2/saved-reports', data);
+    const response = await api.post<SavedReport>('/saved-reports', data);
     return response.data;
   }
 
   async updateSavedReport(id: string, data: UpdateSavedReportRequest): Promise<SavedReport> {
-    const response = await api.put<SavedReport>(`/v2/saved-reports/${id}`, data);
+    const response = await api.put<SavedReport>(`/saved-reports/${id}`, data);
     return response.data;
   }
 
   async deleteSavedReport(id: string): Promise<void> {
-    await api.delete(`/v2/saved-reports/${id}`);
+    await api.delete(`/saved-reports/${id}`);
   }
 
   async fetchSharePrincipals(search?: string, limit = 25): Promise<SharePrincipalsResponse> {
-    const response = await api.get<SharePrincipalsResponse>('/v2/saved-reports/share/principals', {
+    const response = await api.get<SharePrincipalsResponse>('/saved-reports/share/principals', {
       params: {
         ...(search ? { search } : {}),
         limit,
@@ -82,38 +82,38 @@ export class SavedReportsApiClient {
   }
 
   async shareSavedReport(id: string, payload: ShareRequestPayload): Promise<SavedReport> {
-    const response = await api.post<SavedReport>(`/v2/saved-reports/${id}/share`, payload);
+    const response = await api.post<SavedReport>(`/saved-reports/${id}/share`, payload);
     return response.data;
   }
 
   async removeSavedReportShare(id: string, payload: ShareRequestPayload): Promise<SavedReport> {
-    const response = await api.delete<SavedReport>(`/v2/saved-reports/${id}/share`, {
+    const response = await api.delete<SavedReport>(`/saved-reports/${id}/share`, {
       data: payload,
     });
     return response.data;
   }
 
   async generatePublicLink(id: string, expires_at?: string): Promise<PublicLinkResponse> {
-    const response = await api.post<PublicLinkResponse>(`/v2/saved-reports/${id}/public-link`, {
+    const response = await api.post<PublicLinkResponse>(`/saved-reports/${id}/public-link`, {
       ...(expires_at ? { expires_at } : {}),
     });
     return response.data;
   }
 
   async revokePublicLink(id: string): Promise<{ message: string }> {
-    const response = await api.delete<{ message: string }>(`/v2/saved-reports/${id}/public-link`);
+    const response = await api.delete<{ message: string }>(`/saved-reports/${id}/public-link`);
     return response.data;
   }
 
   async fetchPublicReportMetadata(token: string): Promise<PublicReportSnapshotMeta> {
-    const response = await publicApi.get<PublicReportSnapshotMeta>('/v2/public/reports', {
+    const response = await publicApi.get<PublicReportSnapshotMeta>('/public/reports', {
       headers: publicTokenHeaders(token),
     });
     return response.data;
   }
 
   async downloadPublicReportSnapshot(token: string, format: 'csv' | 'xlsx'): Promise<BlobPart> {
-    const response = await publicApi.get<BlobPart>('/v2/public/reports/download', {
+    const response = await publicApi.get<BlobPart>('/public/reports/download', {
       params: { format },
       headers: publicTokenHeaders(token),
       responseType: 'blob',

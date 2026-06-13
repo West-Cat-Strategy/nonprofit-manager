@@ -16,6 +16,9 @@ export const RecurringDonationDetail = lazy(() => import('./pages/RecurringDonat
 export const RecurringDonationEdit = lazy(() => import('./pages/RecurringDonationEditPage'));
 export const DonationPayment = lazy(() => import('./pages/DonationPaymentPage'));
 export const PaymentResult = lazy(() => import('./pages/PaymentResultPage'));
+export const PublicDonationCheckoutResult = lazy(
+  () => import('./pages/PublicDonationCheckoutResultPage')
+);
 export const RecurringDonationCheckoutResult = lazy(
   () => import('./pages/RecurringDonationCheckoutResultPage')
 );

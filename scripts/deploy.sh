@@ -56,6 +56,67 @@ append_extra_compose_files() {
   done
 }
 
+validate_self_hosted_app_role_env() {
+  local db_at_rest_mode
+  db_at_rest_mode="$(to_lower "${DB_AT_REST_ENCRYPTION_MODE:-}")"
+
+  if [[ "$MODE" != "production" || "$db_at_rest_mode" != "self_hosted" ]]; then
+    return 0
+  fi
+
+  if [[ -z "${DB_USER:-}" ]]; then
+    echo "DB_USER must be set to the self-hosted production app role, for example nonprofit_app_user_prod" >&2
+    return 1
+  fi
+
+  if [[ "$DB_USER" == "postgres" ]]; then
+    echo "DB_USER must not be postgres for self-hosted production app connections" >&2
+    return 1
+  fi
+
+  if [[ -z "${DB_ADMIN_PASSWORD:-}" ]]; then
+    echo "DB_ADMIN_PASSWORD must be set separately from DB_PASSWORD for the self-hosted postgres bootstrap/admin role" >&2
+    return 1
+  fi
+
+  if [[ -z "${DB_PASSWORD:-}" ]]; then
+    echo "DB_PASSWORD must be set for the self-hosted production app role" >&2
+    return 1
+  fi
+}
+
+validate_self_hosted_app_role_after_deploy() {
+  local db_at_rest_mode
+  local role_count
+  local postgres_admin_user="${DB_ADMIN_USER:-postgres}"
+  db_at_rest_mode="$(to_lower "${DB_AT_REST_ENCRYPTION_MODE:-}")"
+
+  if [[ "$MODE" != "production" || "$db_at_rest_mode" != "self_hosted" ]]; then
+    return 0
+  fi
+
+  role_count="$(
+    compose_with_project_files "$compose_project" "${compose_files[@]}" -- \
+      --env-file "$env_file" exec -T postgres \
+      psql -U "$postgres_admin_user" -d "${DB_NAME:-nonprofit_manager}" \
+        -v app_db_user="$DB_USER" \
+        -Atq <<'SQL'
+SELECT COUNT(*)
+FROM pg_roles
+WHERE rolname = :'app_db_user';
+SQL
+  )"
+
+  if [[ "$role_count" != "1" ]]; then
+    echo "Self-hosted production DB role '$DB_USER' does not exist." >&2
+    echo "For a fresh data directory, docker-compose.db-self-hosted.yml provisions it with scripts/sql/provision_self_hosted_app_role.sh." >&2
+    echo "For an existing data directory, run the provisioning helper as the postgres admin role before rerunning deploy." >&2
+    return 1
+  fi
+
+  log_success "Self-hosted production DB role '$DB_USER' exists."
+}
+
 deploy_production_like() {
   local env_file=""
   local compose_project=""
@@ -86,6 +147,7 @@ deploy_production_like() {
 
   export NODE_ENV=production
   validate_production_db_at_rest_contract "production"
+  validate_self_hosted_app_role_env
 
   use_host_caddy="${DEPLOY_USE_HOST_CADDY:-0}"
 
@@ -147,6 +209,10 @@ deploy_production_like() {
       echo "    -f $compose_file"
     done
     echo "    up -d --build --remove-orphans"
+    if [[ "$MODE" == "production" && "$db_at_rest_mode" == "self_hosted" ]]; then
+      echo "Self-hosted DB role preflight:"
+      echo "  DB_USER=$DB_USER must already exist on existing data directories and is provisioned on fresh data directories by scripts/sql/provision_self_hosted_app_role.sh."
+    fi
     return 0
   fi
 
@@ -168,6 +234,8 @@ deploy_production_like() {
     CADDY_PUBLIC_SITE_DOMAIN="$caddy_public_site_domain" \
     compose_with_project_files "$compose_project" "${compose_files[@]}" -- --env-file "$env_file" up -d --build --remove-orphans
   fi
+
+  validate_self_hosted_app_role_after_deploy
 }
 
 case "$MODE" in

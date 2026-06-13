@@ -7,6 +7,7 @@ import { Response, NextFunction } from 'express';
 import { AuthRequest } from '@middleware/auth';
 import type { CreateSavedReportRequest, UpdateSavedReportRequest } from '@app-types/savedReport';
 import { badRequest, notFoundMessage, unauthorized } from '@utils/responseHelpers';
+import { getRequestOrganizationId as getOrgId } from '@modules/shared/http/controllerAuth';
 import { savedReportService } from '../services/savedReportService';
 
 const getUserRoles = (req: AuthRequest): string[] => {
@@ -27,6 +28,7 @@ export const getSavedReports = async (
   try {
     const userId = req.user?.id;
     const userRoles = getUserRoles(req);
+    const organizationId = getOrgId(req) || undefined;
     const query = (req.validatedQuery ?? req.query) as {
       entity?: string;
       page?: number;
@@ -42,6 +44,7 @@ export const getSavedReports = async (
       page,
       limit,
       summary,
+      organizationId,
     });
     res.json(reportsPage);
   } catch (error) {
@@ -61,9 +64,10 @@ export const getSavedReportById = async (
   try {
     const userId = req.user?.id;
     const userRoles = getUserRoles(req);
+    const organizationId = getOrgId(req) || undefined;
     const { id } = req.params;
 
-    const report = await savedReportService.getSavedReportById(id, userId, userRoles);
+    const report = await savedReportService.getSavedReportById(id, userId, userRoles, organizationId);
 
     if (!report) {
       notFoundMessage(res, 'Saved report not found or access denied');
@@ -87,6 +91,7 @@ export const createSavedReport = async (
 ): Promise<void> => {
   try {
     const userId = req.user?.id;
+    const organizationId = getOrgId(req) || undefined;
 
     if (!userId) {
       unauthorized(res, 'User not authenticated');
@@ -101,7 +106,7 @@ export const createSavedReport = async (
       return;
     }
 
-    const report = await savedReportService.createSavedReport(userId, data);
+    const report = await savedReportService.createSavedReport(userId, data, organizationId);
     res.status(201).json(report);
   } catch (error) {
     next(error);
@@ -119,6 +124,7 @@ export const updateSavedReport = async (
 ): Promise<void> => {
   try {
     const userId = req.user?.id;
+    const organizationId = getOrgId(req) || undefined;
     const { id } = req.params;
 
     if (!userId) {
@@ -128,7 +134,7 @@ export const updateSavedReport = async (
 
     const data: UpdateSavedReportRequest = req.body;
 
-    const report = await savedReportService.updateSavedReport(id, userId, data);
+    const report = await savedReportService.updateSavedReport(id, userId, data, organizationId);
 
     if (!report) {
       notFoundMessage(res, 'Saved report not found or access denied');
@@ -152,6 +158,7 @@ export const deleteSavedReport = async (
 ): Promise<void> => {
   try {
     const userId = req.user?.id;
+    const organizationId = getOrgId(req) || undefined;
     const { id } = req.params;
 
     if (!userId) {
@@ -159,7 +166,7 @@ export const deleteSavedReport = async (
       return;
     }
 
-    const success = await savedReportService.deleteSavedReport(id, userId);
+    const success = await savedReportService.deleteSavedReport(id, userId, organizationId);
 
     if (!success) {
       notFoundMessage(res, 'Saved report not found or access denied');

@@ -83,33 +83,40 @@ export const createVolunteersRoutes = (): Router => {
   );
 
   router.use(authenticate);
+  router.use(requireActiveOrganizationContext);
   router.use(loadDataScope('volunteers'));
 
   router.get(
     '/search/skills',
     validateQuery(volunteerSkillsQuerySchema),
+    requirePermission(Permission.VOLUNTEER_VIEW),
     controller.findVolunteersBySkills
   );
 
-  router.get('/', validateQuery(volunteerListQuerySchema), controller.getVolunteers);
+  router.get(
+    '/',
+    validateQuery(volunteerListQuerySchema),
+    requirePermission(Permission.VOLUNTEER_VIEW),
+    controller.getVolunteers
+  );
   router.post(
     '/export',
     requireRequestedOrganizationContext,
-    requireActiveOrganizationContext,
+    requirePermission(Permission.VOLUNTEER_EXPORT),
     validateBody(volunteerExportSchema),
     controller.exportVolunteers
   );
   router.get(
     '/import/template',
     requireRequestedOrganizationContext,
-    requireActiveOrganizationContext,
+    requirePermission(Permission.VOLUNTEER_EXPORT),
     validateQuery(importTemplateQuerySchema),
     controller.downloadImportTemplate
   );
   router.post(
     '/import/preview',
     requireRequestedOrganizationContext,
-    requireActiveOrganizationContext,
+    requirePermission(Permission.VOLUNTEER_CREATE),
     documentUpload.single('file'),
     handleMulterError,
     controller.previewImport
@@ -117,7 +124,7 @@ export const createVolunteersRoutes = (): Router => {
   router.post(
     '/import/commit',
     requireRequestedOrganizationContext,
-    requireActiveOrganizationContext,
+    requirePermission(Permission.VOLUNTEER_CREATE),
     documentUpload.single('file'),
     handleMulterError,
     controller.commitImport
@@ -130,25 +137,48 @@ export const createVolunteersRoutes = (): Router => {
     validateBody(approveVolunteerBackgroundCheckSchema),
     controller.approveVolunteerBackgroundCheck
   );
-  router.get('/:id', validateParams(z.object({ id: uuidSchema })), controller.getVolunteerById);
+  router.get(
+    '/:id',
+    validateParams(z.object({ id: uuidSchema })),
+    requirePermission(Permission.VOLUNTEER_VIEW),
+    controller.getVolunteerById
+  );
   router.get(
     '/:id/assignments',
     validateParams(z.object({ id: uuidSchema })),
+    requirePermission(Permission.VOLUNTEER_VIEW),
     controller.getVolunteerAssignments
   );
-  router.post('/', validateBody(createVolunteerSchema), controller.createVolunteer);
+  router.post(
+    '/',
+    validateBody(createVolunteerSchema),
+    requirePermission(Permission.VOLUNTEER_CREATE),
+    controller.createVolunteer
+  );
   router.put(
     '/:id',
     validateParams(z.object({ id: uuidSchema })),
     validateBody(updateVolunteerSchema),
+    requirePermission(Permission.VOLUNTEER_EDIT),
     controller.updateVolunteer
   );
-  router.delete('/:id', validateParams(z.object({ id: uuidSchema })), controller.deleteVolunteer);
-  router.post('/assignments', validateBody(volunteerAssignmentSchema), controller.createAssignment);
+  router.delete(
+    '/:id',
+    validateParams(z.object({ id: uuidSchema })),
+    requirePermission(Permission.VOLUNTEER_DELETE),
+    controller.deleteVolunteer
+  );
+  router.post(
+    '/assignments',
+    validateBody(volunteerAssignmentSchema),
+    requirePermission(Permission.VOLUNTEER_EDIT),
+    controller.createAssignment
+  );
   router.put(
     '/assignments/:id',
     validateParams(z.object({ id: uuidSchema })),
     validateBody(updateVolunteerAssignmentSchema),
+    requirePermission(Permission.VOLUNTEER_EDIT),
     controller.updateAssignment
   );
 

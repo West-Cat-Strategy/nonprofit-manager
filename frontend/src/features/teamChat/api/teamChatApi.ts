@@ -30,17 +30,17 @@ const toQueryString = (query: TeamChatMessagesQuery): string => {
 
 export class TeamChatApiClient {
   async getInbox(): Promise<TeamChatInboxItem[]> {
-    const response = await api.get<ApiEnvelope<{ rooms: TeamChatInboxItem[] }>>('/v2/team-chat/inbox');
+    const response = await api.get<ApiEnvelope<{ rooms: TeamChatInboxItem[] }>>('/team-chat/inbox');
     return unwrapApiData(response.data).rooms;
   }
 
   async getUnreadSummary(): Promise<TeamChatUnreadSummary> {
-    const response = await api.get<ApiEnvelope<TeamChatUnreadSummary>>('/v2/team-chat/unread-summary');
+    const response = await api.get<ApiEnvelope<TeamChatUnreadSummary>>('/team-chat/unread-summary');
     return unwrapApiData(response.data);
   }
 
   async getCaseRoom(caseId: string): Promise<TeamChatRoomDetail> {
-    const response = await api.get<ApiEnvelope<TeamChatRoomDetail>>(`/v2/team-chat/cases/${caseId}`);
+    const response = await api.get<ApiEnvelope<TeamChatRoomDetail>>(`/team-chat/cases/${caseId}`);
     return unwrapApiData(response.data);
   }
 
@@ -48,7 +48,7 @@ export class TeamChatApiClient {
     const queryString = toQueryString(query);
     const suffix = queryString ? `?${queryString}` : '';
     const response = await api.get<ApiEnvelope<TeamChatMessageListResult>>(
-      `/v2/team-chat/cases/${caseId}/messages${suffix}`
+      `/team-chat/cases/${caseId}/messages${suffix}`
     );
     return unwrapApiData(response.data);
   }
@@ -64,13 +64,13 @@ export class TeamChatApiClient {
         room?: TeamChatRoomDetail['room'];
         message: TeamChatRoomDetail['messages'][number];
       }>
-    >(`/v2/team-chat/cases/${caseId}/messages`, payload);
+    >(`/team-chat/cases/${caseId}/messages`, payload);
     return unwrapApiData(response.data);
   }
 
   async markCaseRead(caseId: string, payload: TeamChatMarkReadDTO = {}): Promise<TeamChatMarkReadResult> {
     const response = await api.post<ApiEnvelope<TeamChatMarkReadResult>>(
-      `/v2/team-chat/cases/${caseId}/read`,
+      `/team-chat/cases/${caseId}/read`,
       payload
     );
     return unwrapApiData(response.data);
@@ -78,14 +78,14 @@ export class TeamChatApiClient {
 
   async listCaseMembers(caseId: string): Promise<TeamChatMember[]> {
     const response = await api.get<ApiEnvelope<{ members: TeamChatMember[] }>>(
-      `/v2/team-chat/cases/${caseId}/members`
+      `/team-chat/cases/${caseId}/members`
     );
     return unwrapApiData(response.data).members;
   }
 
   async addCaseMember(caseId: string, payload: TeamChatAddMemberDTO): Promise<TeamChatMember[]> {
     const response = await api.post<ApiEnvelope<{ members: TeamChatMember[] }>>(
-      `/v2/team-chat/cases/${caseId}/members`,
+      `/team-chat/cases/${caseId}/members`,
       payload
     );
     return unwrapApiData(response.data).members;
@@ -93,7 +93,7 @@ export class TeamChatApiClient {
 
   async removeCaseMember(caseId: string, userId: string): Promise<{ removed: boolean; members: TeamChatMember[] }> {
     const response = await api.delete<ApiEnvelope<{ removed: boolean; members: TeamChatMember[] }>>(
-      `/v2/team-chat/cases/${caseId}/members/${userId}`
+      `/team-chat/cases/${caseId}/members/${userId}`
     );
     return unwrapApiData(response.data);
   }

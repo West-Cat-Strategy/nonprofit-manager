@@ -37,6 +37,7 @@ export interface Task {
   completed_date: Date | null;
   assigned_to: string | null;
   assigned_to_name?: string | null; // Joined from users table
+  organization_id: string | null;
   related_to_type: RelatedToType | null;
   related_to_id: string | null;
   related_to_name?: string | null; // Joined from related table
@@ -55,6 +56,7 @@ export interface CreateTaskDTO {
   assigned_to?: string;
   related_to_type?: RelatedToType;
   related_to_id?: string;
+  organization_id?: string;
 }
 
 export interface UpdateTaskDTO {
@@ -67,6 +69,7 @@ export interface UpdateTaskDTO {
   assigned_to?: string | null;
   related_to_type?: RelatedToType | null;
   related_to_id?: string | null;
+  organization_id?: string | null;
 }
 
 export interface TaskFilters {
@@ -79,6 +82,7 @@ export interface TaskFilters {
   due_before?: string; // ISO string
   due_after?: string; // ISO string
   overdue?: boolean;
+  organization_id?: string;
   page?: number;
   limit?: number;
 }

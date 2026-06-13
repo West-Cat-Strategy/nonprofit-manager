@@ -6,29 +6,20 @@ ALTER TABLE alert_configs
 WITH resolved_alert_org AS (
   SELECT
     ac.id AS alert_config_id,
-    COALESCE(
-      (
-        SELECT uaa.account_id
-        FROM user_account_access uaa
-        WHERE uaa.user_id = ac.user_id
-          AND uaa.is_active = true
-        ORDER BY
-          CASE uaa.access_level
-            WHEN 'admin' THEN 0
-            WHEN 'editor' THEN 1
-            ELSE 2
-          END,
-          uaa.granted_at ASC,
-          uaa.id ASC
-        LIMIT 1
-      ),
-      (
-        SELECT a.id
-        FROM accounts a
-        WHERE a.account_type = 'organization'
-        ORDER BY a.created_at ASC NULLS LAST, a.id ASC
-        LIMIT 1
-      )
+    (
+      SELECT uaa.account_id
+      FROM user_account_access uaa
+      WHERE uaa.user_id = ac.user_id
+        AND uaa.is_active = true
+      ORDER BY
+        CASE uaa.access_level
+          WHEN 'admin' THEN 0
+          WHEN 'editor' THEN 1
+          ELSE 2
+        END,
+        uaa.granted_at ASC,
+        uaa.id ASC
+      LIMIT 1
     ) AS organization_id
   FROM alert_configs ac
   WHERE ac.organization_id IS NULL
@@ -40,9 +31,30 @@ WHERE ac.id = resolved.alert_config_id
   AND ac.organization_id IS NULL;
 
 DO $$
+DECLARE
+  unresolved_count INTEGER;
+  unresolved_sample TEXT;
 BEGIN
   IF EXISTS (SELECT 1 FROM alert_configs WHERE organization_id IS NULL) THEN
-    RAISE EXCEPTION 'Unable to backfill organization_id for every alert config';
+    SELECT COUNT(*)
+    INTO unresolved_count
+    FROM alert_configs
+    WHERE organization_id IS NULL;
+
+    SELECT string_agg(id::text, ', ' ORDER BY created_at NULLS LAST, id)
+    INTO unresolved_sample
+    FROM (
+      SELECT id, created_at
+      FROM alert_configs
+      WHERE organization_id IS NULL
+      ORDER BY created_at NULLS LAST, id
+      LIMIT 10
+    ) unresolved_alert_configs;
+
+    RAISE EXCEPTION
+      'Unable to backfill organization_id for % alert config(s); create active user_account_access rows for these config users before rerunning. Sample alert_config ids: %',
+      unresolved_count,
+      unresolved_sample;
   END IF;
 END
 $$;
@@ -175,6 +187,41 @@ CREATE TRIGGER set_alert_instance_organization_id
   BEFORE INSERT OR UPDATE OF alert_config_id, organization_id ON alert_instances
   FOR EACH ROW
   EXECUTE FUNCTION sync_alert_instance_organization_id();
+
+DROP POLICY IF EXISTS donations_select_policy ON donations;
+CREATE POLICY donations_select_policy ON donations
+  FOR SELECT
+  USING (
+    is_admin()
+    OR can_access_account(
+      COALESCE(
+        account_id,
+        (SELECT c.account_id FROM contacts c WHERE c.id = donations.contact_id)
+      )
+    )
+  );
+
+DROP POLICY IF EXISTS donations_update_policy ON donations;
+CREATE POLICY donations_update_policy ON donations
+  FOR UPDATE
+  USING (
+    is_admin()
+    OR can_edit_account(
+      COALESCE(
+        account_id,
+        (SELECT c.account_id FROM contacts c WHERE c.id = donations.contact_id)
+      )
+    )
+  )
+  WITH CHECK (
+    is_admin()
+    OR can_edit_account(
+      COALESCE(
+        account_id,
+        (SELECT c.account_id FROM contacts c WHERE c.id = donations.contact_id)
+      )
+    )
+  );
 
 DROP POLICY IF EXISTS donations_delete_policy ON donations;
 CREATE POLICY donations_delete_policy ON donations

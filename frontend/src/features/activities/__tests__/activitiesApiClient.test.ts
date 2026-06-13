@@ -47,7 +47,7 @@ describe('ActivitiesApiClient', () => {
 
     const result = await client.getRecentActivities();
 
-    expect(api.get).toHaveBeenCalledWith('/v2/activities/recent');
+    expect(api.get).toHaveBeenCalledWith('/activities/recent');
     expect(result).toEqual(mockActivities);
   });
 
@@ -66,7 +66,7 @@ describe('ActivitiesApiClient', () => {
 
     await client.getRecentActivities({ limit: 10 });
 
-    expect(api.get).toHaveBeenCalledWith('/v2/activities/recent?limit=10');
+    expect(api.get).toHaveBeenCalledWith('/activities/recent?limit=10');
   });
 
   it('fetches entity-specific activities', async () => {
@@ -99,7 +99,7 @@ describe('ActivitiesApiClient', () => {
       entityId: 'case-1',
     });
 
-    expect(api.get).toHaveBeenCalledWith('/v2/activities/case/case-1');
+    expect(api.get).toHaveBeenCalledWith('/activities/case/case-1');
     expect(result).toEqual(mockActivities);
   });
 
@@ -121,6 +121,6 @@ describe('ActivitiesApiClient', () => {
       entityId: 'donation-1',
     });
 
-    expect(api.get).toHaveBeenCalledWith('/v2/activities/donation/donation-1');
+    expect(api.get).toHaveBeenCalledWith('/activities/donation/donation-1');
   });
 });

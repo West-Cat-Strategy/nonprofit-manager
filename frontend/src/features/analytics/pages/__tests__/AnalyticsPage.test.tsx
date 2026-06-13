@@ -131,13 +131,16 @@ const setupMocks = (
       return Promise.reject(new Error('API Error'));
     }
 
-    if (url === '/v2/analytics/summary') {
+    if (url === '/analytics/summary' || url === '/v2/analytics/summary') {
       return Promise.resolve({ data: summary });
     }
-    if (url === '/v2/analytics/trends/donations') {
+    if (url === '/analytics/trends/donations' || url === '/v2/analytics/trends/donations') {
       return Promise.resolve({ data: donationTrends });
     }
-    if (url === '/v2/analytics/trends/volunteer-hours') {
+    if (
+      url === '/analytics/trends/volunteer-hours' ||
+      url === '/v2/analytics/trends/volunteer-hours'
+    ) {
       return Promise.resolve({ data: volunteerTrends });
     }
     return Promise.resolve({ data: null });
@@ -145,7 +148,10 @@ const setupMocks = (
 };
 
 const getAnalyticsRequests = (url: string) =>
-  (api.get as ReturnType<typeof vi.fn>).mock.calls.filter(([requestUrl]) => requestUrl === url);
+  (api.get as ReturnType<typeof vi.fn>).mock.calls.filter(
+    ([requestUrl]) =>
+      requestUrl === url || requestUrl === url.replace(/^\/v2(?=\/|$)/, '')
+  );
 
 describe('Analytics page', () => {
   const mockExportAnalyticsSummaryToPDF = vi.mocked(exportUtils.exportAnalyticsSummaryToPDF);

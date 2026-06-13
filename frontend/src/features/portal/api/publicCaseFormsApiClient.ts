@@ -16,7 +16,7 @@ const publicTokenHeaders = (token: string) => ({
 class PublicCaseFormsApiClient {
   async getForm(token: string): Promise<CaseFormAssignmentDetail> {
     const response = await publicApi.get<ApiEnvelope<CaseFormAssignmentDetail>>(
-      '/v2/public/case-forms',
+      '/public/case-forms',
       {
         headers: publicTokenHeaders(token),
       }
@@ -34,7 +34,7 @@ class PublicCaseFormsApiClient {
     formData.set('file', input.file);
 
     const response = await publicApi.post<ApiEnvelope<CaseFormAsset>>(
-      '/v2/public/case-forms/assets',
+      '/public/case-forms/assets',
       formData,
       {
         headers: { 'Content-Type': 'multipart/form-data', ...publicTokenHeaders(token) },
@@ -45,7 +45,7 @@ class PublicCaseFormsApiClient {
 
   async saveDraft(token: string, payload: SaveCaseFormDraftDTO): Promise<CaseFormAssignment> {
     const response = await publicApi.post<ApiEnvelope<CaseFormAssignment>>(
-      '/v2/public/case-forms/draft',
+      '/public/case-forms/draft',
       payload,
       { headers: publicTokenHeaders(token) }
     );
@@ -54,7 +54,7 @@ class PublicCaseFormsApiClient {
 
   async submit(token: string, payload: SubmitCaseFormDTO): Promise<CaseFormAssignmentDetail> {
     const response = await publicApi.post<ApiEnvelope<CaseFormAssignmentDetail>>(
-      '/v2/public/case-forms/submit',
+      '/public/case-forms/submit',
       payload,
       { headers: publicTokenHeaders(token) }
     );
@@ -62,7 +62,7 @@ class PublicCaseFormsApiClient {
   }
 
   async downloadResponsePacket(token: string): Promise<BlobPart> {
-    const response = await publicApi.get<BlobPart>('/v2/public/case-forms/response-packet', {
+    const response = await publicApi.get<BlobPart>('/public/case-forms/response-packet', {
       headers: publicTokenHeaders(token),
       responseType: 'blob',
     });

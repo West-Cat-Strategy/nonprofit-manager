@@ -17,6 +17,8 @@ const mockApi = api as { get: ReturnType<typeof vi.fn>; post: ReturnType<typeof 
 const showSuccessMock = vi.fn();
 const showErrorMock = vi.fn();
 
+const isApiPath = (url: string, path: string) => url === path || url === `/v2${path}`;
+
 vi.mock('../../contexts/useToast', () => ({
   useToast: () => ({
     showSuccess: showSuccessMock,
@@ -90,13 +92,13 @@ describe('ContactForm', () => {
       },
     });
     mockApi.get.mockImplementation((url: string) => {
-      if (url === '/v2/contacts/roles') {
+      if (isApiPath(url, '/contacts/roles')) {
         return Promise.resolve({ data: { success: true, data: mockRoles } });
       }
-      if (url === '/v2/contacts/tags') {
+      if (isApiPath(url, '/contacts/tags')) {
         return Promise.resolve({ data: { success: true, data: [] } });
       }
-      if (url.startsWith('/v2/contacts/') && url.endsWith('/relationships')) {
+      if (/^(?:\/v2)?\/contacts\/.+\/relationships$/.test(url)) {
         return Promise.resolve({ data: { success: true, data: [] } });
       }
       return Promise.resolve({ data: { success: true, data: [] } });
@@ -158,7 +160,7 @@ describe('ContactForm', () => {
 
       await waitFor(() => {
         expect(mockApi.post).toHaveBeenCalledWith(
-          '/v2/contacts',
+          '/contacts',
           expect.objectContaining({
             first_name: 'Jamie',
             last_name: 'Saved',
@@ -189,7 +191,7 @@ describe('ContactForm', () => {
     it('loads roles from the v2 contacts roles endpoint', async () => {
       await renderContactForm(<ContactForm mode="create" />);
 
-      expect(mockApi.get).toHaveBeenCalledWith('/v2/contacts/roles');
+      expect(mockApi.get).toHaveBeenCalledWith('/contacts/roles');
       expect(screen.getByText('Staff')).toBeInTheDocument();
       expect(screen.getByText('Board Member')).toBeInTheDocument();
       expect(screen.getByText('Client')).toBeInTheDocument();
@@ -197,13 +199,13 @@ describe('ContactForm', () => {
 
     it('falls back to no roles when the roles payload is malformed', async () => {
       mockApi.get.mockImplementation((url: string) => {
-        if (url === '/v2/contacts/roles') {
+        if (isApiPath(url, '/contacts/roles')) {
           return Promise.resolve({ data: { success: true, data: {} } });
         }
-        if (url === '/v2/contacts/tags') {
+        if (isApiPath(url, '/contacts/tags')) {
           return Promise.resolve({ data: { success: true, data: [] } });
         }
-        if (url.startsWith('/v2/contacts/') && url.endsWith('/relationships')) {
+        if (/^(?:\/v2)?\/contacts\/.+\/relationships$/.test(url)) {
           return Promise.resolve({ data: { success: true, data: [] } });
         }
         return Promise.resolve({ data: { success: true, data: [] } });
@@ -218,7 +220,7 @@ describe('ContactForm', () => {
     it('loads roles from the v2 contacts roles endpoint', async () => {
       await renderContactForm(<ContactForm mode="create" />);
 
-      expect(mockApi.get).toHaveBeenCalledWith('/v2/contacts/roles');
+      expect(mockApi.get).toHaveBeenCalledWith('/contacts/roles');
       expect(screen.getByText('Staff')).toBeInTheDocument();
       expect(screen.getByText('Board Member')).toBeInTheDocument();
       expect(screen.getByText('Client')).toBeInTheDocument();
@@ -226,13 +228,13 @@ describe('ContactForm', () => {
 
     it('falls back to no roles when the roles payload is malformed', async () => {
       mockApi.get.mockImplementation((url: string) => {
-        if (url === '/v2/contacts/roles') {
+        if (isApiPath(url, '/contacts/roles')) {
           return Promise.resolve({ data: { success: true, data: {} } });
         }
-        if (url === '/v2/contacts/tags') {
+        if (isApiPath(url, '/contacts/tags')) {
           return Promise.resolve({ data: { success: true, data: [] } });
         }
-        if (url.startsWith('/v2/contacts/') && url.endsWith('/relationships')) {
+        if (/^(?:\/v2)?\/contacts\/.+\/relationships$/.test(url)) {
           return Promise.resolve({ data: { success: true, data: [] } });
         }
         return Promise.resolve({ data: { success: true, data: [] } });
@@ -304,7 +306,7 @@ describe('ContactForm', () => {
 
       await waitFor(() => {
         expect(mockApi.put).toHaveBeenCalledWith(
-          '/v2/contacts/456',
+          '/contacts/456',
           expect.objectContaining({
             first_name: 'Janet',
             email: 'janet.smith@example.com',
@@ -412,7 +414,7 @@ describe('ContactForm', () => {
 
       await waitFor(() => {
         expect(mockApi.post).toHaveBeenCalledWith(
-          '/v2/contacts',
+          '/contacts',
           expect.objectContaining({ phn: '1234567890' })
         );
       });

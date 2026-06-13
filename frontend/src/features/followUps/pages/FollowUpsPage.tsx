@@ -29,6 +29,12 @@ import { parseAllowedValue, parsePositiveInteger } from '../../../utils/persiste
 const PAGE_SIZE = 20;
 const FOLLOW_UP_ENTITY_TYPE_VALUES = ['case', 'task'] as const;
 const FOLLOW_UP_STATUS_VALUES = ['scheduled', 'completed', 'cancelled', 'overdue'] as const;
+type FollowUpActionMode = 'complete' | 'cancel';
+type FollowUpActionDraft = {
+  followUpId: string;
+  mode: FollowUpActionMode;
+  notes: string;
+};
 
 const formatDateTime = (followUp: FollowUpWithEntity): string => {
   if (!followUp.scheduled_time) return followUp.scheduled_date;
@@ -114,6 +120,7 @@ export default function FollowUpsPage() {
   const [newEntityOption, setNewEntityOption] = useState<FollowUpEntityOption | null>(null);
   const [rescheduleTarget, setRescheduleTarget] = useState<FollowUpWithEntity | null>(null);
   const [isRescheduling, setIsRescheduling] = useState(false);
+  const [actionDraft, setActionDraft] = useState<FollowUpActionDraft | null>(null);
 
   const filters: FollowUpFilters = useMemo(
     () => ({
@@ -199,9 +206,38 @@ export default function FollowUpsPage() {
     );
   };
 
+  const beginActionDraft = (followUpId: string, mode: FollowUpActionMode) => {
+    setActionDraft({ followUpId, mode, notes: '' });
+  };
+
+  const updateActionNotes = (notes: string) => {
+    setActionDraft((current) => (current ? { ...current, notes } : current));
+  };
+
+  const resetActionDraft = () => {
+    setActionDraft(null);
+  };
+
   const handleComplete = async (followUpId: string) => {
+    if (actionDraft?.followUpId !== followUpId || actionDraft.mode !== 'complete') {
+      beginActionDraft(followUpId, 'complete');
+      return;
+    }
+
+    const completedNotes = actionDraft.notes.trim();
+    if (!completedNotes) {
+      showError('Completion notes are required');
+      return;
+    }
+
     try {
-      await dispatch(completeFollowUp({ followUpId, data: {} })).unwrap();
+      await dispatch(
+        completeFollowUp({
+          followUpId,
+          data: { completed_notes: completedNotes },
+        })
+      ).unwrap();
+      resetActionDraft();
       await refresh();
     } catch (error) {
       showError(getFollowUpErrorMessage(error, 'Failed to complete follow-up'));
@@ -209,12 +245,68 @@ export default function FollowUpsPage() {
   };
 
   const handleCancelFollowUp = async (followUpId: string) => {
+    if (actionDraft?.followUpId !== followUpId || actionDraft.mode !== 'cancel') {
+      beginActionDraft(followUpId, 'cancel');
+      return;
+    }
+
+    const cancellationNotes = actionDraft.notes.trim();
+    if (!cancellationNotes) {
+      showError('Cancellation notes are required');
+      return;
+    }
+
     try {
-      await dispatch(cancelFollowUp({ followUpId, data: {} })).unwrap();
+      await dispatch(
+        cancelFollowUp({
+          followUpId,
+          data: { completed_notes: cancellationNotes },
+        })
+      ).unwrap();
+      resetActionDraft();
       await refresh();
     } catch (error) {
       showError(getFollowUpErrorMessage(error, 'Failed to cancel follow-up'));
     }
+  };
+
+  const renderActionDraft = (followUp: FollowUpWithEntity, region: 'mobile' | 'desktop') => {
+    if (actionDraft?.followUpId !== followUp.id) {
+      return null;
+    }
+
+    const label =
+      actionDraft.mode === 'complete' ? 'Completion notes' : 'Cancellation notes';
+    const placeholder =
+      actionDraft.mode === 'complete'
+        ? 'Add completion notes...'
+        : 'Add cancellation notes...';
+
+    return (
+      <div className="mt-3 space-y-2">
+        <label
+          htmlFor={`follow-up-action-notes-${region}-${followUp.id}`}
+          className="text-xs font-black uppercase text-[var(--app-text-muted)]"
+        >
+          {label}
+        </label>
+        <textarea
+          id={`follow-up-action-notes-${region}-${followUp.id}`}
+          value={actionDraft.notes}
+          onChange={(event) => updateActionNotes(event.target.value)}
+          rows={2}
+          placeholder={placeholder}
+          className="w-full border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-sm text-[var(--app-text)]"
+        />
+        <button
+          type="button"
+          onClick={resetActionDraft}
+          className="border-2 border-[var(--app-border)] px-2 py-1 text-xs font-bold"
+        >
+          Dismiss
+        </button>
+      </div>
+    );
   };
 
   const handleDelete = async (followUpId: string) => {
@@ -468,6 +560,7 @@ export default function FollowUpsPage() {
                       Delete
                     </button>
                   </div>
+                  {renderActionDraft(followUp, 'mobile')}
                 </div>
               ))
             )}
@@ -527,6 +620,7 @@ export default function FollowUpsPage() {
                         <button type="button" onClick={() => setEditingFollowUp(followUp)} className="border-2 border-[var(--app-border)] px-2 py-1 text-xs font-bold">Edit</button>
                         <button type="button" onClick={() => void handleDelete(followUp.id)} className="border-2 border-app-accent bg-app-accent-soft px-2 py-1 text-xs font-bold text-app-accent-text">Delete</button>
                       </div>
+                      {renderActionDraft(followUp, 'desktop')}
                     </td>
                   </tr>
                 ))

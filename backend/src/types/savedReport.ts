@@ -39,6 +39,7 @@ export interface PublicReportSnapshotMeta {
 
 export interface SavedReport {
   id: string;
+  organization_id?: string | null;
   name: string;
   description?: string;
   entity: ReportEntity;

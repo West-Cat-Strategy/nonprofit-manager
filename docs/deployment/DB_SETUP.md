@@ -396,6 +396,35 @@ psql -U postgres -d nonprofit_manager < backup_20260201.sql
 
 For a major Postgres upgrade, use the archive helpers instead of reusing the old data directory with the new image. Export from the old major with `scripts/db-export-archive.sh`, bring up Postgres 18 with a fresh data volume or host directory mounted at `/var/lib/postgresql`, restore with `scripts/db-restore-archive.sh`, and verify before cutover. Managed production databases should use the provider's snapshot and major-upgrade workflow instead of these local helpers.
 
+### Self-Hosted Production App Role
+
+Self-hosted production Compose deployments must use a dedicated application role for backend,
+public-site, and worker database connections. Set `DB_USER=nonprofit_app_user_prod` and keep
+`DB_PASSWORD` as that role's password. Do not use `DB_USER=postgres` for application traffic.
+
+The self-hosted Postgres service uses `DB_ADMIN_PASSWORD` only for the `postgres` bootstrap/admin
+role. Fresh data directories run `scripts/sql/provision_self_hosted_app_role.sh` during container
+initialization to create or repair `nonprofit_app_user_prod` as a login role with no superuser,
+createdb, createrole, or bypass-RLS privileges, then grant the app's table, sequence, and function
+access.
+
+For an existing self-hosted data directory, run the same helper inside a trusted Postgres admin
+session before deploying if the role was not already present:
+
+```bash
+POSTGRES_APP_USER=nonprofit_app_user_prod \
+POSTGRES_APP_PASSWORD="$DB_PASSWORD" \
+POSTGRES_DB=nonprofit_manager \
+docker compose -p nonprofit-prod --env-file .env.production \
+  -f docker-compose.yml -f docker-compose.db-self-hosted.yml \
+  exec -T postgres bash /docker-entrypoint-initdb.d/010_provision_app_role.sh
+```
+
+`scripts/deploy.sh production` fails dry-run validation when self-hosted production uses
+`DB_USER=postgres` or omits `DB_ADMIN_PASSWORD`. Executed deployments also check that
+`nonprofit_app_user_prod` exists after the stack is up and report the provisioning helper above
+when an existing data directory still needs the role.
+
 If an existing self-hosted production host still has a PostgreSQL 14 data directory stored directly at the mounted root path, use the opt-in compatibility overlay during deployment:
 
 ```bash

@@ -23,37 +23,37 @@ const buildTaskSearchParams = (filters: TaskFilters = {}): URLSearchParams => {
 export class TasksApiClient implements TasksCatalogPort, TasksMutationPort {
   async listTasks(filters: TaskFilters = {}): Promise<TasksListPayload> {
     const params = buildTaskSearchParams(filters);
-    const response = await api.get<TasksListPayload>(`/v2/tasks?${params.toString()}`);
+    const response = await api.get<TasksListPayload>(`/tasks?${params.toString()}`);
     return response.data;
   }
 
   async getTaskById(taskId: string): Promise<Task> {
-    const response = await api.get<Task>(`/v2/tasks/${taskId}`);
+    const response = await api.get<Task>(`/tasks/${taskId}`);
     return response.data;
   }
 
   async createTask(payload: CreateTaskDTO): Promise<Task> {
-    const response = await api.post<Task>('/v2/tasks', payload);
+    const response = await api.post<Task>('/tasks', payload);
     return response.data;
   }
 
   async updateTask(taskId: string, updates: UpdateTaskDTO): Promise<Task> {
-    const response = await api.put<Task>(`/v2/tasks/${taskId}`, updates);
+    const response = await api.put<Task>(`/tasks/${taskId}`, updates);
     return response.data;
   }
 
   async deleteTask(taskId: string): Promise<void> {
-    await api.delete(`/v2/tasks/${taskId}`);
+    await api.delete(`/tasks/${taskId}`);
   }
 
   async completeTask(taskId: string): Promise<Task> {
-    const response = await api.post<Task>(`/v2/tasks/${taskId}/complete`);
+    const response = await api.post<Task>(`/tasks/${taskId}/complete`);
     return response.data;
   }
 
   async getTaskSummary(filters: TaskFilters = {}): Promise<TaskSummary> {
     const params = buildTaskSearchParams(filters);
-    const response = await api.get<TaskSummary>(`/v2/tasks/summary?${params.toString()}`);
+    const response = await api.get<TaskSummary>(`/tasks/summary?${params.toString()}`);
     return response.data;
   }
 }

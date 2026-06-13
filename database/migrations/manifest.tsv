@@ -135,3 +135,5 @@
 135	135_meeting_tenant_scope.sql
 136	136_organization_branding_tenant_scope.sql
 137	137_code_review_remediation_security_scope.sql
+138	138_task_organization_scope.sql
+139	139_saved_reports_organization_scope.sql

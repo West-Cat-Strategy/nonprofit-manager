@@ -52,6 +52,9 @@ describe('routeCatalog matching', () => {
       'communications'
     );
     expect(matchRouteCatalogEntry('/settings/email-marketing')?.id).toBe('email-marketing');
+    expect(matchRouteCatalogEntry('/donations/checkout-result')?.id).toBe(
+      'donation-checkout-result'
+    );
     expect(
       getRouteBreadcrumbs('/settings/email-marketing').map(({ label, current }) => ({
         label,

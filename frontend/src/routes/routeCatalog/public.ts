@@ -131,6 +131,12 @@ export const publicRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     section: 'Builder',
     path: '/recurring-donations/checkout-result',
   }),
+  publicRoute({
+    id: 'donation-checkout-result',
+    title: 'Donation Checkout',
+    section: 'Builder',
+    path: '/donations/checkout-result',
+  }),
   portalPublicRoute({
     id: 'portal-login',
     title: 'Portal Login',

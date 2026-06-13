@@ -5,7 +5,7 @@ import FollowUpsPage from '../FollowUpsPage';
 import { renderWithProviders } from '../../../../test/testUtils';
 
 const showErrorMock = vi.fn();
-const dispatchMock = vi.fn((action: { type?: string }) => {
+const defaultDispatchImplementation = (action: { type?: string }) => {
   if (
     action.type === 'followups/reschedule' ||
     action.type === 'followups/complete' ||
@@ -18,7 +18,8 @@ const dispatchMock = vi.fn((action: { type?: string }) => {
   }
 
   return Promise.resolve({});
-});
+};
+const dispatchMock = vi.fn(defaultDispatchImplementation);
 const confirmMock = vi.fn(() => Promise.resolve(true));
 
 const rescheduleFollowUpMock = vi.fn((payload: unknown) => ({ type: 'followups/reschedule', payload }));
@@ -26,7 +27,7 @@ const fetchFollowUpsMock = vi.fn((payload: unknown) => ({ type: 'followups/fetch
 const fetchFollowUpSummaryMock = vi.fn((payload: unknown) => ({ type: 'followups/fetchSummary', payload }));
 const deleteFollowUpMock = vi.fn((id: string) => ({ type: 'followups/delete', payload: id }));
 const completeFollowUpMock = vi.fn((payload: unknown) => ({ type: 'followups/complete', payload }));
-const cancelFollowUpMock = vi.fn((id: string) => ({ type: 'followups/cancel', payload: id }));
+const cancelFollowUpMock = vi.fn((payload: unknown) => ({ type: 'followups/cancel', payload }));
 
 const mockState = {
   followUps: {
@@ -84,7 +85,7 @@ vi.mock('../../../../features/followUps/state', () => ({
   fetchFollowUps: (payload: unknown) => fetchFollowUpsMock(payload),
   fetchFollowUpSummary: (payload: unknown) => fetchFollowUpSummaryMock(payload),
   completeFollowUp: (payload: unknown) => completeFollowUpMock(payload),
-  cancelFollowUp: (payload: unknown) => cancelFollowUpMock(payload as string),
+  cancelFollowUp: (payload: unknown) => cancelFollowUpMock(payload),
   deleteFollowUp: (payload: unknown) => deleteFollowUpMock(payload as string),
   rescheduleFollowUp: (payload: unknown) => rescheduleFollowUpMock(payload),
 }));
@@ -165,6 +166,7 @@ vi.mock('../../../../components/ConfirmDialog', () => ({
 describe('FollowUpsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    dispatchMock.mockImplementation(defaultDispatchImplementation);
     dispatchMock.mockClear();
     mockState.followUps.followUps = [
       {
@@ -291,6 +293,56 @@ describe('FollowUpsPage', () => {
     expect(screen.getByText('Unable to load follow-ups')).toBeInTheDocument();
   });
 
+  it('requires completion notes before dispatching complete from the standalone page', async () => {
+    renderWithProviders(<FollowUpsPage />);
+
+    fireEvent.click(screen.getAllByRole('button', { name: /^complete$/i })[0]);
+    expect(screen.getAllByLabelText(/completion notes/i).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getAllByRole('button', { name: /^complete$/i })[0]);
+
+    await waitFor(() => {
+      expect(showErrorMock).toHaveBeenCalledWith('Completion notes are required');
+    });
+    expect(completeFollowUpMock).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getAllByLabelText(/completion notes/i)[0], {
+      target: { value: 'Called the client and confirmed next steps' },
+    });
+    fireEvent.click(screen.getAllByRole('button', { name: /^complete$/i })[0]);
+
+    await waitFor(() => {
+      expect(completeFollowUpMock).toHaveBeenCalledWith({
+        followUpId: 'fu-1',
+        data: { completed_notes: 'Called the client and confirmed next steps' },
+      });
+    });
+  });
+
+  it('requires cancellation notes before dispatching cancel from the standalone page', async () => {
+    renderWithProviders(<FollowUpsPage />);
+
+    fireEvent.click(screen.getAllByRole('button', { name: /^cancel$/i })[0]);
+    expect(screen.getAllByLabelText(/cancellation notes/i).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getAllByRole('button', { name: /^cancel$/i })[0]);
+
+    await waitFor(() => {
+      expect(showErrorMock).toHaveBeenCalledWith('Cancellation notes are required');
+    });
+    expect(cancelFollowUpMock).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getAllByLabelText(/cancellation notes/i)[0], {
+      target: { value: 'Client declined further follow-up' },
+    });
+    fireEvent.click(screen.getAllByRole('button', { name: /^cancel$/i })[0]);
+
+    await waitFor(() => {
+      expect(cancelFollowUpMock).toHaveBeenCalledWith({
+        followUpId: 'fu-1',
+        data: { completed_notes: 'Client declined further follow-up' },
+      });
+    });
+  });
+
   it('surfaces backend validation messages when completing a follow-up fails', async () => {
     dispatchMock.mockImplementation((action: { type?: string }) => {
       if (action.type === 'followups/complete') {
@@ -314,6 +366,10 @@ describe('FollowUpsPage', () => {
 
     renderWithProviders(<FollowUpsPage />);
 
+    fireEvent.click(screen.getAllByRole('button', { name: /^complete$/i })[0]);
+    fireEvent.change(screen.getAllByLabelText(/completion notes/i)[0], {
+      target: { value: 'Finished callback' },
+    });
     fireEvent.click(screen.getAllByRole('button', { name: /^complete$/i })[0]);
 
     await waitFor(() => {

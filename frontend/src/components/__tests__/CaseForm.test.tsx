@@ -38,11 +38,13 @@ const mockApi = api as {
   put: ReturnType<typeof vi.fn>;
 };
 
+const isApiPath = (url: string, path: string) => url === path || url === `/v2${path}`;
+
 describe('CaseForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockApi.get.mockImplementation((url: string) => {
-      if (url === '/v2/cases/types') {
+      if (isApiPath(url, '/cases/types')) {
         return Promise.resolve({
           data: {
             success: true,
@@ -57,11 +59,11 @@ describe('CaseForm', () => {
         });
       }
 
-      if (url === '/v2/cases/statuses') {
+      if (isApiPath(url, '/cases/statuses')) {
         return Promise.resolve({ data: { success: true, data: [] } });
       }
 
-      if (url === '/v2/contacts/contact-1') {
+      if (isApiPath(url, '/contacts/contact-1')) {
         return Promise.resolve({
           data: {
             success: true,
@@ -146,7 +148,7 @@ describe('CaseForm', () => {
 
     await waitFor(() => {
       expect(mockApi.post).toHaveBeenCalledWith(
-        '/v2/cases',
+        '/cases',
         expect.objectContaining({
           contact_id: 'contact-1',
           case_type_id: 'case-type-1',

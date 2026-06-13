@@ -27,6 +27,9 @@ RLS_FIXTURE_CONTACT_ID="00000000-0000-4000-8000-000000000301"
 RLS_FIXTURE_ACCESS_ID="00000000-0000-4000-8000-000000000401"
 RLS_FIXTURE_NON_ADMIN_ACCESS_ID="00000000-0000-4000-8000-000000000402"
 RLS_UNKNOWN_USER_ID="00000000-0000-4000-8000-000000000999"
+ALERT_SCOPE_FIXTURE_CONFIG_ID="00000000-0000-4000-8000-000000000501"
+ALERT_SCOPE_FIXTURE_INSTANCE_ID="00000000-0000-4000-8000-000000000502"
+DONATION_DELETE_FIXTURE_ID="00000000-0000-4000-8000-000000000601"
 
 admin_psql() {
   PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 "$@"
@@ -277,9 +280,22 @@ cleanup_rls_fixtures() {
     -v fixture_admin_write_account_id="$RLS_FIXTURE_ADMIN_WRITE_ACCOUNT_ID" \
     -v fixture_contact_id="$RLS_FIXTURE_CONTACT_ID" \
     -v fixture_access_id="$RLS_FIXTURE_ACCESS_ID" \
-    -v fixture_non_admin_access_id="$RLS_FIXTURE_NON_ADMIN_ACCESS_ID" <<'SQL' >/dev/null
+    -v fixture_non_admin_access_id="$RLS_FIXTURE_NON_ADMIN_ACCESS_ID" \
+    -v alert_config_id="$ALERT_SCOPE_FIXTURE_CONFIG_ID" \
+    -v alert_instance_id="$ALERT_SCOPE_FIXTURE_INSTANCE_ID" \
+    -v donation_id="$DONATION_DELETE_FIXTURE_ID" <<'SQL' >/dev/null
 DELETE FROM volunteers
 WHERE contact_id = :'fixture_contact_id'::uuid;
+
+DELETE FROM alert_instances
+WHERE id = :'alert_instance_id'::uuid
+   OR alert_config_id = :'alert_config_id'::uuid;
+
+DELETE FROM alert_configs
+WHERE id = :'alert_config_id'::uuid;
+
+DELETE FROM donations
+WHERE id = :'donation_id'::uuid;
 
 DELETE FROM user_account_access
 WHERE id IN (:'fixture_access_id'::uuid, :'fixture_non_admin_access_id'::uuid)
@@ -402,6 +418,111 @@ check_app_role_rls_behavior() {
   if [[ "$unknown_accounts" != "0" || "$unknown_contacts" != "0" || "$unknown_volunteers" != "0" || "$known_accounts" != "1" || "$known_contacts" != "1" || "$known_volunteers" != "0" || "$inserted_volunteers" != "1" || "$updated_volunteers" != "1" || "$deleted_volunteers" != "1" || "$admin_inserted_account" != "1" || "$admin_updated_account" != "1" || "$non_admin_updated_account" != "0" || "$admin_access_write" != "1" ]]; then
     echo "Migration verification failed: app role RLS behavior did not match expectations" >&2
     echo "Observed counts: unknown_accounts=$unknown_accounts unknown_contacts=$unknown_contacts unknown_volunteers=$unknown_volunteers known_accounts=$known_accounts known_contacts=$known_contacts known_volunteers=$known_volunteers inserted_volunteers=$inserted_volunteers updated_volunteers=$updated_volunteers deleted_volunteers=$deleted_volunteers admin_inserted_account=$admin_inserted_account admin_updated_account=$admin_updated_account non_admin_updated_account=$non_admin_updated_account admin_access_write=$admin_access_write" >&2
+    return 1
+  fi
+
+  return 0
+}
+
+check_alert_scope_and_donation_delete_behavior() {
+  local scoped_counts
+  admin_psql \
+    -v fixture_user_id="$RLS_FIXTURE_USER_ID" \
+    -v fixture_account_id="$RLS_FIXTURE_ACCOUNT_ID" \
+    -v fixture_contact_id="$RLS_FIXTURE_CONTACT_ID" \
+    -v alert_config_id="$ALERT_SCOPE_FIXTURE_CONFIG_ID" \
+    -v alert_instance_id="$ALERT_SCOPE_FIXTURE_INSTANCE_ID" \
+    -v donation_id="$DONATION_DELETE_FIXTURE_ID" <<'SQL' >/dev/null
+BEGIN;
+
+DELETE FROM alert_instances
+WHERE id = :'alert_instance_id'::uuid
+   OR alert_config_id = :'alert_config_id'::uuid;
+
+DELETE FROM alert_configs
+WHERE id = :'alert_config_id'::uuid;
+
+DELETE FROM donations
+WHERE id = :'donation_id'::uuid;
+
+INSERT INTO alert_configs (
+  id,
+  user_id,
+  name,
+  metric_type,
+  condition,
+  threshold,
+  frequency,
+  channels,
+  severity,
+  organization_id,
+  created_by
+)
+VALUES (
+  :'alert_config_id',
+  :'fixture_user_id',
+  'Migration verification alert scope',
+  'donations',
+  'exceeds',
+  100,
+  'daily',
+  '["in_app"]'::jsonb,
+  'medium',
+  :'fixture_account_id',
+  :'fixture_user_id'
+);
+
+INSERT INTO donations (
+  id,
+  donation_number,
+  account_id,
+  contact_id,
+  amount,
+  donation_date,
+  payment_status,
+  created_by,
+  modified_by
+)
+VALUES (
+  :'donation_id',
+  'VERIFY-RLS-DONATION-DELETE',
+  NULL,
+  :'fixture_contact_id',
+  12.34,
+  CURRENT_TIMESTAMP,
+  'completed',
+  :'fixture_user_id',
+  :'fixture_user_id'
+);
+
+COMMIT;
+SQL
+
+  scoped_counts="$(app_psql \
+    -v fixture_user_id="$RLS_FIXTURE_USER_ID" \
+    -v fixture_account_id="$RLS_FIXTURE_ACCOUNT_ID" \
+    -v fixture_admin_write_account_id="$RLS_FIXTURE_ADMIN_WRITE_ACCOUNT_ID" \
+    -v fixture_contact_id="$RLS_FIXTURE_CONTACT_ID" \
+    -v alert_config_id="$ALERT_SCOPE_FIXTURE_CONFIG_ID" \
+    -v alert_instance_id="$ALERT_SCOPE_FIXTURE_INSTANCE_ID" \
+    -v donation_id="$DONATION_DELETE_FIXTURE_ID" \
+    -Atq \
+    -f "$SCRIPT_DIR/sql/verify_alert_scope_and_donation_delete.sql")"
+
+  local rows=()
+  local scoped_row
+  while IFS= read -r scoped_row; do
+    rows+=("$scoped_row")
+  done <<<"$scoped_counts"
+
+  local triggered_instance_scoped="${rows[0]:-}"
+  local deleted_donation="${rows[1]:-}"
+  local unresolved_alert_configs="${rows[2]:-}"
+  local unresolved_alert_instances="${rows[3]:-}"
+
+  if [[ "$triggered_instance_scoped" != "1" || "$deleted_donation" != "1" || "$unresolved_alert_configs" != "0" || "$unresolved_alert_instances" != "0" ]]; then
+    echo "Migration verification failed: alert organization scope or donation delete policy did not match expectations under the app role" >&2
+    echo "Observed counts: triggered_instance_scoped=$triggered_instance_scoped deleted_donation=$deleted_donation unresolved_alert_configs=$unresolved_alert_configs unresolved_alert_instances=$unresolved_alert_instances" >&2
     return 1
   fi
 
@@ -561,6 +682,7 @@ run_check "Verification app role is non-superuser and cannot bypass RLS" check_a
 run_check "Expected tables have FORCE RLS enabled" check_rls_table_contract
 run_check "RLS verification fixtures are seeded" seed_rls_fixtures
 run_check "Verification app role observes the RLS contract" check_app_role_rls_behavior
+run_check "App role proves alert organization scope, alert trigger sync, and donation delete policy" check_alert_scope_and_donation_delete_behavior
 run_check "Disposable RLS verification fixtures are removed" cleanup_rls_fixtures
 run_check "RLS verification fixture cleanup left no bootstrap users behind" check_rls_fixtures_cleaned
 run_check "Known superseded indexes have been removed" check_forbidden_duplicate_indexes

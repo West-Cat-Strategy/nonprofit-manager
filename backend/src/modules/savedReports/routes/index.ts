@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
 import { requirePermission } from '@middleware/permissions';
+import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import { isoDateTimeSchema, optionalStrictBooleanSchema, uuidSchema } from '@validations/shared';
 import { REPORT_ENTITIES } from '@app-types/report';
@@ -65,6 +66,7 @@ export const createSavedReportsRoutes = (): Router => {
   const controller = createSavedReportsController();
 
   router.use(authenticate);
+  router.use(requireActiveOrganizationContext);
 
   router.get(
     '/',

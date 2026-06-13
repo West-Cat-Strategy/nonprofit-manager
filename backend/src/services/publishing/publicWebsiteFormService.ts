@@ -662,6 +662,7 @@ export class PublicWebsiteFormService {
         donationId: donation.donation_id,
         receiptEmail: identity.email,
         provider,
+        returnUrl: this.siteManagement.getSiteUrl(site),
         metadata: {
           siteId: site.id,
           formKey,

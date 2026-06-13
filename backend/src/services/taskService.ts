@@ -9,6 +9,7 @@ import { Task, CreateTaskDTO, UpdateTaskDTO, TaskFilters, TaskSummary, TaskStatu
 
 type TaskQueryValue = string | number | boolean;
 type TaskRow = Task & { total_count?: number | string };
+type TaskRelatedToType = NonNullable<CreateTaskDTO['related_to_type']>;
 
 interface TaskFilterSql {
   whereClause: string;
@@ -109,6 +110,11 @@ export class TaskService {
    * Get a single task by ID
    */
   async getTaskById(id: string): Promise<Task | null> {
+    return this.getTaskByIdForOrganization(id, undefined);
+  }
+
+  async getTaskByIdForOrganization(id: string, organizationId?: string): Promise<Task | null> {
+    const scopeCondition = organizationId ? 'AND t.organization_id = $2' : '';
     const query = `
       SELECT
         t.*,
@@ -129,15 +135,16 @@ export class TaskService {
       LEFT JOIN donations d ON t.related_to_type = 'donation' AND t.related_to_id = d.id
       LEFT JOIN contacts vc ON t.related_to_type = 'volunteer' AND t.related_to_id = vc.id
       WHERE t.id = $1
+      ${scopeCondition}
     `;
-    const result = await this.pool.query(query, [id]);
+    const result = await this.pool.query(query, organizationId ? [id, organizationId] : [id]);
     return result.rows[0] || null;
   }
 
   /**
    * Create a new task
    */
-  async createTask(taskData: CreateTaskDTO, userId: string): Promise<Task> {
+  async createTask(taskData: CreateTaskDTO, userId: string, organizationId?: string): Promise<Task> {
     const {
       subject,
       description,
@@ -149,13 +156,21 @@ export class TaskService {
       related_to_id,
     } = taskData;
 
+    if (organizationId) {
+      await this.assertRelatedEntityBelongsToOrganization(
+        related_to_type,
+        related_to_id,
+        organizationId
+      );
+    }
+
     const query = `
       INSERT INTO tasks (
         subject, description, status, priority, due_date,
-        assigned_to, related_to_type, related_to_id,
+        assigned_to, related_to_type, related_to_id, organization_id,
         created_by, modified_by
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *
     `;
 
@@ -168,6 +183,7 @@ export class TaskService {
       assigned_to || null,
       related_to_type || null,
       related_to_id || null,
+      organizationId || null,
       userId,
       userId,
     ];
@@ -179,10 +195,32 @@ export class TaskService {
   /**
    * Update a task
    */
-  async updateTask(id: string, updates: UpdateTaskDTO, userId: string): Promise<Task | null> {
+  async updateTask(
+    id: string,
+    updates: UpdateTaskDTO,
+    userId: string,
+    organizationId?: string
+  ): Promise<Task | null> {
     const fields: string[] = [];
     const values: any[] = [];
     let paramCount = 0;
+
+    if (organizationId) {
+      const existing = await this.getTaskByIdForOrganization(id, organizationId);
+      if (!existing) {
+        return null;
+      }
+
+      const nextRelatedToType =
+        updates.related_to_type === undefined ? existing.related_to_type : updates.related_to_type;
+      const nextRelatedToId =
+        updates.related_to_id === undefined ? existing.related_to_id : updates.related_to_id;
+      await this.assertRelatedEntityBelongsToOrganization(
+        nextRelatedToType || undefined,
+        nextRelatedToId || undefined,
+        organizationId
+      );
+    }
 
     // Handle status change to completed
     if (updates.status === TaskStatus.COMPLETED && !updates.completed_date) {
@@ -201,7 +239,9 @@ export class TaskService {
     });
 
     if (fields.length === 0) {
-      return this.getTaskById(id);
+      return organizationId
+        ? this.getTaskByIdForOrganization(id, organizationId)
+        : this.getTaskById(id);
     }
 
     paramCount++;
@@ -215,9 +255,13 @@ export class TaskService {
       UPDATE tasks
       SET ${fields.join(', ')}
       WHERE id = $${paramCount}
+      ${organizationId ? `AND organization_id = $${paramCount + 1}` : ''}
       RETURNING *
     `;
     values.push(id);
+    if (organizationId) {
+      values.push(organizationId);
+    }
 
     const result = await this.pool.query(query, values);
     return result.rows[0] || null;
@@ -226,23 +270,24 @@ export class TaskService {
   /**
    * Delete a task
    */
-  async deleteTask(id: string): Promise<boolean> {
-    const query = 'DELETE FROM tasks WHERE id = $1';
-    const result = await this.pool.query(query, [id]);
+  async deleteTask(id: string, organizationId?: string): Promise<boolean> {
+    const query = `DELETE FROM tasks WHERE id = $1${organizationId ? ' AND organization_id = $2' : ''}`;
+    const result = await this.pool.query(query, organizationId ? [id, organizationId] : [id]);
     return result.rowCount ? result.rowCount > 0 : false;
   }
 
   /**
    * Complete a task
    */
-  async completeTask(id: string, userId: string): Promise<Task | null> {
+  async completeTask(id: string, userId: string, organizationId?: string): Promise<Task | null> {
     return this.updateTask(
       id,
       {
         status: TaskStatus.COMPLETED,
         completed_date: new Date().toISOString(),
       },
-      userId
+      userId,
+      organizationId
     );
   }
 
@@ -263,6 +308,12 @@ export class TaskService {
       paramCount++;
       conditions.push(`${TASK_SEARCH_SQL} ILIKE $${paramCount}`);
       values.push(`%${filters.search}%`);
+    }
+
+    if (filters.organization_id) {
+      paramCount++;
+      conditions.push(`t.organization_id = $${paramCount}`);
+      values.push(filters.organization_id);
     }
 
     if (filters.status) {
@@ -361,6 +412,80 @@ export class TaskService {
       due_today: parseInt(summaryRow.due_today),
       due_this_week: parseInt(summaryRow.due_this_week),
     };
+  }
+
+  private async assertRelatedEntityBelongsToOrganization(
+    relatedToType: TaskRelatedToType | null | undefined,
+    relatedToId: string | null | undefined,
+    organizationId: string
+  ): Promise<void> {
+    if (!relatedToType || !relatedToId) {
+      return;
+    }
+
+    const result = await this.queryRelatedEntityOrganization(relatedToType, relatedToId);
+    if (result === null) {
+      return;
+    }
+
+    if (result !== organizationId) {
+      throw new Error('Task related entity does not belong to the active organization');
+    }
+  }
+
+  private async queryRelatedEntityOrganization(
+    relatedToType: TaskRelatedToType,
+    relatedToId: string
+  ): Promise<string | null> {
+    switch (relatedToType) {
+      case 'account': {
+        const result = await this.pool.query<{ organization_id: string | null }>(
+          `SELECT id AS organization_id
+           FROM accounts
+           WHERE id = $1
+             AND account_type = 'organization'
+             AND COALESCE(is_active, true) = true
+           LIMIT 1`,
+          [relatedToId]
+        );
+        return result.rows[0]?.organization_id || null;
+      }
+      case 'contact': {
+        const result = await this.pool.query<{ organization_id: string | null }>(
+          `SELECT account_id AS organization_id
+           FROM contacts
+           WHERE id = $1
+           LIMIT 1`,
+          [relatedToId]
+        );
+        return result.rows[0]?.organization_id || null;
+      }
+      case 'donation': {
+        const result = await this.pool.query<{ organization_id: string | null }>(
+          `SELECT account_id AS organization_id
+           FROM donations
+           WHERE id = $1
+           LIMIT 1`,
+          [relatedToId]
+        );
+        return result.rows[0]?.organization_id || null;
+      }
+      case 'volunteer': {
+        const result = await this.pool.query<{ organization_id: string | null }>(
+          `SELECT c.account_id AS organization_id
+           FROM volunteers v
+           INNER JOIN contacts c ON c.id = v.contact_id
+           WHERE v.id = $1
+           LIMIT 1`,
+          [relatedToId]
+        );
+        return result.rows[0]?.organization_id || null;
+      }
+      case 'event':
+        return null;
+      default:
+        return null;
+    }
   }
 }
 

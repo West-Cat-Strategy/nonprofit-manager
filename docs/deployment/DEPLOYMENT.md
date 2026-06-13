@@ -62,6 +62,8 @@ Minimum production decisions:
 - Public origin and CORS/WebAuthn origins
 - `JWT_SECRET` and other production secrets with non-placeholder values
 - Database host and DB-at-rest mode
+- For self-hosted production Compose, `DB_USER=nonprofit_app_user_prod`, app-role `DB_PASSWORD`,
+  and a separate `DB_ADMIN_PASSWORD` for the postgres bootstrap/admin role
 - Per-process database pool caps for API, public-site, and worker runtimes
 - Worker identity with `WORKER_INSTANCE_ID` when enabling schedulers
 - Report-export scheduler startup jitter and conservative worker batch sizes on small hosts
@@ -103,6 +105,12 @@ make release-production
 Both release targets run the local release gate before delegating to `scripts/deploy.sh`. They remain dry-run handoffs unless `DEPLOY_EXECUTE=1` is set in the calling environment.
 
 The production Compose stack mounts the same `/app/uploads` volume into `backend`, `public-site`, and `worker` so files and worker-created report artifacts stay visible across the runtime processes.
+
+Self-hosted production Compose must not run application services as `postgres`. Use
+`DB_USER=nonprofit_app_user_prod` for app connections, keep `DB_ADMIN_PASSWORD` separate from
+the app-role `DB_PASSWORD`, and let `docker-compose.db-self-hosted.yml` run
+`scripts/sql/provision_self_hosted_app_role.sh` on fresh Postgres data directories. Existing data
+directories must be provisioned with that helper before deployment if the role is missing.
 
 Optional production overlays can be added to the dry-run or execute path with `DEPLOY_EXTRA_COMPOSE_FILES`, a comma-separated list resolved relative to the project root. The deploy wrapper appends these files after the selected DB-at-rest overlay and fails before running Compose if any file is missing.
 

@@ -233,6 +233,72 @@ describe('createApiClient', () => {
     expect(axios.get).toHaveBeenCalledWith('/api/v2/auth/csrf-token', { withCredentials: true });
   });
 
+  it('prefixes unversioned request paths when VITE_API_URL resolves to /api', async () => {
+    let capturedRequestInterceptor: ((config: object) => Promise<object>) | null = null;
+
+    vi.mocked(axios.create).mockReturnValueOnce({
+      interceptors: {
+        request: {
+          use: vi.fn((fn) => {
+            capturedRequestInterceptor = fn as (config: object) => Promise<object>;
+          }),
+        },
+        response: { use: vi.fn() },
+      },
+      defaults: { headers: {} },
+    } as ReturnType<typeof axios.create>);
+
+    createApiClient({ onUnauthorized: vi.fn(), baseURL: '/api' });
+
+    if (!capturedRequestInterceptor) {
+      throw new Error('Request interceptor was not captured');
+    }
+
+    await expect(
+      capturedRequestInterceptor({ method: 'get', url: '/cases', headers: {} })
+    ).resolves.toMatchObject({
+      url: '/v2/cases',
+    });
+    await expect(
+      capturedRequestInterceptor({ method: 'get', url: '/v2/cases', headers: {} })
+    ).resolves.toMatchObject({
+      url: '/v2/cases',
+    });
+  });
+
+  it('strips legacy /v2 request prefixes when VITE_API_URL resolves to /api/v2', async () => {
+    let capturedRequestInterceptor: ((config: object) => Promise<object>) | null = null;
+
+    vi.mocked(axios.create).mockReturnValueOnce({
+      interceptors: {
+        request: {
+          use: vi.fn((fn) => {
+            capturedRequestInterceptor = fn as (config: object) => Promise<object>;
+          }),
+        },
+        response: { use: vi.fn() },
+      },
+      defaults: { headers: {} },
+    } as ReturnType<typeof axios.create>);
+
+    createApiClient({ onUnauthorized: vi.fn(), baseURL: '/api/v2' });
+
+    if (!capturedRequestInterceptor) {
+      throw new Error('Request interceptor was not captured');
+    }
+
+    await expect(
+      capturedRequestInterceptor({ method: 'get', url: '/cases', headers: {} })
+    ).resolves.toMatchObject({
+      url: '/cases',
+    });
+    await expect(
+      capturedRequestInterceptor({ method: 'get', url: '/v2/cases', headers: {} })
+    ).resolves.toMatchObject({
+      url: '/cases',
+    });
+  });
+
   it('normalizes canonical API error messages before rejecting', async () => {
     let capturedResponseErrorInterceptor: ((error: object) => Promise<never>) | null = null;
 

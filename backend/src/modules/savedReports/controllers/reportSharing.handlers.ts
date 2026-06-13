@@ -40,7 +40,8 @@ export const getSharePrincipals = async (
 
     const principals = await savedReportService.getSharePrincipals(
       query.search,
-      query.limit
+      query.limit,
+      getOrgId(req) || undefined
     );
     sendSuccess(res, principals);
   } catch (error) {
@@ -71,7 +72,8 @@ export const shareReport = async (
       actorRole,
       user_ids,
       role_names,
-      share_settings
+      share_settings,
+      getOrgId(req) || undefined
     );
 
     res.json(report);
@@ -102,7 +104,8 @@ export const removeShare = async (
       actorUserId,
       actorRole,
       user_ids,
-      role_names
+      role_names,
+      getOrgId(req) || undefined
     );
 
     res.json(report);
@@ -162,6 +165,7 @@ export const revokePublicLink = async (
       savedReportId: id,
       actorUserId,
       actorRole,
+      organizationId: getOrgId(req) || undefined,
     });
 
     res.json({ message: 'Public link revoked successfully' });

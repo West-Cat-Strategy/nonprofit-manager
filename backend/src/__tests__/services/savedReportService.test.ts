@@ -176,7 +176,20 @@ describe('SavedReportService', () => {
       result.items.forEach((report) => {
         expect(report.entity).toBe('contacts');
       });
-      expect(mockQuery.mock.calls[0][0]).toContain('AND entity = $3');
+      expect(mockQuery.mock.calls[0][0]).toContain('AND entity = $4');
+    });
+
+    it('scopes saved report list queries to the active organization', async () => {
+      mockQuery
+        .mockResolvedValueOnce({ rows: [{ total: '0' }] } as QueryResult)
+        .mockResolvedValueOnce({ rows: [] } as QueryResult);
+
+      await service.getSavedReports(testUserId, undefined, ['staff'], {
+        organizationId: 'org-1',
+      });
+
+      expect(mockQuery.mock.calls[0][0]).toContain('organization_id = $3::uuid');
+      expect(mockQuery.mock.calls[0][1]).toEqual([testUserId, ['staff'], 'org-1']);
     });
 
     it('should return reports created by user', async () => {
@@ -303,7 +316,7 @@ describe('SavedReportService', () => {
       expect(deleted).toBe(true);
       expect(mockQuery).toHaveBeenCalledWith(
         expect.stringContaining('DELETE FROM saved_reports'),
-        [testReportId, testUserId]
+        [testReportId, testUserId, null]
       );
     });
 

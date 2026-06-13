@@ -47,6 +47,16 @@ const parseRelatedToType = (value: string | undefined): RelatedToType | undefine
   return allowed.includes(value as RelatedToType) ? (value as RelatedToType) : undefined;
 };
 
+const getActiveOrganizationId = (req: AuthRequest, res: Response): string | null => {
+  const organizationId = req.organizationId || req.accountId || req.tenantId;
+  if (!organizationId) {
+    sendFailure(res, 'bad_request', 'No organization context', 400);
+    return null;
+  }
+
+  return organizationId;
+};
+
 export const createTasksController = (
   catalogUseCase: TaskCatalogUseCase,
   lifecycleUseCase: TaskLifecycleUseCase
@@ -57,8 +67,12 @@ export const createTasksController = (
     next: NextFunction
   ): Promise<void> => {
     try {
+      const organizationId = getActiveOrganizationId(req, res);
+      if (!organizationId) return;
+
       const query = (req.validatedQuery ?? req.query) as Record<string, unknown>;
       const filters: TaskFilters = {
+        organization_id: organizationId,
         search: getString(query.search),
         status: parseTaskStatus(getString(query.status)),
         priority: parseTaskPriority(getString(query.priority)),
@@ -85,8 +99,12 @@ export const createTasksController = (
     next: NextFunction
   ): Promise<void> => {
     try {
+      const organizationId = getActiveOrganizationId(req, res);
+      if (!organizationId) return;
+
       const query = (req.validatedQuery ?? req.query) as Record<string, unknown>;
       const filters: TaskFilters = {
+        organization_id: organizationId,
         assigned_to: getString(query.assigned_to),
         related_to_type: parseRelatedToType(getString(query.related_to_type)),
         related_to_id: getString(query.related_to_id),
@@ -105,7 +123,10 @@ export const createTasksController = (
     next: NextFunction
   ): Promise<void> => {
     try {
-      const task = await catalogUseCase.getById(req.params.id);
+      const organizationId = getActiveOrganizationId(req, res);
+      if (!organizationId) return;
+
+      const task = await catalogUseCase.getById(req.params.id, organizationId);
       if (!task) {
         sendFailure(res, 'not_found', 'Task not found', 404);
         return;
@@ -123,13 +144,16 @@ export const createTasksController = (
     next: NextFunction
   ): Promise<void> => {
     try {
+      const organizationId = getActiveOrganizationId(req, res);
+      if (!organizationId) return;
+
       const userId = req.user?.id;
       if (!userId) {
         sendFailure(res, 'unauthorized', 'User not authenticated', 401);
         return;
       }
 
-      const task = await lifecycleUseCase.create(req.body, userId);
+      const task = await lifecycleUseCase.create(req.body, userId, organizationId);
       sendData(res, task, 201);
     } catch (error) {
       next(error);
@@ -142,13 +166,16 @@ export const createTasksController = (
     next: NextFunction
   ): Promise<void> => {
     try {
+      const organizationId = getActiveOrganizationId(req, res);
+      if (!organizationId) return;
+
       const userId = req.user?.id;
       if (!userId) {
         sendFailure(res, 'unauthorized', 'User not authenticated', 401);
         return;
       }
 
-      const task = await lifecycleUseCase.update(req.params.id, req.body, userId);
+      const task = await lifecycleUseCase.update(req.params.id, req.body, userId, organizationId);
       if (!task) {
         sendFailure(res, 'not_found', 'Task not found', 404);
         return;
@@ -166,7 +193,10 @@ export const createTasksController = (
     next: NextFunction
   ): Promise<void> => {
     try {
-      const success = await lifecycleUseCase.delete(req.params.id);
+      const organizationId = getActiveOrganizationId(req, res);
+      if (!organizationId) return;
+
+      const success = await lifecycleUseCase.delete(req.params.id, organizationId);
       if (!success) {
         sendFailure(res, 'not_found', 'Task not found', 404);
         return;
@@ -184,13 +214,16 @@ export const createTasksController = (
     next: NextFunction
   ): Promise<void> => {
     try {
+      const organizationId = getActiveOrganizationId(req, res);
+      if (!organizationId) return;
+
       const userId = req.user?.id;
       if (!userId) {
         sendFailure(res, 'unauthorized', 'User not authenticated', 401);
         return;
       }
 
-      const task = await lifecycleUseCase.complete(req.params.id, userId);
+      const task = await lifecycleUseCase.complete(req.params.id, userId, organizationId);
       if (!task) {
         sendFailure(res, 'not_found', 'Task not found', 404);
         return;

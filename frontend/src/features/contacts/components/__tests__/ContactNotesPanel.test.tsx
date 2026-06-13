@@ -165,7 +165,7 @@ describe('ContactNotesPanel', () => {
     renderContactNotes();
 
     await waitFor(() => {
-      expect(mockApi.get).toHaveBeenCalledWith('/v2/contacts/contact-1/notes/timeline');
+      expect(mockApi.get).toHaveBeenCalledWith('/contacts/contact-1/notes/timeline');
     });
 
     fireEvent.click(screen.getByRole('button', { name: /\+ add note/i }));
@@ -351,7 +351,7 @@ describe('ContactNotesPanel', () => {
 
     await waitFor(() => {
       expect(mockApi.post).toHaveBeenCalledWith(
-        '/v2/contacts/contact-1/notes',
+        '/contacts/contact-1/notes',
         expect.objectContaining({
           case_id: linkedImportedCaseId,
           outcome_impacts: [

@@ -11,7 +11,7 @@ import type {
   SubmitCaseFormDTO,
 } from '../../../types/caseForms';
 
-const PORTAL_FORM_ASSIGNMENTS_BASE_PATH = '/v2/portal/forms/assignments';
+const PORTAL_FORM_ASSIGNMENTS_BASE_PATH = '/portal/forms/assignments';
 
 const CASE_FORM_ASSIGNMENT_STATUSES = new Set<CaseFormAssignment['status']>([
   'draft',

@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
 import { mailchimpWebhookLimiterMiddleware } from '@middleware/domains/platform';
 import { requirePermission } from '@middleware/permissions';
+import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import * as mailchimpController from '../controllers';
 import { Permission } from '@utils/permissions';
@@ -344,6 +345,7 @@ router.post(
  */
 router.post(
   '/sync/contact',
+  requireActiveOrganizationContext,
   validateBody(syncContactSchema),
   mailchimpController.syncContact
 );
@@ -354,6 +356,7 @@ router.post(
  */
 router.post(
   '/sync/bulk',
+  requireActiveOrganizationContext,
   validateBody(bulkSyncContactsSchema),
   mailchimpController.bulkSyncContacts
 );

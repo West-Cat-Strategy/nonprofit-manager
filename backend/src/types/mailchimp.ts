@@ -78,6 +78,7 @@ export interface SyncContactRequest {
   contactId: string;
   listId: string;
   tags?: string[];
+  scopeAccountIds?: string[];
 }
 
 /**
@@ -87,6 +88,7 @@ export interface BulkSyncRequest {
   contactIds: string[];
   listId: string;
   tags?: string[];
+  scopeAccountIds?: string[];
 }
 
 /**

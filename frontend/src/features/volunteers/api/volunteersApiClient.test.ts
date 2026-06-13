@@ -55,7 +55,7 @@ describe('volunteersApiClient', () => {
     );
 
     expect(api.post).toHaveBeenCalledWith(
-      '/v2/volunteers/volunteer-1/background-check/approve',
+      '/volunteers/volunteer-1/background-check/approve',
       payload
     );
     expect(result).toBe(approvedVolunteer);

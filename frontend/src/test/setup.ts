@@ -98,6 +98,20 @@ const apiMockState = vi.hoisted(() => {
     return appendQueryParams(url, configCandidate.params);
   };
 
+  const withoutV2Prefix = (url: string) =>
+    url.replace(/^\/v2(?=\/|\?|$)/, '') || '/';
+
+  const withV2Prefix = (url: string) => {
+    if (!url.startsWith('/') || /^\/v2(?=\/|\?|$)/.test(url)) {
+      return url;
+    }
+
+    return `/v2${url}`;
+  };
+
+  const apiPathVariants = (url: string) =>
+    new Set([url, withoutV2Prefix(url), withV2Prefix(url)]);
+
   const createRequest = (
     method: InternalApiMethod,
     url: string,
@@ -120,7 +134,10 @@ const apiMockState = vi.hoisted(() => {
 
   const matches = (matcher: InternalApiMatcher, request: InternalApiRequest) => {
     if (typeof matcher === 'string') {
-      return matcher === request.url || matcher === request.resolvedUrl;
+      const matcherVariants = apiPathVariants(matcher);
+      return [...apiPathVariants(request.url), ...apiPathVariants(request.resolvedUrl)].some(
+        (candidate) => matcherVariants.has(candidate)
+      );
     }
 
     if (matcher instanceof RegExp) {

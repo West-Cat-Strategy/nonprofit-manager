@@ -28,42 +28,42 @@ export interface DashboardWorkqueueSummaryCard {
 
 export class DashboardApiClient {
   async fetchDashboards(): Promise<DashboardConfig[]> {
-    const response = await api.get<DashboardConfig[]>('/v2/dashboard/configs');
+    const response = await api.get<DashboardConfig[]>('/dashboard/configs');
     return response.data;
   }
 
   async fetchDashboard(dashboardId: string): Promise<DashboardConfig> {
-    const response = await api.get<DashboardConfig>(`/v2/dashboard/configs/${dashboardId}`);
+    const response = await api.get<DashboardConfig>(`/dashboard/configs/${dashboardId}`);
     return response.data;
   }
 
   async fetchDefaultDashboard(): Promise<DashboardConfig> {
-    const response = await api.get<DashboardConfig>('/v2/dashboard/configs/default');
+    const response = await api.get<DashboardConfig>('/dashboard/configs/default');
     return response.data;
   }
 
   async createDashboard(config: Omit<DashboardConfig, 'id' | 'created_at' | 'updated_at'>): Promise<DashboardConfig> {
-    const response = await api.post<DashboardConfig>('/v2/dashboard/configs', config);
+    const response = await api.post<DashboardConfig>('/dashboard/configs', config);
     return response.data;
   }
 
   async updateDashboard(id: string, config: Partial<DashboardConfig>): Promise<DashboardConfig> {
-    const response = await api.put<DashboardConfig>(`/v2/dashboard/configs/${id}`, config);
+    const response = await api.put<DashboardConfig>(`/dashboard/configs/${id}`, config);
     return response.data;
   }
 
   async deleteDashboard(dashboardId: string): Promise<void> {
-    await api.delete(`/v2/dashboard/configs/${dashboardId}`);
+    await api.delete(`/dashboard/configs/${dashboardId}`);
   }
 
   async saveDashboardLayout(id: string, layout: unknown[]): Promise<DashboardConfig> {
-    const response = await api.put<DashboardConfig>(`/v2/dashboard/configs/${id}/layout`, { layout });
+    const response = await api.put<DashboardConfig>(`/dashboard/configs/${id}/layout`, { layout });
     return response.data;
   }
 
   async fetchWorkqueueSummary(): Promise<DashboardWorkqueueSummaryCard[]> {
     const response = await api.get<ApiEnvelope<DashboardWorkqueueSummaryCard[]>>(
-      '/v2/dashboard/workqueue-summary'
+      '/dashboard/workqueue-summary'
     );
     return unwrapApiData(response.data);
   }

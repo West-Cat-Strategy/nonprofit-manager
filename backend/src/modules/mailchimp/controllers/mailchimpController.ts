@@ -235,7 +235,7 @@ export const syncContact = async (req: AuthRequest, res: Response): Promise<void
       return;
     }
 
-    const result = await mailchimpService.syncContact({ contactId, listId, tags });
+    const result = await mailchimpService.syncContact({ contactId, listId, tags, scopeAccountIds: getRequesterScopeAccountIds(req) });
 
     if (result.success) {
       res.json(result);
@@ -285,7 +285,7 @@ export const bulkSyncContacts = async (req: AuthRequest, res: Response): Promise
       return;
     }
 
-    const result = await mailchimpService.bulkSyncContacts({ contactIds, listId, tags });
+    const result = await mailchimpService.bulkSyncContacts({ contactIds, listId, tags, scopeAccountIds: getRequesterScopeAccountIds(req) });
     res.json(result);
   } catch (error) {
     logger.error('Error bulk syncing contacts to Mailchimp', { error });

@@ -52,6 +52,23 @@ jest.mock('../../modules/mailchimp/controllers', () => mailchimpControllerMocks)
 jest.mock('../../middleware/domains/auth', () => ({
   authenticate: (_req: unknown, _res: unknown, next: () => void) => next(),
 }));
+jest.mock('../../middleware/requireActiveOrganizationContext', () => ({
+  requireActiveOrganizationContext: (req: any, res: Response, next: () => void) => {
+    const organizationId = req.get('x-organization-id');
+    if (!organizationId) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'organization_context_required', message: 'Organization context required' },
+      });
+      return;
+    }
+
+    req.organizationId = organizationId;
+    req.accountId = organizationId;
+    req.tenantId = organizationId;
+    next();
+  },
+}));
 
 import { createMailchimpRoutes } from '../../modules/mailchimp/routes';
 
@@ -243,6 +260,31 @@ describe('mailchimp routes authorization', () => {
       (mailchimpControllerMocks.previewCampaign.mock.calls[0]?.[0] as express.Request).body
         .priorRunSuppressionIds
     ).toEqual(priorRunSuppressionIds);
+  });
+
+  it('requires active organization context for contact sync routes', async () => {
+    const app = buildApp('admin');
+
+    await request(app)
+      .post('/api/v2/mailchimp/sync/contact')
+      .send({
+        contactId: '11111111-1111-4111-8111-111111111111',
+        listId: 'list-1',
+      })
+      .expect(400);
+
+    expect(mailchimpControllerMocks.syncContact).not.toHaveBeenCalled();
+
+    await request(app)
+      .post('/api/v2/mailchimp/sync/contact')
+      .set('x-organization-id', 'org-1')
+      .send({
+        contactId: '11111111-1111-4111-8111-111111111111',
+        listId: 'list-1',
+      })
+      .expect(200);
+
+    expect(mailchimpControllerMocks.syncContact).toHaveBeenCalledTimes(1);
   });
 
   it('rejects invalid prior run suppression IDs for campaign preview before the controller', async () => {

@@ -135,7 +135,6 @@ export const createContactsRoutes = (): Router => {
     new ContactSuppressionService(pool)
   );
   const requireContactsDataScope = loadDataScope('contacts');
-
   router.use(authenticate);
 
   scopedRouter.use(requireActiveOrganizationContext);
@@ -144,12 +143,14 @@ export const createContactsRoutes = (): Router => {
   scopedRouter.post(
     '/export',
     requireRequestedOrganizationContext,
+    requirePermission(Permission.CONTACT_EXPORT),
     validateBody(contactExportSchema),
     directoryController.exportContacts
   );
   scopedRouter.get(
     '/import/template',
     requireRequestedOrganizationContext,
+    requirePermission(Permission.CONTACT_EXPORT),
     validateQuery(importTemplateQuerySchema),
     directoryController.downloadImportTemplate
   );
@@ -168,6 +169,8 @@ export const createContactsRoutes = (): Router => {
     requirePermission(Permission.CONTACT_CREATE),
     directoryController.commitImport
   );
+
+  scopedRouter.use(requirePermission(Permission.CONTACT_VIEW));
 
   scopedRouter.get(
     '/',

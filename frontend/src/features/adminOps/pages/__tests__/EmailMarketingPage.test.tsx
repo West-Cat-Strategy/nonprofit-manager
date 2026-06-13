@@ -34,6 +34,8 @@ vi.mock('../adminSettings/sections/EmailSettingsSection', () => ({
 
 const mockedApi = vi.mocked(api);
 
+const isApiPath = (url: string, path: string) => url === path || url === `/v2${path}`;
+
 const createFutureDateTimeLocalValue = () => {
   const date = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
   const pad = (value: number) => value.toString().padStart(2, '0');
@@ -90,7 +92,7 @@ describe('EmailMarketingPage', () => {
         return Promise.resolve({ data: [] });
       }
 
-      if (url === '/v2/contacts') {
+      if (isApiPath(url, '/contacts')) {
         return Promise.resolve({
           data: {
             success: true,
@@ -206,7 +208,7 @@ describe('EmailMarketingPage', () => {
       if (url === '/communications/campaigns') return Promise.resolve({ data: [] });
       if (url === '/communications/audiences?scope=saved') return Promise.resolve({ data: [] });
       if (url === '/communications/campaign-runs') return Promise.resolve({ data: [] });
-      if (url === '/v2/contacts') {
+      if (isApiPath(url, '/contacts')) {
         return Promise.resolve({
           data: {
             success: true,
@@ -510,7 +512,7 @@ describe('EmailMarketingPage', () => {
         });
       }
       if (url === '/mailchimp/lists/list-1/tags') return Promise.resolve({ data: [] });
-      if (url === '/v2/contacts') {
+      if (isApiPath(url, '/contacts')) {
         return Promise.resolve({
           data: {
             success: true,
@@ -676,7 +678,7 @@ describe('EmailMarketingPage', () => {
         if (url === '/mailchimp/lists/list-1/tags') {
           return Promise.resolve({ data: [{ id: 1, name: 'newsletter', memberCount: 12 }] });
         }
-        if (url === '/v2/contacts') {
+        if (isApiPath(url, '/contacts')) {
           return Promise.resolve({
             data: {
               success: true,
@@ -734,7 +736,7 @@ describe('EmailMarketingPage', () => {
 
     await waitFor(() => {
       expect(mockedApi.get).toHaveBeenCalledWith(
-        '/v2/contacts',
+        '/contacts',
         expect.objectContaining({
           params: expect.objectContaining({ page: 1, limit: 25, search: 'Ada' }),
         })
@@ -791,7 +793,7 @@ describe('EmailMarketingPage', () => {
       if (url === '/communications/campaigns') return Promise.resolve({ data: [] });
       if (url === '/communications/audiences?scope=saved') return Promise.resolve({ data: [] });
       if (url === '/communications/campaign-runs') return Promise.resolve({ data: [] });
-      if (url === '/v2/contacts') {
+      if (isApiPath(url, '/contacts')) {
         return Promise.resolve({
           data: {
             success: true,
@@ -906,7 +908,7 @@ describe('EmailMarketingPage', () => {
           ],
         });
       }
-      if (url === '/v2/contacts') {
+      if (isApiPath(url, '/contacts')) {
         return Promise.resolve({
           data: {
             success: true,
@@ -1024,7 +1026,7 @@ describe('EmailMarketingPage', () => {
         });
       }
       if (url === '/mailchimp/lists/list-1/segments') return Promise.resolve({ data: [] });
-      if (url === '/v2/contacts') {
+      if (isApiPath(url, '/contacts')) {
         return Promise.resolve({
           data: {
             success: true,
@@ -1236,7 +1238,7 @@ describe('EmailMarketingPage', () => {
           ],
         });
       }
-      if (url === '/v2/contacts') {
+      if (isApiPath(url, '/contacts')) {
         return Promise.resolve({
           data: {
             success: true,
@@ -1313,7 +1315,7 @@ describe('EmailMarketingPage', () => {
           ],
         });
       }
-      if (url === '/v2/contacts') {
+      if (isApiPath(url, '/contacts')) {
         return Promise.resolve({
           data: {
             success: true,

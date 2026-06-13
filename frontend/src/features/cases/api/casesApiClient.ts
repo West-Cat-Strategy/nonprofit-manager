@@ -104,17 +104,17 @@ export class CasesApiClient implements CasesApiClientPort {
 
   async listCases(query: CasesListQuery = {}): Promise<CasesResponse> {
     const params = this.buildListParams(query);
-    const response = await api.get<ApiEnvelope<CasesResponse>>(`/v2/cases?${params.toString()}`);
+    const response = await api.get<ApiEnvelope<CasesResponse>>(`/cases?${params.toString()}`);
     return unwrapApiData(response.data);
   }
 
   async getCase(caseId: string): Promise<CaseWithDetails> {
-    const response = await api.get<ApiEnvelope<CaseWithDetails>>(`/v2/cases/${caseId}`);
+    const response = await api.get<ApiEnvelope<CaseWithDetails>>(`/cases/${caseId}`);
     return unwrapApiData(response.data);
   }
 
   async getCaseTimeline(caseId: string, query: CaseTimelineQuery = {}): Promise<CaseTimelinePage> {
-    const response = await api.get<ApiEnvelope<CaseTimelinePage>>(`/v2/cases/${caseId}/timeline`, {
+    const response = await api.get<ApiEnvelope<CaseTimelinePage>>(`/cases/${caseId}/timeline`, {
       params: {
         limit: query.limit,
         cursor: query.cursor,
@@ -125,7 +125,7 @@ export class CasesApiClient implements CasesApiClientPort {
 
   async getCasePortalConversations(caseId: string): Promise<CasePortalConversation[]> {
     const response = await api.get<{ conversations: CasePortalConversation[] }>(
-      `/v2/cases/${caseId}/portal/conversations`
+      `/cases/${caseId}/portal/conversations`
     );
     return response.data.conversations || [];
   }
@@ -136,7 +136,7 @@ export class CasesApiClient implements CasesApiClientPort {
     payload: { message: string; is_internal?: boolean; client_message_id?: string }
   ): Promise<{ message: CasePortalConversation['messages'][number] }> {
     const response = await api.post<{ message: CasePortalConversation['messages'][number] }>(
-      `/v2/cases/${caseId}/portal/conversations/${threadId}/messages`,
+      `/cases/${caseId}/portal/conversations/${threadId}/messages`,
       payload
     );
     return response.data;
@@ -152,14 +152,14 @@ export class CasesApiClient implements CasesApiClientPort {
       visible_to_client?: boolean;
     }
   ): Promise<void> {
-    await api.post(`/v2/cases/${caseId}/portal/conversations/${threadId}/resolve`, payload);
+    await api.post(`/cases/${caseId}/portal/conversations/${threadId}/resolve`, payload);
   }
 
   async listCaseAppointments(caseId: string): Promise<CaseAppointment[]> {
     const response = await api.get<{
       data: CaseAppointment[];
       pagination: { page: number; limit: number; total: number; total_pages: number };
-    }>('/v2/portal/admin/appointments', {
+    }>('/portal/admin/appointments', {
       params: {
         case_id: caseId,
         limit: 100,
@@ -178,7 +178,7 @@ export class CasesApiClient implements CasesApiClientPort {
     }
   ): Promise<CaseAppointment> {
     const response = await api.patch<{ appointment: CaseAppointment }>(
-      `/v2/portal/admin/appointments/${appointmentId}/status`,
+      `/portal/admin/appointments/${appointmentId}/status`,
       payload
     );
     return response.data.appointment;
@@ -193,7 +193,7 @@ export class CasesApiClient implements CasesApiClientPort {
     }
   ): Promise<CaseAppointment> {
     const response = await api.post<{ appointment: CaseAppointment }>(
-      `/v2/portal/admin/appointments/${appointmentId}/check-in`,
+      `/portal/admin/appointments/${appointmentId}/check-in`,
       payload || {}
     );
     return response.data.appointment;
@@ -203,12 +203,12 @@ export class CasesApiClient implements CasesApiClientPort {
     appointmentId: string,
     options: { sendEmail?: boolean; sendSms?: boolean; customMessage?: string }
   ): Promise<void> {
-    await api.post(`/v2/portal/admin/appointments/${appointmentId}/reminders/send`, options);
+    await api.post(`/portal/admin/appointments/${appointmentId}/reminders/send`, options);
   }
 
   async createCase(payload: CreateCaseDTO): Promise<CaseWithDetails> {
     const response = await api.post<ApiEnvelope<CaseWithDetails>>(
-      '/v2/cases',
+      '/cases',
       this.normalizePriorityPayload(payload)
     );
     return unwrapApiData(response.data);
@@ -216,49 +216,49 @@ export class CasesApiClient implements CasesApiClientPort {
 
   async updateCase(caseId: string, payload: UpdateCaseDTO): Promise<CaseWithDetails> {
     const response = await api.put<ApiEnvelope<CaseWithDetails>>(
-      `/v2/cases/${caseId}`,
+      `/cases/${caseId}`,
       this.normalizePriorityPayload(payload)
     );
     return unwrapApiData(response.data);
   }
 
   async deleteCase(caseId: string): Promise<void> {
-    await api.delete(`/v2/cases/${caseId}`);
+    await api.delete(`/cases/${caseId}`);
   }
 
   async updateCaseStatus(caseId: string, payload: UpdateCaseStatusDTO): Promise<CaseWithDetails> {
-    const response = await api.put<ApiEnvelope<CaseWithDetails>>(`/v2/cases/${caseId}/status`, payload);
+    const response = await api.put<ApiEnvelope<CaseWithDetails>>(`/cases/${caseId}/status`, payload);
     return unwrapApiData(response.data);
   }
 
   async reassignCase(caseId: string, payload: ReassignCaseDTO): Promise<CaseWithDetails> {
-    const response = await api.put<ApiEnvelope<CaseWithDetails>>(`/v2/cases/${caseId}/reassign`, payload);
+    const response = await api.put<ApiEnvelope<CaseWithDetails>>(`/cases/${caseId}/reassign`, payload);
     return unwrapApiData(response.data);
   }
 
   async bulkUpdateStatus(payload: BulkStatusUpdateDTO): Promise<unknown> {
-    const response = await api.post<ApiEnvelope<unknown>>('/v2/cases/bulk-status', payload);
+    const response = await api.post<ApiEnvelope<unknown>>('/cases/bulk-status', payload);
     return unwrapApiData(response.data);
   }
 
   async getCaseSummary(): Promise<CaseSummary> {
-    const response = await api.get<ApiEnvelope<CaseSummary>>('/v2/cases/summary');
+    const response = await api.get<ApiEnvelope<CaseSummary>>('/cases/summary');
     return unwrapApiData(response.data);
   }
 
   async getCaseTypes(): Promise<CaseType[]> {
-    const response = await api.get<ApiEnvelope<CaseType[]>>('/v2/cases/types');
+    const response = await api.get<ApiEnvelope<CaseType[]>>('/cases/types');
     return unwrapApiData(response.data);
   }
 
   async getCaseStatuses(): Promise<CaseStatus[]> {
-    const response = await api.get<ApiEnvelope<CaseStatus[]>>('/v2/cases/statuses');
+    const response = await api.get<ApiEnvelope<CaseStatus[]>>('/cases/statuses');
     return unwrapApiData(response.data);
   }
 
   async listCaseNotes(caseId: string): Promise<{ notes: CaseNote[]; total?: number }> {
     const response = await api.get<ApiEnvelope<{ notes: CaseNote[]; total?: number } | CaseNote[]>>(
-      `/v2/cases/${caseId}/notes`
+      `/cases/${caseId}/notes`
     );
     const data = unwrapApiData(response.data);
     if (Array.isArray(data)) {
@@ -268,41 +268,41 @@ export class CasesApiClient implements CasesApiClientPort {
   }
 
   async createCaseNote(payload: CreateCaseNoteDTO): Promise<CaseNote> {
-    const response = await api.post<ApiEnvelope<CaseNote>>('/v2/cases/notes', payload);
+    const response = await api.post<ApiEnvelope<CaseNote>>('/cases/notes', payload);
     return unwrapApiData(response.data);
   }
 
   async updateCaseNote(noteId: string, payload: UpdateCaseNoteDTO): Promise<CaseNote> {
-    const response = await api.put<ApiEnvelope<CaseNote>>(`/v2/cases/notes/${noteId}`, payload);
+    const response = await api.put<ApiEnvelope<CaseNote>>(`/cases/notes/${noteId}`, payload);
     return unwrapApiData(response.data);
   }
 
   async deleteCaseNote(noteId: string): Promise<void> {
-    await api.delete(`/v2/cases/notes/${noteId}`);
+    await api.delete(`/cases/notes/${noteId}`);
   }
 
   async listCaseOutcomes(caseId: string): Promise<CaseOutcomeEvent[]> {
-    const response = await api.get<ApiEnvelope<CaseOutcomeEvent[]>>(`/v2/cases/${caseId}/outcomes`);
+    const response = await api.get<ApiEnvelope<CaseOutcomeEvent[]>>(`/cases/${caseId}/outcomes`);
     return unwrapApiData(response.data);
   }
 
   async createCaseOutcome(caseId: string, payload: CreateCaseOutcomeDTO): Promise<CaseOutcomeEvent> {
-    const response = await api.post<ApiEnvelope<CaseOutcomeEvent>>(`/v2/cases/${caseId}/outcomes`, payload);
+    const response = await api.post<ApiEnvelope<CaseOutcomeEvent>>(`/cases/${caseId}/outcomes`, payload);
     return unwrapApiData(response.data);
   }
 
   async updateCaseOutcome(outcomeId: string, payload: UpdateCaseOutcomeDTO): Promise<CaseOutcomeEvent> {
-    const response = await api.put<ApiEnvelope<CaseOutcomeEvent>>(`/v2/cases/outcomes/${outcomeId}`, payload);
+    const response = await api.put<ApiEnvelope<CaseOutcomeEvent>>(`/cases/outcomes/${outcomeId}`, payload);
     return unwrapApiData(response.data);
   }
 
   async deleteCaseOutcome(outcomeId: string): Promise<void> {
-    await api.delete(`/v2/cases/outcomes/${outcomeId}`);
+    await api.delete(`/cases/outcomes/${outcomeId}`);
   }
 
   async listCaseReassessments(caseId: string): Promise<CaseReassessment[]> {
     const response = await api.get<ApiEnvelope<CaseReassessment[]>>(
-      `/v2/cases/${caseId}/reassessments`
+      `/cases/${caseId}/reassessments`
     );
     return unwrapApiData(response.data);
   }
@@ -312,7 +312,7 @@ export class CasesApiClient implements CasesApiClientPort {
     payload: CreateCaseReassessmentDTO
   ): Promise<CaseReassessment> {
     const response = await api.post<ApiEnvelope<CaseReassessment>>(
-      `/v2/cases/${caseId}/reassessments`,
+      `/cases/${caseId}/reassessments`,
       payload
     );
     return unwrapApiData(response.data);
@@ -324,7 +324,7 @@ export class CasesApiClient implements CasesApiClientPort {
     payload: UpdateCaseReassessmentDTO
   ): Promise<CaseReassessment> {
     const response = await api.patch<ApiEnvelope<CaseReassessment>>(
-      `/v2/cases/${caseId}/reassessments/${reassessmentId}`,
+      `/cases/${caseId}/reassessments/${reassessmentId}`,
       payload
     );
     return unwrapApiData(response.data);
@@ -336,7 +336,7 @@ export class CasesApiClient implements CasesApiClientPort {
     payload: CompleteCaseReassessmentDTO
   ): Promise<CompleteCaseReassessmentResult> {
     const response = await api.post<ApiEnvelope<CompleteCaseReassessmentResult>>(
-      `/v2/cases/${caseId}/reassessments/${reassessmentId}/complete`,
+      `/cases/${caseId}/reassessments/${reassessmentId}/complete`,
       payload
     );
     return unwrapApiData(response.data);
@@ -348,7 +348,7 @@ export class CasesApiClient implements CasesApiClientPort {
     payload: CancelCaseReassessmentDTO
   ): Promise<CaseReassessment> {
     const response = await api.post<ApiEnvelope<CaseReassessment>>(
-      `/v2/cases/${caseId}/reassessments/${reassessmentId}/cancel`,
+      `/cases/${caseId}/reassessments/${reassessmentId}/cancel`,
       payload
     );
     return unwrapApiData(response.data);
@@ -356,7 +356,7 @@ export class CasesApiClient implements CasesApiClientPort {
 
   async listCasePortalEscalations(caseId: string): Promise<CasePortalEscalation[]> {
     const response = await api.get<ApiEnvelope<CasePortalEscalation[]>>(
-      `/v2/cases/${caseId}/portal/escalations`
+      `/cases/${caseId}/portal/escalations`
     );
     return unwrapApiData(response.data);
   }
@@ -367,7 +367,7 @@ export class CasesApiClient implements CasesApiClientPort {
     payload: UpdateCasePortalEscalationDTO
   ): Promise<CasePortalEscalation> {
     const response = await api.patch<ApiEnvelope<CasePortalEscalation>>(
-      `/v2/cases/${caseId}/portal/escalations/${escalationId}`,
+      `/cases/${caseId}/portal/escalations/${escalationId}`,
       payload
     );
     return unwrapApiData(response.data);
@@ -375,7 +375,7 @@ export class CasesApiClient implements CasesApiClientPort {
 
   async listCaseTopicDefinitions(caseId: string): Promise<CaseTopicDefinition[]> {
     const response = await api.get<ApiEnvelope<CaseTopicDefinition[]>>(
-      `/v2/cases/${caseId}/topics/definitions`
+      `/cases/${caseId}/topics/definitions`
     );
     return unwrapApiData(response.data);
   }
@@ -385,33 +385,33 @@ export class CasesApiClient implements CasesApiClientPort {
     payload: CreateCaseTopicDefinitionDTO
   ): Promise<CaseTopicDefinition> {
     const response = await api.post<ApiEnvelope<CaseTopicDefinition>>(
-      `/v2/cases/${caseId}/topics/definitions`,
+      `/cases/${caseId}/topics/definitions`,
       payload
     );
     return unwrapApiData(response.data);
   }
 
   async listCaseTopicEvents(caseId: string): Promise<CaseTopicEvent[]> {
-    const response = await api.get<ApiEnvelope<CaseTopicEvent[]>>(`/v2/cases/${caseId}/topics`);
+    const response = await api.get<ApiEnvelope<CaseTopicEvent[]>>(`/cases/${caseId}/topics`);
     return unwrapApiData(response.data);
   }
 
   async createCaseTopicEvent(caseId: string, payload: CreateCaseTopicEventDTO): Promise<CaseTopicEvent> {
-    const response = await api.post<ApiEnvelope<CaseTopicEvent>>(`/v2/cases/${caseId}/topics`, payload);
+    const response = await api.post<ApiEnvelope<CaseTopicEvent>>(`/cases/${caseId}/topics`, payload);
     return unwrapApiData(response.data);
   }
 
   async deleteCaseTopicEvent(topicEventId: string): Promise<void> {
-    await api.delete(`/v2/cases/topics/${topicEventId}`);
+    await api.delete(`/cases/topics/${topicEventId}`);
   }
 
   async listCaseDocuments(caseId: string): Promise<CaseDocument[]> {
-    const response = await api.get<ApiEnvelope<CaseDocument[]>>(`/v2/cases/${caseId}/documents`);
+    const response = await api.get<ApiEnvelope<CaseDocument[]>>(`/cases/${caseId}/documents`);
     return unwrapApiData(response.data);
   }
 
   async uploadCaseDocument(caseId: string, formData: FormData): Promise<CaseDocument> {
-    const response = await api.post<ApiEnvelope<CaseDocument>>(`/v2/cases/${caseId}/documents`, formData, {
+    const response = await api.post<ApiEnvelope<CaseDocument>>(`/cases/${caseId}/documents`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return unwrapApiData(response.data);
@@ -423,14 +423,14 @@ export class CasesApiClient implements CasesApiClientPort {
     payload: UpdateCaseDocumentDTO
   ): Promise<CaseDocument> {
     const response = await api.put<ApiEnvelope<CaseDocument>>(
-      `/v2/cases/${caseId}/documents/${documentId}`,
+      `/cases/${caseId}/documents/${documentId}`,
       payload
     );
     return unwrapApiData(response.data);
   }
 
   async deleteCaseDocument(caseId: string, documentId: string): Promise<void> {
-    await api.delete(`/v2/cases/${caseId}/documents/${documentId}`);
+    await api.delete(`/cases/${caseId}/documents/${documentId}`);
   }
 
   getCaseDocumentDownloadUrl(
@@ -443,67 +443,67 @@ export class CasesApiClient implements CasesApiClientPort {
   }
 
   async listCaseMilestones(caseId: string): Promise<CaseMilestone[]> {
-    const response = await api.get<ApiEnvelope<CaseMilestone[]>>(`/v2/cases/${caseId}/milestones`);
+    const response = await api.get<ApiEnvelope<CaseMilestone[]>>(`/cases/${caseId}/milestones`);
     return unwrapApiData(response.data);
   }
 
   async createCaseMilestone(caseId: string, payload: CreateCaseMilestoneDTO): Promise<CaseMilestone> {
-    const response = await api.post<ApiEnvelope<CaseMilestone>>(`/v2/cases/${caseId}/milestones`, payload);
+    const response = await api.post<ApiEnvelope<CaseMilestone>>(`/cases/${caseId}/milestones`, payload);
     return unwrapApiData(response.data);
   }
 
   async updateCaseMilestone(milestoneId: string, payload: UpdateCaseMilestoneDTO): Promise<CaseMilestone> {
-    const response = await api.put<ApiEnvelope<CaseMilestone>>(`/v2/cases/milestones/${milestoneId}`, payload);
+    const response = await api.put<ApiEnvelope<CaseMilestone>>(`/cases/milestones/${milestoneId}`, payload);
     return unwrapApiData(response.data);
   }
 
   async deleteCaseMilestone(milestoneId: string): Promise<void> {
-    await api.delete(`/v2/cases/milestones/${milestoneId}`);
+    await api.delete(`/cases/milestones/${milestoneId}`);
   }
 
   async listCaseRelationships(caseId: string): Promise<CaseRelationship[]> {
-    const response = await api.get<ApiEnvelope<CaseRelationship[]>>(`/v2/cases/${caseId}/relationships`);
+    const response = await api.get<ApiEnvelope<CaseRelationship[]>>(`/cases/${caseId}/relationships`);
     return unwrapApiData(response.data);
   }
 
   async createCaseRelationship(caseId: string, payload: CreateCaseRelationshipDTO): Promise<CaseRelationship> {
-    const response = await api.post<ApiEnvelope<CaseRelationship>>(`/v2/cases/${caseId}/relationships`, payload);
+    const response = await api.post<ApiEnvelope<CaseRelationship>>(`/cases/${caseId}/relationships`, payload);
     return unwrapApiData(response.data);
   }
 
   async deleteCaseRelationship(relationshipId: string): Promise<void> {
-    await api.delete(`/v2/cases/relationships/${relationshipId}`);
+    await api.delete(`/cases/relationships/${relationshipId}`);
   }
 
   async listCaseServices(caseId: string): Promise<CaseService[]> {
-    const response = await api.get<ApiEnvelope<CaseService[]>>(`/v2/cases/${caseId}/services`);
+    const response = await api.get<ApiEnvelope<CaseService[]>>(`/cases/${caseId}/services`);
     return unwrapApiData(response.data);
   }
 
   async createCaseService(caseId: string, payload: CreateCaseServiceDTO): Promise<CaseService> {
-    const response = await api.post<ApiEnvelope<CaseService>>(`/v2/cases/${caseId}/services`, payload);
+    const response = await api.post<ApiEnvelope<CaseService>>(`/cases/${caseId}/services`, payload);
     return unwrapApiData(response.data);
   }
 
   async updateCaseService(serviceId: string, payload: UpdateCaseServiceDTO): Promise<CaseService> {
-    const response = await api.put<ApiEnvelope<CaseService>>(`/v2/cases/services/${serviceId}`, payload);
+    const response = await api.put<ApiEnvelope<CaseService>>(`/cases/services/${serviceId}`, payload);
     return unwrapApiData(response.data);
   }
 
   async deleteCaseService(serviceId: string): Promise<void> {
-    await api.delete(`/v2/cases/services/${serviceId}`);
+    await api.delete(`/cases/services/${serviceId}`);
   }
 
   async listOutcomeDefinitions(includeInactive: boolean = false): Promise<OutcomeDefinition[]> {
     const response = await api.get<ApiEnvelope<OutcomeDefinition[]>>(
-      `/v2/cases/outcomes/definitions?includeInactive=${String(includeInactive)}`
+      `/cases/outcomes/definitions?includeInactive=${String(includeInactive)}`
     );
     return unwrapApiData(response.data);
   }
 
   async getInteractionOutcomes(caseId: string, interactionId: string): Promise<InteractionOutcomeImpact[]> {
     const response = await api.get<ApiEnvelope<InteractionOutcomeImpact[]>>(
-      `/v2/cases/${caseId}/interactions/${interactionId}/outcomes`
+      `/cases/${caseId}/interactions/${interactionId}/outcomes`
     );
     return unwrapApiData(response.data);
   }
@@ -514,14 +514,14 @@ export class CasesApiClient implements CasesApiClientPort {
     payload: UpdateInteractionOutcomesInput
   ): Promise<InteractionOutcomeImpact[]> {
     const response = await api.put<ApiEnvelope<InteractionOutcomeImpact[]>>(
-      `/v2/cases/${caseId}/interactions/${interactionId}/outcomes`,
+      `/cases/${caseId}/interactions/${interactionId}/outcomes`,
       payload
     );
     return unwrapApiData(response.data);
   }
 
   async getCaseHandoffPacket(caseId: string): Promise<CaseHandoffPacket> {
-    const response = await api.get<ApiEnvelope<CaseHandoffPacket>>(`/v2/cases/${caseId}/handoff-packet`);
+    const response = await api.get<ApiEnvelope<CaseHandoffPacket>>(`/cases/${caseId}/handoff-packet`);
     return unwrapApiData(response.data);
   }
 }

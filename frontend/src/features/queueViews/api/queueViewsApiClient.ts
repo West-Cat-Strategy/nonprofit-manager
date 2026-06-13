@@ -32,6 +32,8 @@ export interface QueueViewDefinitionInput {
   permissionScope?: string[];
 }
 
+const PORTAL_ADMIN_QUEUE_VIEWS_ENDPOINT = '/v2/portal-admin/queue-views';
+
 class QueueViewsApiClient {
   private getSurfaceEndpoint(surface: QueueViewSurface): string {
     if (surface === 'cases') {
@@ -40,14 +42,14 @@ class QueueViewsApiClient {
     if (surface === 'workbench') {
       return '/v2/dashboard/queue-views';
     }
-    return '/v2/portal-admin/queue-views';
+    return PORTAL_ADMIN_QUEUE_VIEWS_ENDPOINT;
   }
 
   async listQueueViews(surface: QueueViewSurface): Promise<QueueViewDefinition[]> {
     const endpoint = this.getSurfaceEndpoint(surface);
     const response = await api.get<ApiEnvelope<QueueViewDefinition[]>>(endpoint, {
       params:
-        endpoint === '/v2/portal-admin/queue-views'
+        endpoint === PORTAL_ADMIN_QUEUE_VIEWS_ENDPOINT
           ? { surface }
           : undefined,
     });
@@ -68,7 +70,7 @@ class QueueViewsApiClient {
     };
     const response = await api.post<ApiEnvelope<QueueViewDefinition>>(
       endpoint,
-      endpoint === '/v2/portal-admin/queue-views' ? payload : scopedPayload
+      endpoint === PORTAL_ADMIN_QUEUE_VIEWS_ENDPOINT ? payload : scopedPayload
     );
     return unwrapApiData(response.data);
   }
@@ -77,7 +79,7 @@ class QueueViewsApiClient {
     const endpoint = this.getSurfaceEndpoint(surface);
     await api.delete(`${endpoint}/${viewId}`, {
       params:
-        endpoint === '/v2/portal-admin/queue-views'
+        endpoint === PORTAL_ADMIN_QUEUE_VIEWS_ENDPOINT
           ? { surface }
           : undefined,
     });

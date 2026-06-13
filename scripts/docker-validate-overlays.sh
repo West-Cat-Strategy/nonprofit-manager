@@ -44,7 +44,13 @@ prod_env=(
   BACKUP_DIR=/tmp/nonprofit-manager-backups
 )
 
-db_self_hosted_env=("${prod_env[@]}" DB_AT_REST_ENCRYPTION_MODE=self_hosted DB_AT_REST_PROVIDER=self_hosted)
+db_self_hosted_env=(
+  "${prod_env[@]}"
+  DB_AT_REST_ENCRYPTION_MODE=self_hosted
+  DB_AT_REST_PROVIDER=self_hosted
+  DB_USER=nonprofit_app_user_prod
+  DB_ADMIN_PASSWORD=postgres-admin
+)
 db_encrypted_env=("${prod_env[@]}" DB_AT_REST_ENCRYPTION_MODE=luks DB_AT_REST_PROVIDER=luks)
 
 run_with_env "dev compose config" \

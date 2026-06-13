@@ -63,7 +63,7 @@ export class ContactsApiClient implements ContactsApiClientPort {
         data: Contact[];
         pagination: { total: number; page: number; limit: number; total_pages: number };
       }>
-    >('/v2/contacts', {
+    >('/contacts', {
       params: this.buildListParams(query),
     });
     return unwrapApiData(response.data);
@@ -73,7 +73,7 @@ export class ContactsApiClient implements ContactsApiClientPort {
     query: ContactsLookupQuery,
     options?: { signal?: AbortSignal }
   ): Promise<{ items: ContactLookupItem[] }> {
-    const response = await api.get<ApiEnvelope<{ items: ContactLookupItem[] }>>('/v2/contacts/lookup', {
+    const response = await api.get<ApiEnvelope<{ items: ContactLookupItem[] }>>('/contacts/lookup', {
       params: {
         q: query.q,
         limit: query.limit,
@@ -85,12 +85,12 @@ export class ContactsApiClient implements ContactsApiClientPort {
   }
 
   async getContact(contactId: string): Promise<Contact> {
-    const response = await api.get<ApiEnvelope<Contact>>(`/v2/contacts/${contactId}`);
+    const response = await api.get<ApiEnvelope<Contact>>(`/contacts/${contactId}`);
     return unwrapApiData(response.data);
   }
 
   async getDonorProfile(contactId: string): Promise<DonorProfile> {
-    const response = await api.get<ApiEnvelope<DonorProfile>>(`/v2/contacts/${contactId}/donor-profile`);
+    const response = await api.get<ApiEnvelope<DonorProfile>>(`/contacts/${contactId}/donor-profile`);
     return unwrapApiData(response.data);
   }
 
@@ -99,7 +99,7 @@ export class ContactsApiClient implements ContactsApiClientPort {
     payload: UpdateDonorProfileDTO
   ): Promise<DonorProfile> {
     const response = await api.put<ApiEnvelope<DonorProfile>>(
-      `/v2/contacts/${contactId}/donor-profile`,
+      `/contacts/${contactId}/donor-profile`,
       payload
     );
     return unwrapApiData(response.data);
@@ -114,7 +114,7 @@ export class ContactsApiClient implements ContactsApiClientPort {
   }
 
   async getContactMergePreview(contactId: string, targetContactId: string): Promise<ContactMergePreview> {
-    const response = await api.get<ApiEnvelope<ContactMergePreview>>(`/v2/contacts/${contactId}/merge-preview`, {
+    const response = await api.get<ApiEnvelope<ContactMergePreview>>(`/contacts/${contactId}/merge-preview`, {
       params: {
         target_contact_id: targetContactId,
       },
@@ -123,31 +123,31 @@ export class ContactsApiClient implements ContactsApiClientPort {
   }
 
   async mergeContact(contactId: string, payload: ContactMergeRequest): Promise<ContactMergeResult> {
-    const response = await api.post<ApiEnvelope<ContactMergeResult>>(`/v2/contacts/${contactId}/merge`, payload);
+    const response = await api.post<ApiEnvelope<ContactMergeResult>>(`/contacts/${contactId}/merge`, payload);
     return unwrapApiData(response.data);
   }
 
   async createContact(payload: ContactMutationPayload): Promise<Contact> {
-    const response = await api.post<ApiEnvelope<Contact>>('/v2/contacts', payload);
+    const response = await api.post<ApiEnvelope<Contact>>('/contacts', payload);
     return unwrapApiData(response.data);
   }
 
   async updateContact(contactId: string, payload: ContactMutationPayload): Promise<Contact> {
-    const response = await api.put<ApiEnvelope<Contact>>(`/v2/contacts/${contactId}`, payload);
+    const response = await api.put<ApiEnvelope<Contact>>(`/contacts/${contactId}`, payload);
     return unwrapApiData(response.data);
   }
 
   async deleteContact(contactId: string): Promise<void> {
-    await api.delete(`/v2/contacts/${contactId}`);
+    await api.delete(`/contacts/${contactId}`);
   }
 
   async listTags(): Promise<string[]> {
-    const response = await api.get<ApiEnvelope<string[]>>('/v2/contacts/tags');
+    const response = await api.get<ApiEnvelope<string[]>>('/contacts/tags');
     return unwrapApiData(response.data);
   }
 
   async listRoles(): Promise<ContactRole[]> {
-    const response = await api.get<ApiEnvelope<ContactRole[]>>('/v2/contacts/roles');
+    const response = await api.get<ApiEnvelope<ContactRole[]>>('/contacts/roles');
     const payload = unwrapApiData(response.data);
     return Array.isArray(payload) ? payload : [];
   }
@@ -162,7 +162,7 @@ export class ContactsApiClient implements ContactsApiClientPort {
     };
   }): Promise<{ updated: number; contact_ids: string[] }> {
     const response = await api.post<ApiEnvelope<{ updated: number; contact_ids: string[] }>>(
-      '/v2/contacts/bulk',
+      '/contacts/bulk',
       payload
     );
     return unwrapApiData(response.data);
@@ -173,7 +173,7 @@ export class ContactsApiClient implements ContactsApiClientPort {
     query: ContactCommunicationQuery = {}
   ): Promise<ContactCommunicationsResult> {
     const response = await api.get<ApiEnvelope<ContactCommunicationsResult>>(
-      `/v2/contacts/${contactId}/communications`,
+      `/contacts/${contactId}/communications`,
       {
         params: {
           channel: query.channel,
@@ -188,7 +188,7 @@ export class ContactsApiClient implements ContactsApiClientPort {
 
   async listSuppressions(contactId: string): Promise<ContactSuppressionEvidenceResult> {
     const response = await api.get<ApiEnvelope<ContactSuppressionEvidenceResult>>(
-      `/v2/contacts/${contactId}/suppressions`
+      `/contacts/${contactId}/suppressions`
     );
     return unwrapApiData(response.data);
   }
@@ -198,7 +198,7 @@ export class ContactsApiClient implements ContactsApiClientPort {
     payload: CreateContactSuppressionEvidenceDTO
   ): Promise<ContactSuppressionEvidence> {
     const response = await api.post<ApiEnvelope<ContactSuppressionEvidence>>(
-      `/v2/contacts/${contactId}/suppressions/staff-dnc`,
+      `/contacts/${contactId}/suppressions/staff-dnc`,
       {
         channel: payload.channel,
         reason: payload.reason,
@@ -217,98 +217,98 @@ export class ContactsApiClient implements ContactsApiClientPort {
     payload: UpdateContactSuppressionEvidenceDTO
   ): Promise<ContactSuppressionEvidence> {
     const response = await api.patch<ApiEnvelope<ContactSuppressionEvidence>>(
-      `/v2/contacts/${contactId}/suppressions/${suppressionId}`,
+      `/contacts/${contactId}/suppressions/${suppressionId}`,
       payload
     );
     return unwrapApiData(response.data);
   }
 
   async listNotes(contactId: string): Promise<{ notes: ContactNote[]; total: number }> {
-    const response = await api.get<ApiEnvelope<{ notes: ContactNote[]; total: number }>>(`/v2/contacts/${contactId}/notes`);
+    const response = await api.get<ApiEnvelope<{ notes: ContactNote[]; total: number }>>(`/contacts/${contactId}/notes`);
     return unwrapApiData(response.data);
   }
 
   async listNoteTimeline(contactId: string): Promise<ContactNotesTimelineResponse> {
     const response = await api.get<ApiEnvelope<ContactNotesTimelineResponse>>(
-      `/v2/contacts/${contactId}/notes/timeline`
+      `/contacts/${contactId}/notes/timeline`
     );
     return unwrapApiData(response.data);
   }
 
   async getNote(noteId: string): Promise<ContactNote> {
-    const response = await api.get<ApiEnvelope<ContactNote>>(`/v2/contacts/notes/${noteId}`);
+    const response = await api.get<ApiEnvelope<ContactNote>>(`/contacts/notes/${noteId}`);
     return unwrapApiData(response.data);
   }
 
   async createNote(contactId: string, payload: CreateContactNoteDTO): Promise<ContactNote> {
-    const response = await api.post<ApiEnvelope<ContactNote>>(`/v2/contacts/${contactId}/notes`, payload);
+    const response = await api.post<ApiEnvelope<ContactNote>>(`/contacts/${contactId}/notes`, payload);
     return unwrapApiData(response.data);
   }
 
   async updateNote(noteId: string, payload: UpdateContactNoteDTO): Promise<ContactNote> {
-    const response = await api.put<ApiEnvelope<ContactNote>>(`/v2/contacts/notes/${noteId}`, payload);
+    const response = await api.put<ApiEnvelope<ContactNote>>(`/contacts/notes/${noteId}`, payload);
     return unwrapApiData(response.data);
   }
 
   async deleteNote(noteId: string): Promise<void> {
-    await api.delete(`/v2/contacts/notes/${noteId}`);
+    await api.delete(`/contacts/notes/${noteId}`);
   }
 
   async listPhones(contactId: string): Promise<ContactPhoneNumber[]> {
-    const response = await api.get<ApiEnvelope<ContactPhoneNumber[]>>(`/v2/contacts/${contactId}/phones`);
+    const response = await api.get<ApiEnvelope<ContactPhoneNumber[]>>(`/contacts/${contactId}/phones`);
     return unwrapApiData(response.data);
   }
 
   async getPhone(phoneId: string): Promise<ContactPhoneNumber> {
-    const response = await api.get<ApiEnvelope<ContactPhoneNumber>>(`/v2/contacts/phones/${phoneId}`);
+    const response = await api.get<ApiEnvelope<ContactPhoneNumber>>(`/contacts/phones/${phoneId}`);
     return unwrapApiData(response.data);
   }
 
   async createPhone(contactId: string, payload: CreateContactPhoneDTO): Promise<ContactPhoneNumber> {
-    const response = await api.post<ApiEnvelope<ContactPhoneNumber>>(`/v2/contacts/${contactId}/phones`, payload);
+    const response = await api.post<ApiEnvelope<ContactPhoneNumber>>(`/contacts/${contactId}/phones`, payload);
     return unwrapApiData(response.data);
   }
 
   async updatePhone(phoneId: string, payload: UpdateContactPhoneDTO): Promise<ContactPhoneNumber> {
-    const response = await api.put<ApiEnvelope<ContactPhoneNumber>>(`/v2/contacts/phones/${phoneId}`, payload);
+    const response = await api.put<ApiEnvelope<ContactPhoneNumber>>(`/contacts/phones/${phoneId}`, payload);
     return unwrapApiData(response.data);
   }
 
   async deletePhone(phoneId: string): Promise<void> {
-    await api.delete(`/v2/contacts/phones/${phoneId}`);
+    await api.delete(`/contacts/phones/${phoneId}`);
   }
 
   async listEmails(contactId: string): Promise<ContactEmailAddress[]> {
-    const response = await api.get<ApiEnvelope<ContactEmailAddress[]>>(`/v2/contacts/${contactId}/emails`);
+    const response = await api.get<ApiEnvelope<ContactEmailAddress[]>>(`/contacts/${contactId}/emails`);
     return unwrapApiData(response.data);
   }
 
   async getEmail(emailId: string): Promise<ContactEmailAddress> {
-    const response = await api.get<ApiEnvelope<ContactEmailAddress>>(`/v2/contacts/emails/${emailId}`);
+    const response = await api.get<ApiEnvelope<ContactEmailAddress>>(`/contacts/emails/${emailId}`);
     return unwrapApiData(response.data);
   }
 
   async createEmail(contactId: string, payload: CreateContactEmailDTO): Promise<ContactEmailAddress> {
-    const response = await api.post<ApiEnvelope<ContactEmailAddress>>(`/v2/contacts/${contactId}/emails`, payload);
+    const response = await api.post<ApiEnvelope<ContactEmailAddress>>(`/contacts/${contactId}/emails`, payload);
     return unwrapApiData(response.data);
   }
 
   async updateEmail(emailId: string, payload: UpdateContactEmailDTO): Promise<ContactEmailAddress> {
-    const response = await api.put<ApiEnvelope<ContactEmailAddress>>(`/v2/contacts/emails/${emailId}`, payload);
+    const response = await api.put<ApiEnvelope<ContactEmailAddress>>(`/contacts/emails/${emailId}`, payload);
     return unwrapApiData(response.data);
   }
 
   async deleteEmail(emailId: string): Promise<void> {
-    await api.delete(`/v2/contacts/emails/${emailId}`);
+    await api.delete(`/contacts/emails/${emailId}`);
   }
 
   async listRelationships(contactId: string): Promise<ContactRelationship[]> {
-    const response = await api.get<ApiEnvelope<ContactRelationship[]>>(`/v2/contacts/${contactId}/relationships`);
+    const response = await api.get<ApiEnvelope<ContactRelationship[]>>(`/contacts/${contactId}/relationships`);
     return unwrapApiData(response.data);
   }
 
   async getRelationship(relationshipId: string): Promise<ContactRelationship> {
-    const response = await api.get<ApiEnvelope<ContactRelationship>>(`/v2/contacts/relationships/${relationshipId}`);
+    const response = await api.get<ApiEnvelope<ContactRelationship>>(`/contacts/relationships/${relationshipId}`);
     return unwrapApiData(response.data);
   }
 
@@ -317,7 +317,7 @@ export class ContactsApiClient implements ContactsApiClientPort {
     payload: CreateContactRelationshipDTO
   ): Promise<ContactRelationship> {
     const response = await api.post<ApiEnvelope<ContactRelationship>>(
-      `/v2/contacts/${contactId}/relationships`,
+      `/contacts/${contactId}/relationships`,
       payload
     );
     return unwrapApiData(response.data);
@@ -328,33 +328,33 @@ export class ContactsApiClient implements ContactsApiClientPort {
     payload: UpdateContactRelationshipDTO
   ): Promise<ContactRelationship> {
     const response = await api.put<ApiEnvelope<ContactRelationship>>(
-      `/v2/contacts/relationships/${relationshipId}`,
+      `/contacts/relationships/${relationshipId}`,
       payload
     );
     return unwrapApiData(response.data);
   }
 
   async deleteRelationship(relationshipId: string): Promise<void> {
-    await api.delete(`/v2/contacts/relationships/${relationshipId}`);
+    await api.delete(`/contacts/relationships/${relationshipId}`);
   }
 
   async listDocuments(contactId: string): Promise<ContactDocument[]> {
-    const response = await api.get<ApiEnvelope<ContactDocument[]>>(`/v2/contacts/${contactId}/documents`);
+    const response = await api.get<ApiEnvelope<ContactDocument[]>>(`/contacts/${contactId}/documents`);
     return unwrapApiData(response.data);
   }
 
   async getDocument(documentId: string): Promise<ContactDocument> {
-    const response = await api.get<ApiEnvelope<ContactDocument>>(`/v2/contacts/documents/${documentId}`);
+    const response = await api.get<ApiEnvelope<ContactDocument>>(`/contacts/documents/${documentId}`);
     return unwrapApiData(response.data);
   }
 
   async updateDocument(documentId: string, payload: UpdateContactDocumentDTO): Promise<ContactDocument> {
-    const response = await api.put<ApiEnvelope<ContactDocument>>(`/v2/contacts/documents/${documentId}`, payload);
+    const response = await api.put<ApiEnvelope<ContactDocument>>(`/contacts/documents/${documentId}`, payload);
     return unwrapApiData(response.data);
   }
 
   async deleteDocument(documentId: string): Promise<void> {
-    await api.delete(`/v2/contacts/documents/${documentId}`);
+    await api.delete(`/contacts/documents/${documentId}`);
   }
 
   async uploadDocument(
@@ -373,7 +373,7 @@ export class ContactsApiClient implements ContactsApiClientPort {
       }
     });
 
-    const response = await api.post<ApiEnvelope<ContactDocument>>(`/v2/contacts/${contactId}/documents`, formData, {
+    const response = await api.post<ApiEnvelope<ContactDocument>>(`/contacts/${contactId}/documents`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
 

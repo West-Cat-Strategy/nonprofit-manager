@@ -96,7 +96,7 @@ export class EventsApiClient
 
   async listEvents(query: EventListQuery = {}): Promise<PaginatedEvents> {
     const params = this.buildListParams(query);
-    const response = await api.get<ApiEnvelope<PaginatedEvents>>(`/v2/events?${params.toString()}`);
+    const response = await api.get<ApiEnvelope<PaginatedEvents>>(`/events?${params.toString()}`);
     return unwrapApiData(response.data);
   }
 
@@ -147,29 +147,29 @@ export class EventsApiClient
   }
 
   async getEventById(eventId: string): Promise<Event> {
-    const response = await api.get<ApiEnvelope<Event>>(`/v2/events/${eventId}`);
+    const response = await api.get<ApiEnvelope<Event>>(`/events/${eventId}`);
     return unwrapApiData(response.data);
   }
 
   async listEventOccurrences(query: EventOccurrenceQuery = {}): Promise<EventOccurrence[]> {
     const params = this.buildOccurrenceParams(query);
     const suffix = params.toString() ? `?${params.toString()}` : '';
-    const response = await api.get<ApiEnvelope<EventOccurrence[]>>(`/v2/events/occurrences${suffix}`);
+    const response = await api.get<ApiEnvelope<EventOccurrence[]>>(`/events/occurrences${suffix}`);
     return unwrapApiData(response.data);
   }
 
   async createEvent(payload: CreateEventDTO): Promise<Event> {
-    const response = await api.post<ApiEnvelope<Event>>('/v2/events', payload);
+    const response = await api.post<ApiEnvelope<Event>>('/events', payload);
     return unwrapApiData(response.data);
   }
 
   async updateEvent(eventId: string, payload: UpdateEventDTO): Promise<Event> {
-    const response = await api.put<ApiEnvelope<Event>>(`/v2/events/${eventId}`, payload);
+    const response = await api.put<ApiEnvelope<Event>>(`/events/${eventId}`, payload);
     return unwrapApiData(response.data);
   }
 
   async deleteEvent(eventId: string): Promise<void> {
-    await api.delete(`/v2/events/${eventId}`);
+    await api.delete(`/events/${eventId}`);
   }
 
   async listEventRegistrations(
@@ -182,13 +182,13 @@ export class EventsApiClient
     if (filters.occurrence_id) params.set('occurrence_id', filters.occurrence_id);
 
     const response = await api.get<ApiEnvelope<EventRegistration[]>>(
-      `/v2/events/${eventId}/registrations?${params.toString()}`
+      `/events/${eventId}/registrations?${params.toString()}`
     );
     return unwrapApiData(response.data);
   }
 
   async registerContact(eventId: string, contactId: string): Promise<void> {
-    await api.post(`/v2/events/${eventId}/register`, { contact_id: contactId });
+    await api.post(`/events/${eventId}/register`, { contact_id: contactId });
   }
 
   async updateRegistration(
@@ -199,7 +199,7 @@ export class EventsApiClient
     const params = new URLSearchParams();
     params.set('scope', scope);
     const response = await api.put<ApiEnvelope<EventRegistration>>(
-      `/v2/events/registrations/${registrationId}?${params.toString()}`,
+      `/events/registrations/${registrationId}?${params.toString()}`,
       payload
     );
     return unwrapApiData(response.data);
@@ -207,21 +207,21 @@ export class EventsApiClient
 
   async checkInRegistration(registrationId: string): Promise<EventRegistration> {
     const response = await api.post<ApiEnvelope<EventRegistration>>(
-      `/v2/events/registrations/${registrationId}/checkin`
+      `/events/registrations/${registrationId}/checkin`
     );
     return unwrapApiData(response.data);
   }
 
   async scanCheckIn(eventId: string, token: string): Promise<EventRegistration> {
     const response = await api.post<ApiEnvelope<EventRegistration>>(
-      `/v2/events/${eventId}/check-in/scan`,
+      `/events/${eventId}/check-in/scan`,
       { token }
     );
     return unwrapApiData(response.data);
   }
 
   async scanCheckInGlobal(token: string): Promise<EventRegistration> {
-    const response = await api.post<ApiEnvelope<EventRegistration>>('/v2/events/check-in/scan', {
+    const response = await api.post<ApiEnvelope<EventRegistration>>('/events/check-in/scan', {
       token,
     });
     return unwrapApiData(response.data);
@@ -232,7 +232,7 @@ export class EventsApiClient
     if (occurrenceId) params.set('occurrence_id', occurrenceId);
     const suffix = params.toString() ? `?${params.toString()}` : '';
     const response = await api.get<ApiEnvelope<EventCheckInSettings>>(
-      `/v2/events/${eventId}/check-in/settings${suffix}`
+      `/events/${eventId}/check-in/settings${suffix}`
     );
     return unwrapApiData(response.data);
   }
@@ -242,7 +242,7 @@ export class EventsApiClient
     payload: UpdateEventCheckInSettingsDTO
   ): Promise<EventCheckInSettings> {
     const response = await api.patch<ApiEnvelope<EventCheckInSettings>>(
-      `/v2/events/${eventId}/check-in/settings`,
+      `/events/${eventId}/check-in/settings`,
       payload
     );
     return unwrapApiData(response.data);
@@ -250,7 +250,7 @@ export class EventsApiClient
 
   async rotateCheckInPin(eventId: string, occurrenceId?: string): Promise<RotateEventCheckInPinResult> {
     const response = await api.post<ApiEnvelope<RotateEventCheckInPinResult>>(
-      `/v2/events/${eventId}/check-in/pin/rotate`,
+      `/events/${eventId}/check-in/pin/rotate`,
       occurrenceId ? { occurrence_id: occurrenceId } : undefined
     );
     return unwrapApiData(response.data);
@@ -258,7 +258,7 @@ export class EventsApiClient
 
   async walkInCheckIn(eventId: string, payload: EventWalkInCheckInDTO): Promise<EventWalkInCheckInResult> {
     const response = await api.post<ApiEnvelope<EventWalkInCheckInResult>>(
-      `/v2/events/${eventId}/walk-ins`,
+      `/events/${eventId}/walk-ins`,
       payload
     );
     return unwrapApiData(response.data);
@@ -269,7 +269,7 @@ export class EventsApiClient
     if (occurrenceId) params.set('occurrence_id', occurrenceId);
     const suffix = params.toString() ? `?${params.toString()}` : '';
     const response = await api.get<ApiEnvelope<PublicEventCheckInInfo>>(
-      `/v2/public/events/${eventId}/check-in${suffix}`
+      `/public/events/${eventId}/check-in${suffix}`
     );
     return unwrapApiData(response.data);
   }
@@ -279,7 +279,7 @@ export class EventsApiClient
     payload: PublicEventCheckInDTO
   ): Promise<PublicEventCheckInResult> {
     const response = await api.post<ApiEnvelope<PublicEventCheckInResult>>(
-      `/v2/public/events/${eventId}/check-in`,
+      `/public/events/${eventId}/check-in`,
       payload
     );
     return unwrapApiData(response.data);
@@ -293,7 +293,7 @@ export class EventsApiClient
     const queryString = params.toString();
     const suffix = queryString ? `?${queryString}` : '';
     const response = await api.get<ApiEnvelope<PublicEventsListResult>>(
-      `/v2/public/events/sites/${encodeURIComponent(site)}${suffix}`
+      `/public/events/sites/${encodeURIComponent(site)}${suffix}`
     );
     return unwrapApiData(response.data);
   }
@@ -305,17 +305,17 @@ export class EventsApiClient
     const params = this.buildPublicEventsParams(query, site);
     const queryString = params.toString();
     const suffix = queryString ? `?${queryString}` : '';
-    const response = await api.get<ApiEnvelope<PublicEventsListResult>>(`/v2/public/events${suffix}`);
+    const response = await api.get<ApiEnvelope<PublicEventsListResult>>(`/public/events${suffix}`);
     return unwrapApiData(response.data);
   }
 
   async cancelRegistration(registrationId: string): Promise<void> {
-    await api.delete(`/v2/events/registrations/${registrationId}`);
+    await api.delete(`/events/registrations/${registrationId}`);
   }
 
   async sendRegistrationConfirmationEmail(registrationId: string): Promise<EventConfirmationEmailResult> {
     const response = await api.post<ApiEnvelope<EventConfirmationEmailResult>>(
-      `/v2/events/registrations/${registrationId}/confirmation-email/send`
+      `/events/registrations/${registrationId}/confirmation-email/send`
     );
     return unwrapApiData(response.data);
   }
@@ -329,7 +329,7 @@ export class EventsApiClient
     }
   ): Promise<EventReminderSummary> {
     const response = await api.post<ApiEnvelope<EventReminderSummary>>(
-      `/v2/events/${eventId}/reminders/send`,
+      `/events/${eventId}/reminders/send`,
       payload
     );
     return unwrapApiData(response.data);
@@ -337,7 +337,7 @@ export class EventsApiClient
 
   async listReminderAutomations(eventId: string): Promise<EventReminderAutomation[]> {
     const response = await api.get<ApiEnvelope<EventReminderAutomation[]>>(
-      `/v2/events/${eventId}/reminder-automations`
+      `/events/${eventId}/reminder-automations`
     );
     return unwrapApiData(response.data);
   }
@@ -347,21 +347,21 @@ export class EventsApiClient
     payload: CreateEventReminderAutomationDTO
   ): Promise<EventReminderAutomation> {
     const response = await api.post<ApiEnvelope<EventReminderAutomation>>(
-      `/v2/events/${eventId}/reminder-automations`,
+      `/events/${eventId}/reminder-automations`,
       payload
     );
     return unwrapApiData(response.data);
   }
 
   async cancelReminderAutomation(eventId: string, automationId: string): Promise<void> {
-    await api.post(`/v2/events/${eventId}/reminder-automations/${automationId}/cancel`);
+    await api.post(`/events/${eventId}/reminder-automations/${automationId}/cancel`);
   }
 
   async syncReminderAutomations(
     eventId: string,
     payload: SyncEventReminderAutomationsDTO
   ): Promise<void> {
-    await api.put(`/v2/events/${eventId}/reminder-automations/sync`, payload);
+    await api.put(`/events/${eventId}/reminder-automations/sync`, payload);
   }
 }
 

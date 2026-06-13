@@ -119,13 +119,13 @@ describe('PortalCaseFormsApiClient', () => {
       case_number: 'CASE-001',
       case_title: 'Housing Support',
     });
-    expect(portalApi.get).toHaveBeenNthCalledWith(1, '/v2/portal/forms/assignments', {
+    expect(portalApi.get).toHaveBeenNthCalledWith(1, '/portal/forms/assignments', {
       params: { status: 'active' },
     });
-    expect(portalApi.get).toHaveBeenNthCalledWith(2, '/v2/portal/forms/assignments/assignment-1');
+    expect(portalApi.get).toHaveBeenNthCalledWith(2, '/portal/forms/assignments/assignment-1');
     expect(portalApi.post).toHaveBeenNthCalledWith(
       1,
-      '/v2/portal/forms/assignments/assignment-1/assets',
+      '/portal/forms/assignments/assignment-1/assets',
       expect.any(FormData),
       {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -133,12 +133,12 @@ describe('PortalCaseFormsApiClient', () => {
     );
     expect(portalApi.post).toHaveBeenNthCalledWith(
       2,
-      '/v2/portal/forms/assignments/assignment-1/draft',
+      '/portal/forms/assignments/assignment-1/draft',
       { answers: { consent: true } }
     );
     expect(portalApi.post).toHaveBeenNthCalledWith(
       3,
-      '/v2/portal/forms/assignments/assignment-1/submit',
+      '/portal/forms/assignments/assignment-1/submit',
       { answers: { consent: true } }
     );
     expect(client.getResponsePacketDownloadUrl('assignment-1')).toBe(

@@ -77,12 +77,12 @@ export const createTasksRoutes = (): Router => {
   );
 
   router.use(authenticate);
+  router.use(requireActiveOrganizationContext);
 
   router.get('/', validateQuery(taskQuerySchema), controller.getTasks);
   router.get('/summary', validateQuery(taskQuerySchema), controller.getTaskSummary);
   router.get(
     '/:id/follow-ups',
-    requireActiveOrganizationContext,
     validateParams(taskIdParamsSchema),
     followUpsController.getTaskFollowUps
   );

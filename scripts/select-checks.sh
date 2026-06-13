@@ -254,6 +254,10 @@ for file in "${changed_files[@]}"; do
       has_hook_tooling=1
       has_tooling_contracts=1
       ;;
+    scripts/lib/*.sh|scripts/validation-preflight.sh|scripts/docker-*.sh|scripts/local-release.sh|scripts/sql/*.sh)
+      has_runtime_orchestration=1
+      has_tooling_contracts=1
+      ;;
     scripts/db-*.sh|scripts/verify-migrations.sh)
       has_database=1
       has_runtime_orchestration=1

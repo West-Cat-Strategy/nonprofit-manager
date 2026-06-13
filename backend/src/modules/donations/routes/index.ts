@@ -19,6 +19,8 @@ import {
 import { z } from 'zod';
 import { piiFieldAccessControl } from '@middleware/piiFieldAccessControl';
 import { services } from '@container/services';
+import { requirePermission } from '@middleware/permissions';
+import { Permission } from '@utils/permissions';
 
 const router = Router();
 
@@ -43,6 +45,7 @@ router.get(
     min_amount: z.coerce.number().nonnegative().optional(),
     max_amount: z.coerce.number().nonnegative().optional(),
   })),
+  requirePermission(Permission.DONATION_VIEW),
   piiFieldAccessControl(services.pii, 'donations'),
   donationController.getDonations
 );
@@ -50,12 +53,14 @@ router.get(
 router.post(
   '/annual-tax-receipts',
   validateBody(issueAnnualTaxReceiptSchema),
+  requirePermission(Permission.DONATION_EDIT),
   donationController.issueAnnualTaxReceipt
 );
 
 router.get(
   '/tax-receipts/:receiptId/pdf',
   validateParams(z.object({ receiptId: uuidSchema })),
+  requirePermission(Permission.DONATION_VIEW),
   donationController.downloadTaxReceiptPdf
 );
 
@@ -63,25 +68,28 @@ router.get(
  * GET /api/donations/summary
  * Get donation summary
  */
-router.get('/summary', donationController.getDonationSummary);
+router.get('/summary', requirePermission(Permission.DONATION_VIEW), donationController.getDonationSummary);
 
 router.get(
   '/designations',
   validateQuery(z.object({ include_inactive: z.enum(['true', 'false']).optional() })),
+  requirePermission(Permission.DONATION_VIEW),
   donationController.listDesignations
 );
 
-router.get('/batches', donationController.listDonationBatches);
+router.get('/batches', requirePermission(Permission.DONATION_VIEW), donationController.listDonationBatches);
 
 router.post(
   '/batches',
   validateBody(createDonationBatchSchema),
+  requirePermission(Permission.DONATION_CREATE),
   donationController.createDonationBatch
 );
 
 router.get(
   '/batches/:batchId',
   validateParams(z.object({ batchId: uuidSchema })),
+  requirePermission(Permission.DONATION_VIEW),
   donationController.getDonationBatch
 );
 
@@ -93,6 +101,7 @@ router.post(
       action: z.enum(['close', 'reopen', 'approve', 'post']),
     })
   ),
+  requirePermission(Permission.DONATION_EDIT),
   donationController.transitionDonationBatch
 );
 
@@ -103,6 +112,7 @@ router.post(
 router.get(
   '/:id',
   validateParams(z.object({ id: uuidSchema })),
+  requirePermission(Permission.DONATION_VIEW),
   piiFieldAccessControl(services.pii, 'donations'),
   donationController.getDonationById
 );
@@ -111,6 +121,7 @@ router.post(
   '/:id/tax-receipts',
   validateParams(z.object({ id: uuidSchema })),
   validateBody(issueTaxReceiptSchema),
+  requirePermission(Permission.DONATION_EDIT),
   donationController.issueTaxReceipt
 );
 
@@ -121,6 +132,7 @@ router.post(
 router.post(
   '/',
   validateBody(createDonationSchema),
+  requirePermission(Permission.DONATION_CREATE),
   piiFieldAccessControl(services.pii, 'donations'),
   donationController.createDonation
 );
@@ -133,6 +145,7 @@ router.put(
   '/:id',
   validateParams(z.object({ id: uuidSchema })),
   validateBody(updateDonationSchema),
+  requirePermission(Permission.DONATION_EDIT),
   piiFieldAccessControl(services.pii, 'donations'),
   donationController.updateDonation
 );
@@ -144,6 +157,7 @@ router.put(
 router.delete(
   '/:id',
   validateParams(z.object({ id: uuidSchema })),
+  requirePermission(Permission.DONATION_DELETE),
   donationController.deleteDonation
 );
 
@@ -154,6 +168,7 @@ router.delete(
 router.post(
   '/:id/receipt',
   validateParams(z.object({ id: uuidSchema })),
+  requirePermission(Permission.DONATION_EDIT),
   donationController.markReceiptSent
 );
 

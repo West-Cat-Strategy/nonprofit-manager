@@ -17,9 +17,29 @@ import { Permission } from '@utils/permissions';
 
 const router = Router();
 const withOrganizationContext = [authenticate, requireActiveOrganizationContext] as const;
-const withPublishingAdminCacheAccess = [
+const withPublishingSiteViewAccess = [
   ...withOrganizationContext,
-  requirePermission(Permission.ADMIN_SETTINGS),
+  requirePermission(Permission.PUBLISHING_SITE_VIEW),
+] as const;
+const withPublishingSiteManageAccess = [
+  ...withOrganizationContext,
+  requirePermission(Permission.PUBLISHING_SITE_MANAGE),
+] as const;
+const withPublishingSitePublishAccess = [
+  ...withOrganizationContext,
+  requirePermission(Permission.PUBLISHING_SITE_PUBLISH),
+] as const;
+const withPublishingIntegrationManageAccess = [
+  ...withOrganizationContext,
+  requirePermission(Permission.PUBLISHING_INTEGRATION_MANAGE),
+] as const;
+const withPublishingDomainManageAccess = [
+  ...withOrganizationContext,
+  requirePermission(Permission.PUBLISHING_DOMAIN_MANAGE),
+] as const;
+const withPublishingCacheManageAccess = [
+  ...withOrganizationContext,
+  requirePermission(Permission.PUBLISHING_CACHE_MANAGE),
 ] as const;
 
 const publishingStatusSchema = z.enum(['draft', 'published', 'maintenance', 'suspended']);
@@ -396,18 +416,23 @@ const publicActionSubmissionTransitionBodySchema = z
 // Search sites
 router.get(
   '/',
-  ...withOrganizationContext,
+  ...withPublishingSiteViewAccess,
   validateQuery(siteConsoleQuerySchema),
   publishingController.listSitesForConsole
 );
 
 // Create a new site entry
-router.post('/', ...withOrganizationContext, validateBody(createSiteSchema), publishingController.createSite);
+router.post(
+  '/',
+  ...withPublishingSiteManageAccess,
+  validateBody(createSiteSchema),
+  publishingController.createSite
+);
 
 // Publish a template (create or update published site)
 router.post(
   '/publish',
-  ...withOrganizationContext,
+  ...withPublishingSitePublishAccess,
   validateBody(publishSchema),
   publishingController.publishSite
 );
@@ -415,14 +440,14 @@ router.post(
 // Get a specific site
 router.get(
   '/:siteId',
-  ...withOrganizationContext,
+  ...withPublishingSiteViewAccess,
   validateParams(siteIdParamsSchema),
   publishingController.getSite
 );
 
 router.get(
   '/:siteId/overview',
-  ...withOrganizationContext,
+  ...withPublishingSiteViewAccess,
   validateParams(siteIdParamsSchema),
   validateQuery(siteConsoleOverviewQuerySchema),
   publishingController.getSiteOverview
@@ -430,14 +455,14 @@ router.get(
 
 router.get(
   '/:siteId/forms',
-  ...withOrganizationContext,
+  ...withPublishingSiteViewAccess,
   validateParams(siteIdParamsSchema),
   publishingController.getSiteForms
 );
 
 router.put(
   '/:siteId/forms/:formKey',
-  ...withOrganizationContext,
+  ...withPublishingSiteManageAccess,
   validateParams(siteFormParamsSchema),
   validateBody(formOperationalSettingsSchema),
   publishingController.updateSiteForm
@@ -445,14 +470,14 @@ router.put(
 
 router.get(
   '/:siteId/actions',
-  ...withOrganizationContext,
+  ...withPublishingSiteViewAccess,
   validateParams(siteIdParamsSchema),
   publishingController.listSitePublicActions
 );
 
 router.post(
   '/:siteId/actions',
-  ...withOrganizationContext,
+  ...withPublishingSiteManageAccess,
   validateParams(siteIdParamsSchema),
   validateBody(createPublicActionSchema),
   publishingController.createSitePublicAction
@@ -460,7 +485,7 @@ router.post(
 
 router.put(
   '/:siteId/actions/:actionId',
-  ...withOrganizationContext,
+  ...withPublishingSiteManageAccess,
   validateParams(sitePublicActionParamsSchema),
   validateBody(updatePublicActionSchema),
   publishingController.updateSitePublicAction
@@ -468,14 +493,14 @@ router.put(
 
 router.get(
   '/:siteId/actions/:actionId/submissions',
-  ...withOrganizationContext,
+  ...withPublishingSiteViewAccess,
   validateParams(sitePublicActionParamsSchema),
   publishingController.listSitePublicActionSubmissions
 );
 
 router.post(
   '/:siteId/actions/:actionId/submissions/:submissionId/accept',
-  ...withOrganizationContext,
+  ...withPublishingSiteManageAccess,
   validateParams(sitePublicActionSubmissionParamsSchema),
   validateBody(publicActionSubmissionTransitionBodySchema),
   publishingController.acceptSitePublicActionSubmission
@@ -483,7 +508,7 @@ router.post(
 
 router.post(
   '/:siteId/actions/:actionId/submissions/:submissionId/reject',
-  ...withOrganizationContext,
+  ...withPublishingSiteManageAccess,
   validateParams(sitePublicActionSubmissionParamsSchema),
   validateBody(publicActionSubmissionTransitionBodySchema),
   publishingController.rejectSitePublicActionSubmission
@@ -491,7 +516,7 @@ router.post(
 
 router.post(
   '/:siteId/actions/:actionId/submissions/:submissionId/fulfill',
-  ...withOrganizationContext,
+  ...withPublishingSiteManageAccess,
   validateParams(sitePublicActionSubmissionParamsSchema),
   validateBody(publicActionSubmissionTransitionBodySchema),
   publishingController.fulfillSitePublicActionSubmission
@@ -499,35 +524,35 @@ router.post(
 
 router.get(
   '/:siteId/actions/:actionId/submissions/:submissionId/support-letter',
-  ...withOrganizationContext,
+  ...withPublishingSiteViewAccess,
   validateParams(sitePublicActionSubmissionParamsSchema),
   publishingController.getSitePublicActionSupportLetterArtifact
 );
 
 router.get(
   '/:siteId/actions/:actionId/export',
-  ...withOrganizationContext,
+  ...withPublishingSiteViewAccess,
   validateParams(sitePublicActionParamsSchema),
   publishingController.exportSitePublicActionSubmissions
 );
 
 router.get(
   '/:siteId/integrations',
-  ...withOrganizationContext,
+  ...withPublishingSiteViewAccess,
   validateParams(siteIdParamsSchema),
   publishingController.getSiteIntegrations
 );
 
 router.get(
   '/:siteId/newsletters',
-  ...withOrganizationContext,
+  ...withPublishingSiteViewAccess,
   validateParams(siteIdParamsSchema),
   publishingController.getSiteNewsletterWorkspace
 );
 
 router.put(
   '/:siteId/integrations/newsletter',
-  ...withOrganizationContext,
+  ...withPublishingIntegrationManageAccess,
   validateParams(siteIdParamsSchema),
   validateBody(updateSiteNewsletterSettingsSchema),
   publishingController.updateSiteNewsletterWorkspace
@@ -535,7 +560,7 @@ router.put(
 
 router.put(
   '/:siteId/newsletters',
-  ...withOrganizationContext,
+  ...withPublishingIntegrationManageAccess,
   validateParams(siteIdParamsSchema),
   validateBody(updateSiteNewsletterSettingsSchema),
   publishingController.updateSiteNewsletterWorkspace
@@ -543,14 +568,14 @@ router.put(
 
 router.post(
   '/:siteId/newsletters/refresh',
-  ...withOrganizationContext,
+  ...withPublishingIntegrationManageAccess,
   validateParams(siteIdParamsSchema),
   publishingController.refreshSiteNewsletterWorkspace
 );
 
 router.post(
   '/:siteId/newsletters/lists',
-  ...withOrganizationContext,
+  ...withPublishingIntegrationManageAccess,
   validateParams(siteIdParamsSchema),
   validateBody(createSiteNewsletterListPresetSchema),
   publishingController.createSiteNewsletterListPreset
@@ -558,7 +583,7 @@ router.post(
 
 router.put(
   '/:siteId/newsletters/lists/:listId',
-  ...withOrganizationContext,
+  ...withPublishingIntegrationManageAccess,
   validateParams(
     z.object({
       siteId: uuidSchema,
@@ -571,7 +596,7 @@ router.put(
 
 router.delete(
   '/:siteId/newsletters/lists/:listId',
-  ...withOrganizationContext,
+  ...withPublishingIntegrationManageAccess,
   validateParams(
     z.object({
       siteId: uuidSchema,
@@ -583,7 +608,7 @@ router.delete(
 
 router.put(
   '/:siteId/integrations/mailchimp',
-  ...withOrganizationContext,
+  ...withPublishingIntegrationManageAccess,
   validateParams(siteIdParamsSchema),
   validateBody(updateSiteMailchimpSettingsSchema),
   publishingController.updateSiteMailchimpIntegration
@@ -591,7 +616,7 @@ router.put(
 
 router.put(
   '/:siteId/integrations/stripe',
-  ...withOrganizationContext,
+  ...withPublishingIntegrationManageAccess,
   validateParams(siteIdParamsSchema),
   validateBody(updateSiteStripeSettingsSchema),
   publishingController.updateSiteStripeIntegration
@@ -599,7 +624,7 @@ router.put(
 
 router.put(
   '/:siteId/integrations/facebook',
-  ...withOrganizationContext,
+  ...withPublishingIntegrationManageAccess,
   validateParams(siteIdParamsSchema),
   validateBody(updateSiteFacebookSettingsSchema),
   publishingController.updateSiteFacebookIntegration
@@ -607,7 +632,7 @@ router.put(
 
 router.get(
   '/:siteId/analytics/summary',
-  ...withOrganizationContext,
+  ...withPublishingSiteViewAccess,
   validateParams(siteIdParamsSchema),
   validateQuery(siteAnalyticsQuerySchema),
   publishingController.getSiteAnalyticsSummary
@@ -615,7 +640,7 @@ router.get(
 
 router.get(
   '/:siteId/analytics/funnel',
-  ...withOrganizationContext,
+  ...withPublishingSiteViewAccess,
   validateParams(siteIdParamsSchema),
   validateQuery(siteAnalyticsFunnelQuerySchema),
   publishingController.getSiteAnalyticsFunnel
@@ -624,7 +649,7 @@ router.get(
 // Update a site
 router.put(
   '/:siteId',
-  ...withOrganizationContext,
+  ...withPublishingSiteManageAccess,
   validateParams(siteIdParamsSchema),
   validateBody(updateSiteSchema),
   publishingController.updateSite
@@ -633,14 +658,14 @@ router.put(
 // Delete a site
 router.delete(
   '/:siteId',
-  ...withOrganizationContext,
+  ...withPublishingSiteManageAccess,
   validateParams(siteIdParamsSchema),
   publishingController.deleteSite
 );
 
 router.get(
   '/:siteId/entries',
-  ...withOrganizationContext,
+  ...withPublishingSiteViewAccess,
   validateParams(siteIdParamsSchema),
   validateQuery(websiteEntriesQuerySchema),
   publishingController.listWebsiteEntries
@@ -648,7 +673,7 @@ router.get(
 
 router.post(
   '/:siteId/entries',
-  ...withOrganizationContext,
+  ...withPublishingSiteManageAccess,
   validateParams(siteIdParamsSchema),
   validateBody(createWebsiteEntrySchema),
   publishingController.createWebsiteEntry
@@ -656,14 +681,14 @@ router.post(
 
 router.get(
   '/:siteId/entries/:entryId',
-  ...withOrganizationContext,
+  ...withPublishingSiteViewAccess,
   validateParams(entryIdParamsSchema),
   publishingController.getWebsiteEntry
 );
 
 router.put(
   '/:siteId/entries/:entryId',
-  ...withOrganizationContext,
+  ...withPublishingSiteManageAccess,
   validateParams(entryIdParamsSchema),
   validateBody(updateWebsiteEntrySchema),
   publishingController.updateWebsiteEntry
@@ -671,14 +696,14 @@ router.put(
 
 router.delete(
   '/:siteId/entries/:entryId',
-  ...withOrganizationContext,
+  ...withPublishingSiteManageAccess,
   validateParams(entryIdParamsSchema),
   publishingController.deleteWebsiteEntry
 );
 
 router.post(
   '/:siteId/entries/sync-mailchimp',
-  ...withOrganizationContext,
+  ...withPublishingIntegrationManageAccess,
   validateParams(siteIdParamsSchema),
   validateBody(syncMailchimpEntriesSchema),
   publishingController.syncMailchimpEntries
@@ -686,7 +711,7 @@ router.post(
 
 router.post(
   '/:siteId/entries/sync-mautic',
-  ...withOrganizationContext,
+  ...withPublishingIntegrationManageAccess,
   validateParams(siteIdParamsSchema),
   validateBody(syncMauticEntriesSchema),
   publishingController.syncMauticEntries
@@ -695,7 +720,7 @@ router.post(
 // Unpublish a site
 router.post(
   '/:siteId/unpublish',
-  ...withOrganizationContext,
+  ...withPublishingSitePublishAccess,
   validateParams(siteIdParamsSchema),
   publishingController.unpublishSite
 );
@@ -703,7 +728,7 @@ router.post(
 // Get deployment info
 router.get(
   '/:siteId/deployment',
-  ...withOrganizationContext,
+  ...withPublishingSiteViewAccess,
   validateParams(siteIdParamsSchema),
   publishingController.getDeploymentInfo
 );
@@ -711,7 +736,7 @@ router.get(
 // Get analytics summary
 router.get(
   '/:siteId/analytics',
-  ...withOrganizationContext,
+  ...withPublishingSiteViewAccess,
   validateParams(siteIdParamsSchema),
   validateQuery(siteAnalyticsQuerySchema),
   publishingController.getAnalyticsSummary
@@ -722,7 +747,7 @@ router.get(
 // Add custom domain
 router.post(
   '/:siteId/domain',
-  ...withOrganizationContext,
+  ...withPublishingDomainManageAccess,
   validateParams(siteIdParamsSchema),
   validateBody(addCustomDomainSchema),
   publishingController.addCustomDomain
@@ -731,7 +756,7 @@ router.post(
 // Get custom domain config
 router.get(
   '/:siteId/domain',
-  ...withOrganizationContext,
+  ...withPublishingSiteViewAccess,
   validateParams(siteIdParamsSchema),
   publishingController.getCustomDomainConfig
 );
@@ -739,7 +764,7 @@ router.get(
 // Verify custom domain
 router.post(
   '/:siteId/domain/verify',
-  ...withOrganizationContext,
+  ...withPublishingDomainManageAccess,
   validateParams(siteIdParamsSchema),
   publishingController.verifyCustomDomain
 );
@@ -747,7 +772,7 @@ router.post(
 // Remove custom domain
 router.delete(
   '/:siteId/domain',
-  ...withOrganizationContext,
+  ...withPublishingDomainManageAccess,
   validateParams(siteIdParamsSchema),
   publishingController.removeCustomDomain
 );
@@ -757,7 +782,7 @@ router.delete(
 // Get SSL info
 router.get(
   '/:siteId/ssl',
-  ...withOrganizationContext,
+  ...withPublishingSiteViewAccess,
   validateParams(siteIdParamsSchema),
   publishingController.getSslInfo
 );
@@ -765,7 +790,7 @@ router.get(
 // Provision SSL certificate
 router.post(
   '/:siteId/ssl/provision',
-  ...withOrganizationContext,
+  ...withPublishingDomainManageAccess,
   validateParams(siteIdParamsSchema),
   publishingController.provisionSsl
 );
@@ -775,7 +800,7 @@ router.post(
 // Get version history
 router.get(
   '/:siteId/versions',
-  ...withOrganizationContext,
+  ...withPublishingSiteViewAccess,
   validateParams(siteIdParamsSchema),
   validateQuery(versionHistoryQuerySchema),
   publishingController.getVersionHistory
@@ -784,7 +809,7 @@ router.get(
 // Get specific version
 router.get(
   '/:siteId/versions/:version',
-  ...withOrganizationContext,
+  ...withPublishingSiteViewAccess,
   validateParams(siteVersionParamsSchema),
   publishingController.getVersion
 );
@@ -792,7 +817,7 @@ router.get(
 // Rollback to a version
 router.post(
   '/:siteId/rollback',
-  ...withOrganizationContext,
+  ...withPublishingSitePublishAccess,
   validateParams(siteIdParamsSchema),
   validateBody(rollbackSchema),
   publishingController.rollbackVersion
@@ -801,7 +826,7 @@ router.post(
 // Prune old versions
 router.delete(
   '/:siteId/versions',
-  ...withOrganizationContext,
+  ...withPublishingSiteManageAccess,
   validateParams(siteIdParamsSchema),
   validateQuery(pruneVersionsQuerySchema),
   publishingController.pruneVersions
@@ -812,21 +837,21 @@ router.delete(
 // Invalidate cache for a site
 router.post(
   '/:siteId/cache/invalidate',
-  ...withOrganizationContext,
+  ...withPublishingCacheManageAccess,
   validateParams(siteIdParamsSchema),
   publishingController.invalidateSiteCache
 );
 
 // Get cache statistics (admin)
-router.get('/admin/cache/stats', ...withPublishingAdminCacheAccess, publishingController.getCacheStats);
+router.get('/admin/cache/stats', ...withPublishingCacheManageAccess, publishingController.getCacheStats);
 
 // Clear all cache (admin only)
-router.delete('/admin/cache', ...withPublishingAdminCacheAccess, publishingController.clearAllCache);
+router.delete('/admin/cache', ...withPublishingCacheManageAccess, publishingController.clearAllCache);
 
 // Get cache control profiles
 router.get(
   '/admin/cache/profiles',
-  ...withPublishingAdminCacheAccess,
+  ...withPublishingCacheManageAccess,
   publishingController.getPerformanceCacheControl
 );
 

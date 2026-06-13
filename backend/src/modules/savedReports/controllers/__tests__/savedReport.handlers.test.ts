@@ -128,7 +128,8 @@ describe('Saved Report Controller', () => {
             expect(mockSavedReportService.getSavedReportById).toHaveBeenCalledWith(
                 '1',
                 'user1',
-                ['manager', 'staff']
+                ['manager', 'staff'],
+                undefined
             );
             expect(mockJson).toHaveBeenCalledWith(mockReport);
         });
@@ -169,7 +170,7 @@ describe('Saved Report Controller', () => {
                 mockNext
             );
 
-            expect(mockSavedReportService.createSavedReport).toHaveBeenCalledWith('user1', data);
+            expect(mockSavedReportService.createSavedReport).toHaveBeenCalledWith('user1', data, undefined);
             expect(mockStatus).toHaveBeenCalledWith(201);
             expect(mockJson).toHaveBeenCalledWith(mockReport);
         });
@@ -210,7 +211,12 @@ describe('Saved Report Controller', () => {
                 mockNext
             );
 
-            expect(mockSavedReportService.updateSavedReport).toHaveBeenCalledWith('1', 'user1', data);
+            expect(mockSavedReportService.updateSavedReport).toHaveBeenCalledWith(
+                '1',
+                'user1',
+                data,
+                undefined
+            );
             expect(mockJson).toHaveBeenCalledWith(mockReport);
         });
     });
@@ -226,7 +232,7 @@ describe('Saved Report Controller', () => {
                 mockNext
             );
 
-            expect(mockSavedReportService.deleteSavedReport).toHaveBeenCalledWith('1', 'user1');
+            expect(mockSavedReportService.deleteSavedReport).toHaveBeenCalledWith('1', 'user1', undefined);
             expect(mockStatus).toHaveBeenCalledWith(204);
             expect(mockSend).toHaveBeenCalled();
         });

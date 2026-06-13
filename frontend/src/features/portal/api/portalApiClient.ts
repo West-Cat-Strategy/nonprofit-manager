@@ -31,12 +31,12 @@ export class PortalV2ApiClient implements PortalApiClient {
   private static readonly PAGE_SIZE = 100;
 
   async getDashboard(): Promise<PortalDashboardData> {
-    const response = await portalApi.get<ApiEnvelope<PortalDashboardData>>('/v2/portal/dashboard');
+    const response = await portalApi.get<ApiEnvelope<PortalDashboardData>>('/portal/dashboard');
     return unwrapApiData(response.data);
   }
 
   async listEvents(query: PortalEventsQuery = {}): Promise<PortalPagedResult<PortalEvent>> {
-    const response = await portalApi.get<ApiEnvelope<PortalPagedResult<PortalEvent>>>('/v2/portal/events', {
+    const response = await portalApi.get<ApiEnvelope<PortalPagedResult<PortalEvent>>>('/portal/events', {
       params: {
         search: query.search,
         sort: query.sort,
@@ -72,15 +72,15 @@ export class PortalV2ApiClient implements PortalApiClient {
   }
 
   async registerEvent(eventId: string): Promise<void> {
-    await portalApi.post(`/v2/portal/events/${eventId}/register`);
+    await portalApi.post(`/portal/events/${eventId}/register`);
   }
 
   async cancelEventRegistration(eventId: string): Promise<void> {
-    await portalApi.delete(`/v2/portal/events/${eventId}/register`);
+    await portalApi.delete(`/portal/events/${eventId}/register`);
   }
 
   async listAppointments(query: PortalAppointmentQuery = {}): Promise<PortalAppointmentSummary[]> {
-    const response = await portalApi.get<ApiEnvelope<PortalAppointmentSummary[]>>('/v2/portal/appointments', {
+    const response = await portalApi.get<ApiEnvelope<PortalAppointmentSummary[]>>('/portal/appointments', {
       params: {
         status: query.status,
         case_id: query.case_id,
@@ -121,7 +121,7 @@ export class PortalV2ApiClient implements PortalApiClient {
     to?: string;
   } = {}): Promise<PortalAppointmentSlotsPayload> {
     const response = await portalApi.get<ApiEnvelope<PortalAppointmentSlotsPayload>>(
-      '/v2/portal/appointments/slots',
+      '/portal/appointments/slots',
       {
         params: {
           case_id: query.case_id,
@@ -134,20 +134,20 @@ export class PortalV2ApiClient implements PortalApiClient {
   }
 
   async requestAppointment(payload: PortalAppointmentRequestInput): Promise<void> {
-    await portalApi.post('/v2/portal/appointments/requests', payload);
+    await portalApi.post('/portal/appointments/requests', payload);
   }
 
   async bookAppointmentSlot(slotId: string, payload: PortalAppointmentSlotBookingInput): Promise<void> {
-    await portalApi.post(`/v2/portal/appointments/slots/${slotId}/book`, payload);
+    await portalApi.post(`/portal/appointments/slots/${slotId}/book`, payload);
   }
 
   async cancelAppointment(appointmentId: string): Promise<void> {
-    await portalApi.patch(`/v2/portal/appointments/${appointmentId}/cancel`);
+    await portalApi.patch(`/portal/appointments/${appointmentId}/cancel`);
   }
 
   async listDocuments(query: PortalDocumentsQuery = {}): Promise<PortalPagedResult<PortalDocument>> {
     const response = await portalApi.get<ApiEnvelope<PortalPagedResult<PortalDocument>>>(
-      '/v2/portal/documents',
+      '/portal/documents',
       {
         params: {
           search: query.search,
@@ -162,7 +162,7 @@ export class PortalV2ApiClient implements PortalApiClient {
   }
 
   async listNotes(query: PortalNotesQuery = {}): Promise<PortalPagedResult<PortalNote>> {
-    const response = await portalApi.get<ApiEnvelope<PortalPagedResult<PortalNote>>>('/v2/portal/notes', {
+    const response = await portalApi.get<ApiEnvelope<PortalPagedResult<PortalNote>>>('/portal/notes', {
       params: {
         search: query.search,
         sort: query.sort,
@@ -176,7 +176,7 @@ export class PortalV2ApiClient implements PortalApiClient {
 
   async listReminders(query: PortalRemindersQuery = {}): Promise<PortalPagedResult<PortalReminder>> {
     const response = await portalApi.get<ApiEnvelope<PortalPagedResult<PortalReminder>>>(
-      '/v2/portal/reminders',
+      '/portal/reminders',
       {
         params: {
           search: query.search,
@@ -191,17 +191,17 @@ export class PortalV2ApiClient implements PortalApiClient {
   }
 
   async listCases(): Promise<PortalCaseSummary[]> {
-    const response = await portalApi.get<ApiEnvelope<PortalCaseSummary[]>>('/v2/portal/cases');
+    const response = await portalApi.get<ApiEnvelope<PortalCaseSummary[]>>('/portal/cases');
     return unwrapApiData(response.data);
   }
 
   async getCase(caseId: string): Promise<PortalCaseDetail> {
-    const response = await portalApi.get<ApiEnvelope<PortalCaseDetail>>(`/v2/portal/cases/${caseId}`);
+    const response = await portalApi.get<ApiEnvelope<PortalCaseDetail>>(`/portal/cases/${caseId}`);
     return unwrapApiData(response.data);
   }
 
   async getCaseTimeline(caseId: string, query: PortalCaseTimelineQuery = {}): Promise<PortalCaseTimelinePage> {
-    const response = await portalApi.get<ApiEnvelope<PortalCaseTimelinePage>>(`/v2/portal/cases/${caseId}/timeline`, {
+    const response = await portalApi.get<ApiEnvelope<PortalCaseTimelinePage>>(`/portal/cases/${caseId}/timeline`, {
       params: {
         limit: query.limit,
         cursor: query.cursor,
@@ -212,14 +212,14 @@ export class PortalV2ApiClient implements PortalApiClient {
 
   async listCaseDocuments(caseId: string): Promise<PortalCaseDocument[]> {
     const response = await portalApi.get<ApiEnvelope<PortalCaseDocument[]>>(
-      `/v2/portal/cases/${caseId}/documents`
+      `/portal/cases/${caseId}/documents`
     );
     return unwrapApiData(response.data);
   }
 
   async uploadCaseDocument(caseId: string, formData: FormData): Promise<PortalCaseDocument> {
     const response = await portalApi.post<ApiEnvelope<PortalCaseDocument>>(
-      `/v2/portal/cases/${caseId}/documents`,
+      `/portal/cases/${caseId}/documents`,
       formData,
       {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -233,7 +233,7 @@ export class PortalV2ApiClient implements PortalApiClient {
     payload: PortalCaseReviewRequestInput
   ): Promise<PortalCaseReviewRequest> {
     const response = await portalApi.post<ApiEnvelope<PortalCaseReviewRequest>>(
-      `/v2/portal/cases/${caseId}/escalations`,
+      `/portal/cases/${caseId}/escalations`,
       payload
     );
     return unwrapApiData(response.data);

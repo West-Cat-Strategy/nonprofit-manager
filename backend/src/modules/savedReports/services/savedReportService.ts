@@ -48,6 +48,7 @@ const SHARE_ROLES: SharePrincipalRole[] = [
 
 const SAVED_REPORT_BASE_COLUMNS = `
   id,
+  organization_id,
   name,
   description,
   entity,
@@ -69,14 +70,16 @@ export class SavedReportService {
   private async assertOwnerOrAdmin(
     reportId: string,
     actorUserId: string,
-    actorRole: string
+    actorRole: string,
+    organizationId?: string
   ): Promise<void> {
     const result = await this.pool.query<{ created_by: string | null }>(
       `SELECT created_by
        FROM saved_reports
        WHERE id = $1
+         AND ($2::uuid IS NULL OR organization_id = $2::uuid)
        LIMIT 1`,
-      [reportId]
+      [reportId, organizationId || null]
     );
 
     if (result.rows.length === 0) {
@@ -91,6 +94,29 @@ export class SavedReportService {
     throw new Error('Only report owner or admin can modify sharing settings');
   }
 
+  private async assertUsersInOrganization(
+    userIds: string[],
+    organizationId?: string
+  ): Promise<void> {
+    if (!organizationId || userIds.length === 0) {
+      return;
+    }
+
+    const result = await this.pool.query<{ user_id: string }>(
+      `SELECT DISTINCT user_id
+       FROM user_account_access
+       WHERE account_id = $1
+         AND user_id = ANY($2::uuid[])
+         AND is_active = true`,
+      [organizationId, userIds]
+    );
+    const allowed = new Set(result.rows.map((row) => row.user_id));
+    const outOfScope = userIds.find((userId) => !allowed.has(userId));
+    if (outOfScope) {
+      throw new Error('Share principals must belong to the current organization');
+    }
+  }
+
   /**
    * Get all saved reports (optionally filter by user or entity)
    */
@@ -98,7 +124,7 @@ export class SavedReportService {
     userId?: string,
     entity?: string,
     userRoles: string[] = [],
-    options: { page?: number; limit?: number; summary?: boolean } = {}
+    options: { page?: number; limit?: number; summary?: boolean; organizationId?: string } = {}
   ): Promise<SavedReportsListPage<SavedReport | SavedReportSummary>> {
     try {
       const page = Math.max(1, Number(options.page || 1));
@@ -109,15 +135,16 @@ export class SavedReportService {
 
       let whereClause = `
         FROM saved_reports
-        WHERE (
+        WHERE ($3::uuid IS NULL OR organization_id = $3::uuid)
+          AND (
           is_public = TRUE
           OR created_by = $1
           OR ($1 IS NOT NULL AND $1 = ANY(COALESCE(shared_with_users, '{}'::uuid[])))
           OR (COALESCE(shared_with_roles, '{}'::text[]) && $2::text[])
         )
       `;
-      const params: unknown[] = [userId || null, userRoles];
-      let nextParamIndex = 3;
+      const params: unknown[] = [userId || null, userRoles, options.organizationId || null];
+      let nextParamIndex = 4;
 
       if (entity) {
         whereClause += ` AND entity = $${nextParamIndex}`;
@@ -149,7 +176,13 @@ export class SavedReportService {
         },
       };
     } catch (error) {
-      logger.error('Error fetching saved reports', { error, userId, entity, userRoles });
+      logger.error('Error fetching saved reports', {
+        error,
+        userId,
+        entity,
+        userRoles,
+        organizationId: options.organizationId,
+      });
       throw Object.assign(new Error('Failed to fetch saved reports'), { cause: error });
     }
   }
@@ -157,12 +190,18 @@ export class SavedReportService {
   /**
    * Get a single saved report by ID
    */
-  async getSavedReportById(id: string, userId?: string, userRoles: string[] = []): Promise<SavedReport | null> {
+  async getSavedReportById(
+    id: string,
+    userId?: string,
+    userRoles: string[] = [],
+    organizationId?: string
+  ): Promise<SavedReport | null> {
     try {
       const query = `
         SELECT ${SAVED_REPORT_DETAIL_COLUMNS}
         FROM saved_reports
         WHERE id = $1
+          AND ($4::uuid IS NULL OR organization_id = $4::uuid)
           AND (
             is_public = TRUE
             OR created_by = $2
@@ -170,7 +209,12 @@ export class SavedReportService {
             OR (COALESCE(shared_with_roles, '{}'::text[]) && $3::text[])
           )
       `;
-      const result = await this.pool.query(query, [id, userId || null, userRoles]);
+      const result = await this.pool.query(query, [
+        id,
+        userId || null,
+        userRoles,
+        organizationId || null,
+      ]);
 
       if (result.rows.length === 0) {
         return null;
@@ -178,7 +222,13 @@ export class SavedReportService {
 
       return result.rows[0];
     } catch (error) {
-      logger.error('Error fetching saved report by ID', { error, id, userId, userRoles });
+      logger.error('Error fetching saved report by ID', {
+        error,
+        id,
+        userId,
+        userRoles,
+        organizationId,
+      });
       throw Object.assign(new Error('Failed to fetch saved report'), { cause: error });
     }
   }
@@ -188,12 +238,21 @@ export class SavedReportService {
    */
   async createSavedReport(
     userId: string,
-    data: CreateSavedReportRequest
+    data: CreateSavedReportRequest,
+    organizationId?: string
   ): Promise<SavedReport> {
     try {
       const query = `
-        INSERT INTO saved_reports (name, description, entity, report_definition, created_by, is_public)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO saved_reports (
+          name,
+          description,
+          entity,
+          report_definition,
+          created_by,
+          is_public,
+          organization_id
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING *
       `;
       const values = [
@@ -203,12 +262,13 @@ export class SavedReportService {
         JSON.stringify(data.report_definition),
         userId,
         data.is_public || false,
+        organizationId || null,
       ];
 
       const result = await this.pool.query(query, values);
       return result.rows[0];
     } catch (error) {
-      logger.error('Error creating saved report', { error, userId, data });
+      logger.error('Error creating saved report', { error, userId, organizationId, data });
       throw Object.assign(new Error('Failed to create saved report'), { cause: error });
     }
   }
@@ -219,17 +279,20 @@ export class SavedReportService {
   async updateSavedReport(
     id: string,
     userId: string,
-    data: UpdateSavedReportRequest
+    data: UpdateSavedReportRequest,
+    organizationId?: string
   ): Promise<SavedReport | null> {
     try {
       // First check if report exists and user owns it
       const checkQuery = `
         SELECT id, name, description, entity, created_by, created_at, updated_at, is_public,
-               shared_with_users, shared_with_roles, public_token, share_settings, report_definition
+               organization_id, shared_with_users, shared_with_roles, public_token, share_settings, report_definition
         FROM saved_reports
-        WHERE id = $1 AND created_by = $2
+        WHERE id = $1
+          AND created_by = $2
+          AND ($3::uuid IS NULL OR organization_id = $3::uuid)
       `;
-      const checkResult = await this.pool.query(checkQuery, [id, userId]);
+      const checkResult = await this.pool.query(checkQuery, [id, userId, organizationId || null]);
 
       if (checkResult.rows.length === 0) {
         return null;
@@ -268,19 +331,20 @@ export class SavedReportService {
       }
 
       updates.push(`updated_at = CURRENT_TIMESTAMP`);
-      values.push(id, userId);
+      values.push(id, userId, organizationId || null);
 
       const query = `
         UPDATE saved_reports
         SET ${updates.join(', ')}
         WHERE id = $${paramIndex} AND created_by = $${paramIndex + 1}
+          AND ($${paramIndex + 2}::uuid IS NULL OR organization_id = $${paramIndex + 2}::uuid)
         RETURNING *
       `;
 
       const result = await this.pool.query(query, values);
       return result.rows[0];
     } catch (error) {
-      logger.error('Error updating saved report', { error, id, userId, data });
+      logger.error('Error updating saved report', { error, id, userId, organizationId, data });
       throw Object.assign(new Error('Failed to update saved report'), { cause: error });
     }
   }
@@ -288,39 +352,50 @@ export class SavedReportService {
   /**
    * Delete a saved report
    */
-  async deleteSavedReport(id: string, userId: string): Promise<boolean> {
+  async deleteSavedReport(id: string, userId: string, organizationId?: string): Promise<boolean> {
     try {
       const query = `
         DELETE FROM saved_reports
-        WHERE id = $1 AND created_by = $2
+        WHERE id = $1
+          AND created_by = $2
+          AND ($3::uuid IS NULL OR organization_id = $3::uuid)
         RETURNING id
       `;
-      const result = await this.pool.query(query, [id, userId]);
+      const result = await this.pool.query(query, [id, userId, organizationId || null]);
       return result.rows.length > 0;
     } catch (error) {
-      logger.error('Error deleting saved report', { error, id, userId });
+      logger.error('Error deleting saved report', { error, id, userId, organizationId });
       throw Object.assign(new Error('Failed to delete saved report'), { cause: error });
     }
   }
 
-  async getSharePrincipals(search?: string, limit = 25): Promise<SharePrincipalsResult> {
+  async getSharePrincipals(
+    search?: string,
+    limit = 25,
+    organizationId?: string
+  ): Promise<SharePrincipalsResult> {
     try {
       const safeLimit = Math.max(1, Math.min(limit, 50));
       const term = search?.trim() || null;
 
       const usersResult = await this.pool.query<SharePrincipalUser>(
-        `SELECT id, email, first_name, last_name
+        `SELECT DISTINCT users.id, users.email, users.first_name, users.last_name
          FROM users
-         WHERE is_active = true
+         LEFT JOIN user_account_access uaa
+           ON uaa.user_id = users.id
+          AND uaa.is_active = true
+          AND ($3::uuid IS NULL OR uaa.account_id = $3::uuid)
+         WHERE users.is_active = true
+           AND ($3::uuid IS NULL OR uaa.user_id IS NOT NULL)
            AND (
              $1::text IS NULL
-             OR email ILIKE '%' || $1 || '%'
-             OR first_name ILIKE '%' || $1 || '%'
-             OR last_name ILIKE '%' || $1 || '%'
+             OR users.email ILIKE '%' || $1 || '%'
+             OR users.first_name ILIKE '%' || $1 || '%'
+             OR users.last_name ILIKE '%' || $1 || '%'
            )
-         ORDER BY first_name ASC, last_name ASC
+         ORDER BY users.first_name ASC, users.last_name ASC
          LIMIT $2`,
-        [term, safeLimit]
+        [term, safeLimit, organizationId || null]
       );
 
       return {
@@ -331,7 +406,7 @@ export class SavedReportService {
         roles: SHARE_ROLES,
       };
     } catch (error) {
-      logger.error('Error fetching share principals', { error, search, limit });
+      logger.error('Error fetching share principals', { error, search, limit, organizationId });
       throw Object.assign(new Error('Failed to fetch share principals'), { cause: error });
     }
   }
@@ -345,14 +420,16 @@ export class SavedReportService {
     actorRole: string,
     userIds?: string[],
     roleNames?: string[],
-    shareSettings?: { can_edit: boolean; expires_at?: string }
+    shareSettings?: { can_edit: boolean; expires_at?: string },
+    organizationId?: string
   ): Promise<SavedReport> {
     try {
-      await this.assertOwnerOrAdmin(reportId, actorUserId, actorRole);
+      await this.assertOwnerOrAdmin(reportId, actorUserId, actorRole, organizationId);
 
       const dedupedUserIds = Array.from(new Set((userIds || []).filter(Boolean)));
       const dedupedRoleNames = Array.from(new Set((roleNames || []).filter(Boolean)));
       const nextShareSettings = shareSettings ? JSON.stringify(shareSettings) : null;
+      await this.assertUsersInOrganization(dedupedUserIds, organizationId);
 
       const query = `
         UPDATE saved_reports
@@ -375,6 +452,7 @@ export class SavedReportService {
           END,
           updated_at = NOW()
         WHERE id = $1
+          AND ($5::uuid IS NULL OR organization_id = $5::uuid)
         RETURNING *
       `;
 
@@ -383,6 +461,7 @@ export class SavedReportService {
         dedupedUserIds,
         dedupedRoleNames,
         nextShareSettings,
+        organizationId || null,
       ]);
 
       if (result.rows.length === 0) {
@@ -391,7 +470,13 @@ export class SavedReportService {
 
       return result.rows[0];
     } catch (error) {
-      logger.error('Error sharing report', { error, reportId, actorUserId, actorRole });
+      logger.error('Error sharing report', {
+        error,
+        reportId,
+        actorUserId,
+        actorRole,
+        organizationId,
+      });
       if (error instanceof Error) {
         throw error;
       }
@@ -407,13 +492,15 @@ export class SavedReportService {
     actorUserId: string,
     actorRole: string,
     userIds?: string[],
-    roleNames?: string[]
+    roleNames?: string[],
+    organizationId?: string
   ): Promise<SavedReport> {
     try {
-      await this.assertOwnerOrAdmin(reportId, actorUserId, actorRole);
+      await this.assertOwnerOrAdmin(reportId, actorUserId, actorRole, organizationId);
 
       const dedupedUserIds = Array.from(new Set((userIds || []).filter(Boolean)));
       const dedupedRoleNames = Array.from(new Set((roleNames || []).filter(Boolean)));
+      await this.assertUsersInOrganization(dedupedUserIds, organizationId);
 
       if (dedupedUserIds.length === 0 && dedupedRoleNames.length === 0) {
         throw new Error('No users or roles specified to remove');
@@ -438,10 +525,16 @@ export class SavedReportService {
           ),
           updated_at = NOW()
         WHERE id = $1
+          AND ($4::uuid IS NULL OR organization_id = $4::uuid)
         RETURNING *
       `;
 
-      const result = await this.pool.query(query, [reportId, dedupedUserIds, dedupedRoleNames]);
+      const result = await this.pool.query(query, [
+        reportId,
+        dedupedUserIds,
+        dedupedRoleNames,
+        organizationId || null,
+      ]);
 
       if (result.rows.length === 0) {
         throw new Error('Report not found');
@@ -449,7 +542,13 @@ export class SavedReportService {
 
       return result.rows[0];
     } catch (error) {
-      logger.error('Error removing share', { error, reportId, actorUserId, actorRole });
+      logger.error('Error removing share', {
+        error,
+        reportId,
+        actorUserId,
+        actorRole,
+        organizationId,
+      });
       if (error instanceof Error) {
         throw error;
       }
@@ -546,18 +645,24 @@ export class SavedReportService {
   /**
    * Check if user has access to report
    */
-  async checkAccess(reportId: string, userId: string, userRoles: string[]): Promise<boolean> {
+  async checkAccess(
+    reportId: string,
+    userId: string,
+    userRoles: string[],
+    organizationId?: string
+  ): Promise<boolean> {
     try {
       const result = await this.pool.query(
         `SELECT id FROM saved_reports
          WHERE id = $1
+         AND ($4::uuid IS NULL OR organization_id = $4::uuid)
          AND (
            created_by = $2
            OR is_public = TRUE
            OR $2 = ANY(COALESCE(shared_with_users, '{}'::uuid[]))
            OR COALESCE(shared_with_roles, '{}'::text[]) && $3::text[]
          )`,
-        [reportId, userId, userRoles]
+        [reportId, userId, userRoles, organizationId || null]
       );
 
       return result.rows.length > 0;

@@ -25,7 +25,7 @@ export class TaskCatalogUseCase {
     return this.repository.getTaskSummary(filters);
   }
 
-  getById(taskId: string): Promise<Task | null> {
-    return this.repository.getTaskById(taskId);
+  getById(taskId: string, organizationId?: string): Promise<Task | null> {
+    return this.repository.getTaskById(taskId, organizationId);
   }
 }

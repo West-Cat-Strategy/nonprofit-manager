@@ -41,7 +41,7 @@ const unwrapMeetingsEntity = <T>(
 export class MeetingsApiClient {
   async listCommittees(): Promise<Committee[]> {
     const response = await api.get<ApiEnvelope<Committee[]> | { committees: Committee[] }>(
-      '/v2/meetings/committees'
+      '/meetings/committees'
     );
     return unwrapMeetingsCollection<Committee>(response.data, 'committees');
   }
@@ -62,24 +62,24 @@ export class MeetingsApiClient {
 
     const suffix = params.toString();
     const response = await api.get<ApiEnvelope<Meeting[]> | { meetings: Meeting[] }>(
-      `/v2/meetings${suffix ? `?${suffix}` : ''}`
+      `/meetings${suffix ? `?${suffix}` : ''}`
     );
     return unwrapMeetingsCollection<Meeting>(response.data, 'meetings');
   }
 
   async getMeetingDetail(meetingId: string): Promise<MeetingDetail> {
-    const response = await api.get<ApiEnvelope<MeetingDetail> | MeetingDetail>(`/v2/meetings/${meetingId}`);
+    const response = await api.get<ApiEnvelope<MeetingDetail> | MeetingDetail>(`/meetings/${meetingId}`);
     return unwrapMeetingsPayload<MeetingDetail>(response.data);
   }
 
   async createMeeting(payload: Partial<Meeting>): Promise<Meeting> {
-    const response = await api.post<ApiEnvelope<Meeting> | { meeting: Meeting }>('/v2/meetings', payload);
+    const response = await api.post<ApiEnvelope<Meeting> | { meeting: Meeting }>('/meetings', payload);
     return unwrapMeetingsEntity<Meeting>(response.data, 'meeting');
   }
 
   async updateMeeting(meetingId: string, payload: Partial<Meeting>): Promise<Meeting> {
     const response = await api.patch<ApiEnvelope<Meeting> | { meeting: Meeting }>(
-      `/v2/meetings/${meetingId}`,
+      `/meetings/${meetingId}`,
       payload
     );
     return unwrapMeetingsEntity<Meeting>(response.data, 'meeting');
@@ -87,7 +87,7 @@ export class MeetingsApiClient {
 
   async addAgendaItem(meetingId: string, payload: Partial<MeetingAgendaItem>): Promise<MeetingAgendaItem> {
     const response = await api.post<ApiEnvelope<MeetingAgendaItem> | { agendaItem: MeetingAgendaItem }>(
-      `/v2/meetings/${meetingId}/agenda-items`,
+      `/meetings/${meetingId}/agenda-items`,
       payload
     );
     return unwrapMeetingsEntity<MeetingAgendaItem>(response.data, 'agendaItem');
@@ -95,7 +95,7 @@ export class MeetingsApiClient {
 
   async addMotion(meetingId: string, payload: Partial<MeetingMotion>): Promise<MeetingMotion> {
     const response = await api.post<ApiEnvelope<MeetingMotion> | { motion: MeetingMotion }>(
-      `/v2/meetings/${meetingId}/motions`,
+      `/meetings/${meetingId}/motions`,
       payload
     );
     return unwrapMeetingsEntity<MeetingMotion>(response.data, 'motion');
@@ -103,7 +103,7 @@ export class MeetingsApiClient {
 
   async addActionItem(meetingId: string, payload: Partial<MeetingActionItem>): Promise<MeetingActionItem> {
     const response = await api.post<ApiEnvelope<MeetingActionItem> | { actionItem: MeetingActionItem }>(
-      `/v2/meetings/${meetingId}/action-items`,
+      `/meetings/${meetingId}/action-items`,
       payload
     );
     return unwrapMeetingsEntity<MeetingActionItem>(response.data, 'actionItem');
@@ -111,7 +111,7 @@ export class MeetingsApiClient {
 
   async generateMinutesDraft(meetingId: string): Promise<{ markdown: string }> {
     const response = await api.get<ApiEnvelope<{ markdown: string }> | { markdown: string }>(
-      `/v2/meetings/${meetingId}/minutes/draft`
+      `/meetings/${meetingId}/minutes/draft`
     );
     return unwrapMeetingsPayload<{ markdown: string }>(response.data);
   }

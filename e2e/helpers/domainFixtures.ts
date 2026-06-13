@@ -121,7 +121,12 @@ export const resolveTestDatabaseConfig = (): {
 const getTestDatabaseConfig = resolveTestDatabaseConfig;
 
 const extractTrailingUrlSegment = (url: string, context: string): string => {
-  const pathname = new URL(url).pathname;
+  const parsedUrl = new URL(url);
+  if (parsedUrl.hash.length > 1) {
+    return decodeURIComponent(parsedUrl.hash.slice(1));
+  }
+
+  const pathname = parsedUrl.pathname;
   const token = pathname.split('/').filter(Boolean).pop();
   if (!token) {
     throw new Error(`${context} did not include a trailing token segment: ${url}`);
@@ -155,12 +160,16 @@ const delay = async (ms: number): Promise<void> =>
   });
 
 export async function ensurePublicCaseFormTokenReady(page: Page, rawToken: string): Promise<void> {
-  const requestUrl = `${apiURL()}/api/v2/public/case-forms/${rawToken}`;
+  const requestUrl = `${apiURL()}/api/v2/public/case-forms`;
   let lastStatus: number | null = null;
   let lastBody = '';
 
   for (let attempt = 1; attempt <= 20; attempt += 1) {
-    const response = await page.request.get(requestUrl);
+    const response = await page.request.get(requestUrl, {
+      headers: {
+        Authorization: `Bearer ${rawToken}`,
+      },
+    });
     if (response.ok()) {
       return;
     }
@@ -531,7 +540,7 @@ async function provisionPublicCaseFormAccessLinkFallback(input: {
 
   return {
     accessToken,
-    accessLinkUrl: `${frontendURL()}/public/case-forms/${accessToken}`,
+    accessLinkUrl: `${frontendURL()}/public/case-forms#${encodeURIComponent(accessToken)}`,
   };
 }
 

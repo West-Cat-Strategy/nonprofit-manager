@@ -30,6 +30,22 @@ const getPaypalConfig = (): PaymentProviderConfig => ({
   webhookConfigured: Boolean(getEnv('PAYPAL_WEBHOOK_ID')),
 });
 
+const getOneTimeDonationResultUrl = (
+  provider: 'paypal',
+  status?: string,
+  returnUrl?: string
+): string => {
+  const url = new URL(`${FRONTEND_URL}/donations/checkout-result`);
+  url.searchParams.set('provider', provider);
+  if (status) {
+    url.searchParams.set('status', status);
+  }
+  if (returnUrl) {
+    url.searchParams.set('return_to', returnUrl);
+  }
+  return url.toString();
+};
+
 async function getPaypalAccessToken(): Promise<string> {
   const clientId = getEnv('PAYPAL_CLIENT_ID');
   const clientSecret = getEnv('PAYPAL_CLIENT_SECRET');
@@ -86,8 +102,8 @@ export const createPaypalPaymentProviderAdapter = (): PaymentProviderAdapter => 
             },
           ],
           application_context: {
-            return_url: `${FRONTEND_URL}/donations/payment-result?provider=paypal`,
-            cancel_url: `${FRONTEND_URL}/donations/payment-result?provider=paypal&status=cancelled`,
+            return_url: getOneTimeDonationResultUrl('paypal', undefined, request.returnUrl),
+            cancel_url: getOneTimeDonationResultUrl('paypal', 'cancelled', request.returnUrl),
           },
         }),
       });

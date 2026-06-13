@@ -62,6 +62,10 @@ jest.mock('@middleware/requireActiveOrganizationContext', () => ({
   requireActiveOrganizationContext: (_req: Request, _res: Response, next: NextFunction) => next(),
 }));
 
+jest.mock('@middleware/permissions', () => ({
+  requirePermission: () => (_req: Request, _res: Response, next: NextFunction) => next(),
+}));
+
 jest.mock('../../controllers', () => {
   const ok = (_req: Request, res: Response) => {
     res.status(204).end();

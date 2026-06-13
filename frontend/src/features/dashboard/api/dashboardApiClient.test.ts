@@ -30,7 +30,7 @@ describe('DashboardApiClient', () => {
 
     const result = await client.fetchDashboards();
 
-    expect(api.get).toHaveBeenCalledWith('/v2/dashboard/configs');
+    expect(api.get).toHaveBeenCalledWith('/dashboard/configs');
     expect(result).toEqual([{ id: 'dash-1' }]);
   });
 
@@ -39,7 +39,7 @@ describe('DashboardApiClient', () => {
 
     const result = await client.fetchDashboard('dash-2');
 
-    expect(api.get).toHaveBeenCalledWith('/v2/dashboard/configs/dash-2');
+    expect(api.get).toHaveBeenCalledWith('/dashboard/configs/dash-2');
     expect(result).toEqual({ id: 'dash-2' });
   });
 
@@ -48,7 +48,7 @@ describe('DashboardApiClient', () => {
 
     const result = await client.fetchDefaultDashboard();
 
-    expect(api.get).toHaveBeenCalledWith('/v2/dashboard/configs/default');
+    expect(api.get).toHaveBeenCalledWith('/dashboard/configs/default');
     expect(result).toEqual({ id: 'default' });
   });
 
@@ -64,7 +64,7 @@ describe('DashboardApiClient', () => {
 
     const result = await client.createDashboard(payload);
 
-    expect(api.post).toHaveBeenCalledWith('/v2/dashboard/configs', payload);
+    expect(api.post).toHaveBeenCalledWith('/dashboard/configs', payload);
     expect(result).toMatchObject({ id: 'dash-created', name: 'My Board' });
   });
 
@@ -73,7 +73,7 @@ describe('DashboardApiClient', () => {
 
     const result = await client.updateDashboard('dash-updated', { name: 'Updated' });
 
-    expect(api.put).toHaveBeenCalledWith('/v2/dashboard/configs/dash-updated', { name: 'Updated' });
+    expect(api.put).toHaveBeenCalledWith('/dashboard/configs/dash-updated', { name: 'Updated' });
     expect(result).toEqual({ id: 'dash-updated', name: 'Updated' });
   });
 
@@ -82,7 +82,7 @@ describe('DashboardApiClient', () => {
 
     await client.deleteDashboard('dash-delete');
 
-    expect(api.delete).toHaveBeenCalledWith('/v2/dashboard/configs/dash-delete');
+    expect(api.delete).toHaveBeenCalledWith('/dashboard/configs/dash-delete');
   });
 
   it('saves dashboard layout', async () => {
@@ -91,7 +91,7 @@ describe('DashboardApiClient', () => {
 
     const result = await client.saveDashboardLayout('dash-1', layout);
 
-    expect(api.put).toHaveBeenCalledWith('/v2/dashboard/configs/dash-1/layout', { layout });
+    expect(api.put).toHaveBeenCalledWith('/dashboard/configs/dash-1/layout', { layout });
     expect(result).toEqual({ id: 'dash-1', layout });
   });
 });

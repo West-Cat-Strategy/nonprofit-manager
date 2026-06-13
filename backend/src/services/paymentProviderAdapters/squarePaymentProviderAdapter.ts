@@ -33,6 +33,15 @@ const getSquareConfig = (): PaymentProviderConfig => ({
   ),
 });
 
+const getOneTimeDonationResultUrl = (returnUrl?: string): string => {
+  const url = new URL(`${FRONTEND_URL}/donations/checkout-result`);
+  url.searchParams.set('provider', 'square');
+  if (returnUrl) {
+    url.searchParams.set('return_to', returnUrl);
+  }
+  return url.toString();
+};
+
 const getSquareHeaders = (): Record<string, string> => {
   const token = getEnv('SQUARE_ACCESS_TOKEN');
   if (!token) {
@@ -89,7 +98,7 @@ export const createSquarePaymentProviderAdapter = (): PaymentProviderAdapter => 
             location_id: getEnv('SQUARE_LOCATION_ID'),
           },
           checkout_options: {
-            redirect_url: `${FRONTEND_URL}/donations/payment-result?provider=square`,
+            redirect_url: getOneTimeDonationResultUrl(request.returnUrl),
             ask_for_shipping_address: false,
           },
           pre_populated_data: {

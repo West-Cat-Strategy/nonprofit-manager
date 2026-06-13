@@ -15,13 +15,13 @@ export class ActivitiesApiClient {
     }
 
     const query = params.toString();
-    const url = query ? `/v2/activities/recent?${query}` : '/v2/activities/recent';
+    const url = query ? `/activities/recent?${query}` : '/activities/recent';
     const response = await api.get<ApiEnvelope<ActivityFeedPayload>>(url);
     return unwrapApiData(response.data);
   }
 
   async getEntityActivities(filters: EntityActivityFilters): Promise<ActivityFeedPayload> {
-    const url = `/v2/activities/${filters.entityType}/${filters.entityId}`;
+    const url = `/activities/${filters.entityType}/${filters.entityId}`;
     const response = await api.get<ApiEnvelope<ActivityFeedPayload>>(url);
     return unwrapApiData(response.data);
   }

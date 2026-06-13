@@ -44,7 +44,7 @@ export class PortalAdminAppointmentsApiClient {
     query: PortalAdminAppointmentsQuery = {}
   ): Promise<PortalAdminAppointmentsPage> {
     const response = await api.get<ApiEnvelope<PortalAdminAppointmentsPage>>(
-      '/v2/portal/admin/appointments',
+      '/portal/admin/appointments',
       { params: query }
     );
     return unwrapApiData(response.data);
@@ -78,7 +78,7 @@ export class PortalAdminAppointmentsApiClient {
 
   async listAppointmentSlots(query: PortalAdminSlotQuery = {}): Promise<PortalAppointmentSlot[]> {
     const response = await api.get<ApiEnvelope<{ slots: PortalAppointmentSlot[] }>>(
-      '/v2/portal/admin/appointment-slots',
+      '/portal/admin/appointment-slots',
       { params: query }
     );
     return unwrapApiData(response.data).slots || [];
@@ -118,7 +118,7 @@ export class PortalAdminAppointmentsApiClient {
     }
   ): Promise<PortalAdminAppointmentInboxItem> {
     const response = await api.patch<ApiEnvelope<{ appointment: PortalAdminAppointmentInboxItem }>>(
-      `/v2/portal/admin/appointments/${appointmentId}/status`,
+      `/portal/admin/appointments/${appointmentId}/status`,
       payload
     );
     return unwrapApiData(response.data).appointment;
@@ -133,7 +133,7 @@ export class PortalAdminAppointmentsApiClient {
     } = {}
   ): Promise<PortalAdminAppointmentInboxItem> {
     const response = await api.post<ApiEnvelope<{ appointment: PortalAdminAppointmentInboxItem }>>(
-      `/v2/portal/admin/appointments/${appointmentId}/check-in`,
+      `/portal/admin/appointments/${appointmentId}/check-in`,
       payload
     );
     return unwrapApiData(response.data).appointment;
@@ -144,7 +144,7 @@ export class PortalAdminAppointmentsApiClient {
     status: 'open' | 'closed' | 'cancelled'
   ): Promise<PortalAppointmentSlot> {
     const response = await api.patch<ApiEnvelope<{ slot: PortalAppointmentSlot }>>(
-      `/v2/portal/admin/appointment-slots/${slotId}`,
+      `/portal/admin/appointment-slots/${slotId}`,
       { status }
     );
     return unwrapApiData(response.data).slot;

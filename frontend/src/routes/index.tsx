@@ -28,7 +28,10 @@ import { PublicReportSnapshot } from '../features/savedReports/routeComponents';
 import { logout } from '../features/auth/state';
 import { portalLogout } from '../features/portalAuth/state';
 import { PublicEventCheckInPage, PublicEventsPage } from '../features/events/routeComponents';
-import { RecurringDonationCheckoutResult } from '../features/finance/routeComponents';
+import {
+  PublicDonationCheckoutResult,
+  RecurringDonationCheckoutResult,
+} from '../features/finance/routeComponents';
 import { areDemoRoutesEnabled } from '../services/loop/demo';
 
 // Import route creators
@@ -97,6 +100,10 @@ const AppRoutes = () => {
         <Route
           path="/recurring-donations/checkout-result"
           element={<RecurringDonationCheckoutResult />}
+        />
+        <Route
+          path="/donations/checkout-result"
+          element={<PublicDonationCheckoutResult />}
         />
         {createStandalonePeopleRoutes(ProtectedRoute)}
         {createPortalPublicRoutes()}

@@ -114,6 +114,7 @@ const benignRuntimeConsolePatterns = [
   /favicon\.ico/i,
   /ResizeObserver loop limit exceeded/i,
   /downloadable font: download failed/i,
+  /Blocked script execution in 'about:srcdoc' because the document's frame is sandboxed and the 'allow-scripts' permission is not set\./i,
 ];
 const routeErrorResourceTypes = new Set(['fetch', 'xhr', 'script', 'stylesheet']);
 const navigationChurnCancellationPatterns = [
@@ -131,14 +132,27 @@ const darkModeInitializedPages = new WeakSet<Page>();
 
 const MANUAL_REVIEW_ROUTE_IDS = new Set([
   'contact-detail',
+  'contact-create',
+  'contact-edit',
+  'contact-print',
   'account-detail',
   'volunteer-detail',
   'case-detail',
+  'case-edit',
   'portal-case-detail',
+  'tasks',
+  'follow-ups',
+  'opportunities',
   'analytics',
   'reports-builder',
   'reports-outcomes',
+  'people-directory',
+  'linking',
+  'operations',
+  'outreach',
   'admin-settings',
+  'admin-settings-outcomes',
+  'user-settings',
   'website-builder',
   'website-console-overview',
   'website-console-builder',

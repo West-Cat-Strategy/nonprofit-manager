@@ -104,7 +104,7 @@ describe('savedReports reportSharing.handlers facade', () => {
       mockNext
     );
 
-    expect(mockSavedReportService.getSharePrincipals).toHaveBeenCalledWith('ann', 10);
+    expect(mockSavedReportService.getSharePrincipals).toHaveBeenCalledWith('ann', 10, 'org-1');
     expect(mockStatus).toHaveBeenCalledWith(200);
     expect(mockJson).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -133,7 +133,8 @@ describe('savedReports reportSharing.handlers facade', () => {
       'admin',
       ['user-2'],
       ['manager'],
-      undefined
+      undefined,
+      'org-1'
     );
     expect(mockJson).toHaveBeenCalledWith({ id: 'report-1' });
   });
@@ -153,7 +154,8 @@ describe('savedReports reportSharing.handlers facade', () => {
       'user-1',
       'admin',
       ['user-2'],
-      ['manager']
+      ['manager'],
+      'org-1'
     );
     expect(mockJson).toHaveBeenCalledWith({ id: 'report-1' });
   });
@@ -197,6 +199,7 @@ describe('savedReports reportSharing.handlers facade', () => {
       savedReportId: 'report-1',
       actorUserId: 'user-1',
       actorRole: 'admin',
+      organizationId: 'org-1',
     });
     expect(mockJson).toHaveBeenCalledWith({ message: 'Public link revoked successfully' });
   });

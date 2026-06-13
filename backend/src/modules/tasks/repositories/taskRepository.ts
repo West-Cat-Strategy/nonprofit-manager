@@ -26,23 +26,28 @@ export class TaskRepository implements TaskCatalogPort, TaskLifecyclePort {
     return taskService.getTaskSummary(filters);
   }
 
-  getTaskById(taskId: string): Promise<Task | null> {
-    return taskService.getTaskById(taskId);
+  getTaskById(taskId: string, organizationId?: string): Promise<Task | null> {
+    return taskService.getTaskByIdForOrganization(taskId, organizationId);
   }
 
-  createTask(payload: CreateTaskDTO, userId: string): Promise<Task> {
-    return taskService.createTask(payload, userId);
+  createTask(payload: CreateTaskDTO, userId: string, organizationId?: string): Promise<Task> {
+    return taskService.createTask(payload, userId, organizationId);
   }
 
-  updateTask(taskId: string, payload: UpdateTaskDTO, userId: string): Promise<Task | null> {
-    return taskService.updateTask(taskId, payload, userId);
+  updateTask(
+    taskId: string,
+    payload: UpdateTaskDTO,
+    userId: string,
+    organizationId?: string
+  ): Promise<Task | null> {
+    return taskService.updateTask(taskId, payload, userId, organizationId);
   }
 
-  deleteTask(taskId: string): Promise<boolean> {
-    return taskService.deleteTask(taskId);
+  deleteTask(taskId: string, organizationId?: string): Promise<boolean> {
+    return taskService.deleteTask(taskId, organizationId);
   }
 
-  completeTask(taskId: string, userId: string): Promise<Task | null> {
-    return taskService.completeTask(taskId, userId);
+  completeTask(taskId: string, userId: string, organizationId?: string): Promise<Task | null> {
+    return taskService.completeTask(taskId, userId, organizationId);
   }
 }

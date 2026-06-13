@@ -634,6 +634,10 @@ export async function prepareSavedAudienceTargeting(
   const syncResult = await bulkSyncContacts({
     contactIds: requestedContactIds,
     listId: request.listId,
+    scopeAccountIds: uniqueStrings([
+      ...(request.scopeAccountIds ?? []),
+      ...Array.from(scopeAccountIds),
+    ]),
   });
   const syncedEmails = syncResult.results
     .filter((result) => result.success && result.email)

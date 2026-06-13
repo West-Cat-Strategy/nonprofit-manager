@@ -18,6 +18,12 @@ describe('reference-adoption permissions', () => {
       Permission.TEAM_CHAT_VIEW,
       Permission.TEAM_CHAT_POST,
       Permission.TEAM_CHAT_MANAGE,
+      Permission.PUBLISHING_SITE_VIEW,
+      Permission.PUBLISHING_SITE_MANAGE,
+      Permission.PUBLISHING_SITE_PUBLISH,
+      Permission.PUBLISHING_INTEGRATION_MANAGE,
+      Permission.PUBLISHING_DOMAIN_MANAGE,
+      Permission.PUBLISHING_CACHE_MANAGE,
     ];
 
     expectedPermissions.forEach((permission) => {
@@ -35,15 +41,20 @@ describe('reference-adoption permissions', () => {
     expect(hasPermission('staff', Permission.TEAM_CHAT_VIEW)).toBe(true);
     expect(hasPermission('staff', Permission.TEAM_CHAT_POST)).toBe(true);
     expect(hasPermission('staff', Permission.TEAM_CHAT_MANAGE)).toBe(false);
+    expect(hasPermission('staff', Permission.PUBLISHING_SITE_VIEW)).toBe(true);
+    expect(hasPermission('staff', Permission.PUBLISHING_SITE_MANAGE)).toBe(false);
+    expect(hasPermission('staff', Permission.PUBLISHING_SITE_PUBLISH)).toBe(false);
 
     expect(hasPermission('member', Permission.FOLLOWUP_VIEW)).toBe(true);
     expect(hasPermission('member', Permission.FOLLOWUP_CREATE)).toBe(false);
     expect(hasPermission('member', Permission.OPPORTUNITY_VIEW)).toBe(true);
     expect(hasPermission('member', Permission.OPPORTUNITY_EDIT)).toBe(false);
     expect(hasPermission('member', Permission.TEAM_CHAT_VIEW)).toBe(false);
+    expect(hasPermission('member', Permission.PUBLISHING_SITE_VIEW)).toBe(false);
 
     expect(hasPermission('volunteer', Permission.SCHEDULED_REPORT_VIEW)).toBe(true);
     expect(hasPermission('volunteer', Permission.OPPORTUNITY_CREATE)).toBe(false);
     expect(hasPermission('volunteer', Permission.TEAM_CHAT_VIEW)).toBe(false);
+    expect(hasPermission('volunteer', Permission.PUBLISHING_SITE_VIEW)).toBe(false);
   });
 });

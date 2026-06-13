@@ -69,6 +69,7 @@ export interface CreatePaymentIntentRequest {
   receiptEmail?: string;
   statementDescriptor?: string;
   provider?: PaymentProvider;
+  returnUrl?: string;
 }
 
 /**

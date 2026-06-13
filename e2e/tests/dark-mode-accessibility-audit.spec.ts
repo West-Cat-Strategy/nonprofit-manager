@@ -469,7 +469,10 @@ async function resolveRoute(
       }
       return {
         kind: 'ready',
-        path: href.replace(/:token\b/g, staffState.publicCaseFormToken),
+        path:
+          entry.id === 'public-case-form'
+            ? `${href}#${encodeURIComponent(staffState.publicCaseFormToken)}`
+            : href.replace(/:token\b/g, staffState.publicCaseFormToken),
         fixtureState: `case form assignment ${staffState.publicCaseFormAssignmentId}`,
       };
     case 'portal-invitation':
@@ -714,7 +717,7 @@ async function resolveRoute(
     case 'donation-detail':
     case 'donation-edit':
       {
-        const donationScope = await resolveStaffFixtureScope(adminPage, authToken, adminSession);
+        const donationScope = await getAdminFixtureScope(adminPage, authToken, adminSession);
         if (!staffState.donationContactId) {
           staffState.donationContactId = (
             await createTestContact(adminPage, authToken, {
@@ -977,7 +980,20 @@ function resolveExpectedLocation(entry: RouteCatalogEntry, resolvedPath: string)
     case 'setup':
       return ['/setup', '/login'];
     case 'accept-invitation':
-      return [resolvedPath, '/setup'];
+      return ['/accept-invitation', '/setup'];
+    case 'admin-registration-review':
+      return '/admin-registration-review';
+    case 'reset-password':
+      return '/reset-password';
+    case 'public-report-snapshot-legacy-token':
+      return '/public/reports';
+    case 'public-case-form':
+    case 'public-case-form-legacy-token':
+      return '/public/case-forms';
+    case 'portal-reset-password':
+      return '/portal/reset-password';
+    case 'portal-accept-invitation':
+      return '/portal/accept-invitation';
     case 'grants':
       return '/grants/funders';
     case 'website-console-redirect':

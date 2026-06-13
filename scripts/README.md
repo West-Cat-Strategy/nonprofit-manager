@@ -75,6 +75,9 @@ DEPLOY_EXTRA_COMPOSE_FILES=docker-compose.postgres14-root.yml DEPLOY_EXECUTE=0 s
 ```
 
 The wrapper appends these files after the DB-at-rest overlay and fails closed if any listed file is missing.
+For self-hosted production database deployments, the wrapper also rejects `DB_USER=postgres`,
+requires a separate `DB_ADMIN_PASSWORD`, and reports the `nonprofit_app_user_prod` provisioning
+path provided by `scripts/sql/provision_self_hosted_app_role.sh`.
 
 ## Common Validation Flow
 

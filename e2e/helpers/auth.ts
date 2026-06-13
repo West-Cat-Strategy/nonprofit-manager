@@ -273,8 +273,11 @@ const isDockerBackedRun = (): boolean =>
 const shouldAllowExternallyManagedAuthFallbacks = (): boolean =>
   isDockerBackedRun() && process.env.BYPASS_REGISTRATION_POLICY_IN_TEST === 'true';
 
-const shouldUseManagedTestUserCreation = (): boolean =>
-  !shouldAllowExternallyManagedAuthFallbacks();
+const shouldUseManagedTestUserCreation = (): boolean => {
+  // Managed creation grants organization access through the admin API; direct
+  // registration can intentionally leave users pending or organizationless.
+  return true;
+};
 
 const isMfaBypassEnabledForTests = (): boolean =>
   process.env.BYPASS_MFA_FOR_TESTS?.trim().toLowerCase() === 'true';

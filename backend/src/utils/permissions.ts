@@ -102,6 +102,14 @@ export enum Permission {
   // Templates
   TEMPLATE_VIEW = 'template:view',
   TEMPLATE_MANAGE = 'template:manage',
+
+  // Publishing / Websites
+  PUBLISHING_SITE_VIEW = 'publishing_site:view',
+  PUBLISHING_SITE_MANAGE = 'publishing_site:manage',
+  PUBLISHING_SITE_PUBLISH = 'publishing_site:publish',
+  PUBLISHING_INTEGRATION_MANAGE = 'publishing_integration:manage',
+  PUBLISHING_DOMAIN_MANAGE = 'publishing_domain:manage',
+  PUBLISHING_CACHE_MANAGE = 'publishing_cache:manage',
 }
 
 type CanonicalPermissionRole = 'admin' | 'manager' | 'staff' | 'volunteer' | 'viewer';
@@ -176,6 +184,12 @@ const ROLE_PERMISSIONS: Record<CanonicalPermissionRole, Permission[]> = {
     Permission.DASHBOARD_VIEW,
     Permission.TEMPLATE_VIEW,
     Permission.TEMPLATE_MANAGE,
+    Permission.PUBLISHING_SITE_VIEW,
+    Permission.PUBLISHING_SITE_MANAGE,
+    Permission.PUBLISHING_SITE_PUBLISH,
+    Permission.PUBLISHING_INTEGRATION_MANAGE,
+    Permission.PUBLISHING_DOMAIN_MANAGE,
+    Permission.PUBLISHING_CACHE_MANAGE,
   ],
 
   manager: [
@@ -235,6 +249,12 @@ const ROLE_PERMISSIONS: Record<CanonicalPermissionRole, Permission[]> = {
     Permission.DASHBOARD_VIEW,
     Permission.TEMPLATE_VIEW,
     Permission.ADMIN_ORGANIZATION,
+    Permission.PUBLISHING_SITE_VIEW,
+    Permission.PUBLISHING_SITE_MANAGE,
+    Permission.PUBLISHING_SITE_PUBLISH,
+    Permission.PUBLISHING_INTEGRATION_MANAGE,
+    Permission.PUBLISHING_DOMAIN_MANAGE,
+    Permission.PUBLISHING_CACHE_MANAGE,
   ],
 
   staff: [
@@ -272,6 +292,7 @@ const ROLE_PERMISSIONS: Record<CanonicalPermissionRole, Permission[]> = {
     Permission.OUTCOMES_TAG_INTERACTION,
     Permission.DASHBOARD_VIEW,
     Permission.TEMPLATE_VIEW,
+    Permission.PUBLISHING_SITE_VIEW,
   ],
 
   viewer: [

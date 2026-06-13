@@ -22,7 +22,7 @@ class StaffCaseFormsApiClient {
     status?: CaseFormTemplateStatus;
     case_type_id?: string | null;
   }): Promise<CaseFormDefault[]> {
-    const response = await api.get<ApiEnvelope<CaseFormDefault[]>>('/v2/cases/forms/templates', {
+    const response = await api.get<ApiEnvelope<CaseFormDefault[]>>('/cases/forms/templates', {
       params: {
         status: input?.status,
         case_type_id: input?.case_type_id || undefined,
@@ -32,7 +32,7 @@ class StaffCaseFormsApiClient {
   }
 
   async createTemplate(payload: CreateCaseFormDefaultDTO): Promise<CaseFormDefault> {
-    const response = await api.post<ApiEnvelope<CaseFormDefault>>('/v2/cases/forms/templates', payload);
+    const response = await api.post<ApiEnvelope<CaseFormDefault>>('/cases/forms/templates', payload);
     return unwrapApiData(response.data);
   }
 
@@ -41,7 +41,7 @@ class StaffCaseFormsApiClient {
     payload: UpdateCaseFormDefaultDTO
   ): Promise<CaseFormDefault> {
     const response = await api.put<ApiEnvelope<CaseFormDefault>>(
-      `/v2/cases/forms/templates/${templateId}`,
+      `/cases/forms/templates/${templateId}`,
       payload
     );
     return unwrapApiData(response.data);
@@ -49,13 +49,13 @@ class StaffCaseFormsApiClient {
 
   async listRecommendedDefaults(caseId: string): Promise<CaseFormDefault[]> {
     const response = await api.get<ApiEnvelope<CaseFormDefault[]>>(
-      `/v2/cases/${caseId}/forms/recommended-defaults`
+      `/cases/${caseId}/forms/recommended-defaults`
     );
     return unwrapApiData(response.data);
   }
 
   async listAssignments(caseId: string, status?: string): Promise<CaseFormAssignment[]> {
-    const response = await api.get<ApiEnvelope<CaseFormAssignment[]>>(`/v2/cases/${caseId}/forms`, {
+    const response = await api.get<ApiEnvelope<CaseFormAssignment[]>>(`/cases/${caseId}/forms`, {
       params: {
         status,
       },
@@ -64,13 +64,13 @@ class StaffCaseFormsApiClient {
   }
 
   async createAssignment(caseId: string, payload: CreateCaseFormAssignmentDTO): Promise<CaseFormAssignment> {
-    const response = await api.post<ApiEnvelope<CaseFormAssignment>>(`/v2/cases/${caseId}/forms`, payload);
+    const response = await api.post<ApiEnvelope<CaseFormAssignment>>(`/cases/${caseId}/forms`, payload);
     return unwrapApiData(response.data);
   }
 
   async instantiateDefault(caseId: string, defaultId: string): Promise<CaseFormAssignment> {
     const response = await api.post<ApiEnvelope<CaseFormAssignment>>(
-      `/v2/cases/${caseId}/forms/defaults/${defaultId}/instantiate`
+      `/cases/${caseId}/forms/defaults/${defaultId}/instantiate`
     );
     return unwrapApiData(response.data);
   }
@@ -81,7 +81,7 @@ class StaffCaseFormsApiClient {
     payload: CreateCaseFormDefaultDTO
   ): Promise<CaseFormDefault> {
     const response = await api.post<ApiEnvelope<CaseFormDefault>>(
-      `/v2/cases/${caseId}/forms/${assignmentId}/save-template`,
+      `/cases/${caseId}/forms/${assignmentId}/save-template`,
       payload
     );
     return unwrapApiData(response.data);
@@ -89,7 +89,7 @@ class StaffCaseFormsApiClient {
 
   async getAssignment(caseId: string, assignmentId: string): Promise<CaseFormAssignmentDetail> {
     const response = await api.get<ApiEnvelope<CaseFormAssignmentDetail>>(
-      `/v2/cases/${caseId}/forms/${assignmentId}`
+      `/cases/${caseId}/forms/${assignmentId}`
     );
     return unwrapApiData(response.data);
   }
@@ -100,7 +100,7 @@ class StaffCaseFormsApiClient {
     payload: UpdateCaseFormAssignmentDTO
   ): Promise<CaseFormAssignment> {
     const response = await api.put<ApiEnvelope<CaseFormAssignment>>(
-      `/v2/cases/${caseId}/forms/${assignmentId}`,
+      `/cases/${caseId}/forms/${assignmentId}`,
       payload
     );
     return unwrapApiData(response.data);
@@ -117,7 +117,7 @@ class StaffCaseFormsApiClient {
     formData.set('file', input.file);
 
     const response = await api.post<ApiEnvelope<CaseFormAsset>>(
-      `/v2/cases/${caseId}/forms/${assignmentId}/assets`,
+      `/cases/${caseId}/forms/${assignmentId}/assets`,
       formData,
       {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -132,7 +132,7 @@ class StaffCaseFormsApiClient {
     payload: SaveCaseFormDraftDTO
   ): Promise<CaseFormAssignment> {
     const response = await api.post<ApiEnvelope<CaseFormAssignment>>(
-      `/v2/cases/${caseId}/forms/${assignmentId}/draft`,
+      `/cases/${caseId}/forms/${assignmentId}/draft`,
       payload
     );
     return unwrapApiData(response.data);
@@ -144,7 +144,7 @@ class StaffCaseFormsApiClient {
     payload: SubmitCaseFormDTO
   ): Promise<CaseFormAssignmentDetail> {
     const response = await api.post<ApiEnvelope<CaseFormAssignmentDetail>>(
-      `/v2/cases/${caseId}/forms/${assignmentId}/staff-submit`,
+      `/cases/${caseId}/forms/${assignmentId}/staff-submit`,
       payload
     );
     return unwrapApiData(response.data);
@@ -156,7 +156,7 @@ class StaffCaseFormsApiClient {
     payload: SendCaseFormAssignmentDTO
   ): Promise<CaseFormAssignment> {
     const response = await api.post<ApiEnvelope<CaseFormAssignment>>(
-      `/v2/cases/${caseId}/forms/${assignmentId}/send`,
+      `/cases/${caseId}/forms/${assignmentId}/send`,
       payload
     );
     return unwrapApiData(response.data);
@@ -168,7 +168,7 @@ class StaffCaseFormsApiClient {
     payload: CaseFormReviewDecision
   ): Promise<CaseFormAssignment> {
     const response = await api.post<ApiEnvelope<CaseFormAssignment>>(
-      `/v2/cases/${caseId}/forms/${assignmentId}/review`,
+      `/cases/${caseId}/forms/${assignmentId}/review`,
       payload
     );
     return unwrapApiData(response.data);

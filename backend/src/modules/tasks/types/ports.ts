@@ -18,12 +18,17 @@ export interface TaskCatalogPort {
     summary: TaskSummary;
   }>;
   getTaskSummary(filters: TaskFilters): Promise<TaskSummary>;
-  getTaskById(taskId: string): Promise<Task | null>;
+  getTaskById(taskId: string, organizationId?: string): Promise<Task | null>;
 }
 
 export interface TaskLifecyclePort {
-  createTask(payload: CreateTaskDTO, userId: string): Promise<Task>;
-  updateTask(taskId: string, payload: UpdateTaskDTO, userId: string): Promise<Task | null>;
-  deleteTask(taskId: string): Promise<boolean>;
-  completeTask(taskId: string, userId: string): Promise<Task | null>;
+  createTask(payload: CreateTaskDTO, userId: string, organizationId?: string): Promise<Task>;
+  updateTask(
+    taskId: string,
+    payload: UpdateTaskDTO,
+    userId: string,
+    organizationId?: string
+  ): Promise<Task | null>;
+  deleteTask(taskId: string, organizationId?: string): Promise<boolean>;
+  completeTask(taskId: string, userId: string, organizationId?: string): Promise<Task | null>;
 }

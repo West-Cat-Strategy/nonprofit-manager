@@ -61,6 +61,18 @@ const resolveCsrfTokenEndpoint = (baseURL: string, baseIsV2: boolean): string =>
     : `${normalizedBase}/v2/auth/csrf-token`;
 };
 
+const normalizeRequestPath = (url: string, baseIsV2: boolean): string => {
+  if (!url.startsWith('/')) {
+    return url;
+  }
+
+  if (baseIsV2) {
+    return url.replace(/^\/v2(?=\/|$)/, '') || '/';
+  }
+
+  return url.startsWith('/v2/') || url === '/v2' ? url : `/v2${url}`;
+};
+
 /**
  * Calculate exponential backoff delay with jitter
  */
@@ -170,13 +182,8 @@ export const createApiClient = (options: ApiClientOptions): AxiosInstance => {
   // Note: Auth tokens are handled via httpOnly cookies (withCredentials: true)
   client.interceptors.request.use(
     async (config: InternalAxiosRequestConfig) => {
-      if (
-        !baseIsV2 &&
-        typeof config.url === 'string' &&
-        config.url.startsWith('/') &&
-        !config.url.startsWith('/v2/')
-      ) {
-        config.url = `/v2${config.url}`;
+      if (typeof config.url === 'string') {
+        config.url = normalizeRequestPath(config.url, baseIsV2);
       }
 
       if (includeOrganizationHeader) {

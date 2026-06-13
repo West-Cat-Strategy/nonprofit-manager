@@ -14,6 +14,7 @@ const SCOPED_REPORT_ENTITIES: ReportEntity[] = ['cases', 'opportunities'];
 
 interface SavedReportRow {
   id: string;
+  organization_id: string | null;
   name: string;
   entity: ReportEntity;
   created_by: string | null;
@@ -180,13 +181,17 @@ export class PublicReportSnapshotService {
     }
   }
 
-  private async fetchSavedReportForSnapshot(reportId: string): Promise<SavedReportRow | null> {
+  private async fetchSavedReportForSnapshot(
+    reportId: string,
+    organizationId?: string
+  ): Promise<SavedReportRow | null> {
     const result = await this.db.query<SavedReportRow>(
-      `SELECT id, name, entity, created_by, report_definition
+      `SELECT id, organization_id, name, entity, created_by, report_definition
        FROM saved_reports
        WHERE id = $1
+         AND ($2::uuid IS NULL OR organization_id = $2::uuid)
        LIMIT 1`,
-      [reportId]
+      [reportId, organizationId || null]
     );
     return result.rows[0] ?? null;
   }
@@ -255,7 +260,10 @@ export class PublicReportSnapshotService {
     organizationId?: string;
     expiresAt?: string;
   }): Promise<{ token: string; url: string }> {
-    const savedReport = await this.fetchSavedReportForSnapshot(args.savedReportId);
+    const savedReport = await this.fetchSavedReportForSnapshot(
+      args.savedReportId,
+      args.organizationId
+    );
     if (!savedReport) {
       throw new Error('Report not found');
     }
@@ -375,8 +383,12 @@ export class PublicReportSnapshotService {
     savedReportId: string;
     actorUserId: string;
     actorRole: string;
+    organizationId?: string;
   }): Promise<void> {
-    const savedReport = await this.fetchSavedReportForSnapshot(args.savedReportId);
+    const savedReport = await this.fetchSavedReportForSnapshot(
+      args.savedReportId,
+      args.organizationId
+    );
     if (!savedReport) {
       throw new Error('Report not found');
     }

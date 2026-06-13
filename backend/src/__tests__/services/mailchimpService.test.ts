@@ -401,6 +401,23 @@ describe('MailchimpService', () => {
       expect(result.success).toBe(false);
       expect(result.error).toContain('not found');
     });
+
+    it('limits contact sync lookup to requester account scope when provided', async () => {
+      (mockPool.query as jest.Mock).mockResolvedValue({
+        rows: [],
+      });
+
+      await mailchimpService.syncContact({
+        contactId: 'contact-123',
+        listId: 'list-123',
+        scopeAccountIds: ['org-1'],
+      });
+
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining('account_id = ANY($2::uuid[])'),
+        ['contact-123', ['org-1']]
+      );
+    });
   });
 
   describe('bulkSyncContacts', () => {
@@ -1102,8 +1119,8 @@ describe('MailchimpService', () => {
           });
         }
 
-        if (sql.includes('FROM contacts WHERE id = $1')) {
-          expect(params).toEqual([targetId]);
+        if (sql.includes('FROM contacts') && sql.includes('WHERE id = $1')) {
+          expect(params).toEqual([targetId, [accountId]]);
           return Promise.resolve({
             rows: [
               {
@@ -1118,7 +1135,7 @@ describe('MailchimpService', () => {
           });
         }
 
-        if (sql.includes('UPDATE campaign_runs')) {
+        if (sql.includes('UPDATE campaign_runs') && sql.includes('provider_campaign_id = $2')) {
           return Promise.resolve({
             rows: [
               {

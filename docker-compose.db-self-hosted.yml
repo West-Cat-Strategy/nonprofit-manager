@@ -6,7 +6,9 @@ services:
     environment:
       POSTGRES_DB: nonprofit_manager
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in the runtime env file}
+      POSTGRES_PASSWORD: ${DB_ADMIN_PASSWORD:?Set DB_ADMIN_PASSWORD in the runtime env file}
+      POSTGRES_APP_USER: ${DB_USER:?Set DB_USER to the production app role}
+      POSTGRES_APP_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD for the production app role}
     expose:
       - "5432"
     ports:
@@ -14,6 +16,7 @@ services:
     volumes:
       - ${POSTGRES_DATA_DIR:?POSTGRES_DATA_DIR must point at the self-hosted host mount}:/var/lib/postgresql
       - ./database/initdb/000_init.sql:/docker-entrypoint-initdb.d/000_init.sql:ro
+      - ./scripts/sql/provision_self_hosted_app_role.sh:/docker-entrypoint-initdb.d/010_provision_app_role.sh:ro
       - ./database/migrations:/migrations:ro
       - ./database/seeds:/seeds:ro
     healthcheck:

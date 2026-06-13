@@ -89,12 +89,12 @@ describe('publicCaseFormsApiClient', () => {
     await publicCaseFormsApiClient.saveDraft('token-1', { answers: { consent: true } });
     await publicCaseFormsApiClient.submit('token-1', { answers: { consent: true } });
 
-    expect(publicApi.get).toHaveBeenNthCalledWith(1, '/v2/public/case-forms', {
+    expect(publicApi.get).toHaveBeenNthCalledWith(1, '/public/case-forms', {
       headers: { Authorization: 'Bearer token-1' },
     });
     expect(publicApi.post).toHaveBeenNthCalledWith(
       1,
-      '/v2/public/case-forms/assets',
+      '/public/case-forms/assets',
       expect.any(FormData),
       {
         headers: {
@@ -105,7 +105,7 @@ describe('publicCaseFormsApiClient', () => {
     );
     expect(publicApi.post).toHaveBeenNthCalledWith(
       2,
-      '/v2/public/case-forms/draft',
+      '/public/case-forms/draft',
       {
         answers: { consent: true },
       },
@@ -113,7 +113,7 @@ describe('publicCaseFormsApiClient', () => {
     );
     expect(publicApi.post).toHaveBeenNthCalledWith(
       3,
-      '/v2/public/case-forms/submit',
+      '/public/case-forms/submit',
       {
         answers: { consent: true },
       },

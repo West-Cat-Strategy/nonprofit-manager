@@ -153,6 +153,8 @@ CREATE INDEX IF NOT EXISTS idx_schema_migrations_canonical_filename
 \i /migrations/135_meeting_tenant_scope.sql
 \i /migrations/136_organization_branding_tenant_scope.sql
 \i /migrations/137_code_review_remediation_security_scope.sql
+\i /migrations/138_task_organization_scope.sql
+\i /migrations/139_saved_reports_organization_scope.sql
 
 UPDATE schema_migrations
 SET migration_id = '032',
@@ -311,7 +313,9 @@ VALUES
     ('134_audit_request_context_metadata.sql', '134', '134_audit_request_context_metadata.sql'),
     ('135_meeting_tenant_scope.sql', '135', '135_meeting_tenant_scope.sql'),
     ('136_organization_branding_tenant_scope.sql', '136', '136_organization_branding_tenant_scope.sql'),
-    ('137_code_review_remediation_security_scope.sql', '137', '137_code_review_remediation_security_scope.sql')
+    ('137_code_review_remediation_security_scope.sql', '137', '137_code_review_remediation_security_scope.sql'),
+    ('138_task_organization_scope.sql', '138', '138_task_organization_scope.sql'),
+    ('139_saved_reports_organization_scope.sql', '139', '139_saved_reports_organization_scope.sql')
 ON CONFLICT (filename) DO UPDATE
 SET migration_id = EXCLUDED.migration_id,
     canonical_filename = EXCLUDED.canonical_filename;

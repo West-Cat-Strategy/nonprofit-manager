@@ -159,6 +159,27 @@ test("check selector routes policy baseline changes to lint and tooling proof", 
   assert(commands.includes("make test-tooling"));
 });
 
+test("check selector treats shell helpers and release tooling as tooling contracts", () => {
+  const result = run("bash", [
+    "scripts/select-checks.sh",
+    "--files",
+    [
+      "scripts/lib/common.sh",
+      "scripts/validation-preflight.sh",
+      "scripts/docker-build-images.sh",
+      "scripts/docker-validate-overlays.sh",
+      "scripts/local-release.sh",
+    ].join(" "),
+    "--mode",
+    "fast",
+  ]);
+
+  assert.equal(result.status, 0, result.stderr);
+  const commands = result.stdout.trim().split("\n");
+
+  assert(commands.includes("make test-tooling"));
+});
+
 function writeMigrationPolicyFixture(
   root,
   { manifestRows, migrationFiles, includeFiles, tuples },
@@ -1450,6 +1471,18 @@ test("select-checks recommends tooling regression coverage for orchestration cha
   ]);
 });
 
+test("docker dev frontend enables demo routes for review lanes", () => {
+  const composeText = fs.readFileSync(
+    path.join(repoRoot, "docker-compose.dev.yml"),
+    "utf8",
+  );
+
+  assert.match(
+    composeText,
+    /VITE_DEMO_ROUTES_ENABLED:\s+\$\{DEV_DEMO_ROUTES_ENABLED:-true\}/,
+  );
+});
+
 test("select-checks routes Docker policy scripts and compose files through overlay proof", () => {
   const result = run("bash", [
     "scripts/select-checks.sh",
@@ -1694,6 +1727,8 @@ test("deploy production dry-run includes opt-in extra compose files after DB ove
     envFile,
     [
       "DB_PASSWORD=postgres",
+      "DB_ADMIN_PASSWORD=postgres-admin",
+      "DB_USER=nonprofit_app_user_prod",
       "REDIS_URL=redis://redis:6379",
       "DB_HOST=postgres",
       "DB_AT_REST_ENCRYPTION_MODE=self_hosted",
@@ -1725,6 +1760,8 @@ test("deploy production dry-run includes opt-in extra compose files after DB ove
     "docker-compose.db-self-hosted.yml",
     "docker-compose.postgres14-root.yml",
   ]);
+  assert.match(result.stdout, /Self-hosted DB role preflight:/);
+  assert.match(result.stdout, /DB_USER=nonprofit_app_user_prod/);
 });
 
 test("deploy production fails closed when an extra compose file is missing", () => {
@@ -1734,6 +1771,8 @@ test("deploy production fails closed when an extra compose file is missing", () 
     envFile,
     [
       "DB_PASSWORD=postgres",
+      "DB_ADMIN_PASSWORD=postgres-admin",
+      "DB_USER=nonprofit_app_user_prod",
       "REDIS_URL=redis://redis:6379",
       "DB_HOST=postgres",
       "DB_AT_REST_ENCRYPTION_MODE=self_hosted",
@@ -1759,6 +1798,39 @@ test("deploy production fails closed when an extra compose file is missing", () 
     /Extra compose file not found:/,
   );
   assert.match(`${result.stdout}\n${result.stderr}`, /missing-compose\.yml/);
+});
+
+test("deploy production rejects postgres as the self-hosted app role", () => {
+  const tempDir = createTempDir();
+  const envFile = path.join(tempDir, ".env.production");
+  fs.writeFileSync(
+    envFile,
+    [
+      "DB_PASSWORD=postgres",
+      "DB_ADMIN_PASSWORD=postgres-admin",
+      "DB_USER=postgres",
+      "REDIS_URL=redis://redis:6379",
+      "DB_HOST=postgres",
+      "DB_AT_REST_ENCRYPTION_MODE=self_hosted",
+      "DB_AT_REST_PROVIDER=self_hosted",
+      "POSTGRES_DATA_DIR=/var/lib/nonprofit-manager/postgres",
+      "BACKUP_DIR=/var/lib/nonprofit-manager/backups/database",
+      "SELF_HOSTED_DB_RISK_ACCEPTED=true",
+    ].join("\n"),
+    "utf8",
+  );
+
+  const result = run("bash", ["scripts/deploy.sh", "production"], {
+    DEPLOY_PRODUCTION_ENV_FILE: envFile,
+    DEPLOY_EXECUTE: "0",
+    DEPLOY_USE_HOST_CADDY: "1",
+  });
+
+  assert.notEqual(result.status, 0);
+  assert.match(
+    `${result.stdout}\n${result.stderr}`,
+    /DB_USER must not be postgres/,
+  );
 });
 
 test("archive restore requires explicit confirmation before destructive work", () => {

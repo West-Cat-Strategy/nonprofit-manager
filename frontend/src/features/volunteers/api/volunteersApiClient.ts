@@ -26,29 +26,29 @@ export class VolunteersApiClient implements VolunteersCatalogPort, VolunteersMut
       params.skills = query.skills.join(',');
     }
 
-    const response = await api.get<PaginatedVolunteers>('/v2/volunteers', { params });
+    const response = await api.get<PaginatedVolunteers>('/volunteers', { params });
     return response.data;
   }
 
   async getVolunteerById(volunteerId: string): Promise<Volunteer> {
-    const response = await api.get<Volunteer>(`/v2/volunteers/${volunteerId}`);
+    const response = await api.get<Volunteer>(`/volunteers/${volunteerId}`);
     return response.data;
   }
 
   async findVolunteersBySkills(skills: string[]): Promise<Volunteer[]> {
-    const response = await api.get<Volunteer[]>('/v2/volunteers/search/skills', {
+    const response = await api.get<Volunteer[]>('/volunteers/search/skills', {
       params: { skills: skills.join(',') },
     });
     return response.data;
   }
 
   async createVolunteer(payload: VolunteerMutationInput): Promise<Volunteer> {
-    const response = await api.post<Volunteer>('/v2/volunteers', payload);
+    const response = await api.post<Volunteer>('/volunteers', payload);
     return response.data;
   }
 
   async updateVolunteer(volunteerId: string, payload: VolunteerMutationInput): Promise<Volunteer> {
-    const response = await api.put<Volunteer>(`/v2/volunteers/${volunteerId}`, payload);
+    const response = await api.put<Volunteer>(`/volunteers/${volunteerId}`, payload);
     return response.data;
   }
 
@@ -57,23 +57,23 @@ export class VolunteersApiClient implements VolunteersCatalogPort, VolunteersMut
     payload: VolunteerBackgroundCheckApprovalInput
   ): Promise<Volunteer> {
     const response = await api.post<Volunteer>(
-      `/v2/volunteers/${volunteerId}/background-check/approve`,
+      `/volunteers/${volunteerId}/background-check/approve`,
       payload
     );
     return response.data;
   }
 
   async deleteVolunteer(volunteerId: string): Promise<void> {
-    await api.delete(`/v2/volunteers/${volunteerId}`);
+    await api.delete(`/volunteers/${volunteerId}`);
   }
 
   async listAssignments(volunteerId: string): Promise<VolunteerAssignment[]> {
-    const response = await api.get<VolunteerAssignment[]>(`/v2/volunteers/${volunteerId}/assignments`);
+    const response = await api.get<VolunteerAssignment[]>(`/volunteers/${volunteerId}/assignments`);
     return response.data;
   }
 
   async createAssignment(payload: AssignmentMutationInput): Promise<VolunteerAssignment> {
-    const response = await api.post<VolunteerAssignment>('/v2/volunteers/assignments', payload);
+    const response = await api.post<VolunteerAssignment>('/volunteers/assignments', payload);
     return response.data;
   }
 
@@ -81,7 +81,7 @@ export class VolunteersApiClient implements VolunteersCatalogPort, VolunteersMut
     assignmentId: string,
     payload: AssignmentMutationInput
   ): Promise<VolunteerAssignment> {
-    const response = await api.put<VolunteerAssignment>(`/v2/volunteers/assignments/${assignmentId}`, payload);
+    const response = await api.put<VolunteerAssignment>(`/volunteers/assignments/${assignmentId}`, payload);
     return response.data;
   }
 }

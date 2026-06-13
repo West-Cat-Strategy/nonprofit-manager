@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
+import { requirePermission } from '@middleware/permissions';
 import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import { emailSchema, optionalStrictBooleanSchema, uuidSchema } from '@validations/shared';
+import { Permission } from '@utils/permissions';
 import { createScheduledReportsController } from '../controllers/scheduledReports.controller';
 
 const frequencySchema = z.enum(['daily', 'weekly', 'monthly']);
@@ -69,29 +71,49 @@ export const createScheduledReportsRoutes = (): Router => {
   router.use(authenticate);
   router.use(requireActiveOrganizationContext);
 
-  router.get('/', controller.listScheduledReports);
-  router.get('/:id', validateParams(reportIdParamSchema), controller.getScheduledReport);
-  router.post('/', validateBody(createScheduledReportSchema), controller.createScheduledReport);
+  router.get('/', requirePermission(Permission.SCHEDULED_REPORT_VIEW), controller.listScheduledReports);
+  router.get(
+    '/:id',
+    requirePermission(Permission.SCHEDULED_REPORT_VIEW),
+    validateParams(reportIdParamSchema),
+    controller.getScheduledReport
+  );
+  router.post(
+    '/',
+    requirePermission(Permission.SCHEDULED_REPORT_MANAGE),
+    validateBody(createScheduledReportSchema),
+    controller.createScheduledReport
+  );
   router.put(
     '/:id',
+    requirePermission(Permission.SCHEDULED_REPORT_MANAGE),
     validateParams(reportIdParamSchema),
     validateBody(updateScheduledReportSchema),
     controller.updateScheduledReport
   );
   router.post(
     '/:id/toggle',
+    requirePermission(Permission.SCHEDULED_REPORT_MANAGE),
     validateParams(reportIdParamSchema),
     validateBody(toggleScheduledReportSchema),
     controller.toggleScheduledReport
   );
   router.post(
     '/:id/run-now',
+    requirePermission(Permission.SCHEDULED_REPORT_MANAGE),
+    requirePermission(Permission.REPORT_EXPORT),
     validateParams(reportIdParamSchema),
     controller.runScheduledReportNow
   );
-  router.delete('/:id', validateParams(reportIdParamSchema), controller.deleteScheduledReport);
+  router.delete(
+    '/:id',
+    requirePermission(Permission.SCHEDULED_REPORT_MANAGE),
+    validateParams(reportIdParamSchema),
+    controller.deleteScheduledReport
+  );
   router.get(
     '/:id/runs',
+    requirePermission(Permission.SCHEDULED_REPORT_VIEW),
     validateParams(reportIdParamSchema),
     validateQuery(runsQuerySchema),
     controller.listScheduledReportRuns

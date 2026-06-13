@@ -81,7 +81,12 @@ export {
 const CONTACT_SELECT_QUERY = `SELECT id AS contact_id, account_id, first_name, last_name, email, phone,
         address_line1, address_line2, city, state_province, postal_code, country,
         do_not_email
- FROM contacts WHERE id = $1`;
+ FROM contacts
+ WHERE id = $1
+   AND ($2::uuid[] IS NULL OR account_id = ANY($2::uuid[]))`;
+
+const normalizeScopeAccountIds = (scopeAccountIds?: string[]): string[] =>
+  Array.from(new Set((scopeAccountIds ?? []).filter(Boolean)));
 
 interface CampaignRunActionResult {
   run: CampaignRun;
@@ -388,7 +393,11 @@ export async function syncContact(request: SyncContactRequest): Promise<SyncResu
   }
 
   try {
-    const result = await pool.query(CONTACT_SELECT_QUERY, [request.contactId]);
+    const scopeAccountIds = normalizeScopeAccountIds(request.scopeAccountIds);
+    const result = await pool.query(CONTACT_SELECT_QUERY, [
+      request.contactId,
+      scopeAccountIds.length > 0 ? scopeAccountIds : null,
+    ]);
 
     if (result.rows.length === 0) {
       return createSkippedSyncResult(request.contactId, 'Contact not found');
@@ -424,6 +433,7 @@ export async function syncContact(request: SyncContactRequest): Promise<SyncResu
       email: contact.email,
       listId: request.listId,
       action,
+      scopeAccountIds,
     });
 
     return {
@@ -467,6 +477,7 @@ export async function bulkSyncContacts(request: BulkSyncRequest): Promise<BulkSy
       contactId,
       listId: request.listId,
       tags: request.tags,
+      scopeAccountIds: request.scopeAccountIds,
     })
   );
 
