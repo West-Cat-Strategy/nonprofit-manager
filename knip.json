@@ -32,6 +32,7 @@
         "scripts/check-route-catalog-drift.ts",
         "scripts/ui-audit.ts",
         "scripts/check-backend-legacy-controller-wrapper-policy.ts",
+        "scripts/tests/auth-alias-telemetry-review.test.mjs",
         "scripts/tests/tooling-contracts.test.cjs"
       ],
       "project": ["scripts/**/*.{js,ts,cjs,mjs}"]
