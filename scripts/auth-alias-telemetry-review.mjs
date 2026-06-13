@@ -45,6 +45,39 @@ const monthNames = [
   "December",
 ];
 
+export const EXCEPTION_CHECK_ROWS = [
+  {
+    checkSource: "API owners",
+    result: "TBD",
+    requiredNote:
+      "Record no active exception, or client/owner/expiry/migration plan",
+  },
+  {
+    checkSource: "Support notes",
+    result: "TBD",
+    requiredNote:
+      "Record no active exception, or client/owner/expiry/migration plan",
+  },
+  {
+    checkSource: "Release notes",
+    result: "TBD",
+    requiredNote:
+      "Record no active exception, or client/owner/expiry/migration plan",
+  },
+  {
+    checkSource: "Deployment notes",
+    result: "TBD",
+    requiredNote:
+      "Record no active exception, or client/owner/expiry/migration plan",
+  },
+  {
+    checkSource: "Customer/integrator trackers",
+    result: "TBD",
+    requiredNote:
+      "Record no active exception, or client/owner/expiry/migration plan",
+  },
+];
+
 const usage = () => `Usage:
   node scripts/auth-alias-telemetry-review.mjs --input <logs.json|logs.ndjson> [--start 2026-06-01] [--end 2026-06-16] [--format markdown|json]
 
@@ -432,6 +465,7 @@ export const buildAuthAliasTelemetryReview = (
             .localeCompare(right.aliasFields.join(",")) ||
           left.userAgents.join(",").localeCompare(right.userAgents.join(",")),
       ),
+    exceptionCheckRows: EXCEPTION_CHECK_ROWS,
     skipped,
   };
 };
@@ -553,33 +587,11 @@ export const renderMarkdownReview = (review) => {
     "",
     markdownTable(
       ["Check source", "Result", "Required note"],
-      [
-        [
-          "API owners",
-          "TBD",
-          "Record no active exception, or client/owner/expiry/migration plan",
-        ],
-        [
-          "Support notes",
-          "TBD",
-          "Record no active exception, or client/owner/expiry/migration plan",
-        ],
-        [
-          "Release notes",
-          "TBD",
-          "Record no active exception, or client/owner/expiry/migration plan",
-        ],
-        [
-          "Deployment notes",
-          "TBD",
-          "Record no active exception, or client/owner/expiry/migration plan",
-        ],
-        [
-          "Customer/integrator trackers",
-          "TBD",
-          "Record no active exception, or client/owner/expiry/migration plan",
-        ],
-      ],
+      (review.exceptionCheckRows ?? EXCEPTION_CHECK_ROWS).map((row) => [
+        row.checkSource,
+        row.result,
+        row.requiredNote,
+      ]),
     ),
     "",
     `Skipped records: ${review.skipped.noTimestamp} without timestamps, ${review.skipped.outsideWindow} outside the window, ${review.skipped.untracked} untracked.`,

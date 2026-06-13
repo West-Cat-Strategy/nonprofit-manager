@@ -37,7 +37,9 @@ For a low-touch run, export the `auth.alias_input_used` and `Outgoing response` 
 node scripts/auth-alias-telemetry-review.mjs --input tmp/auth-alias-june17-logs.ndjson --start 2026-06-01 --end 2026-06-16
 ```
 
-Paste the generated route review table, alias-event rollup, and exception-check template into this handoff or a refreshed usage report. The helper uses the tracked auth telemetry route contract from `backend/src/modules/auth/routes/index.ts`: `POST /api/v2/auth/register`, `POST /api/v2/auth/setup`, and `PUT /api/v2/auth/password`.
+Use `--format json` when the review packet needs a structured copy of the same route rows, alias-event rollups, exception-check rows, and skipped-record counts. The checked-in fixture at `scripts/fixtures/auth-alias-telemetry-review/mixed-june-review.ndjson` is deterministic tooling proof only; it demonstrates blocked, clean, and inconclusive outcomes from real-shaped records and must not be treated as live June production telemetry.
+
+Paste the generated route review table, alias-event rollup, inconclusive-day table when present, and exception-check template into this handoff or a refreshed usage report. The helper uses the tracked auth telemetry route contract from `backend/src/modules/auth/routes/index.ts`: `POST /api/v2/auth/register`, `POST /api/v2/auth/setup`, and `PUT /api/v2/auth/password`.
 
 Check these route-specific counters and denominators:
 
@@ -104,14 +106,27 @@ A thread follow-up is scheduled for June 17, 2026 at 09:00 America/Vancouver to 
 
 ## Validation
 
+- Passed on 2026-06-12: split into `/Users/bryan/projects/nonprofit-manager-p5-t75-auth-alias-prep` on `codex/p5-t75-auth-alias-review-prep-2026-06-12`; `git status --porcelain=v1 -uall` matched the 8-path auth-alias prep path set exactly.
+  - Scope note: the isolated lane does not include the P5-T142 validation-index row or self-hosted DB-role documentation, and it still makes no auth schema, route behavior, CI guard, cutoff-notice, or enforcement change.
+- Passed on 2026-06-12: `node --test scripts/tests/auth-alias-telemetry-review.test.mjs`
+  - Result: 6 focused helper tests passed against generated records and the checked-in mixed June fixture, covering blocked, clean, inconclusive, Markdown, JSON, and exception-check row output.
+- Passed on 2026-06-12: `make test-tooling`
+  - Result: 71 Node tooling tests passed in the isolated P5-T75 lane, including the auth-alias telemetry review helper tests for clean, inconclusive, blocked, Markdown, JSON, and checked-in fixture cases.
+- Passed on 2026-06-12: `make check-links`
+  - Result: checked 268 files and 1532 local links; no broken active-doc links found.
+- Passed on 2026-06-12: `npm exec -- prettier --check docs/security/AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md docs/validation/P5-T75_AUTH_ALIAS_GATE_HANDOFF_2026-05-05.md docs/validation/AUTH_ALIAS_USAGE_REPORT_2026-04-14.md docs/validation/README.md scripts/README.md scripts/auth-alias-telemetry-review.mjs scripts/tests/auth-alias-telemetry-review.test.mjs`
+  - Result: all matched files use Prettier code style.
+- Passed on 2026-06-12: `git diff --check`
 - Passed on 2026-06-11: `./scripts/select-checks.sh --files "Makefile docs/security/AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md docs/validation/P5-T75_AUTH_ALIAS_GATE_HANDOFF_2026-05-05.md docs/validation/README.md scripts/README.md scripts/auth-alias-telemetry-review.mjs scripts/tests/auth-alias-telemetry-review.test.mjs" --mode fast`
   - Result: selected `make check-links`, `make test-tooling`, and `make test-e2e-docker-smoke`.
   - Scope note: this prep lane changed only docs and a deterministic offline log-review helper, with no auth route, schema, container, or runtime behavior changes; focused proof stopped at docs/tooling validation.
+- Passed on 2026-06-11: `node --test scripts/tests/auth-alias-telemetry-review.test.mjs`
+  - Result: focused helper tests passed against generated records and the checked-in mixed June fixture, covering blocked, clean, inconclusive, Markdown, JSON, and exception-check row output.
 - Passed on 2026-06-11: `make test-tooling`
-  - Result: 69 Node tooling tests passed, including the new auth-alias telemetry review helper tests for clean, inconclusive, blocked, and CLI Markdown-output cases.
+  - Result: 73 Node tooling tests passed, including the auth-alias telemetry review helper tests for clean, inconclusive, blocked, Markdown, JSON, and checked-in fixture cases.
 - Passed on 2026-06-11: `make check-links`
-  - Result: checked 266 files and 1520 local links; no broken active-doc links found.
-- Passed on 2026-06-11: `npm exec -- prettier --check docs/security/AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md docs/validation/P5-T75_AUTH_ALIAS_GATE_HANDOFF_2026-05-05.md docs/validation/README.md scripts/README.md scripts/auth-alias-telemetry-review.mjs scripts/tests/auth-alias-telemetry-review.test.mjs`
+  - Result: checked 268 files and 1532 local links; no broken active-doc links found.
+- Passed on 2026-06-11: `npm exec -- prettier --check docs/security/AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md docs/validation/P5-T75_AUTH_ALIAS_GATE_HANDOFF_2026-05-05.md docs/validation/AUTH_ALIAS_USAGE_REPORT_2026-04-14.md docs/validation/README.md scripts/README.md scripts/auth-alias-telemetry-review.mjs scripts/tests/auth-alias-telemetry-review.test.mjs`
   - Result: all matched files use Prettier code style.
 - Passed on 2026-06-11: `git diff --check`
 - Passed on 2026-06-10: `./scripts/select-checks.sh --files docs/validation/P5-T75_AUTH_ALIAS_GATE_HANDOFF_2026-05-05.md --mode fast`

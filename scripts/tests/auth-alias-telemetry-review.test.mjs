@@ -7,11 +7,16 @@ import test from "node:test";
 
 import {
   buildAuthAliasTelemetryReview,
+  EXCEPTION_CHECK_ROWS,
   readLogRecords,
   renderMarkdownReview,
 } from "../auth-alias-telemetry-review.mjs";
 
 const repoRoot = path.resolve(import.meta.dirname, "../..");
+const mixedJuneFixture = path.join(
+  repoRoot,
+  "scripts/fixtures/auth-alias-telemetry-review/mixed-june-review.ndjson",
+);
 
 const trackedResponse = (timestamp, method, route) => ({
   timestamp,
@@ -133,6 +138,36 @@ test("marks non-zero alias usage as blocked and renders the handoff tables", () 
   assert.match(markdown, /Exception Check Template/);
 });
 
+test("builds the June review packet from the checked-in mixed evidence fixture", () => {
+  const records = readLogRecords(mixedJuneFixture);
+  const review = buildAuthAliasTelemetryReview(records, {
+    start: "2026-06-01",
+    end: "2026-06-02",
+  });
+  const markdown = renderMarkdownReview(review);
+
+  assert.deepEqual(
+    review.routeRows.map((row) => [
+      row.route,
+      row.aliasRequests,
+      row.totalRequests,
+      row.status,
+      row.missingTrafficDays,
+    ]),
+    [
+      ["POST /api/v2/auth/register", 1, 2, "blocked", []],
+      ["POST /api/v2/auth/setup", 0, 2, "clean", []],
+      ["PUT /api/v2/auth/password", 0, 1, "inconclusive", ["2026-06-02"]],
+    ],
+  );
+
+  assert.deepEqual(review.exceptionCheckRows, EXCEPTION_CHECK_ROWS);
+  assert.match(markdown, /Inconclusive Route Days/);
+  assert.match(markdown, /`PUT \/api\/v2\/auth\/password`\s*\| 2026-06-02/);
+  assert.match(markdown, /LegacyIntegrator\/3\.2/);
+  assert.match(markdown, /API owners\s*\| TBD\s*\| Record no active exception/);
+});
+
 test("reads NDJSON and exposes the CLI markdown output", () => {
   const input = writeTempFile(allRouteResponsesForDay("2026-06-01"));
   const records = readLogRecords(input);
@@ -162,4 +197,39 @@ test("reads NDJSON and exposes the CLI markdown output", () => {
     result.stdout,
     /`PUT \/api\/v2\/auth\/password`\s*\| June 1, 2026\s*\| 0\s*\| 1\s*\| 0\.0000%\s*\| clean/,
   );
+});
+
+test("exposes the CLI JSON output with route and exception review rows", () => {
+  const result = spawnSync(
+    process.execPath,
+    [
+      "scripts/auth-alias-telemetry-review.mjs",
+      "--input",
+      mixedJuneFixture,
+      "--start",
+      "2026-06-01",
+      "--end",
+      "2026-06-02",
+      "--format",
+      "json",
+    ],
+    {
+      cwd: repoRoot,
+      encoding: "utf8",
+    },
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+
+  const review = JSON.parse(result.stdout);
+  assert.deepEqual(
+    review.routeRows.map((row) => [row.route, row.status]),
+    [
+      ["POST /api/v2/auth/register", "blocked"],
+      ["POST /api/v2/auth/setup", "clean"],
+      ["PUT /api/v2/auth/password", "inconclusive"],
+    ],
+  );
+  assert.equal(review.exceptionCheckRows.length, 5);
+  assert.ok(review.exceptionCheckRows.every((row) => row.result === "TBD"));
 });

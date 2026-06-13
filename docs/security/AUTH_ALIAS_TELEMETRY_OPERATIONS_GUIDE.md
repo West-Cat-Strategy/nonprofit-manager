@@ -122,7 +122,9 @@ After exporting the alias-event and total-request query results as JSON, NDJSON,
 node scripts/auth-alias-telemetry-review.mjs --input tmp/auth-alias-june17-logs.ndjson --start 2026-06-01 --end 2026-06-16
 ```
 
-The helper counts only the three tracked auth routes, treats zero route traffic for any complete day as inconclusive, and marks any non-zero alias event as blocked. It does not change schemas, routes, enforcement guards, or deprecation state.
+Use `--format json` for a structured copy of the same review packet. The helper counts only the three tracked auth routes, treats zero route traffic for any complete day as inconclusive, and marks any non-zero alias event as blocked. It does not change schemas, routes, enforcement guards, or deprecation state.
+
+The fixture `scripts/fixtures/auth-alias-telemetry-review/mixed-june-review.ndjson` proves the helper with real-shaped log records that include one blocked route, one clean route, and one inconclusive zero-denominator route day. Use it for deterministic tooling validation only; replace it with exported production-like logs for the actual June 17 review.
 
 ### Route-Specific Spot Checks
 

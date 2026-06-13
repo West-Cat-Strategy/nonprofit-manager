@@ -1,7 +1,6 @@
 # Auth Alias Usage Report
 
-**Last Updated:** 2026-04-22
-
+**Last Updated:** 2026-06-11
 
 Date: 2026-04-14
 
@@ -25,6 +24,7 @@ This note is the Phase 5 validation handoff for the operator workflow in [../sec
 - Coverage: `backend/src/__tests__/modules/auth/aliasUsageTelemetry.test.ts`
 - Structured log event: `auth.alias_input_used`
 - Shared log denominator source: `backend/src/index.ts` via the `Outgoing response` log stream described in [../security/AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md](../security/AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md)
+- Offline review helper and deterministic fixture: `scripts/auth-alias-telemetry-review.mjs` plus `scripts/fixtures/auth-alias-telemetry-review/mixed-june-review.ndjson`
 - Security monitoring summary: [../security/SECURITY_MONITORING_GUIDE.md](../security/SECURITY_MONITORING_GUIDE.md)
 - Phase 5 security lane snapshot: [PHASE_5_SECURITY_REVIEW_2026-04-22.md](PHASE_5_SECURITY_REVIEW_2026-04-22.md)
 
@@ -66,6 +66,7 @@ Operational review timing and escalation remain the same as the telemetry guide:
 
 - Validation compatibility remains intentional in `backend/src/validations/auth.ts`.
 - Operator-facing query, Lens formula, and table instructions already exist in [../security/AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md](../security/AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md).
+- The checked-in mixed June fixture proves the packet generator's route, alias-event, inconclusive-day, exception-check, Markdown, and JSON output shape; it is not live production evidence.
 - The current evidence base is implementation-plus-test proof and monitoring instructions, not a claim that production has already reached a zero-usage streak.
 - No alias removals should ship before July 1, 2026, and only after the telemetry gate in the deprecation checklist is satisfied.
 
