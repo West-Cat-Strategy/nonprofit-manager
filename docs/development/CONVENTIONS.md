@@ -6,7 +6,7 @@ Use this file for active coding and workflow conventions after you have the cont
 
 ## Toolchain
 
-- Node.js `20.19+`
+- Node.js `22.19+`
 - npm `10+`
 - Docker for the optional compose-based local stack
 

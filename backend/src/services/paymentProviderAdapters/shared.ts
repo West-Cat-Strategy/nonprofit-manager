@@ -88,7 +88,7 @@ const isPrivateIp = (ip: string): boolean => {
   return false;
 };
 
-const paymentProviderDispatcher: Dispatcher = new Agent().compose(
+const paymentProviderDispatcher: Dispatcher = new Agent({ allowH2: false }).compose(
   interceptors.dns({
     maxTTL: 0,
     lookup: (origin, _options, callback) => {

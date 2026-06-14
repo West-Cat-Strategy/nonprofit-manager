@@ -216,7 +216,9 @@ describe('WebsitePublishingPage', () => {
         })
       );
     });
-    expect(screen.getByText('Site settings saved.')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Site settings saved.')).toBeInTheDocument();
+    });
 
     expect(screen.getByRole('combobox', { name: 'Publish target' })).toHaveValue('live');
 
@@ -243,7 +245,9 @@ describe('WebsitePublishingPage', () => {
         })
       );
     });
-    expect(screen.getByText('Live site cache refreshed.')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Live site cache refreshed.')).toBeInTheDocument();
+    });
   });
 
   it('can publish a preview deployment and surface the preview message', async () => {
