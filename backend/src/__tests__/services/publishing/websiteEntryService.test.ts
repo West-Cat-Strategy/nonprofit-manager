@@ -18,12 +18,12 @@ jest.mock('@services/publishing/siteManagementService', () => ({
   }),
 }));
 
-jest.mock('@services/mailchimpService', () => ({
+jest.mock('@modules/mailchimp/services/mailchimpService', () => ({
   __mocks: {
     getCampaigns: jest.fn(),
   },
   getCampaigns: (...args: unknown[]) => {
-    const module = jest.requireMock('@services/mailchimpService') as {
+    const module = jest.requireMock('@modules/mailchimp/services/mailchimpService') as {
       __mocks: {
         getCampaigns: jest.Mock;
       };
@@ -71,7 +71,7 @@ const siteManagementModule = jest.requireMock('@services/publishing/siteManageme
   };
 };
 
-const mailchimpModule = jest.requireMock('@services/mailchimpService') as {
+const mailchimpModule = jest.requireMock('@modules/mailchimp/services/mailchimpService') as {
   __mocks: {
     getCampaigns: jest.Mock;
   };

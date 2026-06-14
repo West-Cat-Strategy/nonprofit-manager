@@ -119,7 +119,7 @@ has_contracts=0
 
 is_docs_path() {
   case "$1" in
-    README.md|CONTRIBUTING.md|AGENTS.md|agents.md|docs/*|backend/README.md|frontend/README.md|frontend/SETUP.md|e2e/README.md|database/README.md|scripts/README.md)
+    README.md|CONTRIBUTING.md|AGENTS.md|.github/*.md|.github/*/*.md|docs/*|backend/README.md|frontend/README.md|frontend/SETUP.md|e2e/README.md|database/README.md|scripts/README.md)
       return 0
       ;;
     *)

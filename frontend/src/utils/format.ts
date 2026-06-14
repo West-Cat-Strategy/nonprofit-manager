@@ -25,13 +25,6 @@ export function formatNumber(num: number): string {
 }
 
 /**
- * Format a number as a percentage
- */
-export function formatPercent(value: number, decimals = 0): string {
-  return `${value.toFixed(decimals)}%`;
-}
-
-/**
  * Format bytes to human-readable size
  */
 export function formatBytes(bytes: number): string {
@@ -253,31 +246,6 @@ export function formatDateSmart(date: string | Date | null | undefined): string 
     month: 'short',
     day: 'numeric',
   });
-}
-
-/**
- * Format a date relative to now (e.g., "2 hours ago", "in 3 days")
- */
-export function formatRelativeTime(date: Date): string {
-  const now = new Date();
-  const diffMs = date.getTime() - now.getTime();
-  const diffSecs = Math.round(diffMs / 1000);
-  const diffMins = Math.round(diffSecs / 60);
-  const diffHours = Math.round(diffMins / 60);
-  const diffDays = Math.round(diffHours / 24);
-
-  const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
-
-  if (Math.abs(diffDays) >= 1) {
-    return rtf.format(diffDays, 'day');
-  }
-  if (Math.abs(diffHours) >= 1) {
-    return rtf.format(diffHours, 'hour');
-  }
-  if (Math.abs(diffMins) >= 1) {
-    return rtf.format(diffMins, 'minute');
-  }
-  return rtf.format(diffSecs, 'second');
 }
 
 /**

@@ -35,7 +35,7 @@ jest.mock('@services/eventReminderSchedulerService', () => ({
   },
 }));
 
-jest.mock('@services/followUpReminderSchedulerService', () => ({
+jest.mock('@modules/followUps/services/followUpReminderSchedulerService', () => ({
   FOLLOW_UP_REMINDER_SCHEDULER_HEALTH_NAME: 'follow_up_reminders',
   followUpReminderSchedulerService: {
     healthName: 'follow_up_reminders',
@@ -111,7 +111,7 @@ import pool from '@config/database';
 import { closeRedis, initializeRedis } from '@config/redis';
 import { schedulerHealthService } from '@services/queue/schedulerHealthService';
 import { eventReminderSchedulerService } from '@services/eventReminderSchedulerService';
-import { followUpReminderSchedulerService } from '@services/followUpReminderSchedulerService';
+import { followUpReminderSchedulerService } from '@modules/followUps/services/followUpReminderSchedulerService';
 import { appointmentReminderSchedulerService } from '@services/appointmentReminderSchedulerService';
 import { scheduledReportSchedulerService } from '@services/scheduledReportSchedulerService';
 import { reportExportJobSchedulerService } from '@services/reportExportJobSchedulerService';

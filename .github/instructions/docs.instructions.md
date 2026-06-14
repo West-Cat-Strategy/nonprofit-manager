@@ -1,12 +1,12 @@
 ---
-applyTo: "docs/**,agents.md,AGENTS.md,CONTRIBUTING.md,README.md"
+applyTo: "docs/**,AGENTS.md,CONTRIBUTING.md,README.md"
 ---
 
 # Docs Path Instructions
 
 Keep docs source-of-truth boundaries intact:
 
-- `agents.md` is orientation and terminology only.
+- `AGENTS.md` is orientation and terminology only.
 - [../../CONTRIBUTING.md](../../CONTRIBUTING.md) owns contributor workflow.
 - [../../docs/development/](../../docs/development/) owns development rules.
 - [../../docs/testing/TESTING.md](../../docs/testing/TESTING.md) owns validation guidance.

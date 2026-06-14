@@ -1,12 +1,11 @@
 export { default as AppShell } from './AppShell';
 export { default as TopNav } from './TopNav';
-export { MetricStrip, StatusPill, ToolbarRow } from './CalmOps';
 export { default as SideNav } from './SideNav';
 export { default as AuthHeroShell } from './AuthHeroShell';
 export { default as PublicPageShell } from './PublicPageShell';
 export { default as PageHeader } from './PageHeader';
 export { default as SectionCard } from './SectionCard';
-export { default as Button, PrimaryButton, SecondaryButton, DangerButton } from './Button';
+export { PrimaryButton, SecondaryButton, DangerButton } from './Button';
 export { FormField, SelectField, TextareaField } from './FormFields';
 export { default as DataTable } from './DataTable';
 export { default as StatCard } from './StatCard';

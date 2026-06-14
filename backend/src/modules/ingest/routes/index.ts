@@ -39,6 +39,6 @@ router.post('/preview-text', validateBody(ingestPreviewTextSchema), previewText)
 
 export default router;
 
-export const createIngestRoutes = () => router;
+const createIngestRoutes = () => router;
 
 export const ingestV2Routes = createIngestRoutes();

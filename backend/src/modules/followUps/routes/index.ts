@@ -91,7 +91,7 @@ const upcomingQuerySchema = z
   })
   .strict();
 
-export const createFollowUpsRoutes = (): Router => {
+const createFollowUpsRoutes = (): Router => {
   const router = Router();
   const controller = createFollowUpsController();
 

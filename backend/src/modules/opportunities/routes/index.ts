@@ -87,7 +87,7 @@ const moveStageSchema = z.object({
   notes: z.string().trim().optional(),
 });
 
-export const createOpportunitiesRoutes = (): Router => {
+const createOpportunitiesRoutes = (): Router => {
   const router = Router();
 
   router.use(authenticate);

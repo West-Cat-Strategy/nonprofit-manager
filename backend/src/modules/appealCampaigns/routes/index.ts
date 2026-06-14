@@ -54,7 +54,7 @@ const listAppealCampaignQuerySchema = z
   })
   .strict();
 
-export const createAppealCampaignsRoutes = (): Router => {
+const createAppealCampaignsRoutes = (): Router => {
   const router = Router();
 
   router.use(requireActiveOrganizationContext);

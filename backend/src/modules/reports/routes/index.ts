@@ -106,7 +106,7 @@ const instantiateTemplateSchema = z.object({
   save_as_name: z.string().trim().min(1).max(255).optional(),
 });
 
-export const createReportsRoutes = (): Router => {
+const createReportsRoutes = (): Router => {
   const router = Router();
   const controller = createReportsController();
 

@@ -1,9 +1,9 @@
 import newsletterProviderService from '@services/newsletterProviderService';
-import mailchimpService from '@services/mailchimpService';
+import mailchimpService from '@modules/mailchimp/services/mailchimpService';
 import mauticService from '@services/mauticService';
 import type { WebsiteSiteSettings } from '@app-types/publishing';
 
-jest.mock('@services/mailchimpService', () => ({
+jest.mock('@modules/mailchimp/services/mailchimpService', () => ({
   __esModule: true,
   default: {
     isMailchimpConfigured: jest.fn(),

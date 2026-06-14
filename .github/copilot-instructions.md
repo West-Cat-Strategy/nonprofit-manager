@@ -4,7 +4,7 @@ Use this file as a bridge into the repository's canonical docs. Do not treat it 
 
 Before editing, read:
 
-- [agents.md](../agents.md)
+- [AGENTS.md](../AGENTS.md)
 - [CONTRIBUTING.md](../CONTRIBUTING.md)
 - [docs/development/GETTING_STARTED.md](../docs/development/GETTING_STARTED.md)
 - [docs/development/CONVENTIONS.md](../docs/development/CONVENTIONS.md)
@@ -17,7 +17,7 @@ Core rules:
 
 - Preserve the dirty worktree. Do not revert unrelated edits or generated artifacts.
 - Check [docs/phases/planning-and-progress.md](../docs/phases/planning-and-progress.md) before starting tracked work. If work is untracked, call that out in the handoff.
-- Keep `agents.md` orientation-only. Put durable implementation rules in the canonical docs listed above.
+- Keep `AGENTS.md` orientation-only. Put durable implementation rules in the canonical docs listed above.
 - Do not introduce app-level autonomous agents. "Agent" work here means contributor tooling only.
 - Treat CI, security scanning, Docker validation, SBOM generation, and deploy gating as local-only. Use `make release-check`, `make release-staging`, and `make release-production` instead of GitHub Actions.
 - Do not add GitHub Actions, GitHub-hosted deploy automation, GitHub MCP config, third-party PR-review bots, Semgrep, Trivy, Harden-Runner, Redocly, Knip expansion, or other hosted CI/CD tooling unless a task explicitly authorizes that layer.

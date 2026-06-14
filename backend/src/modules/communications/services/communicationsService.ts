@@ -5,7 +5,7 @@ import {
   renderMailchimpCampaignPreview,
   resolveMailchimpCampaignContent,
 } from '@services/template/emailCampaignRenderer';
-import mailchimpService from '@services/mailchimpService';
+import mailchimpService from '@modules/mailchimp/services/mailchimpService';
 import mauticService from '@services/mauticService';
 import type {
   CommunicationBulkSyncRequest,

@@ -1,7 +1,7 @@
 import { Pool } from 'pg';
 import { logger } from '@config/logger';
 import { SiteAnalyticsService } from '@services/publishing/siteAnalyticsService';
-import { DonationService } from '@services/donationService';
+import { DonationService } from '@modules/donations/services/donationService';
 import type { RecurringDonationPlan } from '@app-types/recurringDonation';
 import type { PaymentProvider } from '@app-types/payment';
 import {

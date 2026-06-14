@@ -5,7 +5,7 @@ import {
 import {
   FOLLOW_UP_REMINDER_SCHEDULER_HEALTH_NAME,
   followUpReminderSchedulerService,
-} from '@services/followUpReminderSchedulerService';
+} from '@modules/followUps/services/followUpReminderSchedulerService';
 import {
   APPOINTMENT_REMINDER_SCHEDULER_HEALTH_NAME,
   appointmentReminderSchedulerService,

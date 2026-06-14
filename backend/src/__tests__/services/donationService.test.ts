@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { DonationService } from '@services/donationService';
+import { DonationService } from '@modules/donations/services/donationService';
 
 // Mock the logger
 jest.mock('../../config/logger', () => ({

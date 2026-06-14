@@ -7,10 +7,10 @@ import {
   fetchCaseById,
   fetchCaseHandoffPacket,
   fetchCaseMilestones,
-  fetchCaseOutcomeDefinitions,
   fetchCaseStatuses,
   updateCase,
 } from '../state';
+import { casesApiClient } from '../api/casesApiClient';
 import { useToast } from '../../../contexts/useToast';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
 import type { CaseMilestone, CaseStatus, CaseStatusType, CaseWithDetails, CaseHandoffPacket } from '../../../types/case';
@@ -58,10 +58,6 @@ type CaseDetailState = {
     milestones?: CaseMilestone[];
   };
   caseMilestones?: CaseMilestone[];
-  notes?: {
-    outcomeDefinitions?: OutcomeDefinition[];
-  };
-  caseOutcomeDefinitions?: OutcomeDefinition[];
 };
 
 const teamChatEnabled = import.meta.env.VITE_TEAM_CHAT_ENABLED !== 'false';
@@ -125,13 +121,7 @@ export const useCaseDetailPage = () => {
       milestones: management.milestones ?? casesModule?.caseMilestones ?? [],
     };
   });
-  const { outcomeDefinitions: caseOutcomeDefinitions } = useAppSelector((state) => {
-    const casesModule = state.cases as CaseDetailState;
-    const notes = casesModule?.notes ?? {};
-    return {
-      outcomeDefinitions: notes.outcomeDefinitions ?? casesModule?.caseOutcomeDefinitions ?? [],
-    };
-  });
+  const [caseOutcomeDefinitions, setCaseOutcomeDefinitions] = useState<OutcomeDefinition[]>([]);
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
 
   const requestedTab = searchParams.get('tab');
@@ -147,8 +137,26 @@ export const useCaseDetailPage = () => {
     dispatch(fetchCaseById(id));
     dispatch(fetchCaseStatuses());
     dispatch(fetchCaseMilestones(id));
-    dispatch(fetchCaseOutcomeDefinitions(false));
-  }, [dispatch, hasValidId, id]);
+    let isCurrent = true;
+    setCaseOutcomeDefinitions([]);
+    void casesApiClient
+      .listOutcomeDefinitions(false)
+      .then((definitions) => {
+        if (isCurrent) {
+          setCaseOutcomeDefinitions(definitions);
+        }
+      })
+      .catch(() => {
+        if (isCurrent) {
+          setCaseOutcomeDefinitions([]);
+          showError('Unable to load case outcome definitions');
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [dispatch, hasValidId, id, showError]);
 
   useEffect(() => {
     return () => {

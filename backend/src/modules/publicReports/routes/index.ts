@@ -52,6 +52,6 @@ router.get(
 
 export default router;
 
-export const createPublicReportsRoutes = () => router;
+const createPublicReportsRoutes = () => router;
 
 export const publicReportsV2Routes = createPublicReportsRoutes();

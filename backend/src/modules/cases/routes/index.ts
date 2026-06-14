@@ -403,7 +403,7 @@ const caseFormInstantiateParamsSchema = z
   })
   .strict();
 
-export const createCasesRoutes = (): Router => {
+const createCasesRoutes = (): Router => {
   const router = Router();
 
   const caseRepository = new CaseRepository();

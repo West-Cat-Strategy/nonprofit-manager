@@ -1,7 +1,7 @@
 import request from 'supertest';
 import app from '../../index';
 import pool from '../../config/database';
-import { ContactService } from '../../services/contactService';
+import { ContactService } from '../../modules/contacts/services/contactService';
 import {
   createIntegrationOrganization,
   grantIntegrationOrganizationAccess,

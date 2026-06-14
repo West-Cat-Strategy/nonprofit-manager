@@ -69,7 +69,7 @@ This system is meant to feel credible and operational rather than playful or orn
 
 - Use `SectionCard` for grouped content.
 - Use `DataTable` for row-heavy views.
-- Use `MetricStrip`, `ToolbarRow`, and `StatusPill` for dashboard metrics, filters, and state labels before introducing page-local variants.
+- Use `StatCard`, `SectionCard`, and feature-owned status badges for dashboard metrics, filters, and state labels before introducing page-local variants.
 - Use `LoadingState`, `EmptyState`, and `ErrorState` rather than ad hoc placeholders.
 
 ### Tables and Density

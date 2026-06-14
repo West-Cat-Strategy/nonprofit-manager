@@ -228,6 +228,6 @@ router.get(
 
 export default router;
 
-export const createWebhooksRoutes = () => router;
+const createWebhooksRoutes = () => router;
 
 export const webhooksV2Routes = createWebhooksRoutes();

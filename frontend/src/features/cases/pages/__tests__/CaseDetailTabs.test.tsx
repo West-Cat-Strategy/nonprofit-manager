@@ -6,6 +6,8 @@ import type { CaseProvenance } from '../../../../types/case';
 import CaseDetail from '../CaseDetailPage';
 
 const dispatchMock = vi.fn(() => Promise.resolve({ unwrap: () => Promise.resolve({}) }));
+const showSuccessMock = vi.fn();
+const showErrorMock = vi.fn();
 const validCaseId = '22222222-2222-4222-8222-222222222222';
 const validContactId = '33333333-3333-4333-8333-333333333333';
 const defaultProvenance: CaseProvenance | undefined = undefined;
@@ -57,7 +59,7 @@ vi.mock('../../../../store/hooks', () => ({
 }));
 
 vi.mock('../../../../contexts/useToast', () => ({
-  useToast: () => ({ showSuccess: vi.fn(), showError: vi.fn() }),
+  useToast: () => ({ showSuccess: showSuccessMock, showError: showErrorMock }),
 }));
 
 vi.mock('../../../../hooks/useConfirmDialog', () => ({
@@ -128,6 +130,11 @@ vi.mock('../../../../features/teamChat/components/CaseTeamChatPanel', () => ({
 vi.mock('../../../../features/cases/components/CaseStatusChangeModal', () => ({
   default: () => null,
 }));
+vi.mock('../../api/casesApiClient', () => ({
+  casesApiClient: {
+    listOutcomeDefinitions: vi.fn(() => Promise.resolve([])),
+  },
+}));
 
 vi.mock('../../../../features/cases/state', () => ({
   default: (
@@ -148,10 +155,6 @@ vi.mock('../../../../features/cases/state', () => ({
   fetchCaseStatuses: () => ({ type: 'case/fetchStatuses' }),
   fetchCasesByContact: (payload: unknown) => ({ type: 'case/fetchCasesByContact', payload }),
   fetchCaseMilestones: (id: string) => ({ type: 'case/fetchMilestones', payload: id }),
-  fetchCaseOutcomeDefinitions: (includeInactive?: boolean) => ({
-    type: 'case/fetchOutcomeDefinitions',
-    payload: includeInactive,
-  }),
   createCaseMilestone: (payload: unknown) => ({ type: 'case/createMilestone', payload }),
   updateCaseMilestone: (payload: unknown) => ({ type: 'case/updateMilestone', payload }),
   deleteCaseMilestone: (id: string) => ({ type: 'case/deleteMilestone', payload: id }),

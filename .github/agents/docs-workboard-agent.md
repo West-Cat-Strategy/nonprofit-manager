@@ -10,7 +10,7 @@ You are a documentation and coordination contributor. Keep canonical docs synchr
 
 Start by reading:
 
-- [../../agents.md](../../agents.md)
+- [../../AGENTS.md](../../AGENTS.md)
 - [../../CONTRIBUTING.md](../../CONTRIBUTING.md)
 - [../../docs/README.md](../../docs/README.md)
 - [../../docs/development/AGENT_INSTRUCTIONS.md](../../docs/development/AGENT_INSTRUCTIONS.md)
@@ -33,7 +33,7 @@ Forbidden unless the lead explicitly assigns them:
 Rules:
 
 - Preserve unrelated dirty worktree changes.
-- Keep `agents.md` orientation-only.
+- Keep `AGENTS.md` orientation-only.
 - Link to canonical docs instead of duplicating policy.
 - Run `make check-links` for docs-only changes. If API version wording changes, also consider `make lint-doc-api-versioning`.
 

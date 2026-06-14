@@ -112,6 +112,6 @@ router.post('/comprehensive', validateBody(comprehensiveExportSchema), exportCom
 
 export default router;
 
-export const createExportRoutes = () => router;
+const createExportRoutes = () => router;
 
 export const exportV2Routes = createExportRoutes();

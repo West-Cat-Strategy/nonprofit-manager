@@ -197,6 +197,6 @@ router.patch(
 
 export default router;
 
-export const createPortalAdminRoutes = () => router;
+const createPortalAdminRoutes = () => router;
 
 export const portalAdminV2Routes = createPortalAdminRoutes();

@@ -302,6 +302,6 @@ router.post(
 
 export default router;
 
-export const createAdminRoutes = () => router;
+const createAdminRoutes = () => router;
 
 export const adminV2Routes = createAdminRoutes();

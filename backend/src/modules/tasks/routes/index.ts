@@ -67,7 +67,7 @@ const taskQuerySchema = z
   })
   .strict();
 
-export const createTasksRoutes = (): Router => {
+const createTasksRoutes = (): Router => {
   const router = Router();
 
   const repository = new TaskRepository();

@@ -103,13 +103,13 @@ jest.mock('@services/paymentProviderService', () => ({
   },
 }));
 
-jest.mock('@services/mailchimpService', () => ({
+jest.mock('@modules/mailchimp/services/mailchimpService', () => ({
   __mocks: {
     addOrUpdateMember: jest.fn(),
     isMailchimpConfigured: jest.fn(),
   },
   addOrUpdateMember: (...args: unknown[]) => {
-    const module = jest.requireMock('@services/mailchimpService') as {
+    const module = jest.requireMock('@modules/mailchimp/services/mailchimpService') as {
       __mocks: {
         addOrUpdateMember: jest.Mock;
       };
@@ -118,7 +118,7 @@ jest.mock('@services/mailchimpService', () => ({
     return module.__mocks.addOrUpdateMember(...args);
   },
   isMailchimpConfigured: () => {
-    const module = jest.requireMock('@services/mailchimpService') as {
+    const module = jest.requireMock('@modules/mailchimp/services/mailchimpService') as {
       __mocks: {
         isMailchimpConfigured: jest.Mock;
       };
@@ -212,7 +212,7 @@ const servicesModule = jest.requireMock('@container/services') as {
 
 const paymentProviderModule = paymentProviderService as jest.Mocked<typeof paymentProviderService>;
 
-const mailchimpModule = jest.requireMock('@services/mailchimpService') as {
+const mailchimpModule = jest.requireMock('@modules/mailchimp/services/mailchimpService') as {
   __mocks: {
     addOrUpdateMember: jest.Mock;
     isMailchimpConfigured: jest.Mock;

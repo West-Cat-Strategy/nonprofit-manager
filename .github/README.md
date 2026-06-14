@@ -4,7 +4,7 @@ These files route GitHub-side contributor tools and repository metadata. They do
 
 Start every GitHub-assisted task with:
 
-- [agents.md](../agents.md) for terminology and canonical doc routing.
+- [AGENTS.md](../AGENTS.md) for terminology and canonical doc routing.
 - [CONTRIBUTING.md](../CONTRIBUTING.md) for contributor workflow.
 - [docs/development/AGENT_INSTRUCTIONS.md](../docs/development/AGENT_INSTRUCTIONS.md), [docs/development/CONVENTIONS.md](../docs/development/CONVENTIONS.md), and [docs/development/GETTING_STARTED.md](../docs/development/GETTING_STARTED.md) for coding rules and runtime setup.
 - [docs/testing/TESTING.md](../docs/testing/TESTING.md) for validation selection.

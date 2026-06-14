@@ -22,7 +22,7 @@ jest.mock('@config/logger', () => ({
   },
 }));
 
-jest.mock('@services/donationService', () => ({
+jest.mock('@modules/donations/services/donationService', () => ({
   DonationService: jest.fn().mockImplementation(() => ({})),
 }));
 

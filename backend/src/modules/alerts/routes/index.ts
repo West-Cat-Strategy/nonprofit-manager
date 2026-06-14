@@ -163,6 +163,6 @@ router.get('/stats', getAlertStats);
 
 export default router;
 
-export const createAlertsRoutes = () => router;
+const createAlertsRoutes = () => router;
 
 export const alertsV2Routes = createAlertsRoutes();
