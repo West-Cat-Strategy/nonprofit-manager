@@ -864,7 +864,6 @@ const createCasesRoutes = (): Router => {
     requirePermission(Permission.CASE_VIEW),
     getCasePortalConversations
   );
-
   router.post(
     '/:id/portal/conversations/:threadId/messages',
     validateParams(casePortalConversationMessageParamsSchema),
@@ -872,7 +871,6 @@ const createCasesRoutes = (): Router => {
     requirePermission(Permission.CASE_EDIT),
     replyCasePortalConversation
   );
-
   router.post(
     '/:id/portal/conversations/:threadId/resolve',
     validateParams(casePortalConversationMessageParamsSchema),
@@ -895,7 +893,6 @@ const createCasesRoutes = (): Router => {
     requirePermission(Permission.CASE_EDIT),
     outcomesController.putInteractionOutcomes
   );
-
   return router;
 };
 
