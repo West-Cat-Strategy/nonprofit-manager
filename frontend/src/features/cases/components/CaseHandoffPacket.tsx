@@ -153,7 +153,7 @@ export const CaseHandoffPacket: React.FC<CaseHandoffPacketProps> = ({ data }) =>
               No Offline Sync
             </BrutalBadge>
             <BrutalBadge color={field_packet.scope.service_site_routing_included ? 'green' : 'blue'}>
-              No Site Routing
+              {field_packet.scope.service_site_routing_included ? 'Site Routing' : 'No Site Routing'}
             </BrutalBadge>
             <BrutalBadge color={field_packet.scope.referral_transfer_included ? 'green' : 'blue'}>
               No Referral Transfer
@@ -258,6 +258,34 @@ export const CaseHandoffPacket: React.FC<CaseHandoffPacketProps> = ({ data }) =>
             )}
           </div>
         </div>
+
+        {field_packet.service_site_routing.length > 0 && (
+          <div className="mt-6 border-2 border-app-border bg-app-surface-muted p-3">
+            <h3 className="font-black uppercase text-sm mb-3 text-app-text-muted">Service Site Routing</h3>
+            <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 print:grid-cols-2">
+              {field_packet.service_site_routing.map((route) => (
+                <li key={`${route.source_type}-${route.source_id}`} className="border-2 border-app-border bg-app-surface p-3">
+                  <p className="text-xs font-mono uppercase text-app-text-muted">
+                    {route.source_type} | {route.source_label}
+                  </p>
+                  <p className="mt-1 font-bold">{route.site_name || route.fallback_label || 'Unlabeled site'}</p>
+                  {route.provider_name && route.provider_name !== route.site_name && (
+                    <p className="text-sm font-bold text-app-text-muted">{route.provider_name}</p>
+                  )}
+                  {route.address && <p className="mt-1 text-xs font-mono">{route.address}</p>}
+                  {(route.contact_name || route.phone || route.email) && (
+                    <p className="mt-1 text-xs text-app-text-muted">
+                      {[route.contact_name, route.phone, route.email].filter(Boolean).join(' | ')}
+                    </p>
+                  )}
+                  {route.fallback_label && route.fallback_label !== route.site_name && (
+                    <p className="mt-1 text-xs text-app-text-muted">Fallback: {route.fallback_label}</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="mt-6 border-2 border-app-border bg-app-surface-muted p-3">
           <p className="font-black uppercase text-sm text-app-text-muted">Assignment Context</p>

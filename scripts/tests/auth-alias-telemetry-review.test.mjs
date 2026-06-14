@@ -10,6 +10,7 @@ import {
   EXCEPTION_CHECK_ROWS,
   readLogRecords,
   renderMarkdownReview,
+  REVIEW_PACKET_GUARDRAIL,
 } from "../auth-alias-telemetry-review.mjs";
 
 const repoRoot = path.resolve(import.meta.dirname, "../..");
@@ -55,6 +56,9 @@ const writeTempFile = (records) => {
   return file;
 };
 
+const tempOutputPath = (name = "packet.md") =>
+  path.join(fs.mkdtempSync(path.join(os.tmpdir(), "auth-alias-output-")), name);
+
 test("builds clean route rows when every tracked route has traffic and no alias usage", () => {
   const records = [
     ...allRouteResponsesForDay("2026-06-01"),
@@ -64,8 +68,23 @@ test("builds clean route rows when every tracked route has traffic and no alias 
   const review = buildAuthAliasTelemetryReview(records, {
     start: "2026-06-01",
     end: "2026-06-02",
+    checkpointDate: "2026-06-17",
   });
 
+  assert.equal(review.checkpointDate, "2026-06-17");
+  assert.equal(review.overallOutcome, "clean");
+  assert.deepEqual(review.packetSummary, {
+    checkpointDate: "2026-06-17",
+    completeDayWindow: "June 1-2, 2026",
+    overallOutcome: "clean",
+    skippedRecords: {
+      noTimestamp: 0,
+      outsideWindow: 0,
+      untracked: 0,
+      total: 0,
+    },
+    guardrail: REVIEW_PACKET_GUARDRAIL,
+  });
   assert.deepEqual(
     review.routeRows.map((row) => [
       row.route,
@@ -127,6 +146,10 @@ test("marks non-zero alias usage as blocked and renders the handoff tables", () 
     (row) => row.route === "POST /api/v2/auth/register",
   );
 
+  assert.equal(review.overallOutcome, "blocked");
+  assert.match(markdown, /Checkpoint date: 2026-06-17/);
+  assert.match(markdown, /Overall route outcome: blocked/);
+  assert.match(markdown, /No enforcement is authorized by this packet/);
   assert.equal(registerRow.status, "blocked");
   assert.equal(registerRow.aliasRequests, 1);
   assert.match(markdown, /Route Review Table/);
@@ -222,6 +245,11 @@ test("exposes the CLI JSON output with route and exception review rows", () => {
   assert.equal(result.status, 0, result.stderr);
 
   const review = JSON.parse(result.stdout);
+  assert.equal(review.checkpointDate, "2026-06-17");
+  assert.equal(review.overallOutcome, "blocked");
+  assert.equal(review.packetSummary.completeDayWindow, "June 1-2, 2026");
+  assert.equal(review.packetSummary.skippedRecords.total, 1);
+  assert.equal(review.packetSummary.guardrail, REVIEW_PACKET_GUARDRAIL);
   assert.deepEqual(
     review.routeRows.map((row) => [row.route, row.status]),
     [
@@ -232,4 +260,113 @@ test("exposes the CLI JSON output with route and exception review rows", () => {
   );
   assert.equal(review.exceptionCheckRows.length, 5);
   assert.ok(review.exceptionCheckRows.every((row) => row.result === "TBD"));
+});
+
+test("combines repeated input exports and renders the requested checkpoint date", () => {
+  const firstInput = writeTempFile([
+    trackedResponse(
+      "2026-06-01T08:00:00.000Z",
+      "POST",
+      "/api/v2/auth/register",
+    ),
+  ]);
+  const secondInput = writeTempFile([
+    trackedResponse("2026-06-01T08:05:00.000Z", "POST", "/api/v2/auth/setup"),
+    trackedResponse("2026-06-01T08:10:00.000Z", "PUT", "/api/v2/auth/password"),
+  ]);
+
+  const result = spawnSync(
+    process.execPath,
+    [
+      "scripts/auth-alias-telemetry-review.mjs",
+      "--input",
+      firstInput,
+      "--input",
+      secondInput,
+      "--start",
+      "2026-06-01",
+      "--end",
+      "2026-06-01",
+      "--checkpoint-date",
+      "2026-06-17",
+    ],
+    {
+      cwd: repoRoot,
+      encoding: "utf8",
+    },
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Checkpoint date: 2026-06-17/);
+  assert.match(result.stdout, /Overall route outcome: clean/);
+  assert.match(
+    result.stdout,
+    /`POST \/api\/v2\/auth\/register`\s*\| June 1, 2026\s*\| 0\s*\| 1\s*\| 0\.0000%\s*\| clean/,
+  );
+  assert.match(
+    result.stdout,
+    /`POST \/api\/v2\/auth\/setup`\s*\| June 1, 2026\s*\| 0\s*\| 1\s*\| 0\.0000%\s*\| clean/,
+  );
+  assert.match(
+    result.stdout,
+    /`PUT \/api\/v2\/auth\/password`\s*\| June 1, 2026\s*\| 0\s*\| 1\s*\| 0\.0000%\s*\| clean/,
+  );
+});
+
+test("writes packet output and refuses to overwrite an existing artifact", () => {
+  const input = writeTempFile(allRouteResponsesForDay("2026-06-01"));
+  const output = tempOutputPath("nested/P5-T75_AUTH_ALIAS_CHECKPOINT.md");
+
+  const result = spawnSync(
+    process.execPath,
+    [
+      "scripts/auth-alias-telemetry-review.mjs",
+      "--input",
+      input,
+      "--start",
+      "2026-06-01",
+      "--end",
+      "2026-06-01",
+      "--checkpoint-date",
+      "2026-06-17",
+      "--output",
+      output,
+    ],
+    {
+      cwd: repoRoot,
+      encoding: "utf8",
+    },
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, "");
+  assert.match(
+    fs.readFileSync(output, "utf8"),
+    /Auth Alias Telemetry Review Packet/,
+  );
+
+  const overwriteResult = spawnSync(
+    process.execPath,
+    [
+      "scripts/auth-alias-telemetry-review.mjs",
+      "--input",
+      input,
+      "--start",
+      "2026-06-01",
+      "--end",
+      "2026-06-01",
+      "--output",
+      output,
+    ],
+    {
+      cwd: repoRoot,
+      encoding: "utf8",
+    },
+  );
+
+  assert.equal(overwriteResult.status, 1);
+  assert.match(
+    overwriteResult.stderr,
+    /Refusing to overwrite existing output:/,
+  );
 });

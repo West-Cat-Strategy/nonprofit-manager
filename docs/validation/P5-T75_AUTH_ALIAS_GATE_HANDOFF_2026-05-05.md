@@ -31,13 +31,15 @@ The June 17 checkpoint is a telemetry and exception review only. It must not rem
 
 Run the production-like log review from [../security/AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md](../security/AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md) against complete days first. If the review happens at the scheduled 09:00 America/Vancouver follow-up, the complete-day window to inspect for the July 1 path is June 1 through June 16, 2026; June 17 itself should be treated as partial until the day closes.
 
-For a low-touch run, export the `auth.alias_input_used` and `Outgoing response` logs from the operations-guide queries as JSON, NDJSON, or Kibana `hits.hits` JSON, then run:
+For a low-touch run, export the `auth.alias_input_used` and `Outgoing response` logs from the operations-guide queries as JSON, NDJSON, or Kibana `hits.hits` JSON, keep those raw exports in ignored local storage such as `tmp/`, then run:
 
 ```bash
-node scripts/auth-alias-telemetry-review.mjs --input tmp/auth-alias-june17-logs.ndjson --start 2026-06-01 --end 2026-06-16
+node scripts/auth-alias-telemetry-review.mjs --input tmp/auth-alias-june17-alias-events.ndjson --input tmp/auth-alias-june17-response-logs.ndjson --start 2026-06-01 --end 2026-06-16 --checkpoint-date 2026-06-17 --output tmp/P5-T75_AUTH_ALIAS_CHECKPOINT_2026-06-17.md
 ```
 
-Use `--format json` when the review packet needs a structured copy of the same route rows, alias-event rollups, exception-check rows, and skipped-record counts. The checked-in fixture at `scripts/fixtures/auth-alias-telemetry-review/mixed-june-review.ndjson` is deterministic tooling proof only; it demonstrates blocked, clean, and inconclusive outcomes from real-shaped records and must not be treated as live June production telemetry.
+Use repeated `--input` flags when the alias-event export and denominator export are separate files. Omit `--output` when the packet should print to stdout for direct paste, or use `--format json` when the review packet needs a structured copy of the checkpoint summary, route rows, alias-event rollups, exception-check rows, and skipped-record counts. When `--output` is provided, the helper creates parent directories and refuses to overwrite an existing artifact. The checked-in fixture at `scripts/fixtures/auth-alias-telemetry-review/mixed-june-review.ndjson` is deterministic tooling proof only; it demonstrates blocked, clean, and inconclusive outcomes from real-shaped records and must not be treated as live June production telemetry.
+
+The generated packet includes the checkpoint date, complete-day window, overall route outcome, skipped-record totals, and the guardrail that no enforcement is authorized by the packet. If the packet is based on real June 1-16 production-like evidence and should become durable proof, copy the reviewed output into a dated `docs/validation/...` checkpoint artifact; do not commit the raw log exports.
 
 Paste the generated route review table, alias-event rollup, inconclusive-day table when present, and exception-check template into this handoff or a refreshed usage report. The helper uses the tracked auth telemetry route contract from `backend/src/modules/auth/routes/index.ts`: `POST /api/v2/auth/register`, `POST /api/v2/auth/setup`, and `PUT /api/v2/auth/password`.
 
@@ -56,7 +58,7 @@ For each route and each complete day:
 - Inspect the alias detail table fields `timestamp`, `route`, `aliasFields`, `correlationId`, and `userAgent` for any event in the checkpoint window.
 - If any alias event exists, group it by route, alias field, user agent/client, and correlation ID before deciding whether it is an active external dependency, test traffic leakage, or noise that should be excluded with documented rationale.
 
-Also perform the exception check before preparing any July 1 retirement path:
+Also perform the exception check before preparing any July 1 retirement path. The helper emits the review table template, but the source checks remain manual operator work:
 
 - Confirm whether API owners, support notes, release notes, deployment notes, or customer/integrator trackers document an approved external client exception for snake_case auth inputs.
 - If no exception exists, record "no active integrator exceptions found" in the refreshed handoff or usage report.
@@ -106,6 +108,22 @@ A thread follow-up is scheduled for June 17, 2026 at 09:00 America/Vancouver to 
 
 ## Validation
 
+- Passed on 2026-06-13: mixed docs/tooling closeout path set stayed limited to `docs/phases/archive/P5_MAINLINE_PROOF_RECONCILIATION_CLOSEOUT_2026-06-10.md`, `docs/phases/planning-and-progress.md`, `docs/security/AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md`, `docs/validation/AUTH_ALIAS_USAGE_REPORT_2026-04-14.md`, `docs/validation/P5-T75_AUTH_ALIAS_GATE_HANDOFF_2026-05-05.md`, `docs/validation/P5-T143_SERVICE_SITE_ROUTING_READY_PROOF_2026-06-13.md`, `docs/validation/README.md`, `docs/validation/archive/P5-T142_AGGRESSIVE_TEST_SUITE_REBALANCE_PROOF_2026-06-11.md`, `docs/validation/archive/P5-T142_CROSS_MODULE_TENANCY_PERMISSION_CONTRACT_TOOLING_PROOF_2026-06-11.md`, `docs/validation/archive/README.md`, `scripts/README.md`, `scripts/auth-alias-telemetry-review.mjs`, and `scripts/tests/auth-alias-telemetry-review.test.mjs`.
+  - Scope note: `P5-T142` remained archived/proof-complete with no live ownership, `P5-T75` remained blocked and non-enforcing, and `P5-T143` remained a Ready docs-only signout. No runtime implementation, auth schema, route behavior, API contract, CI guard, cutoff-notice, production-data, deploy, or deprecation-state change was made.
+  - Excluded note: runtime case-handoff/service-site routing changes and the untracked `docs/validation/P5-T75_AUTH_ALIAS_CHECKPOINT_2026-06-17.md` checkpoint artifact are not part of this docs/tooling closeout.
+- Passed on 2026-06-13: `./scripts/select-checks.sh --files "<mixed docs/tooling closeout path set>" --mode fast`
+  - Result: selected `make check-links`, `make test-tooling`, and `make test-e2e-docker-smoke`.
+- Passed on 2026-06-13: `node --test scripts/tests/auth-alias-telemetry-review.test.mjs`
+  - Result: 8 focused helper tests passed, covering clean/blocked/inconclusive packet rows, checkpoint-date rendering, JSON summary fields, stdout Markdown compatibility, repeated input exports, overwrite-safe output-file writing, and the checked-in mixed June fixture.
+- Passed on 2026-06-13: `make check-links`
+  - Result: checked 271 files and 1547 local links; no broken active-doc links found.
+- Passed on 2026-06-13: `make test-tooling`
+  - Result: 79 Node tooling tests passed, including the expanded auth-alias telemetry review packet helper tests.
+- Passed on 2026-06-13: `make test-e2e-docker-smoke`
+  - Result: Docker was reachable, the isolated smoke stack reached HTTP readiness on `18004`/`18005`/`18006`, and 5 Chromium smoke/public-site tests passed. The Make target stopped the isolated stack after the run.
+- Passed on 2026-06-13: `npm exec -- prettier --check "<mixed docs/tooling closeout path set>"`
+  - Result: all matched files use Prettier code style.
+- Passed on 2026-06-13: `git diff --check`
 - Passed on 2026-06-12: split into `/Users/bryan/projects/nonprofit-manager-p5-t75-auth-alias-prep` on `codex/p5-t75-auth-alias-review-prep-2026-06-12`; `git status --porcelain=v1 -uall` matched the 8-path auth-alias prep path set exactly.
   - Scope note: the isolated lane does not include the P5-T142 validation-index row or self-hosted DB-role documentation, and it still makes no auth schema, route behavior, CI guard, cutoff-notice, or enforcement change.
 - Passed on 2026-06-12: `node --test scripts/tests/auth-alias-telemetry-review.test.mjs`

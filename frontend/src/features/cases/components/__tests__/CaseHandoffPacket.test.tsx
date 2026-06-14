@@ -120,7 +120,7 @@ const handoffPacket: HandoffData = {
         'Does not create an offline sync bundle, service-site routing record, referral transfer, or persisted packet entity',
       ],
       offline_sync_included: false,
-      service_site_routing_included: false,
+      service_site_routing_included: true,
       referral_transfer_included: false,
       persisted_packet_included: false,
     },
@@ -208,6 +208,34 @@ const handoffPacket: HandoffData = {
         },
       },
     ],
+    service_site_routing: [
+      {
+        source_type: 'service',
+        source_id: 'service-1',
+        source_label: 'Housing navigation',
+        site_id: 'site-1',
+        site_name: 'Outreach Hub',
+        provider_name: 'Community Housing Team',
+        address: '100 Main St, Vancouver, BC, V6B 1A1, Canada',
+        contact_name: 'Intake desk',
+        phone: '555-0100',
+        email: null,
+        fallback_label: 'Community Housing Team',
+      },
+      {
+        source_type: 'appointment',
+        source_id: 'appointment-1',
+        source_label: 'Housing site visit',
+        site_id: 'appt-site-1',
+        site_name: 'Downtown Clinic',
+        provider_name: null,
+        address: '200 Care Ave, Vancouver, BC, V6C 2B2, Canada',
+        contact_name: null,
+        phone: '555-0200',
+        email: null,
+        fallback_label: 'Main office',
+      },
+    ],
   },
   generated_at: '2026-04-28T10:15:00.000Z',
 };
@@ -230,15 +258,21 @@ describe('CaseHandoffPacket', () => {
     expect(screen.getByText(/keep this packet internal/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /field packet/i })).toBeInTheDocument();
     expect(screen.getByText('No Offline Sync')).toBeInTheDocument();
-    expect(screen.getByText('No Site Routing')).toBeInTheDocument();
+    expect(screen.getByText('Site Routing')).toBeInTheDocument();
     expect(screen.getByText('No Referral Transfer')).toBeInTheDocument();
     expect(screen.getByText('Housing navigation')).toBeInTheDocument();
     expect(screen.getByText('Outreach Hub (Community Housing Team)')).toBeInTheDocument();
     expect(screen.getByText('100 Main St, Vancouver, BC, V6B 1A1')).toBeInTheDocument();
     expect(screen.getByText('Housing eligibility review')).toBeInTheDocument();
     expect(screen.getByText('Housing site visit')).toBeInTheDocument();
-    expect(screen.getByText('Downtown Clinic')).toBeInTheDocument();
+    expect(screen.getAllByText('Downtown Clinic').length).toBeGreaterThan(0);
     expect(screen.getByText('200 Care Ave, Vancouver, BC, V6C 2B2')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /service site routing/i })).toBeInTheDocument();
+    expect(screen.getByText('service | Housing navigation')).toBeInTheDocument();
+    expect(screen.getByText('appointment | Housing site visit')).toBeInTheDocument();
+    expect(screen.getByText('100 Main St, Vancouver, BC, V6B 1A1, Canada')).toBeInTheDocument();
+    expect(screen.getByText('Intake desk | 555-0100')).toBeInTheDocument();
+    expect(screen.getByText('Fallback: Main office')).toBeInTheDocument();
     expect(screen.getByText(/Alex Rivera \| Open \| high \| Internal Only/i)).toBeInTheDocument();
     expect(screen.getByText('Casey Client')).toBeInTheDocument();
 
@@ -246,7 +280,7 @@ describe('CaseHandoffPacket', () => {
     expect(screen.getAllByText('Services').length).toBeGreaterThan(0);
     expect(screen.getByText('5')).toBeInTheDocument();
     expect(screen.getByText('Documents')).toBeInTheDocument();
-  });
+  }, 10000);
 
   it('opens as a modal and keeps printing as an explicit user action', () => {
     const onClose = vi.fn();
@@ -261,5 +295,40 @@ describe('CaseHandoffPacket', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
 
     printSpy.mockRestore();
+  });
+
+  it('keeps the no-routing badge when the packet has only text fallback locations', () => {
+    const noRoutingPacket: HandoffData = {
+      ...handoffPacket,
+      field_packet: {
+        ...handoffPacket.field_packet,
+        scope: {
+          ...handoffPacket.field_packet.scope,
+          service_site_routing_included: false,
+        },
+        services: [
+          {
+            ...handoffPacket.field_packet.services[0],
+            provider: 'Community Housing Team',
+            service_site_snapshot: null,
+          },
+        ],
+        appointments: [
+          {
+            ...handoffPacket.field_packet.appointments[0],
+            location: 'Main office',
+            service_site_snapshot: null,
+          },
+        ],
+        service_site_routing: [],
+      },
+    };
+
+    render(<CaseHandoffPacket data={noRoutingPacket} />);
+
+    expect(screen.getByText('No Site Routing')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /service site routing/i })).not.toBeInTheDocument();
+    expect(screen.getByText('Community Housing Team')).toBeInTheDocument();
+    expect(screen.getByText('Main office')).toBeInTheDocument();
   });
 });

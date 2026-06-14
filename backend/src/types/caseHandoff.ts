@@ -14,6 +14,20 @@ export interface CaseServiceSiteSnapshot {
   notes: string | null;
 }
 
+export interface CaseHandoffServiceSiteRoutingEntry {
+  source_type: 'service' | 'appointment';
+  source_id: string;
+  source_label: string;
+  site_id: string | null;
+  site_name: string | null;
+  provider_name: string | null;
+  address: string | null;
+  contact_name: string | null;
+  phone: string | null;
+  email: string | null;
+  fallback_label: string | null;
+}
+
 export interface CaseHandoffPacket {
   case_details: {
     id: string;
@@ -71,7 +85,7 @@ export interface CaseHandoffPacket {
     scope: {
       summary: string[];
       offline_sync_included: false;
-      service_site_routing_included: false;
+      service_site_routing_included: boolean;
       referral_transfer_included: false;
       persisted_packet_included: false;
     };
@@ -125,6 +139,7 @@ export interface CaseHandoffPacket {
         email: string | null;
       } | null;
     }>;
+    service_site_routing: CaseHandoffServiceSiteRoutingEntry[];
   };
   generated_at: string;
 }

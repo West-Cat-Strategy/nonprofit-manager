@@ -112,10 +112,11 @@ describe('handoffQueries', () => {
     expect(packet.field_packet.scope).toEqual({
       summary: expect.arrayContaining([
         expect.stringContaining('existing case-detail records'),
+        expect.stringContaining('Derives typed service-site routing'),
         expect.stringContaining('Does not create an offline sync bundle'),
       ]),
       offline_sync_included: false,
-      service_site_routing_included: false,
+      service_site_routing_included: true,
       referral_transfer_included: false,
       persisted_packet_included: false,
     });
@@ -180,9 +181,137 @@ describe('handoffQueries', () => {
         },
       }),
     ]);
+    expect(packet.field_packet.service_site_routing).toEqual([
+      {
+        source_type: 'service',
+        source_id: 'service-1',
+        source_label: 'Housing navigation',
+        site_id: 'site-1',
+        site_name: 'Outreach Hub',
+        provider_name: 'Community Housing Team',
+        address: '100 Main St, Vancouver',
+        contact_name: null,
+        phone: '555-0100',
+        email: null,
+        fallback_label: 'Community Housing Team',
+      },
+      {
+        source_type: 'appointment',
+        source_id: 'appointment-1',
+        source_label: 'Housing site visit',
+        site_id: null,
+        site_name: 'Downtown Clinic',
+        provider_name: null,
+        address: '200 Care Ave, Vancouver',
+        contact_name: 'Front desk',
+        phone: null,
+        email: null,
+        fallback_label: 'Main office',
+      },
+    ]);
     expect(packet.visibility.portal_visibility_status).toBe('Internal Only');
     expect(query).toHaveBeenCalledWith(expect.stringContaining('FROM case_services'), ['case-1']);
     expect(query).toHaveBeenCalledWith(expect.stringContaining('FROM case_form_assignments'), ['case-1']);
     expect(query).toHaveBeenCalledWith(expect.stringContaining('FROM appointments a'), ['case-1']);
+  });
+
+  it('keeps text fallback and no routing scope when typed snapshots are unavailable', async () => {
+    query
+      .mockResolvedValueOnce({ rows: [{ case_id: 'case-1', contact_id: 'contact-1', account_id: 'account-1' }] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'case-1',
+            case_number: 'CASE-001',
+            title: 'Housing Support',
+            priority: 'normal',
+            is_urgent: false,
+            description: null,
+            client_viewable: true,
+            closed_date: null,
+            closure_reason: null,
+            status_name: 'Open',
+            status_type: 'active',
+            assigned_first_name: 'Alex',
+            assigned_last_name: 'Rivera',
+            assigned_email: 'alex@example.com',
+            contact_first_name: 'Casey',
+            contact_last_name: 'Client',
+            contact_email: 'casey@example.com',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            services_count: 1,
+            forms_count: 0,
+            appointments_count: 1,
+            notes_count: 0,
+            documents_count: 0,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'service-1',
+            name: 'Housing navigation',
+            type: 'housing',
+            provider: 'Community Housing Team',
+            service_site_snapshot: null,
+            status: 'scheduled',
+            service_date: new Date('2026-04-22T00:00:00Z'),
+            outcome: null,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'appointment-1',
+            title: 'Housing site visit',
+            status: 'confirmed',
+            start_time: new Date('2026-04-24T18:00:00Z'),
+            end_time: null,
+            location: 'Main office',
+            service_site_snapshot: null,
+            request_type: 'slot_booking',
+            pointperson_first_name: 'Alex',
+            pointperson_last_name: 'Rivera',
+            pointperson_email: 'alex@example.com',
+          },
+        ],
+      });
+
+    const packet = await getCaseHandoffPacketQuery(db, 'case-1', 'account-1');
+
+    expect(packet.field_packet.scope).toEqual({
+      summary: expect.arrayContaining([
+        expect.stringContaining('No typed service-site snapshots'),
+        expect.stringContaining('Does not create an offline sync bundle'),
+      ]),
+      offline_sync_included: false,
+      service_site_routing_included: false,
+      referral_transfer_included: false,
+      persisted_packet_included: false,
+    });
+    expect(packet.field_packet.services).toEqual([
+      expect.objectContaining({
+        provider: 'Community Housing Team',
+        service_site_snapshot: null,
+      }),
+    ]);
+    expect(packet.field_packet.appointments).toEqual([
+      expect.objectContaining({
+        location: 'Main office',
+        service_site_snapshot: null,
+      }),
+    ]);
+    expect(packet.field_packet.service_site_routing).toEqual([]);
   });
 });

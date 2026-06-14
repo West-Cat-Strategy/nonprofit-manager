@@ -1,6 +1,6 @@
 # Auth Alias Telemetry Operations Guide
 
-**Last Updated:** 2026-06-11
+**Last Updated:** 2026-06-13
 
 Date: 2026-04-14
 
@@ -116,13 +116,15 @@ FROM logs-*
 
 ### Low-Touch June 17 Review Helper
 
-After exporting the alias-event and total-request query results as JSON, NDJSON, or Kibana `hits.hits` JSON, run the checked-in helper to produce the P5-T75 handoff tables:
+After exporting the alias-event and total-request query results as JSON, NDJSON, or Kibana `hits.hits` JSON, run the checked-in helper to produce the P5-T75 review packet. Raw exported logs should stay in ignored local paths such as `tmp/` unless a separate production-evidence handoff explicitly approves preserving a redacted export.
 
 ```bash
-node scripts/auth-alias-telemetry-review.mjs --input tmp/auth-alias-june17-logs.ndjson --start 2026-06-01 --end 2026-06-16
+node scripts/auth-alias-telemetry-review.mjs --input tmp/auth-alias-june17-alias-events.ndjson --input tmp/auth-alias-june17-response-logs.ndjson --start 2026-06-01 --end 2026-06-16 --checkpoint-date 2026-06-17 --output tmp/P5-T75_AUTH_ALIAS_CHECKPOINT_2026-06-17.md
 ```
 
-Use `--format json` for a structured copy of the same review packet. The helper counts only the three tracked auth routes, treats zero route traffic for any complete day as inconclusive, and marks any non-zero alias event as blocked. It does not change schemas, routes, enforcement guards, or deprecation state.
+Use repeated `--input` flags when the alias events and denominator logs are exported separately. Omit `--output` to print the ready-to-paste Markdown packet to stdout, or use `--format json` for a structured copy of the same checkpoint summary, route rows, alias-event rollups, exception-check rows, and skipped-record counts. When `--output` is provided, the helper creates parent directories and refuses to overwrite an existing artifact so a reviewed checkpoint is not replaced accidentally.
+
+The packet includes the checkpoint date, complete-day window, overall route outcome, skipped-record totals, and a guardrail that the packet does not authorize enforcement. The helper counts only the three tracked auth routes, treats zero route traffic for any complete day as inconclusive, and marks any non-zero alias event as blocked. It does not change schemas, routes, enforcement guards, or deprecation state.
 
 The fixture `scripts/fixtures/auth-alias-telemetry-review/mixed-june-review.ndjson` proves the helper with real-shaped log records that include one blocked route, one clean route, and one inconclusive zero-denominator route day. Use it for deterministic tooling validation only; replace it with exported production-like logs for the actual June 17 review.
 

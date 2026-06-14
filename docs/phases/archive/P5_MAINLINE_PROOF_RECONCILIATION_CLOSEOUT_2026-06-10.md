@@ -3,7 +3,7 @@
 **Date:** 2026-06-10
 **Closeout Rows:** `P5-T135`, `P5-T136`, `P5-T137`, `P5-T138`, and `P5-T139`
 **Type:** Docs-only mainline proof reconciliation
-**Follow-up:** 2026-06-12 docs-only mainline disposition for `P5-T140` and `P5-T141`
+**Follow-up:** 2026-06-12 docs-only mainline disposition for `P5-T140` and `P5-T141`; 2026-06-13 docs-only mainline disposition for `P5-T142`
 
 ## Summary
 
@@ -38,6 +38,12 @@ This section preserves the June 10 disposition. The June 12 follow-up below supe
 
 The June 12 docs-only reconciliation removes both rows from the live board as proof-complete. Their row-local proof notes now live under `docs/validation/archive/` and are indexed from `docs/validation/archive/README.md`; future tooling-fixture or frontend-semantics work should open as a new signed-out row.
 
+## June 13 Follow-up Disposition
+
+`P5-T142` was kept live after the June 12 follow-up because its cross-module remediation and aggressive test-suite rebalance proof still needed mainline disposition. Both proof lanes are now on `main`: the cross-module remediation landed via `1f820a66` (`fix: harden cross-module tenancy and tooling contracts`) and the aggressive test-suite rebalance landed via `c1cf4b94` (`test: rebalance vital operations coverage`).
+
+The June 13 docs-only reconciliation removes `P5-T142` from the live board as proof-complete. Its row-local proof notes now live under `docs/validation/archive/` and are indexed from `docs/validation/archive/README.md`; future cross-module tenancy, permission, contract tooling, or test-suite rebalance work should open as a new signed-out row.
+
 ## Verification
 
 - `git status --short --branch` showed a clean `main...origin/main` checkout before edits.
@@ -50,3 +56,5 @@ The June 12 docs-only reconciliation removes both rows from the live board as pr
 - `npm exec -- prettier --check "<docs closeout path set>"` passed for the touched documentation.
 - `git diff --check` passed after the closeout docs were updated.
 - June 12 follow-up validation: `./scripts/select-checks.sh --files "<docs follow-up path set>" --mode fast` selected `make check-links`; `make check-links`, `npm exec -- prettier --check "<docs follow-up path set>"`, and `git diff --check` passed after the docs-only reconciliation.
+- June 13 follow-up pre-checks: `git status --short --branch` showed a clean `main...origin/main` checkout, `git log --oneline --decorate -n 12` showed `1f820a66` and `c1cf4b94` reachable from `main`, and `gh pr list --state open --limit 20 --json number,title,headRefName,baseRefName,url` returned `[]`.
+- June 13 follow-up validation: `./scripts/select-checks.sh --files "<docs P5-T142 follow-up path set>" --mode fast` selected `make check-links`; `make check-links`, `npm exec -- prettier --check "<docs P5-T142 follow-up path set>"`, and `git diff --check` passed after the docs-only reconciliation.

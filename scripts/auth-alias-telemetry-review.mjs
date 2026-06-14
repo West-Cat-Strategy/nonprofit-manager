@@ -78,16 +78,21 @@ export const EXCEPTION_CHECK_ROWS = [
   },
 ];
 
-const usage = () => `Usage:
-  node scripts/auth-alias-telemetry-review.mjs --input <logs.json|logs.ndjson> [--start 2026-06-01] [--end 2026-06-16] [--format markdown|json]
+export const REVIEW_PACKET_GUARDRAIL =
+  "No enforcement is authorized by this packet. Keep legacy auth aliases accepted until the 30-day telemetry gate is satisfied and enforcement is explicitly approved.";
 
-Reads exported auth alias telemetry plus request-denominator logs and prints the P5-T75 route review table for the complete-day window.
+const usage = () => `Usage:
+  node scripts/auth-alias-telemetry-review.mjs --input <logs.json|logs.ndjson> [--input <more-logs.json|more-logs.ndjson>] [--start 2026-06-01] [--end 2026-06-16] [--checkpoint-date 2026-06-17] [--format markdown|json] [--output <packet.md|packet.json>]
+
+Reads exported auth alias telemetry plus request-denominator logs and prints or writes the P5-T75 review packet for the complete-day window.
 `;
 
 const parseArgs = (argv) => {
   const options = {
+    inputs: [],
     start: "2026-06-01",
     end: "2026-06-16",
+    checkpointDate: "2026-06-17",
     format: "markdown",
   };
 
@@ -99,11 +104,31 @@ const parseArgs = (argv) => {
       continue;
     }
 
+    if (arg === "--input") {
+      const value = argv[index + 1];
+      if (!value || value.startsWith("--")) {
+        throw new Error(`${arg} requires a value`);
+      }
+      options.inputs.push(value);
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--checkpoint-date") {
+      const value = argv[index + 1];
+      if (!value || value.startsWith("--")) {
+        throw new Error(`${arg} requires a value`);
+      }
+      options.checkpointDate = value;
+      index += 1;
+      continue;
+    }
+
     if (
-      arg === "--input" ||
       arg === "--start" ||
       arg === "--end" ||
-      arg === "--format"
+      arg === "--format" ||
+      arg === "--output"
     ) {
       const value = argv[index + 1];
       if (!value || value.startsWith("--")) {
@@ -117,7 +142,7 @@ const parseArgs = (argv) => {
     throw new Error(`Unknown argument: ${arg}`);
   }
 
-  if (!options.help && !options.input) {
+  if (!options.help && options.inputs.length === 0) {
     throw new Error("--input is required");
   }
 
@@ -127,6 +152,7 @@ const parseArgs = (argv) => {
 
   assertDate(options.start, "--start");
   assertDate(options.end, "--end");
+  assertDate(options.checkpointDate, "--checkpoint-date");
 
   if (options.start > options.end) {
     throw new Error("--start must be on or before --end");
@@ -336,10 +362,15 @@ const rollupKey = (route, aliasFields, correlationId, userAgent) =>
 
 export const buildAuthAliasTelemetryReview = (
   records,
-  { start = "2026-06-01", end = "2026-06-16" } = {},
+  {
+    start = "2026-06-01",
+    end = "2026-06-16",
+    checkpointDate = "2026-06-17",
+  } = {},
 ) => {
   assertDate(start, "start");
   assertDate(end, "end");
+  assertDate(checkpointDate, "checkpointDate");
 
   const days = dateRange(start, end);
   const routes = createRouteAccumulator();
@@ -442,10 +473,30 @@ export const buildAuthAliasTelemetryReview = (
     };
   });
 
+  const overallOutcome = routeRows.some((row) => row.status === "blocked")
+    ? "blocked"
+    : routeRows.some((row) => row.status === "inconclusive")
+      ? "inconclusive"
+      : "clean";
+  const skippedRecords = {
+    ...skipped,
+    total: skipped.noTimestamp + skipped.outsideWindow + skipped.untracked,
+  };
+  const packetSummary = {
+    checkpointDate,
+    completeDayWindow: formatDateWindow(start, end),
+    overallOutcome,
+    skippedRecords,
+    guardrail: REVIEW_PACKET_GUARDRAIL,
+  };
+
   return {
+    checkpointDate,
     start,
     end,
     completeDayWindow: formatDateWindow(start, end),
+    overallOutcome,
+    packetSummary,
     routeRows,
     eventRollups: [...eventRollups.values()]
       .map((rollup) => ({
@@ -514,9 +565,13 @@ export const renderMarkdownReview = (review) => {
   ]);
 
   const sections = [
-    "# Auth Alias Telemetry Review",
+    "# Auth Alias Telemetry Review Packet",
     "",
+    `Checkpoint date: ${review.checkpointDate}`,
     `Complete-day window reviewed: ${review.completeDayWindow}`,
+    `Overall route outcome: ${review.overallOutcome}`,
+    `Guardrail: ${review.packetSummary?.guardrail ?? REVIEW_PACKET_GUARDRAIL}`,
+    `Skipped records: ${review.packetSummary?.skippedRecords?.total ?? 0} total (${review.skipped.noTimestamp} without timestamps, ${review.skipped.outsideWindow} outside the window, ${review.skipped.untracked} untracked).`,
     "",
     "## Route Review Table",
     "",
@@ -594,11 +649,21 @@ export const renderMarkdownReview = (review) => {
       ]),
     ),
     "",
-    `Skipped records: ${review.skipped.noTimestamp} without timestamps, ${review.skipped.outsideWindow} outside the window, ${review.skipped.untracked} untracked.`,
+    `Skipped records detail: ${review.skipped.noTimestamp} without timestamps, ${review.skipped.outsideWindow} outside the window, ${review.skipped.untracked} untracked.`,
     "",
   );
 
   return sections.join("\n");
+};
+
+const writePacketOutput = (filePath, content) => {
+  const outputPath = path.resolve(filePath);
+  if (fs.existsSync(outputPath)) {
+    throw new Error(`Refusing to overwrite existing output: ${outputPath}`);
+  }
+
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  fs.writeFileSync(outputPath, content, "utf8");
 };
 
 const main = () => {
@@ -608,19 +673,26 @@ const main = () => {
     return;
   }
 
-  const inputPath = path.resolve(options.input);
-  const records = readLogRecords(inputPath);
+  const records = options.inputs.flatMap((input) =>
+    readLogRecords(path.resolve(input)),
+  );
   const review = buildAuthAliasTelemetryReview(records, {
     start: options.start,
     end: options.end,
+    checkpointDate: options.checkpointDate,
   });
 
-  if (options.format === "json") {
-    process.stdout.write(`${JSON.stringify(review, null, 2)}\n`);
+  const output =
+    options.format === "json"
+      ? `${JSON.stringify(review, null, 2)}\n`
+      : renderMarkdownReview(review);
+
+  if (options.output) {
+    writePacketOutput(options.output, output);
     return;
   }
 
-  process.stdout.write(renderMarkdownReview(review));
+  process.stdout.write(output);
 };
 
 const currentFile = fileURLToPath(import.meta.url);

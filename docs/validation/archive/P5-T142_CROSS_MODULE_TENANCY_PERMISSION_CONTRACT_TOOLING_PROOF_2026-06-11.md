@@ -2,9 +2,15 @@
 
 **Row date:** 2026-06-11  
 **Final validation completed:** 2026-06-12  
-**Status:** Review-ready  
+**Status:** Proof-complete; archived after mainline merge
 **Workboard Row:** `P5-T142`  
 **Scope:** Tenant scoping, permission gates, public donation confirmation safety, API-client path normalization, production app-role provisioning, migration proof, Docker/runtime review tooling, and selector coverage.
+
+## Mainline Disposition
+
+- Archived on 2026-06-13 after `1f820a66` (`fix: harden cross-module tenancy and tooling contracts`) was confirmed reachable from `main`.
+- Removed from live board ownership by the June 13 docs-only mainline proof reconciliation; future cross-module tenancy, permission, contract tooling, or related runtime follow-up should open as a new signed-out row.
+- No runtime code, migrations, API contracts, routes, tests, production data, deploy action, or CI policy changed in the archive pass.
 
 ## Scope Guardrails
 

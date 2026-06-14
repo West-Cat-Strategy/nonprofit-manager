@@ -73,6 +73,71 @@ const normalizeServiceSiteSnapshot = (value: unknown): CaseServiceSiteSnapshot |
   };
 };
 
+const buildServiceSiteAddress = (snapshot: CaseServiceSiteSnapshot): string | null =>
+  [
+    snapshot.address_line1,
+    snapshot.address_line2,
+    snapshot.city,
+    snapshot.state_province,
+    snapshot.postal_code,
+    snapshot.country,
+  ]
+    .filter(Boolean)
+    .join(', ') || null;
+
+const hasServiceSiteRoutingData = (snapshot: CaseServiceSiteSnapshot): boolean =>
+  Boolean(
+    snapshot.id ||
+      snapshot.name ||
+      snapshot.provider_name ||
+      buildServiceSiteAddress(snapshot) ||
+      snapshot.contact_name ||
+      snapshot.phone ||
+      snapshot.email
+  );
+
+const buildServiceSiteRouting = (
+  services: CaseHandoffPacket['field_packet']['services'],
+  appointments: CaseHandoffPacket['field_packet']['appointments']
+): CaseHandoffPacket['field_packet']['service_site_routing'] => [
+  ...services
+    .filter((service) => service.service_site_snapshot && hasServiceSiteRoutingData(service.service_site_snapshot))
+    .map((service) => {
+      const snapshot = service.service_site_snapshot as CaseServiceSiteSnapshot;
+      return {
+        source_type: 'service' as const,
+        source_id: service.id,
+        source_label: service.name,
+        site_id: snapshot.id,
+        site_name: snapshot.name || snapshot.provider_name,
+        provider_name: snapshot.provider_name,
+        address: buildServiceSiteAddress(snapshot),
+        contact_name: snapshot.contact_name,
+        phone: snapshot.phone,
+        email: snapshot.email,
+        fallback_label: service.provider,
+      };
+    }),
+  ...appointments
+    .filter((appointment) => appointment.service_site_snapshot && hasServiceSiteRoutingData(appointment.service_site_snapshot))
+    .map((appointment) => {
+      const snapshot = appointment.service_site_snapshot as CaseServiceSiteSnapshot;
+      return {
+        source_type: 'appointment' as const,
+        source_id: appointment.id,
+        source_label: appointment.title,
+        site_id: snapshot.id,
+        site_name: snapshot.name || snapshot.provider_name,
+        provider_name: snapshot.provider_name,
+        address: buildServiceSiteAddress(snapshot),
+        contact_name: snapshot.contact_name,
+        phone: snapshot.phone,
+        email: snapshot.email,
+        fallback_label: appointment.location,
+      };
+    }),
+];
+
 const mapReassessment = (row: ReassessmentRow): CaseHandoffReassessmentSummary => ({
   id: row.id,
   title: row.title,
@@ -410,6 +475,32 @@ export const getCaseHandoffPacketQuery = async (
     email: caseRow.contact_email
   };
   const portalVisibilityStatus = caseRow.client_viewable ? 'Visible to Client' : 'Internal Only';
+  const fieldServices: CaseHandoffPacket['field_packet']['services'] = fieldServicesResult.rows.map((service) => ({
+    id: service.id,
+    name: service.name,
+    type: service.type,
+    provider: service.provider,
+    service_site_snapshot: normalizeServiceSiteSnapshot(service.service_site_snapshot),
+    status: service.status,
+    service_date: toIsoDate(service.service_date),
+    outcome: service.outcome
+  }));
+  const fieldAppointments: CaseHandoffPacket['field_packet']['appointments'] = fieldAppointmentsResult.rows.map((appointment) => ({
+    id: appointment.id,
+    title: appointment.title,
+    status: appointment.status,
+    start_time: toIsoDateTime(appointment.start_time) || new Date(appointment.start_time).toISOString(),
+    end_time: toIsoDateTime(appointment.end_time),
+    location: appointment.location,
+    service_site_snapshot: normalizeServiceSiteSnapshot(appointment.service_site_snapshot),
+    request_type: appointment.request_type,
+    pointperson: appointment.pointperson_email ? {
+      first_name: appointment.pointperson_first_name,
+      last_name: appointment.pointperson_last_name,
+      email: appointment.pointperson_email
+    } : null
+  }));
+  const serviceSiteRouting = buildServiceSiteRouting(fieldServices, fieldAppointments);
 
   return {
     case_details: {
@@ -464,10 +555,13 @@ export const getCaseHandoffPacketQuery = async (
         summary: [
           'Portable staff review packet assembled from existing case-detail records',
           'Includes current service, form, appointment, visibility, reassessment, next-action, and assignment context',
-          'Does not create an offline sync bundle, service-site routing record, referral transfer, or persisted packet entity'
+          serviceSiteRouting.length > 0
+            ? 'Derives typed service-site routing from existing service and appointment snapshots without creating routing records'
+            : 'No typed service-site snapshots are available for derived service-site routing',
+          'Does not create an offline sync bundle, workflow engine, referral transfer, or persisted packet entity'
         ],
         offline_sync_included: false,
-        service_site_routing_included: false,
+        service_site_routing_included: serviceSiteRouting.length > 0,
         referral_transfer_included: false,
         persisted_packet_included: false
       },
@@ -478,16 +572,7 @@ export const getCaseHandoffPacketQuery = async (
         priority: caseRow.priority,
         portal_visibility_status: portalVisibilityStatus
       },
-      services: fieldServicesResult.rows.map((service) => ({
-        id: service.id,
-        name: service.name,
-        type: service.type,
-        provider: service.provider,
-        service_site_snapshot: normalizeServiceSiteSnapshot(service.service_site_snapshot),
-        status: service.status,
-        service_date: toIsoDate(service.service_date),
-        outcome: service.outcome
-      })),
+      services: fieldServices,
       forms: fieldFormsResult.rows.map((form) => ({
         id: form.id,
         title: form.title,
@@ -498,21 +583,8 @@ export const getCaseHandoffPacketQuery = async (
         reviewed_at: toIsoDateTime(form.reviewed_at),
         recipient_email: form.recipient_email
       })),
-      appointments: fieldAppointmentsResult.rows.map((appointment) => ({
-        id: appointment.id,
-        title: appointment.title,
-        status: appointment.status,
-        start_time: toIsoDateTime(appointment.start_time) || new Date(appointment.start_time).toISOString(),
-        end_time: toIsoDateTime(appointment.end_time),
-        location: appointment.location,
-        service_site_snapshot: normalizeServiceSiteSnapshot(appointment.service_site_snapshot),
-        request_type: appointment.request_type,
-        pointperson: appointment.pointperson_email ? {
-          first_name: appointment.pointperson_first_name,
-          last_name: appointment.pointperson_last_name,
-          email: appointment.pointperson_email
-        } : null
-      }))
+      appointments: fieldAppointments,
+      service_site_routing: serviceSiteRouting
     },
     generated_at: new Date().toISOString()
   };
