@@ -20,7 +20,7 @@ export interface PortalDashboardActionItem {
   created_at?: string | Date | null;
 }
 
-const ACTIVE_FORM_STATUSES = ['draft', 'sent', 'viewed', 'in_progress', 'submitted', 'revision_requested'];
+const ACTIVE_FORM_STATUSES = ['sent', 'viewed', 'in_progress', 'submitted', 'revision_requested'];
 
 const actionPriorityRank: Record<PortalDashboardActionPriority, number> = {
   urgent: 0,
@@ -41,7 +41,10 @@ const toIsoOrNull = (value?: string | Date | null): string | null => {
   return Number.isNaN(date.getTime()) ? String(value) : date.toISOString();
 };
 
-const getFormActionPriority = (status?: string | null, dueAt?: string | Date | null): PortalDashboardActionPriority => {
+const getFormActionPriority = (
+  status?: string | null,
+  dueAt?: string | Date | null
+): PortalDashboardActionPriority => {
   const dueTime = toTime(dueAt);
   const now = Date.now();
   const sevenDaysFromNow = now + 7 * 24 * 60 * 60 * 1000;
@@ -56,8 +59,9 @@ const getFormActionPriority = (status?: string | null, dueAt?: string | Date | n
 };
 
 const formatCaseContext = (caseNumber?: unknown, caseTitle?: unknown): string | null => {
-  const parts = [caseNumber, caseTitle]
-    .filter((part): part is string => typeof part === 'string' && part.trim().length > 0);
+  const parts = [caseNumber, caseTitle].filter(
+    (part): part is string => typeof part === 'string' && part.trim().length > 0
+  );
   return parts.length > 0 ? parts.join(' - ') : null;
 };
 
@@ -102,8 +106,11 @@ export const buildPortalDashboardActionItems = (input: {
     });
   }
 
-  const unreadThreads = input.recentThreads?.filter((thread) => Number(thread.unread_count ?? 0) > 0) ?? [];
-  const unreadCount = input.unreadThreadsCount ?? unreadThreads.reduce((total, thread) => total + Number(thread.unread_count ?? 0), 0);
+  const unreadThreads =
+    input.recentThreads?.filter((thread) => Number(thread.unread_count ?? 0) > 0) ?? [];
+  const unreadCount =
+    input.unreadThreadsCount ??
+    unreadThreads.reduce((total, thread) => total + Number(thread.unread_count ?? 0), 0);
   if (unreadCount > 0) {
     const latestUnread = unreadThreads[0] ?? input.recentThreads?.[0] ?? null;
     actionItems.push({
@@ -121,7 +128,9 @@ export const buildPortalDashboardActionItems = (input: {
         : '/portal/messages',
       case_id: (latestUnread?.case_id as string | null | undefined) ?? null,
       status: (latestUnread?.status as string | null | undefined) ?? 'open',
-      created_at: toIsoOrNull((latestUnread?.last_message_at as string | Date | null | undefined) ?? null),
+      created_at: toIsoOrNull(
+        (latestUnread?.last_message_at as string | Date | null | undefined) ?? null
+      ),
     });
   }
 
@@ -130,16 +139,26 @@ export const buildPortalDashboardActionItems = (input: {
       id: `appointment:${String(input.nextAppointment.id)}`,
       kind: 'appointment',
       priority: input.nextAppointment.status === 'requested' ? 'normal' : 'low',
-      title: input.nextAppointment.status === 'requested' ? 'Track appointment request' : 'Next appointment',
-      description: formatCaseContext(input.nextAppointment.case_number, input.nextAppointment.case_title) ||
+      title:
+        input.nextAppointment.status === 'requested'
+          ? 'Track appointment request'
+          : 'Next appointment',
+      description:
+        formatCaseContext(input.nextAppointment.case_number, input.nextAppointment.case_title) ||
         String(input.nextAppointment.title || 'Review your appointment details.'),
       href: `/portal/appointments?appointment=${encodeURIComponent(String(input.nextAppointment.id))}${
-        input.nextAppointment.case_id ? `&case=${encodeURIComponent(String(input.nextAppointment.case_id))}` : ''
+        input.nextAppointment.case_id
+          ? `&case=${encodeURIComponent(String(input.nextAppointment.case_id))}`
+          : ''
       }`,
       case_id: (input.nextAppointment.case_id as string | null | undefined) ?? null,
-      due_at: toIsoOrNull((input.nextAppointment.start_time as string | Date | null | undefined) ?? null),
+      due_at: toIsoOrNull(
+        (input.nextAppointment.start_time as string | Date | null | undefined) ?? null
+      ),
       status: (input.nextAppointment.status as string | null | undefined) ?? null,
-      created_at: toIsoOrNull((input.nextAppointment.start_time as string | Date | null | undefined) ?? null),
+      created_at: toIsoOrNull(
+        (input.nextAppointment.start_time as string | Date | null | undefined) ?? null
+      ),
     });
   }
 
@@ -153,7 +172,9 @@ export const buildPortalDashboardActionItems = (input: {
       description: 'Staff shared a document in your portal.',
       href: '/portal/documents',
       status: (firstDocument.document_type as string | null | undefined) ?? null,
-      created_at: toIsoOrNull((firstDocument.created_at as string | Date | null | undefined) ?? null),
+      created_at: toIsoOrNull(
+        (firstDocument.created_at as string | Date | null | undefined) ?? null
+      ),
     });
   }
 
@@ -169,7 +190,9 @@ export const buildPortalDashboardActionItems = (input: {
       href: `/portal/cases/${encodeURIComponent(String(firstCase.id))}`,
       case_id: (firstCase.id as string | null | undefined) ?? null,
       status: (firstCase.status_name as string | null | undefined) ?? null,
-      created_at: toIsoOrNull((firstActivity.created_at as string | Date | null | undefined) ?? null),
+      created_at: toIsoOrNull(
+        (firstActivity.created_at as string | Date | null | undefined) ?? null
+      ),
     });
   }
 
@@ -289,7 +312,10 @@ export class PortalRepository {
     contactId: string,
     caseId: string,
     options?: { limit?: number; cursor?: string }
-  ): Promise<{ items: unknown[]; page: { limit: number; has_more: boolean; next_cursor: string | null } }> {
+  ): Promise<{
+    items: unknown[];
+    page: { limit: number; has_more: boolean; next_cursor: string | null };
+  }> {
     return this.cases.getPortalCaseTimeline(contactId, caseId, options);
   }
 
@@ -392,6 +418,8 @@ export class PortalRepository {
            FROM case_form_assignments cfa
            LEFT JOIN cases c ON c.id = cfa.case_id
            WHERE cfa.contact_id = $1
+             AND c.client_viewable = true
+             AND cfa.status <> 'draft'
              AND (
                cfa.delivery_target IN ('portal', 'portal_and_email')
                OR cfa.delivery_channels @> ARRAY['portal']::text[]
@@ -562,7 +590,8 @@ export class PortalRepository {
       active_cases: activeCases.slice(0, 4),
       unread_threads_count: Number(unreadThreadsCountResult.rows[0]?.unread_threads_count ?? '0'),
       recent_threads: recentThreadsResult.rows,
-      next_appointment: (nextAppointmentResult.rows[0] as Record<string, unknown> | undefined) ?? null,
+      next_appointment:
+        (nextAppointmentResult.rows[0] as Record<string, unknown> | undefined) ?? null,
       upcoming_events: upcomingEvents.items,
       recent_documents: recentDocuments.items,
       reminders: reminders.items,
@@ -571,7 +600,8 @@ export class PortalRepository {
         activeForms: activeFormsResult.rows,
         unreadThreadsCount: Number(unreadThreadsCountResult.rows[0]?.unread_threads_count ?? '0'),
         recentThreads: recentThreadsResult.rows,
-        nextAppointment: (nextAppointmentResult.rows[0] as Record<string, unknown> | undefined) ?? null,
+        nextAppointment:
+          (nextAppointmentResult.rows[0] as Record<string, unknown> | undefined) ?? null,
         activeCases: activeCases.slice(0, 4) as Array<Record<string, unknown>>,
         recentDocuments: recentDocuments.items,
         recentActivity: recentActivityResult.rows,

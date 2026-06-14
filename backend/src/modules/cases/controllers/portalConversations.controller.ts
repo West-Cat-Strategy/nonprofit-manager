@@ -1,6 +1,7 @@
 import { NextFunction, Response } from 'express';
 import { AuthRequest } from '@middleware/auth';
 import { badRequest, created, forbidden, notFoundMessage } from '@utils/responseHelpers';
+import { sendData } from '../mappers/responseMode';
 import {
   addStaffMessage,
   getStaffThread,
@@ -18,6 +19,9 @@ const tryHandlePortalRequestError = (error: unknown, res: Response): boolean => 
   return false;
 };
 
+const getOrganizationId = (req: AuthRequest): string | undefined =>
+  req.organizationId || req.accountId || req.tenantId;
+
 export const getCasePortalConversations = async (
   req: AuthRequest,
   res: Response,
@@ -25,11 +29,12 @@ export const getCasePortalConversations = async (
 ): Promise<void> => {
   try {
     const caseId = req.params.id;
-    const summaries = await listCaseThreads(caseId);
+    const accountId = getOrganizationId(req);
+    const summaries = await listCaseThreads(caseId, accountId);
     const conversations = await Promise.all(
-      summaries.map(async (thread) => getStaffThread(thread.id))
+      summaries.map(async (thread) => getStaffThread(thread.id, accountId))
     );
-    res.json({ conversations: conversations.filter((entry) => entry !== null) });
+    sendData(res, { conversations: conversations.filter((entry) => entry !== null) });
   } catch (error) {
     next(error);
   }
@@ -48,13 +53,14 @@ export const replyCasePortalConversation = async (
 
     const caseId = req.params.id;
     const threadId = req.params.threadId;
+    const accountId = getOrganizationId(req);
     const { message, is_internal } = req.body as {
       is_internal?: boolean;
       client_message_id?: string;
       message: string;
     };
 
-    const thread = await getStaffThread(threadId);
+    const thread = await getStaffThread(threadId, accountId);
     if (!thread || thread.thread.case_id !== caseId) {
       notFoundMessage(res, 'Conversation not found for this case');
       return;
@@ -64,12 +70,13 @@ export const replyCasePortalConversation = async (
       threadId,
       senderUserId: req.user.id,
       messageText: message,
+      accountId,
       isInternal: Boolean(is_internal),
       clientMessageId: (req.body.client_message_id as string | undefined) ?? undefined,
     });
-    await markStaffThreadRead(threadId);
+    await markStaffThreadRead(threadId, accountId);
 
-    res.status(201).json({ message: createdMessage });
+    sendData(res, { message: createdMessage }, 201);
   } catch (error) {
     if (tryHandlePortalRequestError(error, res)) {
       return;
@@ -91,22 +98,20 @@ export const resolvePortalConversation = async (
 
     const caseId = req.params.id;
     const threadId = req.params.threadId;
-    const {
-      resolution_note,
-      outcome_definition_ids,
-      close_status,
-      visible_to_client,
-    } = req.body as {
-      resolution_note: string;
-      outcome_definition_ids: string[];
-      close_status: 'closed' | 'archived';
-      visible_to_client?: boolean;
-    };
+    const accountId = getOrganizationId(req);
+    const { resolution_note, outcome_definition_ids, close_status, visible_to_client } =
+      req.body as {
+        resolution_note: string;
+        outcome_definition_ids: string[];
+        close_status: 'closed' | 'archived';
+        visible_to_client?: boolean;
+      };
 
     const conversation = await resolveCaseConversation({
       caseId,
       threadId,
       userId: req.user.id,
+      accountId,
       resolutionNote: resolution_note,
       outcomeDefinitionIds: outcome_definition_ids,
       closeStatus: close_status,

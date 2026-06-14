@@ -9,6 +9,7 @@ import { CaseFormsUseCase } from '../caseForms.usecase';
 const sendMailMock = jest.fn();
 const sendSmsMock = jest.fn();
 const uploadFileMock = jest.fn();
+const deleteFileMock = jest.fn();
 const generateCaseFormResponsePacketMock = jest.fn();
 const requireCaseOwnershipMock = jest.fn();
 const createCaseNoteQueryMock = jest.fn();
@@ -23,6 +24,7 @@ jest.mock('@services/twilioSmsService', () => ({
 
 jest.mock('@services/fileStorageService', () => ({
   uploadFile: (...args: unknown[]) => uploadFileMock(...args),
+  deleteFile: (...args: unknown[]) => deleteFileMock(...args),
 }));
 
 jest.mock('../../services/caseFormPacketService', () => ({
@@ -211,6 +213,7 @@ const createRepositoryMock = (): {
     listAssignmentsForCase: jest.fn(),
     listAssignmentsForPortal: jest.fn(),
     getAssignmentById: jest.fn(),
+    getAssignmentByIdForUpdate: jest.fn(),
     createAssignment: jest.fn(),
     updateAssignment: jest.fn(),
     saveDraft: jest.fn(),
@@ -269,6 +272,7 @@ describe('CaseFormsUseCase', () => {
       filePath: 'case-forms/stored-response.pdf',
       fileSize: 1024,
     });
+    deleteFileMock.mockResolvedValue(undefined);
     generateCaseFormResponsePacketMock.mockResolvedValue({
       fileName: 'housing-intake-response.pdf',
       buffer: Buffer.from('pdf'),
@@ -845,11 +849,10 @@ describe('CaseFormsUseCase', () => {
     const submission = makeSubmission();
 
     mocks.getAssignmentById.mockResolvedValueOnce(assignment).mockResolvedValueOnce(refreshed);
+    mocks.getAssignmentByIdForUpdate.mockResolvedValue(assignment);
     mocks.getSubmissionByClientSubmissionId.mockResolvedValue(null);
     mocks.listAssetsForAssignment.mockResolvedValue([]);
-    mocks.listSubmissionsForAssignment
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([submission]);
+    mocks.listSubmissionsForAssignment.mockResolvedValue([submission]);
     mocks.getNextSubmissionNumber.mockResolvedValue(1);
     mocks.createCaseDocumentRecord.mockResolvedValue('case-doc-1');
     mocks.createContactDocumentRecord.mockResolvedValue('contact-doc-1');
@@ -974,11 +977,10 @@ describe('CaseFormsUseCase', () => {
       assignment,
     } as never);
     mocks.getAssignmentById.mockResolvedValueOnce(refreshed);
+    mocks.getAssignmentByIdForUpdate.mockResolvedValue(assignment);
     mocks.getSubmissionByClientSubmissionId.mockResolvedValue(null);
     mocks.listAssetsForAssignment.mockResolvedValue([]);
-    mocks.listSubmissionsForAssignment
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([submission]);
+    mocks.listSubmissionsForAssignment.mockResolvedValue([submission]);
     mocks.getNextSubmissionNumber.mockResolvedValue(1);
     mocks.createCaseDocumentRecord.mockResolvedValue('case-doc-1');
     mocks.createContactDocumentRecord.mockResolvedValue('contact-doc-1');
@@ -1043,11 +1045,10 @@ describe('CaseFormsUseCase', () => {
     });
 
     mocks.getAssignmentById.mockResolvedValueOnce(assignment).mockResolvedValueOnce(refreshed);
+    mocks.getAssignmentByIdForUpdate.mockResolvedValue(assignment);
     mocks.getSubmissionByClientSubmissionId.mockResolvedValue(null);
     mocks.listAssetsForAssignment.mockResolvedValue([]);
-    mocks.listSubmissionsForAssignment
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([submission]);
+    mocks.listSubmissionsForAssignment.mockResolvedValue([submission]);
     mocks.getNextSubmissionNumber.mockResolvedValue(1);
     mocks.createCaseDocumentRecord.mockResolvedValue('case-doc-1');
     mocks.createContactDocumentRecord.mockResolvedValue('contact-doc-1');
@@ -1137,6 +1138,85 @@ describe('CaseFormsUseCase', () => {
     expect(mocks.createAssignmentEvent).not.toHaveBeenCalled();
   });
 
+  it('detects client submission replay inside the transaction before generating artifacts', async () => {
+    const { repository, mocks } = createRepositoryMock();
+    const useCase = new CaseFormsUseCase(repository);
+    const assignment = makeAssignment({
+      status: 'submitted',
+      delivery_target: 'portal',
+    });
+    const existingSubmission = makeSubmission();
+
+    mocks.getAssignmentById.mockResolvedValueOnce(assignment).mockResolvedValueOnce(assignment);
+    mocks.getAssignmentByIdForUpdate.mockResolvedValue(assignment);
+    mocks.getSubmissionByClientSubmissionId
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(existingSubmission);
+    mocks.listSubmissionsForAssignment.mockResolvedValue([existingSubmission]);
+    mocks.listAssetsForAssignment.mockResolvedValue([]);
+    mocks.listAssetsForSubmissionIds.mockResolvedValue([]);
+
+    const result = await useCase.submitForPortal(
+      { contactId: 'contact-1', portalUserId: 'portal-user-1' },
+      assignment.id,
+      {
+        answers: {
+          email: 'client@example.com',
+          household_size: 3,
+        },
+        client_submission_id: 'client-submission-1',
+      }
+    );
+
+    expect(result.assignment.latest_submission?.id).toBe(existingSubmission.id);
+    expect(mocks.withTransaction).toHaveBeenCalledTimes(1);
+    expect(mocks.getSubmissionByClientSubmissionId).toHaveBeenNthCalledWith(
+      2,
+      assignment.id,
+      'client-submission-1',
+      expect.anything()
+    );
+    expect(generateCaseFormResponsePacketMock).not.toHaveBeenCalled();
+    expect(uploadFileMock).not.toHaveBeenCalled();
+    expect(mocks.createSubmission).not.toHaveBeenCalled();
+    expect(mocks.createAssignmentEvent).not.toHaveBeenCalled();
+  });
+
+  it('cleans up a generated response packet when submission transaction work fails', async () => {
+    const { repository, mocks } = createRepositoryMock();
+    const useCase = new CaseFormsUseCase(repository);
+    const assignment = makeAssignment({
+      status: 'sent',
+      delivery_target: 'portal',
+    });
+
+    mocks.getAssignmentById.mockResolvedValueOnce(assignment);
+    mocks.getAssignmentByIdForUpdate.mockResolvedValue(assignment);
+    mocks.getSubmissionByClientSubmissionId.mockResolvedValue(null);
+    mocks.listAssetsForAssignment.mockResolvedValue([]);
+    mocks.getNextSubmissionNumber.mockResolvedValue(1);
+    mocks.createCaseDocumentRecord.mockResolvedValue('case-doc-1');
+    mocks.createContactDocumentRecord.mockRejectedValueOnce(new Error('contact document failed'));
+
+    await expect(
+      useCase.submitForPortal(
+        { contactId: 'contact-1', portalUserId: 'portal-user-1' },
+        assignment.id,
+        {
+          answers: {
+            email: 'client@example.com',
+            household_size: 3,
+          },
+          client_submission_id: 'client-submission-1',
+        }
+      )
+    ).rejects.toThrow('contact document failed');
+
+    expect(uploadFileMock).toHaveBeenCalled();
+    expect(deleteFileMock).toHaveBeenCalledWith('case-forms/stored-response.pdf');
+    expect(mocks.createSubmission).not.toHaveBeenCalled();
+  });
+
   it('updates the existing scheduled review follow-up on resubmission instead of duplicating it', async () => {
     const { repository, mocks } = createRepositoryMock();
     const useCase = new CaseFormsUseCase(repository);
@@ -1158,11 +1238,10 @@ describe('CaseFormsUseCase', () => {
     });
 
     mocks.getAssignmentById.mockResolvedValueOnce(assignment).mockResolvedValueOnce(refreshed);
+    mocks.getAssignmentByIdForUpdate.mockResolvedValue(assignment);
     mocks.getSubmissionByClientSubmissionId.mockResolvedValue(null);
     mocks.listAssetsForAssignment.mockResolvedValue([]);
-    mocks.listSubmissionsForAssignment
-      .mockResolvedValueOnce([makeSubmission()])
-      .mockResolvedValueOnce([submission]);
+    mocks.listSubmissionsForAssignment.mockResolvedValue([submission]);
     mocks.getNextSubmissionNumber.mockResolvedValue(2);
     mocks.createCaseDocumentRecord.mockResolvedValue('case-doc-2');
     mocks.createContactDocumentRecord.mockResolvedValue('contact-doc-2');

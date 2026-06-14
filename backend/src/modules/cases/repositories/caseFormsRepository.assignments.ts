@@ -40,6 +40,8 @@ export async function listAssignmentsForPortal(
   const result = await db.query(
     `${assignmentSelect}
      WHERE cfa.contact_id = $1
+       AND c.client_viewable = true
+       AND cfa.status <> 'draft'
        AND (
          cfa.delivery_target IN ('portal', 'portal_and_email')
          OR cfa.delivery_channels @> ARRAY['portal']::text[]
@@ -59,6 +61,20 @@ export async function getAssignmentById(
     `${assignmentSelect}
      WHERE cfa.id = $1
      LIMIT 1`,
+    [assignmentId]
+  );
+  return result.rows[0] ? mapAssignment(result.rows[0]) : null;
+}
+
+export async function getAssignmentByIdForUpdate(
+  executor: DbExecutor,
+  assignmentId: string
+): Promise<CaseFormAssignmentRecord | null> {
+  const result = await executor.query(
+    `${assignmentSelect}
+     WHERE cfa.id = $1
+     LIMIT 1
+     FOR UPDATE OF cfa`,
     [assignmentId]
   );
   return result.rows[0] ? mapAssignment(result.rows[0]) : null;
@@ -213,12 +229,18 @@ export async function updateAssignment(
 
   const row = result.rows[0];
   if (!row) {
-    throw Object.assign(new Error('Form assignment not found'), { statusCode: 404, code: 'not_found' });
+    throw Object.assign(new Error('Form assignment not found'), {
+      statusCode: 404,
+      code: 'not_found',
+    });
   }
   return mapMutationAssignmentRow(row);
 }
 
-export async function markAssignmentSent(executor: DbExecutor, assignmentId: string): Promise<void> {
+export async function markAssignmentSent(
+  executor: DbExecutor,
+  assignmentId: string
+): Promise<void> {
   await executor.query(
     `UPDATE case_form_assignments
      SET sent_at = NOW(),
@@ -250,12 +272,18 @@ export async function saveDraft(
 
   const assignment = await getAssignmentById(executor, assignmentId);
   if (!assignment) {
-    throw Object.assign(new Error('Form assignment not found'), { statusCode: 404, code: 'not_found' });
+    throw Object.assign(new Error('Form assignment not found'), {
+      statusCode: 404,
+      code: 'not_found',
+    });
   }
   return assignment;
 }
 
-export async function markAssignmentViewed(executor: DbExecutor, assignmentId: string): Promise<void> {
+export async function markAssignmentViewed(
+  executor: DbExecutor,
+  assignmentId: string
+): Promise<void> {
   await executor.query(
     `UPDATE case_form_assignments
      SET viewed_at = COALESCE(viewed_at, NOW()),
@@ -303,16 +331,12 @@ export async function markAssignmentReviewDecision(
     input.status === 'revision_requested'
       ? 'revision_requested_at'
       : input.status === 'reviewed'
-      ? 'reviewed_at'
-      : input.status === 'closed'
-        ? 'closed_at'
-        : null;
+        ? 'reviewed_at'
+        : input.status === 'closed'
+          ? 'closed_at'
+          : null;
 
-  const assignments: string[] = [
-    'status = $2',
-    'updated_at = NOW()',
-    'updated_by = $3',
-  ];
+  const assignments: string[] = ['status = $2', 'updated_at = NOW()', 'updated_by = $3'];
   const values = [assignmentId, input.status, input.userId || null];
   if (input.status === 'revision_requested') {
     assignments.push('revision_requested_at = NOW()');

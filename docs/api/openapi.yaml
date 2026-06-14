@@ -111,6 +111,182 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
+  /portal/auth/invitations/validate:
+    post:
+      summary: Validate portal invitation
+      description: Preferred portal invitation validation endpoint; the raw token is sent in the JSON body.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              additionalProperties: false
+              properties:
+                token:
+                  type: string
+                  minLength: 1
+                  maxLength: 512
+      responses:
+        '200':
+          description: Portal invitation is valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          description: Invitation is expired, already accepted, or request validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Invitation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /portal/auth/invitations/validate/{token}:
+    get:
+      summary: Validate portal invitation by legacy path token
+      deprecated: true
+      description: Compatibility wrapper for existing links; prefer `POST /portal/auth/invitations/validate`.
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 512
+      responses:
+        '200':
+          description: Portal invitation is valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          description: Invitation is expired, already accepted, or request validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Invitation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /portal/auth/invitations/accept:
+    post:
+      summary: Accept portal invitation
+      description: Preferred portal invitation acceptance endpoint; the raw token is sent in the JSON body.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, firstName, lastName, password]
+              additionalProperties: false
+              properties:
+                token:
+                  type: string
+                  minLength: 1
+                  maxLength: 512
+                firstName:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                lastName:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                password:
+                  type: string
+      responses:
+        '201':
+          description: Portal invitation accepted and session cookie set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          description: Invitation is expired, already accepted, or request validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Invitation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Portal account already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /portal/auth/invitations/accept/{token}:
+    post:
+      summary: Accept portal invitation by legacy path token
+      deprecated: true
+      description: Compatibility wrapper for existing links; prefer `POST /portal/auth/invitations/accept`.
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 512
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [firstName, lastName, password]
+              properties:
+                firstName:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                lastName:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                password:
+                  type: string
+      responses:
+        '201':
+          description: Portal invitation accepted and session cookie set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          description: Invitation is expired, already accepted, or request validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Invitation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Portal account already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
   /auth/preferences/{key}:
     patch:
       summary: Update a single user preference key

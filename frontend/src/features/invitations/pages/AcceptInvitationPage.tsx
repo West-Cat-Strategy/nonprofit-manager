@@ -58,10 +58,7 @@ export default function AcceptInvitation() {
   useEffect(() => {
     const validateToken = async () => {
       if (!token) {
-        setValidationFromError(
-          new Error('Invalid invitation link'),
-          'Invalid invitation link'
-        );
+        setValidationFromError(new Error('Invalid invitation link'), 'Invalid invitation link');
         setIsValidating(false);
         return;
       }
@@ -75,7 +72,7 @@ export default function AcceptInvitation() {
       }
 
       try {
-        const response = await api.get(`/invitations/validate/${token}`);
+        const response = await api.post('/invitations/validate', { token });
         if (response.data.valid) {
           setInvitation(response.data.invitation);
           setValidationDeferred(false);
@@ -122,7 +119,8 @@ export default function AcceptInvitation() {
     setIsSubmitting(true);
 
     try {
-      const response = await api.post(`/invitations/accept/${token}`, {
+      const response = await api.post('/invitations/accept', {
+        token,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         password,
@@ -210,7 +208,11 @@ export default function AcceptInvitation() {
         </div>
       )}
 
-      <ErrorBanner message={formError} correlationId={formDetails?.correlationId} className="mb-4" />
+      <ErrorBanner
+        message={formError}
+        correlationId={formDetails?.correlationId}
+        className="mb-4"
+      />
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <FormField type="email" label="Email Address" value={invitation?.email || ''} disabled />

@@ -22,6 +22,7 @@ import {
 import {
   createAssignment,
   getAssignmentById,
+  getAssignmentByIdForUpdate,
   listAssignmentsForCase,
   listAssignmentsForPortal,
   markAssignmentAfterSubmission,
@@ -176,6 +177,13 @@ export class CaseFormsRepository {
     return getAssignmentById(this.db, assignmentId);
   }
 
+  async getAssignmentByIdForUpdate(
+    executor: DbExecutor,
+    assignmentId: string
+  ): Promise<CaseFormAssignmentRecord | null> {
+    return getAssignmentByIdForUpdate(executor, assignmentId);
+  }
+
   async createAssignment(
     executor: DbExecutor,
     input: {
@@ -284,9 +292,10 @@ export class CaseFormsRepository {
 
   async getSubmissionByClientSubmissionId(
     assignmentId: string,
-    clientSubmissionId: string
+    clientSubmissionId: string,
+    executor?: DbExecutor
   ): Promise<CaseFormSubmission | null> {
-    return getSubmissionByClientSubmissionId(this.db, assignmentId, clientSubmissionId);
+    return getSubmissionByClientSubmissionId(executor ?? this.db, assignmentId, clientSubmissionId);
   }
 
   async listSubmissionsForAssignment(assignmentId: string): Promise<CaseFormSubmission[]> {

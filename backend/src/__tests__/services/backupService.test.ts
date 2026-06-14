@@ -68,6 +68,9 @@ describe('BackupService redaction', () => {
     expect(DEFAULT_SECRET_FIELDS.pending_registration_webauthn_challenges).toContain('challenge');
     expect(DEFAULT_SECRET_FIELDS.user_webauthn_challenges).toContain('challenge');
     expect(DEFAULT_SECRET_FIELDS.password_reset_tokens).toContain('token_hash');
+    expect(DEFAULT_SECRET_FIELDS.portal_invitations).toEqual(
+      expect.arrayContaining(['token', 'token_hash'])
+    );
     expect(DEFAULT_SECRET_FIELDS.case_form_access_tokens).toContain('token_hash');
     expect(DEFAULT_SECRET_FIELDS.newsletter_signup_confirmations).toContain('token_hash');
     expect(DEFAULT_SECRET_FIELDS.saved_reports).toContain('public_token');

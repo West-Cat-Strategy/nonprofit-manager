@@ -30,7 +30,9 @@ vi.mock('../../api/caseFormsApiClient', () => ({
     saveDraft: (...args: unknown[]) => saveDraftMock(...args),
     submit: vi.fn(),
     review: (...args: unknown[]) => reviewMock(...args),
-    getResponsePacketDownloadUrl: vi.fn(() => '/api/v2/cases/case-1/forms/assignment-1/response-packet'),
+    getResponsePacketDownloadUrl: vi.fn(
+      () => '/api/v2/cases/case-1/forms/assignment-1/response-packet'
+    ),
     getAssetDownloadUrl: vi.fn(),
   },
 }));
@@ -43,7 +45,23 @@ vi.mock('../../../../contexts/useToast', () => ({
 }));
 
 vi.mock('../../caseForms/CaseFormRenderer', () => ({
-  default: () => <div data-testid="case-form-renderer">Form Renderer</div>,
+  default: ({
+    answers,
+    onAnswerChange,
+  }: {
+    answers: Record<string, unknown>;
+    onAnswerChange: (questionKey: string, value: unknown) => void;
+  }) => (
+    <div data-testid="case-form-renderer">
+      <div data-testid="staff-form-answers">{JSON.stringify(answers)}</div>
+      <button type="button" onClick={() => onAnswerChange('housing_status', 'First edit')}>
+        Set first draft answer
+      </button>
+      <button type="button" onClick={() => onAnswerChange('housing_status', 'Second edit')}>
+        Set second draft answer
+      </button>
+    </div>
+  ),
 }));
 
 const assignment = {
@@ -96,6 +114,7 @@ const assignmentDetail = {
 describe('CaseFormsPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useRealTimers();
     listTemplatesMock.mockResolvedValue([]);
     listRecommendedDefaultsMock.mockResolvedValue([]);
     listAssignmentsMock.mockResolvedValue([assignment]);
@@ -106,11 +125,7 @@ describe('CaseFormsPanel', () => {
 
   it('shows open-form channel controls without blocking direct email when the case is not client-viewable', async () => {
     renderWithProviders(
-      <CaseFormsPanel
-        caseId="case-1"
-        clientEmail="client@example.com"
-        clientViewable={false}
-      />
+      <CaseFormsPanel caseId="case-1" clientEmail="client@example.com" clientViewable={false} />
     );
 
     expect(await screen.findByText('Assignment Actions')).toBeInTheDocument();
@@ -132,11 +147,7 @@ describe('CaseFormsPanel', () => {
     });
 
     renderWithProviders(
-      <CaseFormsPanel
-        caseId="case-1"
-        clientEmail="client@example.com"
-        clientViewable
-      />
+      <CaseFormsPanel caseId="case-1" clientEmail="client@example.com" clientViewable />
     );
 
     await waitFor(() => {
@@ -174,11 +185,7 @@ describe('CaseFormsPanel', () => {
     });
 
     renderWithProviders(
-      <CaseFormsPanel
-        caseId="case-1"
-        clientEmail="client@example.com"
-        clientViewable
-      />
+      <CaseFormsPanel caseId="case-1" clientEmail="client@example.com" clientViewable />
     );
 
     expect(await screen.findByText('Assignment Actions')).toBeInTheDocument();
@@ -201,5 +208,45 @@ describe('CaseFormsPanel', () => {
         notes: 'Please upload the signed consent form.',
       });
     });
+  });
+
+  it('ignores stale staff draft autosave responses after a newer edit', async () => {
+    let resolveFirstSave: (value: unknown) => void = () => undefined;
+    saveDraftMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveFirstSave = resolve;
+        })
+    );
+
+    renderWithProviders(
+      <CaseFormsPanel caseId="case-1" clientEmail="client@example.com" clientViewable />
+    );
+
+    expect(await screen.findByText('Assignment Actions')).toBeInTheDocument();
+    vi.useFakeTimers();
+    fireEvent.click(screen.getByRole('button', { name: /set first draft answer/i }));
+
+    await act(async () => {
+      vi.advanceTimersByTime(1200);
+    });
+
+    expect(saveDraftMock).toHaveBeenCalledWith('case-1', 'assignment-1', {
+      answers: expect.objectContaining({ housing_status: 'First edit' }),
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /set second draft answer/i }));
+
+    await act(async () => {
+      resolveFirstSave({
+        ...assignment,
+        status: 'reviewed',
+        current_draft_answers: { housing_status: 'First edit' },
+      });
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByText(/^reviewed$/i)).not.toBeInTheDocument();
+    expect(screen.getByTestId('staff-form-answers')).toHaveTextContent('Second edit');
   });
 });

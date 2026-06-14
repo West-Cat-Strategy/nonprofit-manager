@@ -206,4 +206,117 @@ describe('CaseForm', () => {
     expect(showSuccessMock).toHaveBeenCalledWith('Case created successfully');
     expect(navigateMock).not.toHaveBeenCalled();
   });
+
+  it('blocks same-tick duplicate submits while the first save is in flight', async () => {
+    const user = userEvent.setup();
+    let resolveCreate: (value: unknown) => void = () => undefined;
+    mockApi.post.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveCreate = resolve;
+        })
+    );
+
+    renderWithProviders(
+      <CaseForm
+        initialData={{
+          contact_id: 'contact-1',
+          case_type_id: 'case-type-1',
+          case_type_ids: ['case-type-1'],
+        }}
+        disableContactSelection
+      />
+    );
+
+    expect(await screen.findByDisplayValue(/ada lovelace/i)).toBeInTheDocument();
+    await user.type(screen.getByLabelText(/title/i), 'Duplicate guarded case');
+
+    fireEvent.click(screen.getByTestId('case-form-primary-submit'));
+    fireEvent.click(screen.getByTestId('case-form-primary-submit'));
+
+    expect(mockApi.post).toHaveBeenCalledTimes(1);
+
+    resolveCreate({
+      data: {
+        success: true,
+        data: {
+          id: 'case-duplicate',
+          contact_id: 'contact-1',
+          case_type_id: 'case-type-1',
+          case_type_ids: ['case-type-1'],
+          status_id: 'status-intake',
+          priority: 'medium',
+          title: 'Duplicate guarded case',
+          intake_date: '2026-05-13',
+          is_urgent: false,
+          client_viewable: false,
+          requires_followup: false,
+          created_at: '2026-05-13T12:00:00.000Z',
+          updated_at: '2026-05-13T12:00:00.000Z',
+        },
+      },
+    });
+
+    await waitFor(() => {
+      expect(showSuccessMock).toHaveBeenCalledWith('Case created successfully');
+    });
+  });
+
+  it('does not restore a stale loaded contact after the contact lookup is cleared', async () => {
+    let resolveContact: (value: unknown) => void = () => undefined;
+    mockApi.get.mockImplementation((url: string) => {
+      if (isApiPath(url, '/cases/types')) {
+        return Promise.resolve({
+          data: {
+            success: true,
+            data: [
+              {
+                id: 'case-type-1',
+                name: 'Housing Support',
+                description: 'Housing stabilization',
+              },
+            ],
+          },
+        });
+      }
+
+      if (isApiPath(url, '/cases/statuses')) {
+        return Promise.resolve({ data: { success: true, data: [] } });
+      }
+
+      if (isApiPath(url, '/contacts/contact-1')) {
+        return new Promise((resolve) => {
+          resolveContact = resolve;
+        });
+      }
+
+      if (url === '/users?is_active=true') {
+        return Promise.resolve({ data: { users: [] } });
+      }
+
+      return Promise.resolve({ data: { success: true, data: [] } });
+    });
+
+    renderWithProviders(<CaseForm initialData={{ contact_id: 'contact-1' }} />);
+
+    const lookupInput = screen.getByLabelText(/client/i);
+    fireEvent.change(lookupInput, { target: { value: 'Zo' } });
+
+    resolveContact({
+      data: {
+        success: true,
+        data: {
+          contact_id: 'contact-1',
+          first_name: 'Ada',
+          last_name: 'Lovelace',
+          email: 'ada@example.com',
+        },
+      },
+    });
+
+    await waitFor(() => {
+      expect(lookupInput).toHaveValue('Zo');
+    });
+    expect((lookupInput as HTMLInputElement).value).not.toMatch(/ada lovelace/i);
+  });
 });

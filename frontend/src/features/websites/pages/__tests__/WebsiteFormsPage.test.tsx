@@ -380,9 +380,12 @@ describe('WebsiteFormsPage', () => {
       .getByText('Contact form')
       .closest('article');
     expect(contactCard).not.toBeNull();
-    fireEvent.change(within(contactCard as HTMLElement).getByPlaceholderText('Success message'), {
-      target: { value: 'Thanks for reaching out.' },
-    });
+    fireEvent.change(
+      within(contactCard as HTMLElement).getByLabelText(/success message for contact form/i),
+      {
+        target: { value: 'Thanks for reaching out.' },
+      }
+    );
     fireEvent.click(
       within(contactCard as HTMLElement).getByRole('button', { name: 'Save form settings' })
     );
@@ -404,7 +407,7 @@ describe('WebsiteFormsPage', () => {
       );
     });
     expect(thunkMocks.fetchWebsiteForms).toHaveBeenCalledTimes(1);
-    expect(screen.getByText('Form settings saved.')).toBeInTheDocument();
+    expect(screen.getByText('Form settings saved.').closest('[role="status"]')).not.toBeNull();
   });
 
   it('surfaces self-referral operator status and drills into reviewable submissions', async () => {
@@ -536,13 +539,13 @@ describe('WebsiteFormsPage', () => {
       );
     });
 
-    fireEvent.change(screen.getByLabelText('Donation provider'), {
+    fireEvent.change(screen.getByLabelText(/donation provider for donation form/i), {
       target: { value: 'square' },
     });
     const donationCard = screen.getByText('Donation form').closest('article');
     expect(donationCard).not.toBeNull();
     fireEvent.change(
-      within(donationCard as HTMLElement).getByPlaceholderText('Currency (CAD, USD)'),
+      within(donationCard as HTMLElement).getByLabelText(/currency for donation form/i),
       {
         target: { value: 'usd' },
       }

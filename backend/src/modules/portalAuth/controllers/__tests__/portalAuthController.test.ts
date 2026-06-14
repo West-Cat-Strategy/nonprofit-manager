@@ -740,6 +740,25 @@ describe('portalAuthController', () => {
       );
     });
 
+    it('validates invitations from a JSON body token', async () => {
+      const req = createBaseRequest({ body: { token: 'body-token' } });
+      const expiresAt = createFutureInvitationExpiry();
+      mockPortalAuthService.getPortalInvitationByToken.mockResolvedValueOnce({
+        id: 'invitation-1',
+        email: 'member@example.com',
+        contact_id: 'contact-1',
+        account_id: 'account-1',
+        created_by: 'staff-1',
+        expires_at: expiresAt,
+        accepted_at: null,
+      });
+
+      await portalAuthController.validatePortalInvitation(req as Request, mockResponse, mockNext);
+
+      expect(mockPortalAuthService.getPortalInvitationByToken).toHaveBeenCalledWith('body-token');
+      expect(mockResponse.status as jest.Mock).toHaveBeenCalledWith(200);
+    });
+
     it('creates a portal user from an invitation and sets the auth cookie', async () => {
       const req = createBaseRequest({
         params: { token: 'accept-token' },
@@ -810,6 +829,43 @@ describe('portalAuthController', () => {
           },
         })
       );
+    });
+
+    it('accepts invitations from a JSON body token', async () => {
+      const req = createBaseRequest({
+        body: {
+          token: 'body-accept-token',
+          firstName: 'New',
+          lastName: 'Member',
+          password: 'Secret123!',
+        },
+      });
+      const expiresAt = createFutureInvitationExpiry();
+      mockPortalAuthService.getPortalInvitationByToken.mockResolvedValueOnce({
+        id: 'invitation-1',
+        email: 'Invitee@Example.com',
+        contact_id: 'contact-1',
+        account_id: 'account-1',
+        created_by: 'staff-1',
+        expires_at: expiresAt,
+        accepted_at: null,
+      });
+      mockPortalAuthService.findPortalUserIdByEmail.mockResolvedValueOnce(null);
+      mockPortalAuthService.createPortalUserFromInvitation.mockResolvedValueOnce({
+        id: 'portal-user-2',
+        email: 'invitee@example.com',
+        contact_id: 'contact-1',
+      });
+
+      await portalAuthController.acceptPortalInvitation(req as Request, mockResponse, mockNext);
+
+      expect(mockPortalAuthService.getPortalInvitationByToken).toHaveBeenCalledWith(
+        'body-accept-token'
+      );
+      expect(mockPortalAuthService.markPortalInvitationAccepted).toHaveBeenCalledWith(
+        'invitation-1'
+      );
+      expect(mockResponse.status as jest.Mock).toHaveBeenCalledWith(201);
     });
 
     it('returns conflict when the invitation email already has a portal account', async () => {

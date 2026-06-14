@@ -29,10 +29,13 @@ const COMPLETED_FORM_STATUSES = new Set<CaseFormAssignment['status']>([
 ]);
 
 const RECEIPT_FORM_STATUSES = new Set<CaseFormAssignment['status']>(['submitted', 'reviewed']);
-const formatAssignmentStatus = (status: CaseFormAssignment['status']): string => status.replace(/_/g, ' ');
-const formatAssignmentCaseContext = (assignment: Pick<CaseFormAssignment, 'case_number' | 'case_title'>): string | null => {
-  const parts = [assignment.case_number, assignment.case_title].filter(
-    (value): value is string => Boolean(value)
+const formatAssignmentStatus = (status: CaseFormAssignment['status']): string =>
+  status.replace(/_/g, ' ');
+const formatAssignmentCaseContext = (
+  assignment: Pick<CaseFormAssignment, 'case_number' | 'case_title'>
+): string | null => {
+  const parts = [assignment.case_number, assignment.case_title].filter((value): value is string =>
+    Boolean(value)
   );
   return parts.length > 0 ? parts.join(' - ') : null;
 };
@@ -71,6 +74,12 @@ export default function PortalForms() {
   const formsRequestIdRef = useRef(0);
   const detailRequestIdRef = useRef(0);
   const draftSnapshotRef = useRef('');
+  const latestDraftSnapshotRef = useRef('');
+  const autosaveRequestIdRef = useRef(0);
+
+  useEffect(() => {
+    latestDraftSnapshotRef.current = JSON.stringify(draftAnswers);
+  }, [draftAnswers]);
 
   const loadForms = useCallback(
     async (bucket: CaseFormAssignmentBucket): Promise<void> => {
@@ -127,7 +136,9 @@ export default function PortalForms() {
         setError(null);
         setDetail(nextDetail);
         setDraftAnswers(nextDetail.assignment.current_draft_answers || {});
-        draftSnapshotRef.current = JSON.stringify(nextDetail.assignment.current_draft_answers || {});
+        draftSnapshotRef.current = JSON.stringify(
+          nextDetail.assignment.current_draft_answers || {}
+        );
       } catch (error) {
         if (requestId !== detailRequestIdRef.current) {
           return;
@@ -161,7 +172,10 @@ export default function PortalForms() {
     if (!detail) return [];
     return [
       ...(detail.assignment.draft_assets || []),
-      ...detail.submissions.flatMap((submission) => [...submission.asset_refs, ...submission.signature_refs]),
+      ...detail.submissions.flatMap((submission) => [
+        ...submission.asset_refs,
+        ...submission.signature_refs,
+      ]),
     ];
   }, [detail]);
 
@@ -178,14 +192,22 @@ export default function PortalForms() {
     if (!detail || isLocked || saving) return;
     const snapshot = JSON.stringify(draftAnswers);
     if (snapshot === draftSnapshotRef.current) return;
+    const assignmentId = detail.assignment.id;
+    const requestId = (autosaveRequestIdRef.current += 1);
 
     const timeout = window.setTimeout(() => {
       void portalCaseFormsApiClient
         .saveDraft(detail.assignment.id, { answers: draftAnswers })
         .then((assignment) => {
+          if (
+            requestId !== autosaveRequestIdRef.current ||
+            latestDraftSnapshotRef.current !== snapshot
+          ) {
+            return;
+          }
           draftSnapshotRef.current = snapshot;
           setDetail((current) =>
-            current
+            current?.assignment.id === assignmentId
               ? {
                   ...current,
                   assignment: {
@@ -201,7 +223,10 @@ export default function PortalForms() {
         });
     }, 1200);
 
-    return () => window.clearTimeout(timeout);
+    return () => {
+      window.clearTimeout(timeout);
+      autosaveRequestIdRef.current += 1;
+    };
   }, [detail, draftAnswers, isLocked, saving]);
 
   const handleUploadAsset = async (
@@ -269,9 +294,13 @@ export default function PortalForms() {
         client_submission_id: crypto.randomUUID(),
       });
       setDetail(nextDetail);
-      draftSnapshotRef.current = JSON.stringify(nextDetail.assignment.current_draft_answers || draftAnswers);
+      draftSnapshotRef.current = JSON.stringify(
+        nextDetail.assignment.current_draft_answers || draftAnswers
+      );
       setForms((current) =>
-        current.map((item) => (item.id === nextDetail.assignment.id ? { ...item, ...nextDetail.assignment } : item))
+        current.map((item) =>
+          item.id === nextDetail.assignment.id ? { ...item, ...nextDetail.assignment } : item
+        )
       );
       showSuccess('Form submitted');
     } catch (error) {
@@ -314,7 +343,9 @@ export default function PortalForms() {
                 onClick={() => setFilter('active')}
                 aria-pressed={filter === 'active'}
                 className={`rounded border px-3 py-2 text-xs font-semibold uppercase ${
-                  filter === 'active' ? 'border-app-text bg-app-text text-white' : 'border-app-border'
+                  filter === 'active'
+                    ? 'border-app-text bg-app-text text-white'
+                    : 'border-app-border'
                 }`}
               >
                 Active
@@ -324,7 +355,9 @@ export default function PortalForms() {
                 onClick={() => setFilter('completed')}
                 aria-pressed={filter === 'completed'}
                 className={`rounded border px-3 py-2 text-xs font-semibold uppercase ${
-                  filter === 'completed' ? 'border-app-text bg-app-text text-white' : 'border-app-border'
+                  filter === 'completed'
+                    ? 'border-app-text bg-app-text text-white'
+                    : 'border-app-border'
                 }`}
               >
                 Completed
@@ -337,7 +370,9 @@ export default function PortalForms() {
                     <PortalListCard
                       icon={<ClipboardDocumentCheckIcon className="h-5 w-5" aria-hidden="true" />}
                       title={form.title}
-                      subtitle={formatAssignmentCaseContext(form) || formatAssignmentStatus(form.status)}
+                      subtitle={
+                        formatAssignmentCaseContext(form) || formatAssignmentStatus(form.status)
+                      }
                       meta={formatAssignmentTimeline(form)}
                       className={
                         form.id === selectedAssignmentId
@@ -368,7 +403,9 @@ export default function PortalForms() {
                         </button>
                       }
                     >
-                      {form.description && <p className="text-sm text-app-text-muted">{form.description}</p>}
+                      {form.description && (
+                        <p className="text-sm text-app-text-muted">{form.description}</p>
+                      )}
                     </PortalListCard>
                   </li>
                 ))}
@@ -392,14 +429,18 @@ export default function PortalForms() {
               <>
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h2 className="text-xl font-semibold text-app-text">{detail.assignment.title}</h2>
+                    <h2 className="text-xl font-semibold text-app-text">
+                      {detail.assignment.title}
+                    </h2>
                     {formatAssignmentCaseContext(detail.assignment) && (
                       <p className="mt-1 text-sm font-medium text-app-text-muted">
                         {formatAssignmentCaseContext(detail.assignment)}
                       </p>
                     )}
                     {detail.assignment.description && (
-                      <p className="mt-1 text-sm text-app-text-muted">{detail.assignment.description}</p>
+                      <p className="mt-1 text-sm text-app-text-muted">
+                        {detail.assignment.description}
+                      </p>
                     )}
                   </div>
                   <span className="rounded border border-app-border px-2 py-1 text-xs font-semibold uppercase">
@@ -470,14 +511,18 @@ export default function PortalForms() {
                       className="inline-flex items-center gap-1.5 rounded border border-app-text bg-app-text px-4 py-2 text-sm font-semibold text-white transition-[box-shadow,transform] duration-150 hover:-translate-y-0.5 hover:shadow-sm"
                     >
                       <DocumentCheckIcon className="h-4 w-4" aria-hidden="true" />
-                      {isSubmittedAwaitingReview || isRevisionRequested ? 'Resubmit Form' : 'Submit Form'}
+                      {isSubmittedAwaitingReview || isRevisionRequested
+                        ? 'Resubmit Form'
+                        : 'Submit Form'}
                     </button>
                   </div>
                 )}
 
                 {detail.assignment.latest_submission?.response_packet_download_url && (
                   <a
-                    href={portalCaseFormsApiClient.getResponsePacketDownloadUrl(detail.assignment.id)}
+                    href={portalCaseFormsApiClient.getResponsePacketDownloadUrl(
+                      detail.assignment.id
+                    )}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-1.5 rounded border border-app-border px-3 py-2 text-sm font-semibold transition-colors duration-150 hover:border-app-accent hover:bg-app-surface-muted"
@@ -502,7 +547,8 @@ export default function PortalForms() {
                             Submission #{submission.submission_number}
                           </p>
                           <p className="text-xs text-app-text-muted">
-                            {new Date(submission.created_at).toLocaleString()} via {submission.submitted_by_actor_type}
+                            {new Date(submission.created_at).toLocaleString()} via{' '}
+                            {submission.submitted_by_actor_type}
                           </p>
                         </div>
                         {submission.response_packet_download_url && (
@@ -525,7 +571,9 @@ export default function PortalForms() {
               <PortalPageState
                 empty
                 compact
-                emptyTitle={filter === 'active' ? 'Select an active form.' : 'No completed form selected.'}
+                emptyTitle={
+                  filter === 'active' ? 'Select an active form.' : 'No completed form selected.'
+                }
                 emptyDescription={
                   forms.length > 0
                     ? 'Choose a form on the left to review its details here.'

@@ -20,6 +20,7 @@ import AdminSettings from '../../features/adminOps/pages/AdminSettingsPage';
 import {
   getTestApiCalls,
   registerTestApiGet,
+  registerTestApiPost,
   type TestApiMatcher,
 } from '../../test/setup';
 import { renderWithProviders } from '../../test/testUtils';
@@ -68,7 +69,7 @@ const apiMatchers = {
   communicationsCampaignRuns: /^\/communications\/campaign-runs(?:\?|$)/,
   communicationsCampaigns: /^\/communications\/campaigns(?:\?|$)/,
   communicationsStatus: '/communications/status',
-  invitationValidate: '/invitations/validate/test-token',
+  invitationValidate: '/invitations/validate',
   mailchimpCampaigns: '/mailchimp/campaigns',
   mailchimpLists: '/mailchimp/lists',
   resetPasswordValidate: '/auth/reset-password/test-token',
@@ -79,7 +80,7 @@ const apiMatchers = {
 } satisfies Record<string, TestApiMatcher>;
 
 const portalMatchers = {
-  acceptInvitationValidate: '/portal/auth/invitations/validate/test-token-1234567890',
+  acceptInvitationValidate: '/portal/auth/invitations/validate',
   resetPasswordValidate: '/portal/auth/reset-password/test-token',
 } as const;
 
@@ -123,7 +124,7 @@ const registerSharedApiMocks = () => {
       pagination: { total: 0, page: 1, limit: 100, total_pages: 0 },
     },
   });
-  registerTestApiGet(apiMatchers.invitationValidate, {
+  registerTestApiPost(apiMatchers.invitationValidate, {
     data: {
       valid: true,
       invitation: {
@@ -145,7 +146,15 @@ const registerPortalApiMocks = () => {
     if (url === portalMatchers.resetPasswordValidate) {
       return Promise.resolve({ data: { valid: true } });
     }
-    if (url === portalMatchers.acceptInvitationValidate) {
+
+    throw new Error(`[test portal api] Unregistered GET ${url}`);
+  });
+
+  mockPortalApiPost.mockImplementation((url: string, body?: { token?: string }) => {
+    if (
+      url === portalMatchers.acceptInvitationValidate &&
+      body?.token === 'test-token-1234567890'
+    ) {
       return Promise.resolve({
         data: {
           invitation: {
@@ -157,10 +166,6 @@ const registerPortalApiMocks = () => {
       });
     }
 
-    throw new Error(`[test portal api] Unregistered GET ${url}`);
-  });
-
-  mockPortalApiPost.mockImplementation((url: string) => {
     throw new Error(`[test portal api] Unregistered POST ${url}`);
   });
 };
@@ -236,7 +241,7 @@ const smokeCases: SmokeCase[] = [
     contractAssertion: async () => {
       const emailField = await screen.findByLabelText(/email address/i);
       expect(emailField).toHaveValue('');
-      expect(getTestApiCalls('get', apiMatchers.invitationValidate)).toHaveLength(0);
+      expect(getTestApiCalls('post', apiMatchers.invitationValidate)).toHaveLength(0);
     },
   },
   {
@@ -312,7 +317,9 @@ const smokeCases: SmokeCase[] = [
     requireMainLandmark: true,
     contractAssertion: async () => {
       await waitFor(() => {
-        expect(mockPortalApiGet).toHaveBeenCalledWith(portalMatchers.acceptInvitationValidate);
+        expect(mockPortalApiPost).toHaveBeenCalledWith(portalMatchers.acceptInvitationValidate, {
+          token: 'test-token-1234567890',
+        });
       });
       expect(await screen.findByDisplayValue('portal@example.org')).toBeInTheDocument();
     },
@@ -397,9 +404,7 @@ describe('Route UX smoke (auth/portal/settings)', () => {
     renderWithProviders(<CommunicationsPage />, { route: '/settings/communications' });
 
     await waitFor(() => {
-      expect(
-        screen.getByText(/mailchimp optional/i)
-      ).toBeInTheDocument();
+      expect(screen.getByText(/mailchimp optional/i)).toBeInTheDocument();
     });
 
     await expectGetRequest(apiMatchers.communicationsStatus);

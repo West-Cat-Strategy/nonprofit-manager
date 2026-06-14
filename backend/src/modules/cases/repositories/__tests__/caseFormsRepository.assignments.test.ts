@@ -66,11 +66,13 @@ describe('caseFormsRepository.assignments', () => {
   it('preserves updated_by when userId is omitted', async () => {
     queryMock.mockResolvedValueOnce({ rows: [assignmentRow] });
 
-    await expect(updateAssignment(pool, 'assignment-1', { status: 'sent' })).resolves.toMatchObject({
-      id: 'assignment-1',
-      status: 'sent',
-      updated_by: 'reviewer-1',
-    });
+    await expect(updateAssignment(pool, 'assignment-1', { status: 'sent' })).resolves.toMatchObject(
+      {
+        id: 'assignment-1',
+        status: 'sent',
+        updated_by: 'reviewer-1',
+      }
+    );
 
     const [sql, params] = queryMock.mock.calls[0];
     expect(sql).toContain('status = $1');
@@ -81,7 +83,9 @@ describe('caseFormsRepository.assignments', () => {
   it('writes updated_by when userId is explicitly null', async () => {
     queryMock.mockResolvedValueOnce({ rows: [assignmentRow] });
 
-    await expect(updateAssignment(pool, 'assignment-1', { status: 'sent', userId: null })).resolves.toMatchObject({
+    await expect(
+      updateAssignment(pool, 'assignment-1', { status: 'sent', userId: null })
+    ).resolves.toMatchObject({
       id: 'assignment-1',
       status: 'sent',
     });
@@ -96,10 +100,9 @@ describe('caseFormsRepository.assignments', () => {
 
     await markAssignmentSent(pool, 'assignment-1');
 
-    expect(queryMock).toHaveBeenCalledWith(
-      expect.stringContaining('SET sent_at = NOW(),'),
-      ['assignment-1']
-    );
+    expect(queryMock).toHaveBeenCalledWith(expect.stringContaining('SET sent_at = NOW(),'), [
+      'assignment-1',
+    ]);
   });
 
   it('marks revision requests with explicit notes and timestamp', async () => {
@@ -150,6 +153,7 @@ describe('caseFormsRepository.assignments', () => {
     await expect(listAssignmentsForPortal(pool, 'contact-1', 'active')).resolves.toEqual([]);
 
     const [sql, params] = queryMock.mock.calls[0];
+    expect(sql).toContain('c.client_viewable = true');
     expect(sql).toContain('cfa.status = ANY($2::text[])');
     expect(params).toEqual([
       'contact-1',
@@ -164,10 +168,7 @@ describe('caseFormsRepository.assignments', () => {
 
     const [sql, params] = queryMock.mock.calls[0];
     expect(sql).toContain('cfa.status = ANY($2::text[])');
-    expect(params).toEqual([
-      'contact-1',
-      ['reviewed', 'closed', 'expired', 'cancelled'],
-    ]);
+    expect(params).toEqual(['contact-1', ['reviewed', 'closed', 'expired', 'cancelled']]);
   });
 
   it('keeps exact portal statuses as a single-status filter', async () => {

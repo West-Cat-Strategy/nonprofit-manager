@@ -95,9 +95,11 @@ const asCaseFilters = (filters: Record<string, unknown>): CaseFilter => ({
   is_urgent: typeof filters.is_urgent === 'boolean' ? filters.is_urgent : undefined,
   imported_only: typeof filters.imported_only === 'boolean' ? filters.imported_only : undefined,
   sort_by: typeof filters.sort_by === 'string' ? filters.sort_by : undefined,
-  sort_order: filters.sort_order === 'asc' || filters.sort_order === 'desc' ? filters.sort_order : undefined,
+  sort_order:
+    filters.sort_order === 'asc' || filters.sort_order === 'desc' ? filters.sort_order : undefined,
   quick_filter: isStoredQuickFilter(filters.quick_filter) ? filters.quick_filter : undefined,
-  due_within_days: typeof filters.due_within_days === 'number' ? filters.due_within_days : undefined,
+  due_within_days:
+    typeof filters.due_within_days === 'number' ? filters.due_within_days : undefined,
   limit: typeof filters.limit === 'number' ? filters.limit : undefined,
 });
 
@@ -114,6 +116,20 @@ const fromServerQueueView = (view: QueueViewDefinition): SavedCaseView => {
     quickFilter,
     serverBacked: true,
   };
+};
+
+const mergeLocalAndServerViews = (
+  localViews: SavedCaseView[],
+  serverViews: SavedCaseView[],
+  hiddenServerViewIds: Set<string>
+): SavedCaseView[] => {
+  const visibleServerViews = serverViews.filter((view) => !hiddenServerViewIds.has(view.id));
+  const serverIds = new Set(visibleServerViews.map((view) => view.id));
+  const localOnlyViews = localViews.filter(
+    (view) => !view.serverBacked && !hiddenServerViewIds.has(view.id) && !serverIds.has(view.id)
+  );
+
+  return [...localOnlyViews, ...visibleServerViews];
 };
 
 export function useSavedCaseViews({
@@ -144,14 +160,16 @@ export function useSavedCaseViews({
       setSavedViewsLoading(true);
       try {
         const hiddenIds = new Set(readHiddenServerViewIds());
+        const localViews = parseStoredViews();
         const serverViews = (await queueViewsApiClient.listQueueViews('cases'))
           .map(fromServerQueueView)
           .filter((view) => !hiddenIds.has(view.id));
         if (cancelled) {
           return;
         }
-        setSavedViews(serverViews);
-        persistLocalViews(serverViews);
+        const mergedViews = mergeLocalAndServerViews(localViews, serverViews, hiddenIds);
+        setSavedViews(mergedViews);
+        persistLocalViews(mergedViews);
         setSavedViewsError(null);
         setSavedViewsUsingLocalFallback(false);
       } catch {
@@ -159,7 +177,9 @@ export function useSavedCaseViews({
           return;
         }
         setSavedViews(parseStoredViews());
-        setSavedViewsError('Server saved views are unavailable. Local saved views are being used on this device.');
+        setSavedViewsError(
+          'Server saved views are unavailable. Local saved views are being used on this device.'
+        );
         setSavedViewsUsingLocalFallback(true);
       } finally {
         if (!cancelled) {
@@ -301,7 +321,9 @@ export function useSavedCaseViews({
     if (selectedView?.serverBacked) {
       void queueViewsApiClient.archiveQueueView('cases', selectedView.id).catch(() => {
         hideServerViewId(selectedView.id);
-        setSavedViewsError('Removed this saved view from this device because server archiving is unavailable.');
+        setSavedViewsError(
+          'Removed this saved view from this device because server archiving is unavailable.'
+        );
       });
     }
   }, [persistSavedViews, savedViews, selectedViewId]);

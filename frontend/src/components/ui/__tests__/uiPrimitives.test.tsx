@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import {
@@ -17,6 +17,7 @@ import {
   SideNav,
   DataTable,
   TopNav,
+  FocusTrapDialog,
 } from '../index';
 
 const themeCssFiles = [
@@ -82,7 +83,11 @@ describe('ui primitives', () => {
         <LoadingState label="Loading records..." />
         <EmptyState title="No records" description="Create one to begin" />
         <ErrorState message="Failed to load" onRetry={onRetry} />
-        <FormField label="Email address" helperText="Use your work email" error="Email is required" />
+        <FormField
+          label="Email address"
+          helperText="Use your work email"
+          error="Email is required"
+        />
       </div>
     );
 
@@ -132,9 +137,7 @@ describe('ui primitives', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveClass(
-      'app-accent-contrast-ink'
-    );
+    expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveClass('app-accent-contrast-ink');
     expect(screen.getByRole('link', { name: 'Contacts' })).toHaveClass('text-app-text');
     expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page');
   });
@@ -175,17 +178,43 @@ describe('ui primitives', () => {
   it('renders top navigation with the opaque shell surface', () => {
     render(<TopNav left={<span>Portal</span>} right={<button type="button">Account</button>} />);
 
-    expect(screen.getByText('Portal').closest('header')).toHaveClass(
-      'app-shell-surface-opaque'
+    expect(screen.getByText('Portal').closest('header')).toHaveClass('app-shell-surface-opaque');
+  });
+
+  it('traps keyboard focus inside dialogs and calls onClose on Escape', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+
+    render(
+      <div>
+        <button type="button">Outside</button>
+        <FocusTrapDialog isOpen labelledBy="dialog-title" onClose={onClose}>
+          <h2 id="dialog-title">Confirm change</h2>
+          <button type="button">Cancel</button>
+          <button type="button">Confirm</button>
+        </FocusTrapDialog>
+      </div>
     );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus();
+    });
+
+    await user.tab();
+    expect(screen.getByRole('button', { name: 'Confirm' })).toHaveFocus();
+    await user.tab();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus();
+    await user.tab({ shift: true });
+    expect(screen.getByRole('button', { name: 'Confirm' })).toHaveFocus();
+    await user.keyboard('{Escape}');
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it('keeps theme shell surfaces opaque in every theme stylesheet', () => {
     for (const filename of themeCssFiles) {
       const css = readThemeCss(filename);
-      const declarations = Array.from(
-        css.matchAll(/--app-shell-surface:\s*([^;]+);/g),
-        (match) => match[1].trim()
+      const declarations = Array.from(css.matchAll(/--app-shell-surface:\s*([^;]+);/g), (match) =>
+        match[1].trim()
       );
 
       expect(declarations).toHaveLength(2);

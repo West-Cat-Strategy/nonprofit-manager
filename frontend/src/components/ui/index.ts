@@ -11,3 +11,4 @@ export { FormField, SelectField, TextareaField } from './FormFields';
 export { default as DataTable } from './DataTable';
 export { default as StatCard } from './StatCard';
 export { LoadingState, EmptyState, ErrorState } from './State';
+export { default as FocusTrapDialog } from './FocusTrapDialog';

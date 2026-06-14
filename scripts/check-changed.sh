@@ -64,7 +64,7 @@ if [[ $RUN -eq 1 ]]; then
   echo -e "${BLUE}Running suggested checks...${RESET}"
   while IFS= read -r cmd; do
     echo -e "${BLUE}==> $cmd${RESET}"
-    eval "$cmd"
+    ( eval "$cmd" )
   done <<< "$CHECKS"
   echo -e "${GREEN}All checks passed!${RESET}"
 fi

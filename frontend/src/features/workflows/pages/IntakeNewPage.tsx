@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CaseForm from '../../../components/CaseForm';
 import { ContactForm } from '../../contacts/components/contactForm';
+import { contactsApiClient } from '../../contacts/api/contactsApiClient';
 import type { CaseWithDetails } from '../../../types/case';
 import type { Contact } from '../../contacts/state';
 import WorkflowStepper, { type WorkflowStep } from '../components/WorkflowStepper';
@@ -20,6 +21,10 @@ const IntakeNew = () => {
   const [step, setStep] = useState<IntakeStep>('contact');
   const [createdContact, setCreatedContact] = useState<IntakeDraftSnapshot['createdContact']>(null);
   const [isDraftRestored, setIsDraftRestored] = useState(false);
+  const [restoredContactIdToValidate, setRestoredContactIdToValidate] = useState<string | null>(
+    null
+  );
+  const [restoreNotice, setRestoreNotice] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -29,13 +34,59 @@ const IntakeNew = () => {
       const parsed = JSON.parse(raw) as IntakeDraftSnapshot;
       setStep(parsed.step || 'contact');
       setCreatedContact(parsed.createdContact || null);
+      setRestoredContactIdToValidate(parsed.createdContact?.contact_id || null);
     } catch {
       setStep('contact');
       setCreatedContact(null);
+      setRestoredContactIdToValidate(null);
     } finally {
       setIsDraftRestored(true);
     }
   }, []);
+
+  useEffect(() => {
+    if (!isDraftRestored || !restoredContactIdToValidate) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const validateRestoredContact = async () => {
+      try {
+        const contact = (await contactsApiClient.getContact(
+          restoredContactIdToValidate
+        )) as Contact;
+        if (cancelled) {
+          return;
+        }
+        setCreatedContact({
+          contact_id: contact.contact_id,
+          first_name: contact.first_name,
+          last_name: contact.last_name,
+          email: contact.email,
+        });
+        setRestoreNotice(null);
+      } catch {
+        if (cancelled) {
+          return;
+        }
+        setCreatedContact(null);
+        setStep('contact');
+        setRestoreNotice('The restored contact is no longer available. Start a new intake.');
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      } finally {
+        if (!cancelled) {
+          setRestoredContactIdToValidate(null);
+        }
+      }
+    };
+
+    void validateRestoredContact();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isDraftRestored, restoredContactIdToValidate]);
 
   useEffect(() => {
     if (!isDraftRestored) {
@@ -59,6 +110,8 @@ const IntakeNew = () => {
   );
 
   const handleContactCreated = (contact: Contact) => {
+    setRestoreNotice(null);
+    setRestoredContactIdToValidate(null);
     setCreatedContact({
       contact_id: contact.contact_id,
       first_name: contact.first_name,
@@ -73,7 +126,9 @@ const IntakeNew = () => {
     navigate(`/cases/${createdCase.id}`);
   };
 
-  const canOpenCaseStep = Boolean(createdContact?.contact_id);
+  const isValidatingRestoredContact = Boolean(restoredContactIdToValidate);
+  const canOpenCaseStep = Boolean(createdContact?.contact_id) && !isValidatingRestoredContact;
+  const showCaseStep = step === 'case' && (canOpenCaseStep || isValidatingRestoredContact);
 
   return (
     <div className="p-6">
@@ -101,8 +156,13 @@ const IntakeNew = () => {
           className="mb-6"
         />
 
-        {step === 'contact' ? (
+        {!showCaseStep ? (
           <div className="bg-app-surface rounded-lg shadow-sm p-6">
+            {restoreNotice && (
+              <div className="mb-4 rounded-lg border border-app-border bg-app-accent-soft px-4 py-3 text-sm text-app-accent-text">
+                {restoreNotice}
+              </div>
+            )}
             <ContactForm
               mode="create"
               onCreated={handleContactCreated}
@@ -114,6 +174,11 @@ const IntakeNew = () => {
           </div>
         ) : (
           <div className="bg-app-surface rounded-lg shadow-sm p-6">
+            {isValidatingRestoredContact ? (
+              <div role="status" aria-live="polite" className="text-sm text-app-text-muted">
+                Checking restored contact...
+              </div>
+            ) : null}
             {createdContact && (
               <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-app-border bg-app-surface-muted px-4 py-3">
                 <div>
@@ -143,11 +208,13 @@ const IntakeNew = () => {
                 </div>
               </div>
             )}
-            <CaseForm
-              initialData={{ contact_id: createdContact?.contact_id || '' }}
-              disableContactSelection={Boolean(createdContact)}
-              onCreated={handleCaseCreated}
-            />
+            {!isValidatingRestoredContact ? (
+              <CaseForm
+                initialData={{ contact_id: createdContact?.contact_id || '' }}
+                disableContactSelection={Boolean(createdContact)}
+                onCreated={handleCaseCreated}
+              />
+            ) : null}
           </div>
         )}
       </div>

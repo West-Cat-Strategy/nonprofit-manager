@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PortalPagedResult, PortalSortOrder } from '../types/contracts';
 
 interface PortalPagedListQuery<TSortField extends string> {
@@ -46,6 +46,7 @@ export function usePortalPagedList<TItem, TSortField extends string>({
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
 
   const normalizedSearch = useMemo(() => {
     const trimmed = search.trim();
@@ -55,6 +56,7 @@ export function usePortalPagedList<TItem, TSortField extends string>({
   const loadPage = useCallback(
     async (nextOffset: number, append: boolean, quiet = false) => {
       if (!enabled) {
+        requestIdRef.current += 1;
         setItems([]);
         setOffset(0);
         setTotal(0);
@@ -69,7 +71,10 @@ export function usePortalPagedList<TItem, TSortField extends string>({
         setLoadingMore(true);
       } else if (!quiet) {
         setLoading(true);
+        setLoadingMore(false);
       }
+
+      const requestId = (requestIdRef.current += 1);
 
       try {
         const page = await fetchPage({
@@ -80,21 +85,30 @@ export function usePortalPagedList<TItem, TSortField extends string>({
           offset: nextOffset,
         });
 
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
+
         setItems((current) => (append ? [...current, ...page.items] : page.items));
         setOffset(nextOffset + page.items.length);
         setTotal(page.page.total);
         setHasMore(page.page.has_more);
         setError(null);
       } catch (loadError) {
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
         if (!quiet) {
           setError('Unable to load this list right now.');
           console.error('Failed to load portal paged list', loadError);
         }
       } finally {
-        if (append) {
-          setLoadingMore(false);
-        } else if (!quiet) {
-          setLoading(false);
+        if (requestId === requestIdRef.current) {
+          if (append) {
+            setLoadingMore(false);
+          } else if (!quiet) {
+            setLoading(false);
+          }
         }
       }
     },

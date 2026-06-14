@@ -98,7 +98,8 @@ const parseCaseListSearchParams = (searchParams: URLSearchParams): ParsedCaseLis
     account_id: searchParams.get('account_id') || undefined,
     priority: (searchParams.get('priority') as CaseFilter['priority']) || undefined,
     status_id:
-      statusIdParam || (statusParam && !legacyQuickFilterMap[statusParam] ? statusParam : undefined),
+      statusIdParam ||
+      (statusParam && !legacyQuickFilterMap[statusParam] ? statusParam : undefined),
     case_type_id: searchParams.get('type') || searchParams.get('case_type_id') || undefined,
     assigned_to: searchParams.get('assigned_to') || undefined,
     is_urgent: parseBoolean(searchParams.get('is_urgent')),
@@ -127,6 +128,26 @@ const parseCaseListSearchParams = (searchParams: URLSearchParams): ParsedCaseLis
   };
 };
 
+const buildCaseListQueryStateFromFilters = (filters: CaseFilter): ParsedCaseListQueryState => {
+  const normalizedFilters = normalizeCaseFilters(filters);
+  const nextQuickFilter = (normalizedFilters.quick_filter as QuickFilter | undefined) || 'all';
+
+  return {
+    hasParams: false,
+    filters: normalizedFilters,
+    searchTerm: normalizedFilters.search || '',
+    selectedPriority: normalizedFilters.priority || '',
+    selectedStatus: normalizedFilters.status_id || '',
+    selectedType: normalizedFilters.case_type_id || '',
+    showUrgentOnly: normalizedFilters.is_urgent || false,
+    showImportedOnly: normalizedFilters.imported_only || false,
+    selectedSort: normalizedFilters.sort_by || DEFAULT_CASE_LIST_FILTERS.sort_by || 'created_at',
+    selectedOrder: normalizedFilters.sort_order || DEFAULT_CASE_LIST_FILTERS.sort_order || 'desc',
+    quickFilter: nextQuickFilter,
+    dueSoonDays: nextQuickFilter === 'due_soon' ? normalizedFilters.due_within_days || 7 : 7,
+  };
+};
+
 export const getDefaultCaseListFilters = (): CaseFilter => ({ ...DEFAULT_CASE_LIST_FILTERS });
 
 export function useCaseListQueryState({
@@ -140,29 +161,11 @@ export function useCaseListQueryState({
     const parsedQueryState = parseCaseListSearchParams(searchParams);
     initialQueryStateRef.current = parsedQueryState.hasParams
       ? parsedQueryState
-      : {
-          ...parsedQueryState,
-          filters: normalizeCaseFilters(initialFiltersFromStore),
-          searchTerm: initialFiltersFromStore.search || '',
-          selectedPriority: initialFiltersFromStore.priority || '',
-          selectedStatus: initialFiltersFromStore.status_id || '',
-          selectedType: initialFiltersFromStore.case_type_id || '',
-          showUrgentOnly: initialFiltersFromStore.is_urgent || false,
-          showImportedOnly: initialFiltersFromStore.imported_only || false,
-          selectedSort:
-            initialFiltersFromStore.sort_by || DEFAULT_CASE_LIST_FILTERS.sort_by || 'created_at',
-          selectedOrder:
-            initialFiltersFromStore.sort_order || DEFAULT_CASE_LIST_FILTERS.sort_order || 'desc',
-          quickFilter:
-            (initialFiltersFromStore.quick_filter as QuickFilter | undefined) || 'all',
-          dueSoonDays:
-            initialFiltersFromStore.quick_filter === 'due_soon'
-              ? initialFiltersFromStore.due_within_days || 7
-              : 7,
-        };
+      : buildCaseListQueryStateFromFilters(initialFiltersFromStore);
   }
 
   const initialQueryState = initialQueryStateRef.current;
+  const lastSearchParamsStringRef = useRef(searchParams.toString());
 
   const [filters, setActiveFilters] = useState<CaseFilter>(() => initialQueryState.filters);
   const [searchTerm, setSearchTerm] = useState(initialQueryState.searchTerm);
@@ -188,6 +191,24 @@ export function useCaseListQueryState({
     [dispatch]
   );
 
+  const applyQueryState = useCallback(
+    (nextQueryState: ParsedCaseListQueryState) => {
+      setActiveFilters(nextQueryState.filters);
+      setSearchTerm(nextQueryState.searchTerm);
+      setSelectedPriority(nextQueryState.selectedPriority);
+      setSelectedStatus(nextQueryState.selectedStatus);
+      setSelectedType(nextQueryState.selectedType);
+      setShowUrgentOnly(nextQueryState.showUrgentOnly);
+      setShowImportedOnly(nextQueryState.showImportedOnly);
+      setSelectedSort(nextQueryState.selectedSort);
+      setSelectedOrder(nextQueryState.selectedOrder);
+      setQuickFilter(nextQueryState.quickFilter);
+      setDueSoonDays(nextQueryState.dueSoonDays);
+      syncStoreFilters(nextQueryState.filters);
+    },
+    [syncStoreFilters]
+  );
+
   useEffect(() => {
     if (!initialQueryState.hasParams) {
       return;
@@ -195,6 +216,22 @@ export function useCaseListQueryState({
 
     syncStoreFilters(initialQueryState.filters);
   }, [initialQueryState.filters, initialQueryState.hasParams, syncStoreFilters]);
+
+  useEffect(() => {
+    const nextSearchParamsString = searchParams.toString();
+    if (nextSearchParamsString === lastSearchParamsStringRef.current) {
+      return;
+    }
+
+    lastSearchParamsStringRef.current = nextSearchParamsString;
+    const parsedQueryState = parseCaseListSearchParams(searchParams);
+    const nextQueryState = parsedQueryState.hasParams
+      ? parsedQueryState
+      : buildCaseListQueryStateFromFilters(getDefaultCaseListFilters());
+
+    dispatch(clearCaseSelection());
+    applyQueryState(nextQueryState);
+  }, [applyQueryState, dispatch, searchParams]);
 
   const syncUrl = useCallback(
     (nextFilters: CaseFilter) => {
@@ -218,6 +255,7 @@ export function useCaseListQueryState({
         params.set(key, String(value));
       });
 
+      lastSearchParamsStringRef.current = params.toString();
       setSearchParams(params, { replace: true });
     },
     [setSearchParams]
@@ -317,6 +355,7 @@ export function useCaseListQueryState({
     setActiveFilters(getDefaultCaseListFilters());
     dispatch(clearCaseSelection());
     dispatch(clearFilters());
+    lastSearchParamsStringRef.current = '';
     setSearchParams(new URLSearchParams(), { replace: true });
   }, [dispatch, setSearchParams]);
 

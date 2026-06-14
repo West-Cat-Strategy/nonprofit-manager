@@ -1,4 +1,5 @@
 import { BrutalButton, BrutalCard } from '../../../components/neo-brutalist';
+import { FocusTrapDialog } from '../../../components/ui';
 import type { CaseStatus } from '../../../types/case';
 import type { OutcomeDefinition } from '../../../types/outcomes';
 
@@ -42,19 +43,24 @@ export default function CaseStatusChangeModal({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center app-popup-backdrop"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="status-modal-title"
+    <FocusTrapDialog
+      isOpen={open}
+      labelledBy="status-modal-title"
+      onClose={onCancel}
+      overlayClassName="fixed inset-0 z-50"
+      backdropClassName="app-popup-backdrop fixed inset-0"
+      containerClassName="flex min-h-full items-center justify-center p-4"
+      panelClassName="w-full max-w-md"
     >
-      <BrutalCard color="white" className="mx-4 w-full max-w-md p-6">
+      <BrutalCard color="white" className="p-6">
         <h3 id="status-modal-title" className="mb-4 text-lg font-black uppercase text-black">
           Change Case Status
         </h3>
         <div className="space-y-4">
           <div>
-            <label className="mb-2 block text-sm font-black uppercase text-black/70">New Status</label>
+            <label className="mb-2 block text-sm font-black uppercase text-black/70">
+              New Status
+            </label>
             <select
               value={newStatusId}
               onChange={(event) => onNewStatusIdChange(event.target.value)}
@@ -126,7 +132,12 @@ export default function CaseStatusChangeModal({
             </BrutalButton>
             <BrutalButton
               onClick={onSubmit}
-              disabled={!newStatusId || !notes.trim() || (requiresOutcome && outcomeDefinitionIds.length === 0) || loading}
+              disabled={
+                !newStatusId ||
+                !notes.trim() ||
+                (requiresOutcome && outcomeDefinitionIds.length === 0) ||
+                loading
+              }
               variant="primary"
             >
               {loading ? 'Updating...' : 'Update Status'}
@@ -134,6 +145,6 @@ export default function CaseStatusChangeModal({
           </div>
         </div>
       </BrutalCard>
-    </div>
+    </FocusTrapDialog>
   );
 }

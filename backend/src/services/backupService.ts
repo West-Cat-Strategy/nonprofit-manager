@@ -34,7 +34,7 @@ export const DEFAULT_SECRET_FIELDS: Record<string, string[]> = {
   website_site_settings: ['mautic_password_encrypted'],
   webhook_endpoints: ['secret'],
   user_invitations: ['token'],
-  portal_invitations: ['token'],
+  portal_invitations: ['token', 'token_hash'],
   case_form_access_tokens: ['token_hash'],
   event_registrations: ['check_in_token'],
   newsletter_signup_confirmations: ['token_hash'],

@@ -13,9 +13,13 @@ import {
 } from '../controllers';
 import { authenticatePortal, checkAccountLockout } from '@middleware/domains/auth';
 import { requireJsonRequest } from '@middleware/requireJsonRequest';
-import { authLimiterMiddleware, passwordResetLimiterMiddleware } from '@middleware/domains/platform';
+import {
+  authLimiterMiddleware,
+  passwordResetLimiterMiddleware,
+} from '@middleware/domains/platform';
 import { validateBody, validateParams } from '@middleware/zodValidation';
 import {
+  acceptPortalInvitationBodySchema,
   acceptPortalInvitationSchema,
   portalInvitationTokenParamsSchema,
   portalLoginSchema,
@@ -23,11 +27,18 @@ import {
   portalPasswordResetRequestSchema,
   portalPasswordResetTokenParamsSchema,
   portalSignupSchema,
+  validatePortalInvitationBodySchema,
 } from '@validations/portal';
 
 const router = Router();
 
-router.post('/signup', requireJsonRequest, authLimiterMiddleware, validateBody(portalSignupSchema), portalSignup);
+router.post(
+  '/signup',
+  requireJsonRequest,
+  authLimiterMiddleware,
+  validateBody(portalSignupSchema),
+  portalSignup
+);
 router.post(
   '/forgot-password',
   passwordResetLimiterMiddleware,
@@ -62,6 +73,21 @@ router.get(
   '/invitations/validate/:token',
   validateParams(portalInvitationTokenParamsSchema),
   validatePortalInvitation
+);
+
+router.post(
+  '/invitations/validate',
+  requireJsonRequest,
+  validateBody(validatePortalInvitationBodySchema),
+  validatePortalInvitation
+);
+
+router.post(
+  '/invitations/accept',
+  requireJsonRequest,
+  authLimiterMiddleware,
+  validateBody(acceptPortalInvitationBodySchema),
+  acceptPortalInvitation
 );
 
 router.post(
