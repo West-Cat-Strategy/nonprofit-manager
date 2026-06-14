@@ -1,7 +1,15 @@
-import { createClient, RedisClientType } from 'redis';
+import {
+  createClient,
+  type RedisClientType,
+  type RedisFunctions,
+  type RedisModules,
+  type RedisScripts,
+} from 'redis';
 import { logger } from './logger';
 
-let redisClient: RedisClientType | null = null;
+type AppRedisClient = RedisClientType<RedisModules, RedisFunctions, RedisScripts, 2>;
+
+let redisClient: AppRedisClient | null = null;
 const DEFAULT_SCAN_COUNT = 200;
 const DEFAULT_DELETE_BATCH_SIZE = 200;
 
@@ -39,6 +47,7 @@ export async function initializeRedis(): Promise<void> {
     // Support rediss:// protocol for TLS
     const socketOptions: Record<string, unknown> = {
       connectTimeout: isNonProductionLocalRedis ? 1000 : undefined,
+      keepAliveInitialDelay: 5000,
       reconnectStrategy: isNonProductionLocalRedis
         ? () => false
         : (retries: number) => {
@@ -57,12 +66,16 @@ export async function initializeRedis(): Promise<void> {
       };
     }
 
-    redisClient = createClient({
+    const client: AppRedisClient = createClient({
       url: redisUrl,
+      RESP: 2,
       socket: socketOptions,
+      commandOptions: {
+        timeout: undefined,
+      },
     });
 
-    redisClient.on('error', (err) => {
+    client.on('error', (err) => {
       if (isNonProductionLocalRedis) {
         return;
       }
@@ -70,21 +83,22 @@ export async function initializeRedis(): Promise<void> {
       logger.error('Redis client error:', err);
     });
 
-    redisClient.on('connect', () => {
+    client.on('connect', () => {
       logger.info('Redis client connected');
     });
 
-    redisClient.on('ready', () => {
+    client.on('ready', () => {
       logger.info('Redis client ready');
     });
 
     if (!isNonProductionLocalRedis) {
-      redisClient.on('reconnecting', () => {
+      client.on('reconnecting', () => {
         logger.warn('Redis client reconnecting...');
       });
     }
 
-    await redisClient.connect();
+    await client.connect();
+    redisClient = client;
     logger.info(`Redis initialized successfully at ${redisUrl}`);
   } catch (error) {
     if (process.env.NODE_ENV !== 'production' && ['localhost', '127.0.0.1', '::1', '[::1]'].includes((() => {
@@ -109,7 +123,7 @@ export async function initializeRedis(): Promise<void> {
 /**
  * Get Redis client instance
  */
-export function getRedisClient(): RedisClientType | null {
+export function getRedisClient(): AppRedisClient | null {
   return redisClient;
 }
 

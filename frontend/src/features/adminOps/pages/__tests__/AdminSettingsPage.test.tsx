@@ -195,10 +195,9 @@ describe('AdminSettings page', () => {
     renderAdminSettings();
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /admin hub/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /portal operations/i })).toBeInTheDocument();
     });
-
-    expect(screen.getByRole('heading', { name: /portal operations/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /admin hub/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /^access$/i })).toHaveAttribute(
       'href',
       '/settings/admin/portal/access'

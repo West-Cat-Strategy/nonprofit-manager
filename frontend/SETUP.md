@@ -6,7 +6,7 @@ Use this file when you only need the frontend runtime details. For the full cont
 
 ## Prerequisites
 
-- Node.js `20.19+`
+- Node.js `22.19+`
 - npm `10+`
 - A running backend at either `http://localhost:3000` or `http://localhost:8004`
 

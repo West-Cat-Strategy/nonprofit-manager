@@ -136,7 +136,7 @@ const toAddressInfo = (address: string): { address: string; family: 4 | 6; ttl: 
 });
 
 const createPinnedMauticDispatcher = (addresses: string[]): Dispatcher =>
-  new Agent().compose(
+  new Agent({ allowH2: false }).compose(
     interceptors.dns({
       maxTTL: 0,
       lookup: (_origin, _options, callback) => {

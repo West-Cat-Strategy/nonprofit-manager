@@ -6,7 +6,7 @@ Use this guide to choose a local runtime, set up the matching environment, and c
 
 ## Prerequisites
 
-- Node.js `20.19+`
+- Node.js `22.19+`
 - npm `10+`
 - Docker if you plan to build images or use the optional compose dev stack
 - Git

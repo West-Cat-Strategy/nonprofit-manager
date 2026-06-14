@@ -4,6 +4,7 @@ import {
   initializeRedis,
   scanAndDeleteByPattern,
 } from '@config/redis';
+import { createClient } from 'redis';
 
 const mockRedisClient = {
   isReady: true,
@@ -51,6 +52,20 @@ describe('redis pattern deletion helpers', () => {
 
   afterEach(async () => {
     await closeRedis();
+  });
+
+  it('pins redis v6 client behavior to the previous RESP2/no-timeout defaults', () => {
+    expect(createClient).toHaveBeenCalledWith(
+      expect.objectContaining({
+        RESP: 2,
+        commandOptions: {
+          timeout: undefined,
+        },
+        socket: expect.objectContaining({
+          keepAliveInitialDelay: 5000,
+        }),
+      })
+    );
   });
 
   it('deletes matching keys with SCAN iterator in batches', async () => {

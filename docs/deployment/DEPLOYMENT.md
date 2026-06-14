@@ -40,7 +40,7 @@ Keep the aggregate database connection budget below the Postgres `max_connection
 ## Prerequisites
 
 - Docker and Docker Compose for image/compose deployment paths
-- Node.js `20.19+` and npm `10+` for manual build or script execution
+- Node.js `22.19+` and npm `10+` for manual build or script execution
 - PostgreSQL 18+ for repo-owned self-hosted database paths
 - SSH access to the target host
 - A production domain and HTTPS termination plan
