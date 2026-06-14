@@ -1,7 +1,7 @@
 import { Pool } from 'pg';
 import dbPool from '@config/database';
 import { logger } from '@config/logger';
-import { DonationService } from '@services/donationService';
+import { DonationService } from '@modules/donations/services/donationService';
 import { SiteManagementService } from '@services/publishing/siteManagementService';
 import stripeService from '@services/stripeService';
 import paymentProviderService from '@services/paymentProviderService';

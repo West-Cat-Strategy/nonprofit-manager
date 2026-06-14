@@ -26,6 +26,6 @@ router.post('/export', validateBody(backupExportSchema), exportBackup);
 
 export default router;
 
-export const createBackupRoutes = () => router;
+const createBackupRoutes = () => router;
 
 export const backupV2Routes = createBackupRoutes();

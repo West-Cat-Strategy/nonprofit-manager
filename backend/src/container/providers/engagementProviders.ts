@@ -1,9 +1,9 @@
 import { Pool } from 'pg';
 import { AccountService } from '@services/accountService';
-import { CaseService } from '@services/caseService';
+import { CaseService } from '@modules/cases/services/caseService';
 import { ContactRoleService } from '@services/contactRoleService';
-import { ContactService } from '@services/contactService';
-import { DonationService } from '@services/donationService';
+import { ContactService } from '@modules/contacts/services/contactService';
+import { DonationService } from '@modules/donations/services/donationService';
 import { DonationBatchService } from '@modules/donations/services/donationBatchService';
 import { DonationDesignationService } from '@modules/donations/services/donationDesignationService';
 import { TaskService } from '@services/taskService';

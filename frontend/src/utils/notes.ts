@@ -50,7 +50,7 @@ export function getNoteTypeLabel(noteType: string): string {
 
 /**
  * Format a date as relative time for notes (e.g., "2 hours ago", "3 days ago")
- * More granular than formatRelativeTime for recent activity
+ * Keeps recent note activity readable without pulling in a shared formatter.
  */
 export function formatNoteDate(dateString: string): string {
   const date = new Date(dateString);

@@ -174,6 +174,6 @@ router.post(
 
 export default router;
 
-export const createDonationsRoutes = () => router;
+const createDonationsRoutes = () => router;
 
 export const donationsV2Routes = createDonationsRoutes();

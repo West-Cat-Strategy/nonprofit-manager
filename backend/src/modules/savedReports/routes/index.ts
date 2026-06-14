@@ -61,7 +61,7 @@ const reportPublicLinkSchema = z.object({
   expires_at: dateStringSchema.optional(),
 });
 
-export const createSavedReportsRoutes = (): Router => {
+const createSavedReportsRoutes = (): Router => {
   const router = Router();
   const controller = createSavedReportsController();
 

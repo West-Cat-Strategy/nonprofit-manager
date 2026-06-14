@@ -19,7 +19,7 @@ jest.mock('@services/emailService', () => ({
   sendMail: jest.fn(),
 }));
 
-jest.mock('@services/mailchimpService', () => ({
+jest.mock('@modules/mailchimp/services/mailchimpService', () => ({
   __esModule: true,
   default: {
     getStatus: jest.fn(),
@@ -59,7 +59,7 @@ jest.mock('../services/browserViewTokenService', () => ({
 import pool from '@config/database';
 import { getEmailSettings } from '@services/emailSettingsService';
 import { sendMail } from '@services/emailService';
-import mailchimpService from '@services/mailchimpService';
+import mailchimpService from '@modules/mailchimp/services/mailchimpService';
 import mauticService from '@services/mauticService';
 import * as communicationsService from '../services/communicationsService';
 import { drainDueLocalCampaignRuns } from '../services/localCampaignDrainService';

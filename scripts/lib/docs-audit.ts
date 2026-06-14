@@ -11,7 +11,7 @@ const docsAuditRoots = [
   'README.md',
   'CONTRIBUTING.md',
   'AGENTS.md',
-  'agents.md',
+  '.github',
   'backend/README.md',
   'frontend/README.md',
   'frontend/SETUP.md',

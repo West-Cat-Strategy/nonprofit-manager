@@ -94,7 +94,7 @@ const updateSuppressionEvidenceSchema = z
   })
   .strict();
 
-export const createContactsRoutes = (): Router => {
+const createContactsRoutes = (): Router => {
   const router = Router();
   const scopedRouter = Router();
 

@@ -1,4 +1,4 @@
-import { FollowUpService } from '@services/followUpService';
+import { FollowUpService } from '@modules/followUps/services/followUpService';
 import * as helpers from '../services/followUpService.helpers';
 
 type MockDb = {

@@ -1,0 +1,170 @@
+# P5-T143 Dead-Code Export Prune Proof - 2026-06-13
+
+## Scope
+
+Branch: `codex/p5-t143-dead-code-prune-2026-06-13`
+
+Worktree: `/Users/bryan/projects/nonprofit-manager-p5-t143-dead-code-prune`
+
+Base: `origin/main`
+
+This lane prunes confirmed-unused export surfaces, compatibility-shaped root service wrappers, stale frontend presentation components, and stale validation-routing gaps. It preserves route paths, `/api/v2` contracts, response envelopes, permissions, database schema, auth-alias compatibility, and `/api/payments/*` tombstone behavior.
+
+## Implementation Summary
+
+- Deleted the inert backend module declaration scaffold and its scaffold-only test.
+- Converted confirmed-unused route factory exports to private functions while preserving mounted `*V2Routes` exports.
+- Rewrote the old wave-2 route-construction test to assert mounted route objects instead of consuming test-only factory seams.
+- Migrated active imports off the cases, contacts, donations, follow-ups, follow-up reminders, and Mailchimp root service wrappers, then deleted those wrapper files.
+- Deleted unused legacy dashboard presentation components, unused neo-brutalist form controls and aliases, unused CalmOps primitives, and the unused public UI `Button` alias.
+- Removed the unused case-notes Redux slice while keeping `CaseNotesPanel` on its direct API-client path.
+- Removed unused utility exports from `validation.ts`, `format.ts`, and `exportUtils.ts` without deleting helpers that still have live callers.
+- Fixed `.github` helper-doc links to `AGENTS.md`, routed `.github/**/*.md` through docs validation, and added selector tooling coverage.
+- Refreshed the UI audit ratchet to `1568/10035/59` after deleting dead UI surfaces.
+
+## Retained Candidates
+
+- `createDashboardRoutes` and `createScheduledReportsRoutes` remain exported because current route/security tests still import them directly.
+- `@services/contactServiceHelpers` remains under the root services namespace because it is an active helper, not one of the deleted compatibility wrappers.
+- Historical verifier wrappers, P5-T75 auth-alias compatibility, `/api/payments/*` tombstone behavior, and package-script conveniences were treated as out of scope.
+- Broad Knip export mode still reports many established export-only symbols across module barrels, frontend state/index files, route catalogs, and scripts; this lane used it as triage input only.
+
+## Read-Only Subagent Review
+
+- Backend review found no stale imports or route factory consumers after the module-manifest scaffold, private route factories, and six root service wrappers were pruned.
+- Frontend review found no stale imports for the deleted dashboard components, neo-brutalist controls/aliases, CalmOps primitives, UI `Button` alias, case-notes Redux slice, or trimmed utility exports.
+- Docs/tooling review confirmed the `.github` link fixes, selector/docs-audit routing, validation index, workboard row, and 98-path proof ledger are aligned with the live dirty/untracked path set.
+
+## Validation
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npm ci` | Passed | Fresh dependency hydration in the sibling worktree. |
+| `npm run knip` | Passed | File/dependency/unlisted/unresolved/binary gate clean. |
+| `./node_modules/.bin/knip --config knip.json --include exports --no-exit-code` | Passed with findings | Export-mode triage remains noisy; no additional deletions were taken without live caller proof. |
+| `git diff --check` | Passed | No whitespace errors. |
+| `cd backend && npm run type-check` | Passed | Backend TypeScript clean. |
+| `cd frontend && npm run type-check` | Passed | Frontend TypeScript clean. |
+| `make typecheck` | Passed | Backend, frontend, and contracts type-checks completed. |
+| `make lint` | Passed | Includes backend lint, shared policy checks, refreshed UI audit baseline, and frontend lint. |
+| `make check-links` | Passed | Checked 286 files and 1567 active-doc links, including `.github` helper docs. |
+| `make test-tooling` | Passed | 78 node tests passed, including `.github` selector routing. |
+| `cd backend && npm test -- --runInBand src/__tests__/modules/wave2RouteConstruction.test.ts src/__tests__/worker.test.ts src/__tests__/services/caseService.test.ts src/__tests__/services/donationService.test.ts src/modules/followUps/__tests__/followUpService.test.ts src/modules/communications/__tests__/communicationsService.test.ts src/__tests__/services/mailchimpService.test.ts src/__tests__/services/newsletterProviderService.test.ts src/__tests__/services/publishing/siteOperationsService.test.ts src/__tests__/services/publishing/websiteEntryService.test.ts src/__tests__/services/publishing/publicWebsiteFormService.test.ts src/modules/recurringDonations/services/__tests__/recurringDonationService.test.ts src/modules/recurringDonations/services/__tests__/recurringDonationSyncService.test.ts` | Passed | 13 suites, 170 tests. |
+| `cd backend && npm test -- --runInBand src/__tests__/integration/routeGuardrails.test.ts` | Passed | 1 suite, 70 tests. |
+| `cd backend && npm test -- --runInBand src/__tests__/integration/contacts.test.ts` | Passed | 1 suite, 55 tests. |
+| `cd backend && npm test -- --runInBand src/modules/mailchimp/controllers/__tests__/mailchimpController.test.ts` | Passed | 1 suite, 3 tests; verifies the canonical Mailchimp service mock path. |
+| `cd backend && npm test -- --runInBand src/__tests__/modules/payments.intentOwnership.test.ts` | Passed | 1 suite, 12 tests; confirms payment ownership/tombstone-adjacent behavior was not regressed by the prune. |
+| `cd backend && npm test -- --runInBand src/__tests__/integration/portalAuth.test.ts src/__tests__/integration/analytics.test.ts src/__tests__/integration/passkeyLockout.test.ts src/__tests__/integration/portalWorkspace.test.ts` | Passed | 4 suites, 34 tests; these were rerun after the broad backend suite lost its DB connection. |
+| `cd frontend && npm test -- --run src/components/ui/__tests__/uiPrimitives.test.tsx src/store/__tests__/rootReducerShape.test.ts src/features/cases/pages/__tests__/CaseDetailTabs.test.tsx src/features/cases/components/__tests__/CaseNotesPanel.test.tsx src/components/neo-brutalist/__tests__/PeopleCard.test.tsx src/features/dashboard/pages/__tests__/WorkbenchDashboardPage.test.tsx` | Passed | 6 files, 24 tests. |
+| `cd frontend && npm test -- --run src/features/dashboard/pages/__tests__/CustomDashboardPage.test.tsx src/hooks/__tests__/useDashboardSettings.test.ts src/features/analytics/pages/__tests__/AnalyticsPage.test.tsx` | Passed | 3 files, 41 tests; extra subagent-recommended coverage for live dashboard/settings surfaces. |
+| `./scripts/select-checks.sh --files "<exact final changed paths>" --mode strict` | Passed | Emitted `make check-links`, `make test-tooling`, `make lint`, `make typecheck`, and `make test-coverage-full`. |
+| `make test` | Blocked in this environment | Attempted twice. First run exposed a stale Mailchimp controller mock path, which was fixed and verified. Second run degraded in the backend broad suite after the isolated Postgres connection terminated; the printed failing suites passed when rerun directly against a fresh DB. |
+| `cd frontend && npm test -- --run` | Blocked in this environment | The full frontend Vitest runner produced no progress output after startup and was interrupted; the focused frontend bundle above is green. |
+| `make test-coverage-full` | Not run | The selector-requested full coverage gate would exercise the same unstable full backend/frontend runners after `make test` remained blocked. |
+
+## Exact Final Changed Paths
+
+```text
+.github/README.md
+.github/agents/docs-workboard-agent.md
+.github/copilot-instructions.md
+.github/instructions/docs.instructions.md
+backend/src/__tests__/integration/contacts.test.ts
+backend/src/__tests__/modules/moduleManifest.test.ts
+backend/src/__tests__/modules/wave2RouteConstruction.test.ts
+backend/src/__tests__/services/caseService.test.ts
+backend/src/__tests__/services/donationService.test.ts
+backend/src/__tests__/services/mailchimpService.test.ts
+backend/src/__tests__/services/newsletterProviderService.test.ts
+backend/src/__tests__/services/publishing/publicWebsiteFormService.test.ts
+backend/src/__tests__/services/publishing/siteOperationsService.test.ts
+backend/src/__tests__/services/publishing/websiteEntryService.test.ts
+backend/src/__tests__/worker.test.ts
+backend/src/container/providers/engagementProviders.ts
+backend/src/modules/activities/module.ts
+backend/src/modules/activities/routes/index.ts
+backend/src/modules/admin/routes/index.ts
+backend/src/modules/alerts/module.ts
+backend/src/modules/alerts/routes/index.ts
+backend/src/modules/analytics/routes/index.ts
+backend/src/modules/appealCampaigns/routes/index.ts
+backend/src/modules/backup/routes/index.ts
+backend/src/modules/cases/routes/index.ts
+backend/src/modules/communications/__tests__/communicationsService.test.ts
+backend/src/modules/communications/services/communicationsService.ts
+backend/src/modules/contacts/routes/index.ts
+backend/src/modules/dashboard/module.ts
+backend/src/modules/donations/routes/index.ts
+backend/src/modules/events/routes/index.ts
+backend/src/modules/export/routes/index.ts
+backend/src/modules/followUps/__tests__/followUpService.test.ts
+backend/src/modules/followUps/controllers/followUps.handlers.ts
+backend/src/modules/followUps/routes/index.ts
+backend/src/modules/grants/routes/index.ts
+backend/src/modules/ingest/routes/index.ts
+backend/src/modules/invitations/routes/index.ts
+backend/src/modules/moduleManifest.ts
+backend/src/modules/opportunities/routes/index.ts
+backend/src/modules/plausibleProxy/routes/index.ts
+backend/src/modules/portalAdmin/routes/index.ts
+backend/src/modules/portalAuth/routes/index.ts
+backend/src/modules/publicReports/routes/index.ts
+backend/src/modules/recurringDonations/services/__tests__/recurringDonationService.test.ts
+backend/src/modules/recurringDonations/services/__tests__/recurringDonationSyncService.test.ts
+backend/src/modules/recurringDonations/services/recurringDonationService.ts
+backend/src/modules/recurringDonations/services/recurringDonationSyncService.ts
+backend/src/modules/reports/routes/index.ts
+backend/src/modules/savedReports/routes/index.ts
+backend/src/modules/socialMedia/routes/index.ts
+backend/src/modules/tasks/routes/index.ts
+backend/src/modules/teamChat/routes/index.ts
+backend/src/modules/templates/routes/index.ts
+backend/src/modules/users/routes/index.ts
+backend/src/modules/volunteers/routes/index.ts
+backend/src/modules/webhooks/routes/index.ts
+backend/src/services/caseService.ts
+backend/src/services/contactService.ts
+backend/src/services/donationService.ts
+backend/src/services/followUpReminderSchedulerService.ts
+backend/src/services/followUpService.ts
+backend/src/services/mailchimpService.ts
+backend/src/services/newsletterProviderService.ts
+backend/src/services/publishing/siteOperationsService.ts
+backend/src/services/publishing/websiteEntryService.ts
+backend/src/workerSchedulerRegistry.ts
+docs/phases/planning-and-progress.md
+docs/ui/archive/app-ux-audit.json
+docs/ui/user_interface_template_information.md
+docs/validation/P5-T143_DEAD_CODE_EXPORT_PRUNE_PROOF_2026-06-13.md
+docs/validation/README.md
+frontend/src/components/dashboard/DashboardCustomizer.tsx
+frontend/src/components/dashboard/EngagementChart.tsx
+frontend/src/components/dashboard/KPICard.tsx
+frontend/src/components/dashboard/KPISection.tsx
+frontend/src/components/dashboard/ModulesGrid.tsx
+frontend/src/components/dashboard/PriorityCards.tsx
+frontend/src/components/dashboard/index.ts
+frontend/src/components/dashboard/types.ts
+frontend/src/components/neo-brutalist/BrutalFormCheckbox.tsx
+frontend/src/components/neo-brutalist/BrutalFormTextarea.tsx
+frontend/src/components/neo-brutalist/BrutalMultiSelect.tsx
+frontend/src/components/neo-brutalist/index.ts
+frontend/src/components/ui/CalmOps.tsx
+frontend/src/components/ui/index.ts
+frontend/src/features/cases/hooks/useCaseDetailPage.tsx
+frontend/src/features/cases/pages/__tests__/CaseDetailTabs.test.tsx
+frontend/src/features/cases/state/caseNotesSlice.ts
+frontend/src/features/cases/state/index.ts
+frontend/src/store/__tests__/rootReducerShape.test.ts
+frontend/src/utils/exportUtils.ts
+frontend/src/utils/format.ts
+frontend/src/utils/notes.ts
+frontend/src/utils/validation.ts
+scripts/lib/docs-audit.ts
+scripts/select-checks.sh
+scripts/tests/tooling-contracts.test.cjs
+```
+
+## Disposition
+
+Implementation is ready for review with focused behavior, type, lint, docs, selector, and Knip gates green. The remaining caveat is the broad full-runner environment instability documented above; the suites that printed failures under the unstable broad backend run passed when rerun directly against a fresh isolated database.

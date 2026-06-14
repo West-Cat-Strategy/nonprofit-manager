@@ -1,5 +1,5 @@
 import type { Pool } from 'pg';
-import type { DonationService } from '@services/donationService';
+import type { DonationService } from '@modules/donations/services/donationService';
 import { RecurringDonationSyncService } from '../recurringDonationSyncService';
 import {
   getPlanByWhere,

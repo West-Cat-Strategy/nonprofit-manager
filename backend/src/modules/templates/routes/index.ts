@@ -338,6 +338,6 @@ router.post(
 
 export default router;
 
-export const createTemplatesRoutes = () => router;
+const createTemplatesRoutes = () => router;
 
 export const templatesV2Routes = createTemplatesRoutes();

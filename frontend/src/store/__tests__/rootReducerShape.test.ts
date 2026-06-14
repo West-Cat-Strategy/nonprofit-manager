@@ -13,6 +13,10 @@ describe('root store shape', () => {
     expect(keys).not.toContain('eventsList');
     expect(keys).not.toContain('contactsV2');
     expect(keys).not.toContain('volunteersV2');
+
+    const caseKeys = Object.keys(state.cases);
+    expect(caseKeys).toEqual(['core', 'list', 'management']);
+    expect(caseKeys).not.toContain('notes');
   });
 
   it('keeps legacy test-state normalization as an explicit compatibility helper', () => {

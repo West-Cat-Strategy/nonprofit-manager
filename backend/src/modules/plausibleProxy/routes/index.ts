@@ -62,6 +62,6 @@ router.get(
 
 export default router;
 
-export const createPlausibleProxyRoutes = () => router;
+const createPlausibleProxyRoutes = () => router;
 
 export const plausibleProxyV2Routes = createPlausibleProxyRoutes();

@@ -61,7 +61,7 @@ jest.mock('@modules/contacts/services/contactSuppressionService', () => ({
 }));
 
 // Import service AFTER setting env vars and mocks
-import * as mailchimpService from '@services/mailchimpService';
+import * as mailchimpService from '@modules/mailchimp/services/mailchimpService';
 
 // Get mocked modules
 import mailchimp from '@mailchimp/mailchimp_marketing';

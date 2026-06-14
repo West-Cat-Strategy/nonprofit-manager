@@ -72,7 +72,7 @@ const importTemplateQuerySchema = z
   })
   .strict();
 
-export const createVolunteersRoutes = (): Router => {
+const createVolunteersRoutes = (): Router => {
   const router = Router();
 
   const repository = new VolunteerRepository();

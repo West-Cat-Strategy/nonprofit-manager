@@ -32,7 +32,7 @@ import { EventCatalogUseCase } from '../usecases/eventCatalog.usecase';
 import { EventRegistrationUseCase } from '../usecases/registration.usecase';
 import { EventRemindersUseCase } from '../usecases/reminders.usecase';
 
-export const createEventsV2Routes = (): Router => {
+const createEventsV2Routes = (): Router => {
   const repository = new EventRepository(services.event);
   const controller = createEventsController(
     new EventCatalogUseCase(repository),

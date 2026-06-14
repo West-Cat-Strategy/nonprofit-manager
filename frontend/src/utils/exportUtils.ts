@@ -37,7 +37,7 @@ const loadPdfDeps = async (): Promise<PdfDeps> => {
 /**
  * Convert an array of objects to CSV format
  */
-export function convertToCSV<T>(
+function convertToCSV<T>(
   data: T[],
   columns: { key: keyof T; header: string }[]
 ): string {
@@ -67,7 +67,7 @@ export function convertToCSV<T>(
 /**
  * Download data as a CSV file
  */
-export function downloadCSV(csvContent: string, filename: string): void {
+function downloadCSV(csvContent: string, filename: string): void {
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   const url = URL.createObjectURL(blob);

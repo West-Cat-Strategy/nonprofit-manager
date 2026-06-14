@@ -13,7 +13,7 @@ import type {
   WebsiteEntryStatus,
 } from '@app-types/websiteBuilder';
 import type { MailchimpCampaign } from '@app-types/mailchimp';
-import { getCampaigns } from '@services/mailchimpService';
+import { getCampaigns } from '@modules/mailchimp/services/mailchimpService';
 import mauticService, { type MauticEmail } from '@services/mauticService';
 import { sanitizeNewsletterHtml } from './newsletterHtmlSanitizer';
 import { SiteManagementService } from './siteManagementService';

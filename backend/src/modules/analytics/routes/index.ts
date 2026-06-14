@@ -62,7 +62,7 @@ const anomalyMetricQuerySchema = z
   })
   .strict();
 
-export const createAnalyticsRoutes = (): Router => {
+const createAnalyticsRoutes = (): Router => {
   const router = Router();
   const controller = createAnalyticsController();
 

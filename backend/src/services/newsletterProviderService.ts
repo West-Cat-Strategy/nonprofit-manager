@@ -4,7 +4,7 @@ import type {
   WebsiteNewsletterListPreset,
   WebsiteSiteSettings,
 } from '@app-types/publishing';
-import mailchimpService from '@services/mailchimpService';
+import mailchimpService from '@modules/mailchimp/services/mailchimpService';
 import mauticService from '@services/mauticService';
 import type { SyncContactRequest, SyncResult } from '@app-types/mailchimp';
 

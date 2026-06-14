@@ -40,7 +40,7 @@ const enforceFeatureFlag = (req: AuthRequest, res: Response, next: NextFunction)
   next();
 };
 
-export const createTeamChatV2Routes = (): Router => {
+const createTeamChatV2Routes = (): Router => {
   const repository = new TeamChatRepository();
   const controller = createTeamChatController(new TeamChatUseCase(repository));
   const messengerController = createTeamMessengerController(new TeamMessengerUseCase(repository));

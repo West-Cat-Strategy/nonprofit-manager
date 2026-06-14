@@ -21,7 +21,7 @@ jest.mock('../../services/caseWorkflowService', () => ({
 }));
 
 import { Pool } from 'pg';
-import { CaseService } from '../../services/caseService';
+import { CaseService } from '../../modules/cases/services/caseService';
 
 describe('CaseService', () => {
   let service: CaseService;

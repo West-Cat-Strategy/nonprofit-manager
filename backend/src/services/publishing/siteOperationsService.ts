@@ -14,7 +14,7 @@ import type {
 } from '@app-types/publishing';
 import type { Template, TemplatePage } from '@app-types/websiteBuilder';
 import { newsletterProviderService } from '@services/domains/integration';
-import mailchimpService from '@services/mailchimpService';
+import mailchimpService from '@modules/mailchimp/services/mailchimpService';
 import mauticService from '@services/mauticService';
 import {
   ensureEventsPage,

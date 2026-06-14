@@ -119,6 +119,6 @@ router.post('/:id/resend', validateParams(invitationIdParamsSchema), resendInvit
 
 export default router;
 
-export const createInvitationsRoutes = () => router;
+const createInvitationsRoutes = () => router;
 
 export const invitationsV2Routes = createInvitationsRoutes();

@@ -1,5 +1,5 @@
 import type { Pool } from 'pg';
-import mailchimpService from '@services/mailchimpService';
+import mailchimpService from '@modules/mailchimp/services/mailchimpService';
 import mauticService from '@services/mauticService';
 import type {
   PublishedSite,
@@ -8,7 +8,7 @@ import type {
 } from '@app-types/publishing';
 import { SiteOperationsService } from '@services/publishing/siteOperationsService';
 
-jest.mock('@services/mailchimpService', () => ({
+jest.mock('@modules/mailchimp/services/mailchimpService', () => ({
   __esModule: true,
   default: {
     isMailchimpConfigured: jest.fn(),

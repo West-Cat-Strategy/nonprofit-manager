@@ -48,6 +48,6 @@ router.get('/:entityType/:entityId', validateParams(activityEntityParamsSchema),
 
 export default router;
 
-export const createActivitiesRoutes = () => router;
+const createActivitiesRoutes = () => router;
 
 export const activitiesV2Routes = createActivitiesRoutes();

@@ -73,6 +73,6 @@ router.post(
   syncFacebookPage
 );
 
-export const createSocialMediaRoutes = () => router;
+const createSocialMediaRoutes = () => router;
 
 export const socialMediaV2Routes = createSocialMediaRoutes();

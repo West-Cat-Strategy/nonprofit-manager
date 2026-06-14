@@ -30,7 +30,7 @@ import {
 } from '@validations/grant';
 import { createGrantsController } from '../controllers/grants.controller';
 
-export const createGrantsRoutes = (): Router => {
+const createGrantsRoutes = (): Router => {
   const router = Router();
   const controller = createGrantsController();
 

@@ -75,6 +75,6 @@ router.post(
 
 export default router;
 
-export const createPortalAuthRoutes = () => router;
+const createPortalAuthRoutes = () => router;
 
 export const portalAuthV2Routes = createPortalAuthRoutes();

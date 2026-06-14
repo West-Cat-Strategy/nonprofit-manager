@@ -1,10 +1,10 @@
 import { describe, expect, it } from '@jest/globals';
-import { createAnalyticsRoutes } from '@modules/analytics';
-import { createDashboardRoutes } from '@modules/dashboard';
-import { createFollowUpsRoutes } from '@modules/followUps';
-import { createReportsRoutes } from '@modules/reports';
-import { createSavedReportsRoutes } from '@modules/savedReports';
-import { createScheduledReportsRoutes } from '@modules/scheduledReports';
+import { analyticsV2Routes } from '@modules/analytics';
+import { dashboardV2Routes } from '@modules/dashboard';
+import { followUpsV2Routes } from '@modules/followUps';
+import { reportsV2Routes } from '@modules/reports';
+import { savedReportsV2Routes } from '@modules/savedReports';
+import { scheduledReportsV2Routes } from '@modules/scheduledReports';
 
 const getRouteCount = (router: { stack?: unknown[] }): number =>
   Array.isArray(router.stack) ? router.stack.length : 0;
@@ -19,12 +19,12 @@ const hasPostRoute = (
 describe('wave 2 modular route construction', () => {
   it('builds routers without placeholder dependency injection', () => {
     const routers = [
-      createAnalyticsRoutes(),
-      createDashboardRoutes(),
-      createFollowUpsRoutes(),
-      createReportsRoutes(),
-      createSavedReportsRoutes(),
-      createScheduledReportsRoutes(),
+      analyticsV2Routes,
+      dashboardV2Routes,
+      followUpsV2Routes,
+      reportsV2Routes,
+      savedReportsV2Routes,
+      scheduledReportsV2Routes,
     ];
 
     routers.forEach((router) => {
@@ -33,9 +33,7 @@ describe('wave 2 modular route construction', () => {
   });
 
   it('keeps manual report exports on the queued export route only', () => {
-    const reportsRouter = createReportsRoutes();
-
-    expect(hasPostRoute(reportsRouter, '/export')).toBe(false);
-    expect(hasPostRoute(reportsRouter, '/exports')).toBe(true);
+    expect(hasPostRoute(reportsV2Routes, '/export')).toBe(false);
+    expect(hasPostRoute(reportsV2Routes, '/exports')).toBe(true);
   });
 });

@@ -13,10 +13,6 @@ export function validateEmail(email: string): string | null {
   return null;
 }
 
-export function isValidEmail(email: string): boolean {
-  return EMAIL_REGEX.test(email.trim());
-}
-
 // Password validation
 const PASSWORD_MIN_LENGTH = 8;
 const PASSWORD_LOWERCASE_REGEX = /[a-z]/;
@@ -95,10 +91,6 @@ export function validateUrl(url: string): string | null {
   return null;
 }
 
-export function isValidUrl(url: string): boolean {
-  return validateUrl(url) === null;
-}
-
 // Postal code validation
 const POSTAL_CODE_PATTERNS: Record<string, { regex: RegExp; example: string }> = {
   'US': { regex: /^\d{5}(-\d{4})?$/, example: '12345 or 12345-6789' },
@@ -133,63 +125,5 @@ export function validatePostalCode(postalCode: string, country?: string | null):
     return 'Postal code must be 3-10 characters (letters, numbers, spaces, or dashes)';
   }
 
-  return null;
-}
-
-// Required field validation
-export function validateRequired(value: string | null | undefined, fieldName: string): string | null {
-  if (!value?.trim()) {
-    return `${fieldName} is required`;
-  }
-  return null;
-}
-
-// Min/max length validation
-export function validateLength(
-  value: string,
-  fieldName: string,
-  options: { min?: number; max?: number }
-): string | null {
-  const { min, max } = options;
-  const length = value.trim().length;
-
-  if (min !== undefined && length < min) {
-    return `${fieldName} must be at least ${min} characters`;
-  }
-  if (max !== undefined && length > max) {
-    return `${fieldName} must be no more than ${max} characters`;
-  }
-  return null;
-}
-
-// Numeric validation
-export function validateNumeric(value: string, fieldName: string): string | null {
-  if (!value) return null;
-  if (isNaN(Number(value))) {
-    return `${fieldName} must be a number`;
-  }
-  return null;
-}
-
-// Date validation
-export function validateDate(value: string, fieldName: string): string | null {
-  if (!value) return null;
-  const date = new Date(value);
-  if (isNaN(date.getTime())) {
-    return `${fieldName} must be a valid date`;
-  }
-  return null;
-}
-
-// Future date validation
-export function validateFutureDate(value: string, fieldName: string): string | null {
-  if (!value) return null;
-  const date = new Date(value);
-  if (isNaN(date.getTime())) {
-    return `${fieldName} must be a valid date`;
-  }
-  if (date <= new Date()) {
-    return `${fieldName} must be in the future`;
-  }
   return null;
 }

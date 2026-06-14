@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import type { AuthRequest } from '@middleware/auth';
-import { followUpService } from '@services/followUpService';
+import { followUpService } from '@modules/followUps/services/followUpService';
 import { sendSuccess } from '@modules/shared/http/envelope';
 import { badRequest, notFoundMessage, serverError, unauthorized } from '@utils/responseHelpers';
 import { logger } from '@config/logger';

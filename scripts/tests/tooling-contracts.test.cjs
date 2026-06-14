@@ -1379,6 +1379,19 @@ test("select-checks keeps docs-only fast mode on docs validation", () => {
   assert.deepEqual(result.stdout.trim().split("\n"), ["make check-links"]);
 });
 
+test("select-checks routes GitHub helper Markdown through docs validation", () => {
+  const result = run("bash", [
+    "scripts/select-checks.sh",
+    "--files",
+    ".github/README.md .github/agents/docs-workboard-agent.md",
+    "--mode",
+    "fast",
+  ]);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(result.stdout.trim().split("\n"), ["make check-links"]);
+});
+
 test("select-checks broadens docs-only strict mode into the coverage gate", () => {
   const result = run("bash", [
     "scripts/select-checks.sh",
