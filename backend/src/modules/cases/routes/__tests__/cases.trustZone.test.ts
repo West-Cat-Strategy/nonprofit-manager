@@ -101,7 +101,7 @@ jest.mock('@modules/followUps/controllers/followUps.handlers', () => ({
   followUpController: { getCaseFollowUps: mockHandlerFor('getCaseFollowUps') },
 }));
 
-import { createCasesRoutes } from '../index';
+import { casesV2Routes } from '../index';
 
 const caseId = '11111111-1111-4111-8111-111111111111';
 const assignmentId = '22222222-2222-4222-8222-222222222222';
@@ -118,7 +118,7 @@ const buildApp = () => {
     };
     next();
   });
-  app.use('/api/v2/cases', createCasesRoutes());
+  app.use('/api/v2/cases', casesV2Routes);
   return app;
 };
 
