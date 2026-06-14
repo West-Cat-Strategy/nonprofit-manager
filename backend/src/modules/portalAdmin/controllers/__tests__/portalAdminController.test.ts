@@ -108,7 +108,9 @@ const mockBadRequest = badRequest as jest.MockedFunction<typeof badRequest>;
 const mockConflict = conflict as jest.MockedFunction<typeof conflict>;
 const mockNotFoundMessage = notFoundMessage as jest.MockedFunction<typeof notFoundMessage>;
 const mockSendSuccess = sendSuccess as jest.MockedFunction<typeof sendSuccess>;
-const portalMessagingService = jest.requireMock('@modules/portal/services/portalMessagingService') as {
+const portalMessagingService = jest.requireMock(
+  '@modules/portal/services/portalMessagingService'
+) as {
   listStaffThreads: jest.Mock;
 };
 const portalAppointmentSlotService = jest.requireMock(
@@ -117,7 +119,9 @@ const portalAppointmentSlotService = jest.requireMock(
   getAppointmentById: jest.Mock;
   listAdminAppointments: jest.Mock;
 };
-const appointmentReminderService = jest.requireMock('../../services/appointmentReminderService') as {
+const appointmentReminderService = jest.requireMock(
+  '../../services/appointmentReminderService'
+) as {
   listAppointmentReminders: jest.Mock;
 };
 
@@ -500,7 +504,6 @@ describe('portalAdminController account-management flows', () => {
             account_id: 'account-1',
             email: 'portal@example.com',
             contact_id: 'contact-1',
-            token: 'invite-token',
             expires_at: new Date('2026-05-19T00:00:00.000Z'),
           },
         ],
@@ -514,12 +517,14 @@ describe('portalAdminController account-management flows', () => {
     ]);
     expect(mockQuery).toHaveBeenNthCalledWith(
       4,
-      expect.stringContaining('INSERT INTO portal_invitations (account_id, email'),
+      expect.stringContaining(
+        'INSERT INTO portal_invitations (account_id, email, contact_id, token_hash'
+      ),
       [
         'account-1',
         'portal@example.com',
         'contact-1',
-        expect.any(String),
+        expect.stringMatching(/^[a-f0-9]{64}$/),
         expect.any(Date),
         'admin-1',
       ]
@@ -657,9 +662,7 @@ describe('portalAdminController account-management flows', () => {
       'portal-user-5',
       'account-1',
     ]);
-    expect(mockQuery.mock.calls[0][0]).toContain(
-      'auth_revision = COALESCE(auth_revision, 0) + 1'
-    );
+    expect(mockQuery.mock.calls[0][0]).toContain('auth_revision = COALESCE(auth_revision, 0) + 1');
     expect(mockSendSuccess).toHaveBeenCalledWith(res, {
       message: 'Portal user password updated',
     });

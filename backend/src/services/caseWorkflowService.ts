@@ -22,6 +22,7 @@ interface OutcomeDefinitionRow {
 
 export interface CreateCaseWorkflowArtifactsInput {
   caseId: string;
+  organizationId?: string | null;
   userId?: string | null;
   note: {
     noteType: NoteType;
@@ -51,6 +52,7 @@ export interface ResolveCaseConversationInput {
   caseId: string;
   threadId: string;
   userId: string;
+  accountId?: string | null;
   resolutionNote: string;
   outcomeDefinitionIds: string[];
   closeStatus: 'closed' | 'archived';
@@ -110,7 +112,11 @@ export const createCaseWorkflowArtifacts = async (
   executor: PgExecutor,
   input: CreateCaseWorkflowArtifactsInput
 ): Promise<{ noteId: string; outcomeIds: string[] }> => {
-  const ownership = await requireCaseOwnership(executor as PoolClient, input.caseId);
+  const ownership = await requireCaseOwnership(
+    executor as PoolClient,
+    input.caseId,
+    input.organizationId || undefined
+  );
   const visibleToClient = Boolean(input.note.visibleToClient);
   const noteContent = normalizeRequiredText(input.note.content, 'note content');
 
@@ -178,7 +184,10 @@ export const createCaseWorkflowArtifacts = async (
     return { noteId, outcomeIds };
   }
 
-  const definitions = await resolveOutcomeDefinitions(executor, outcomePayload.outcomeDefinitionIds);
+  const definitions = await resolveOutcomeDefinitions(
+    executor,
+    outcomePayload.outcomeDefinitionIds
+  );
 
   for (const definition of definitions) {
     const insertedOutcome = await executor.query<{ id: string }>(
@@ -263,13 +272,21 @@ export const resolveCaseConversation = async (
       status: 'open' | 'closed' | 'archived';
     }>(
       `
-      SELECT id, case_id, contact_id, status
-      FROM portal_threads
-      WHERE id = $1
-        AND case_id = $2
+      SELECT t.id, t.case_id, t.contact_id, t.status
+      FROM portal_threads t
+      LEFT JOIN cases c ON c.id = t.case_id
+      LEFT JOIN portal_users pu ON pu.id = t.portal_user_id
+      WHERE t.id = $1
+        AND t.case_id = $2
+        AND (
+          $3::uuid IS NULL
+          OR t.account_id = $3::uuid
+          OR c.account_id = $3::uuid
+          OR pu.account_id = $3::uuid
+        )
       FOR UPDATE
     `,
-      [input.threadId, input.caseId]
+      [input.threadId, input.caseId, input.accountId || null]
     );
 
     const thread = threadResult.rows[0];
@@ -282,6 +299,7 @@ export const resolveCaseConversation = async (
 
     await createCaseWorkflowArtifacts(client, {
       caseId: input.caseId,
+      organizationId: input.accountId,
       userId: input.userId,
       note: {
         noteType: 'portal_message',
@@ -326,7 +344,7 @@ export const resolveCaseConversation = async (
 
     await client.query('COMMIT');
 
-    const updatedThread = await getStaffThread(input.threadId);
+    const updatedThread = await getStaffThread(input.threadId, input.accountId);
     if (updatedThread?.thread) {
       publishPortalThreadUpdated({
         entityId: updatedThread.thread.id,

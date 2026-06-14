@@ -1,6 +1,11 @@
 import { Pool, PoolClient } from 'pg';
 import { logger } from '@config/logger';
-import type { CaseService as CaseServiceType, CreateCaseServiceDTO, UpdateCaseServiceDTO } from '@app-types/case';
+import type {
+  CaseService as CaseServiceType,
+  CreateCaseServiceDTO,
+  UpdateCaseServiceDTO,
+} from '@app-types/case';
+import { buildCaseOrganizationScopeSql, requireCaseOwnership } from './shared';
 
 type PgExecutor = Pool | PoolClient;
 
@@ -12,28 +17,40 @@ interface ExternalServiceProviderRow {
 
 const normalizeProviderName = (name: string): string => name.trim().replace(/\s+/g, ' ');
 
-const getCaseAccountIdQuery = async (db: PgExecutor, caseId: string): Promise<string | null> => {
-  const result = await db.query<{ account_id: string | null }>(
-    'SELECT account_id FROM cases WHERE id = $1',
-    [caseId]
-  );
-
-  return result.rows[0]?.account_id ?? null;
-};
-
-const getCaseServiceAccountIdQuery = async (
+const getScopedCaseServiceQuery = async (
   db: PgExecutor,
-  serviceId: string
-): Promise<string | null> => {
-  const result = await db.query<{ account_id: string | null }>(
-    `SELECT c.account_id
+  serviceId: string,
+  organizationId?: string
+): Promise<{ id: string; case_id: string; account_id: string | null } | null> => {
+  const result = await db.query<{ id: string; case_id: string; account_id: string | null }>(
+    `SELECT cs.id,
+            cs.case_id,
+            COALESCE(c.account_id, con.account_id) AS account_id
      FROM case_services cs
      JOIN cases c ON c.id = cs.case_id
-     WHERE cs.id = $1`,
-    [serviceId]
+     LEFT JOIN contacts con ON con.id = c.contact_id
+     WHERE cs.id = $1
+       AND ${buildCaseOrganizationScopeSql('$2')}
+     LIMIT 1`,
+    [serviceId, organizationId || null]
   );
 
-  return result.rows[0]?.account_id ?? null;
+  return result.rows[0] ?? null;
+};
+
+const requireScopedCaseServiceQuery = async (
+  db: PgExecutor,
+  serviceId: string,
+  organizationId?: string
+): Promise<{ id: string; case_id: string; account_id: string | null }> => {
+  const service = await getScopedCaseServiceQuery(db, serviceId, organizationId);
+  if (!service) {
+    throw Object.assign(new Error('Service not found'), {
+      statusCode: 404,
+      code: 'not_found',
+    });
+  }
+  return service;
 };
 
 const getExternalProviderByIdQuery = async (
@@ -119,7 +136,8 @@ const resolveExternalServiceProviderIdQuery = async (
 
 const getCaseServiceByIdQuery = async (
   db: PgExecutor,
-  serviceId: string
+  serviceId: string,
+  organizationId?: string
 ): Promise<CaseServiceType | null> => {
   const result = await db.query<CaseServiceType>(
     `
@@ -127,11 +145,14 @@ const getCaseServiceByIdQuery = async (
            esp.provider_name as external_service_provider_name,
            esp.provider_type as external_service_provider_type
     FROM case_services cs
+    JOIN cases c ON c.id = cs.case_id
+    LEFT JOIN contacts con ON con.id = c.contact_id
     LEFT JOIN external_service_providers esp ON cs.external_service_provider_id = esp.id
     WHERE cs.id = $1
+      AND ${buildCaseOrganizationScopeSql('$2')}
     LIMIT 1
   `,
-    [serviceId]
+    [serviceId, organizationId || null]
   );
 
   return result.rows[0] || null;
@@ -139,8 +160,10 @@ const getCaseServiceByIdQuery = async (
 
 export const getCaseServicesQuery = async (
   db: PgExecutor,
-  caseId: string
+  caseId: string,
+  organizationId?: string
 ): Promise<CaseServiceType[]> => {
+  await requireCaseOwnership(db, caseId, organizationId);
   const result = await db.query<CaseServiceType>(
     `
     SELECT cs.*,
@@ -160,9 +183,11 @@ export const createCaseServiceQuery = async (
   db: PgExecutor,
   caseId: string,
   data: CreateCaseServiceDTO,
-  userId?: string
+  userId?: string,
+  organizationId?: string
 ): Promise<CaseServiceType> => {
-  const accountId = await getCaseAccountIdQuery(db, caseId);
+  const ownership = await requireCaseOwnership(db, caseId, organizationId);
+  const accountId = ownership.account_id;
   let providerResolution = await resolveExternalServiceProviderIdQuery(
     db,
     accountId,
@@ -215,7 +240,7 @@ export const createCaseServiceQuery = async (
 
   logger.info('Case service created', { caseId, serviceId: result.rows[0].id });
 
-  const joined = await getCaseServiceByIdQuery(db, result.rows[0].id);
+  const joined = await getCaseServiceByIdQuery(db, result.rows[0].id, organizationId);
   if (!joined) {
     throw new Error('Service not found');
   }
@@ -227,14 +252,16 @@ export const updateCaseServiceQuery = async (
   db: PgExecutor,
   serviceId: string,
   data: UpdateCaseServiceDTO,
-  userId?: string
+  userId?: string,
+  organizationId?: string
 ): Promise<CaseServiceType> => {
   const fields: string[] = [];
   const values: unknown[] = [];
   let idx = 1;
 
   const payload: Record<string, unknown> = { ...data };
-  const accountId = await getCaseServiceAccountIdQuery(db, serviceId);
+  const scopedService = await requireScopedCaseServiceQuery(db, serviceId, organizationId);
+  const accountId = scopedService.account_id;
 
   if (data.service_provider !== undefined) {
     const providerResolution = await resolveExternalServiceProviderIdQuery(
@@ -268,12 +295,13 @@ export const updateCaseServiceQuery = async (
   }
 
   values.push(serviceId);
+  values.push(scopedService.case_id);
   await db.query(
-    `UPDATE case_services SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+    `UPDATE case_services SET ${fields.join(', ')} WHERE id = $${idx} AND case_id = $${idx + 1} RETURNING *`,
     values
   );
 
-  const result = await getCaseServiceByIdQuery(db, serviceId);
+  const result = await getCaseServiceByIdQuery(db, serviceId, organizationId);
   if (!result) {
     throw new Error('Service not found');
   }
@@ -283,8 +311,13 @@ export const updateCaseServiceQuery = async (
 
 export const deleteCaseServiceQuery = async (
   db: PgExecutor,
-  serviceId: string
+  serviceId: string,
+  organizationId?: string
 ): Promise<void> => {
-  await db.query(`DELETE FROM case_services WHERE id = $1`, [serviceId]);
+  const scopedService = await requireScopedCaseServiceQuery(db, serviceId, organizationId);
+  await db.query(`DELETE FROM case_services WHERE id = $1 AND case_id = $2`, [
+    serviceId,
+    scopedService.case_id,
+  ]);
   logger.info('Case service deleted', { serviceId });
 };

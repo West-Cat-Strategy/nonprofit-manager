@@ -3,7 +3,13 @@ import { logger } from '@config/logger';
 import crypto from 'crypto';
 
 export type PublicIntakeSourceSystem = 'website_form' | 'portal_signup' | 'public_event';
-export type PublicIntakeAmbiguityState = 'none' | 'no_match' | 'single_match' | 'multiple_matches';
+export type PublicIntakeAmbiguityState =
+  | 'none'
+  | 'no_match'
+  | 'single_match'
+  | 'multiple_matches'
+  | 'single_tenant_no_match_created'
+  | 'account_ambiguous';
 export type PublicIntakeResolutionStatus =
   | 'resolved'
   | 'created'

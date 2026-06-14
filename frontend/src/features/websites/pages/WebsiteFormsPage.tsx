@@ -70,6 +70,9 @@ const emptyIntegrationStatus: WebsiteIntegrationStatus = {
   },
 };
 
+const getWebsiteFormFieldId = (formKey: string, field: string): string =>
+  `website-form-${formKey.replace(/[^A-Za-z0-9_-]/g, '-')}-${field}`;
+
 const WebsiteFormsPage: React.FC = () => {
   const { siteId } = useParams<{ siteId: string }>();
   const dispatch = useAppDispatch();
@@ -289,6 +292,11 @@ const WebsiteFormsPage: React.FC = () => {
                 const tagsValue = (draft.defaultTags || []).join(', ');
                 const surfaceMeta = getFormSurfaceMeta(form.formType);
                 const dependencyState = getFormDependencyState(form, integrationStatus);
+                const fieldId = (field: string) => getWebsiteFormFieldId(form.formKey, field);
+                const newsletterAudienceLabel =
+                  integrationStatus.newsletter.provider === 'mautic'
+                    ? 'Mautic segment ID'
+                    : 'Mailchimp audience ID';
 
                 return (
                   <article
@@ -336,148 +344,209 @@ const WebsiteFormsPage: React.FC = () => {
                     </div>
 
                     <div className="grid gap-4 md:grid-cols-2">
-                      <input
-                        type="text"
-                        value={draft.heading || ''}
-                        onChange={(event) =>
-                          updateDraft(form.formKey, { heading: event.target.value })
-                        }
-                        placeholder="Heading override"
-                        className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
-                      />
-                      <input
-                        type="text"
-                        value={draft.successMessage || ''}
-                        onChange={(event) =>
-                          updateDraft(form.formKey, { successMessage: event.target.value })
-                        }
-                        placeholder="Success message"
-                        className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
-                      />
-                      <input
-                        type="text"
-                        value={draft.submitText || draft.buttonText || ''}
-                        onChange={(event) =>
-                          updateDraft(form.formKey, {
-                            submitText: event.target.value,
-                            buttonText: event.target.value,
-                          })
-                        }
-                        placeholder="Primary button text"
-                        className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
-                      />
-                      <input
-                        type="text"
-                        value={draft.accountId || ''}
-                        onChange={(event) =>
-                          updateDraft(form.formKey, { accountId: event.target.value || null })
-                        }
-                        placeholder="Destination account ID"
-                        className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
-                      />
-                      <input
-                        type="text"
-                        value={tagsValue}
-                        onChange={(event) =>
-                          updateDraft(form.formKey, {
-                            defaultTags: event.target.value
-                              .split(',')
-                              .map((value) => value.trim())
-                              .filter(Boolean),
-                          })
-                        }
-                        placeholder="Default tags (comma separated)"
-                        className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm md:col-span-2"
-                      />
-                      <textarea
-                        value={draft.description || ''}
-                        onChange={(event) =>
-                          updateDraft(form.formKey, { description: event.target.value })
-                        }
-                        placeholder="Operational description or helper copy"
-                        rows={3}
-                        className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm md:col-span-2"
-                      />
+                      <div>
+                        <label htmlFor={fieldId('heading')} className="sr-only">
+                          Heading override for {form.title}
+                        </label>
+                        <input
+                          id={fieldId('heading')}
+                          type="text"
+                          value={draft.heading || ''}
+                          onChange={(event) =>
+                            updateDraft(form.formKey, { heading: event.target.value })
+                          }
+                          placeholder="Heading override"
+                          className="w-full rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor={fieldId('success-message')} className="sr-only">
+                          Success message for {form.title}
+                        </label>
+                        <input
+                          id={fieldId('success-message')}
+                          type="text"
+                          value={draft.successMessage || ''}
+                          onChange={(event) =>
+                            updateDraft(form.formKey, { successMessage: event.target.value })
+                          }
+                          placeholder="Success message"
+                          className="w-full rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor={fieldId('submit-text')} className="sr-only">
+                          Primary button text for {form.title}
+                        </label>
+                        <input
+                          id={fieldId('submit-text')}
+                          type="text"
+                          value={draft.submitText || draft.buttonText || ''}
+                          onChange={(event) =>
+                            updateDraft(form.formKey, {
+                              submitText: event.target.value,
+                              buttonText: event.target.value,
+                            })
+                          }
+                          placeholder="Primary button text"
+                          className="w-full rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor={fieldId('account-id')} className="sr-only">
+                          Destination account ID for {form.title}
+                        </label>
+                        <input
+                          id={fieldId('account-id')}
+                          type="text"
+                          value={draft.accountId || ''}
+                          onChange={(event) =>
+                            updateDraft(form.formKey, { accountId: event.target.value || null })
+                          }
+                          placeholder="Destination account ID"
+                          className="w-full rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label htmlFor={fieldId('default-tags')} className="sr-only">
+                          Default tags for {form.title}
+                        </label>
+                        <input
+                          id={fieldId('default-tags')}
+                          type="text"
+                          value={tagsValue}
+                          onChange={(event) =>
+                            updateDraft(form.formKey, {
+                              defaultTags: event.target.value
+                                .split(',')
+                                .map((value) => value.trim())
+                                .filter(Boolean),
+                            })
+                          }
+                          placeholder="Default tags (comma separated)"
+                          className="w-full rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label htmlFor={fieldId('description')} className="sr-only">
+                          Operational description for {form.title}
+                        </label>
+                        <textarea
+                          id={fieldId('description')}
+                          value={draft.description || ''}
+                          onChange={(event) =>
+                            updateDraft(form.formKey, { description: event.target.value })
+                          }
+                          placeholder="Operational description or helper copy"
+                          rows={3}
+                          className="w-full rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+                        />
+                      </div>
                     </div>
 
                     {form.formType === 'newsletter-signup' ? (
                       <div className="mt-4 grid gap-4 md:grid-cols-2">
-                        <input
-                          type="text"
-                          value={
-                            integrationStatus.newsletter.provider === 'mautic'
-                              ? draft.mauticSegmentId || ''
-                              : draft.mailchimpListId || ''
-                          }
-                          onChange={(event) =>
-                            updateDraft(form.formKey, {
-                              ...(integrationStatus.newsletter.provider === 'mautic'
-                                ? { mauticSegmentId: event.target.value || null }
-                                : { mailchimpListId: event.target.value || null }),
-                            })
-                          }
-                          placeholder={
-                            integrationStatus.newsletter.provider === 'mautic'
-                              ? 'Mautic segment ID'
-                              : 'Mailchimp audience ID'
-                          }
-                          className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
-                        />
-                        <select
-                          value={draft.audienceMode || 'crm'}
-                          onChange={(event) =>
-                            updateDraft(form.formKey, {
-                              audienceMode: event.target.value as
-                                | 'crm'
-                                | 'mailchimp'
-                                | 'mautic'
-                                | 'both',
-                            })
-                          }
-                          className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
-                        >
-                          <option value="crm">CRM only</option>
-                          <option value="mautic">Mautic only</option>
-                          <option value="mailchimp">Mailchimp only</option>
-                          <option value="both">CRM + newsletter provider</option>
-                        </select>
+                        <div>
+                          <label htmlFor={fieldId('newsletter-audience-id')} className="sr-only">
+                            {newsletterAudienceLabel} for {form.title}
+                          </label>
+                          <input
+                            id={fieldId('newsletter-audience-id')}
+                            type="text"
+                            value={
+                              integrationStatus.newsletter.provider === 'mautic'
+                                ? draft.mauticSegmentId || ''
+                                : draft.mailchimpListId || ''
+                            }
+                            onChange={(event) =>
+                              updateDraft(form.formKey, {
+                                ...(integrationStatus.newsletter.provider === 'mautic'
+                                  ? { mauticSegmentId: event.target.value || null }
+                                  : { mailchimpListId: event.target.value || null }),
+                              })
+                            }
+                            placeholder={newsletterAudienceLabel}
+                            className="w-full rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor={fieldId('audience-mode')} className="sr-only">
+                            Audience mode for {form.title}
+                          </label>
+                          <select
+                            id={fieldId('audience-mode')}
+                            value={draft.audienceMode || 'crm'}
+                            onChange={(event) =>
+                              updateDraft(form.formKey, {
+                                audienceMode: event.target.value as
+                                  | 'crm'
+                                  | 'mailchimp'
+                                  | 'mautic'
+                                  | 'both',
+                              })
+                            }
+                            className="w-full rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+                          >
+                            <option value="crm">CRM only</option>
+                            <option value="mautic">Mautic only</option>
+                            <option value="mailchimp">Mailchimp only</option>
+                            <option value="both">CRM + newsletter provider</option>
+                          </select>
+                        </div>
                       </div>
                     ) : null}
 
                     {form.formType === 'donation-form' ? (
                       <div className="mt-4 grid gap-4 md:grid-cols-2">
-                        <input
-                          type="text"
-                          value={draft.currency || ''}
-                          onChange={(event) =>
-                            updateDraft(form.formKey, { currency: event.target.value })
-                          }
-                          placeholder="Currency (CAD, USD)"
-                          className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
-                        />
-                        <select
-                          aria-label="Donation provider"
-                          value={draft.provider || integrationStatus.stripe.provider || 'stripe'}
-                          onChange={(event) =>
-                            updateDraft(form.formKey, {
-                              provider: event.target.value as PaymentProvider,
-                            })
-                          }
-                          className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
-                        >
-                          <option value="stripe">Stripe</option>
-                          <option value="paypal">PayPal</option>
-                          <option value="square">Square</option>
-                        </select>
-                        <input
-                          type="text"
-                          value={draft.campaignId || ''}
-                          onChange={(event) =>
-                            updateDraft(form.formKey, { campaignId: event.target.value || null })
-                          }
-                          placeholder="Campaign identifier"
-                          className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
-                        />
+                        <div>
+                          <label htmlFor={fieldId('currency')} className="sr-only">
+                            Currency for {form.title}
+                          </label>
+                          <input
+                            id={fieldId('currency')}
+                            type="text"
+                            value={draft.currency || ''}
+                            onChange={(event) =>
+                              updateDraft(form.formKey, { currency: event.target.value })
+                            }
+                            placeholder="Currency (CAD, USD)"
+                            className="w-full rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor={fieldId('donation-provider')} className="sr-only">
+                            Donation provider for {form.title}
+                          </label>
+                          <select
+                            id={fieldId('donation-provider')}
+                            value={draft.provider || integrationStatus.stripe.provider || 'stripe'}
+                            onChange={(event) =>
+                              updateDraft(form.formKey, {
+                                provider: event.target.value as PaymentProvider,
+                              })
+                            }
+                            className="w-full rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+                          >
+                            <option value="stripe">Stripe</option>
+                            <option value="paypal">PayPal</option>
+                            <option value="square">Square</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label htmlFor={fieldId('campaign-id')} className="sr-only">
+                            Campaign identifier for {form.title}
+                          </label>
+                          <input
+                            id={fieldId('campaign-id')}
+                            type="text"
+                            value={draft.campaignId || ''}
+                            onChange={(event) =>
+                              updateDraft(form.formKey, { campaignId: event.target.value || null })
+                            }
+                            placeholder="Campaign identifier"
+                            className="w-full rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+                          />
+                        </div>
                       </div>
                     ) : null}
                   </article>

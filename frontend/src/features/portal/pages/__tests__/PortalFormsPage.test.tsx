@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import type { CaseFormAssignment, CaseFormAssignmentDetail } from '../../../../types/caseForms';
@@ -7,6 +7,7 @@ import PortalFormsPage from '../PortalFormsPage';
 
 const listFormsMock = vi.fn();
 const getFormMock = vi.fn();
+const saveDraftMock = vi.fn();
 const showSuccessMock = vi.fn();
 const showErrorMock = vi.fn();
 const getResponsePacketDownloadUrlMock = vi.fn(
@@ -18,7 +19,7 @@ vi.mock('../../api/portalCaseFormsApiClient', () => ({
     listForms: (...args: unknown[]) => listFormsMock(...args),
     getForm: (...args: unknown[]) => getFormMock(...args),
     uploadAsset: vi.fn(),
-    saveDraft: vi.fn(),
+    saveDraft: (...args: unknown[]) => saveDraftMock(...args),
     submit: vi.fn(),
     getResponsePacketDownloadUrl: (...args: unknown[]) => getResponsePacketDownloadUrlMock(...args),
   },
@@ -32,11 +33,27 @@ vi.mock('../../../../contexts/useToast', () => ({
 }));
 
 vi.mock('../../../cases/components/CaseFormRenderer', () => ({
-  default: () => <div data-testid="portal-form-renderer">Portal Form Renderer</div>,
+  default: ({
+    answers,
+    onAnswerChange,
+  }: {
+    answers: Record<string, unknown>;
+    onAnswerChange: (questionKey: string, value: unknown) => void;
+  }) => (
+    <div data-testid="portal-form-renderer">
+      <div data-testid="portal-form-answers">{JSON.stringify(answers)}</div>
+      <button type="button" onClick={() => onAnswerChange('email', 'first@example.com')}>
+        Set first answer
+      </button>
+      <button type="button" onClick={() => onAnswerChange('email', 'second@example.com')}>
+        Set second answer
+      </button>
+    </div>
+  ),
 }));
 
 const buildAssignment = (
-  overrides: Partial<CaseFormAssignment> & Pick<CaseFormAssignment, 'id' | 'title' | 'status'>,
+  overrides: Partial<CaseFormAssignment> & Pick<CaseFormAssignment, 'id' | 'title' | 'status'>
 ): CaseFormAssignment => ({
   id: overrides.id,
   case_id: overrides.case_id ?? 'case-1',
@@ -72,7 +89,7 @@ const buildAssignment = (
 });
 
 const buildDetail = (
-  overrides: Partial<CaseFormAssignment> & Pick<CaseFormAssignment, 'id' | 'title' | 'status'>,
+  overrides: Partial<CaseFormAssignment> & Pick<CaseFormAssignment, 'id' | 'title' | 'status'>
 ): CaseFormAssignmentDetail => {
   const assignment = buildAssignment(overrides);
   const latestSubmission =
@@ -108,6 +125,7 @@ const buildDetail = (
 describe('PortalFormsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useRealTimers();
 
     const assignment = buildAssignment({
       id: 'assignment-portal',
@@ -116,7 +134,9 @@ describe('PortalFormsPage', () => {
       description: 'Available in the portal',
     });
 
-    listFormsMock.mockImplementation(async (bucket?: string) => (bucket === 'completed' ? [] : [assignment]));
+    listFormsMock.mockImplementation(async (bucket?: string) =>
+      bucket === 'completed' ? [] : [assignment]
+    );
     getFormMock.mockResolvedValue(
       buildDetail({
         id: assignment.id,
@@ -125,6 +145,7 @@ describe('PortalFormsPage', () => {
         description: assignment.description,
       })
     );
+    saveDraftMock.mockResolvedValue(assignment);
   });
 
   it('renders assignment results and uses the assignment download routes', async () => {
@@ -133,10 +154,9 @@ describe('PortalFormsPage', () => {
     expect(await screen.findByText('Portal Delivery Form')).toBeInTheDocument();
     expect(screen.getAllByText('CASE-001 - Housing Support').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Available in the portal').length).toBeGreaterThan(0);
-    expect(await screen.findByRole('link', { name: /download submitted answers/i })).toHaveAttribute(
-      'href',
-      '/api/v2/portal/forms/assignments/assignment-portal/response-packet'
-    );
+    expect(
+      await screen.findByRole('link', { name: /download submitted answers/i })
+    ).toHaveAttribute('href', '/api/v2/portal/forms/assignments/assignment-portal/response-packet');
     expect(await screen.findByRole('link', { name: /receipt/i })).toHaveAttribute(
       'href',
       '/api/v2/portal/forms/assignments/assignment-portal/response-packet'
@@ -213,14 +233,18 @@ describe('PortalFormsPage', () => {
         id: assignmentId,
         title: assignmentId === 'assignment-target' ? 'Target Form' : 'First Form',
         status: assignmentId === 'assignment-target' ? 'revision_requested' : 'sent',
-        description: assignmentId === 'assignment-target' ? 'Needs an update' : 'First available form',
-        revision_notes: assignmentId === 'assignment-target' ? 'Please add the missing signature.' : null,
+        description:
+          assignmentId === 'assignment-target' ? 'Needs an update' : 'First available form',
+        revision_notes:
+          assignmentId === 'assignment-target' ? 'Please add the missing signature.' : null,
         latest_submission: null,
         submitted_at: null,
       })
     );
 
-    renderWithProviders(<PortalFormsPage />, { route: '/portal/forms?assignment=assignment-target' });
+    renderWithProviders(<PortalFormsPage />, {
+      route: '/portal/forms?assignment=assignment-target',
+    });
 
     expect(await screen.findByRole('heading', { name: 'Target Form' })).toBeInTheDocument();
     expect(screen.getByText('Changes requested.')).toBeInTheDocument();
@@ -278,13 +302,18 @@ describe('PortalFormsPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Completed' }));
 
-    expect(screen.getByRole('button', { name: 'Completed' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Completed' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
     expect(listFormsMock).toHaveBeenLastCalledWith('completed');
 
     await waitFor(() => {
       expect(getFormMock).toHaveBeenCalledWith('assignment-completed');
       expect(screen.getByRole('heading', { name: 'Completed Intake Form' })).toBeInTheDocument();
-      expect(screen.queryByRole('heading', { name: 'Active Follow-up Form' })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', { name: 'Active Follow-up Form' })
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -322,7 +351,9 @@ describe('PortalFormsPage', () => {
 
     expect(await screen.findByText('No completed forms.')).toBeInTheDocument();
     expect(screen.getByText('No completed form selected.')).toBeInTheDocument();
-    expect(screen.getByText('There are no completed forms to display right now.')).toBeInTheDocument();
+    expect(
+      screen.getByText('There are no completed forms to display right now.')
+    ).toBeInTheDocument();
     expect(listFormsMock).toHaveBeenLastCalledWith('completed');
     expect(screen.queryByTestId('portal-form-renderer')).not.toBeInTheDocument();
   });
@@ -362,5 +393,48 @@ describe('PortalFormsPage', () => {
     ).toBeInTheDocument();
     expect(await screen.findByRole('button', { name: /resubmit form/i })).toBeInTheDocument();
     expect(await screen.findByRole('button', { name: /save draft/i })).toBeInTheDocument();
+  });
+
+  it('suppresses stale portal autosave responses after a newer draft edit', async () => {
+    let resolveFirstSave: (value: unknown) => void = () => undefined;
+    saveDraftMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveFirstSave = resolve;
+        })
+    );
+
+    renderWithProviders(<PortalFormsPage />);
+
+    expect(await screen.findByText('Portal Delivery Form')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /set first answer/i })).toBeInTheDocument();
+    vi.useFakeTimers();
+    fireEvent.click(screen.getByRole('button', { name: /set first answer/i }));
+
+    await act(async () => {
+      vi.advanceTimersByTime(1200);
+    });
+
+    expect(saveDraftMock).toHaveBeenCalledWith('assignment-portal', {
+      answers: expect.objectContaining({ email: 'first@example.com' }),
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /set second answer/i }));
+
+    await act(async () => {
+      resolveFirstSave(
+        buildAssignment({
+          id: 'assignment-portal',
+          title: 'Portal Delivery Form',
+          status: 'reviewed',
+          current_draft_answers: { email: 'first@example.com' },
+        })
+      );
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByRole('heading', { name: /portal delivery form/i })).toBeInTheDocument();
+    expect(screen.queryByText(/^reviewed$/i)).not.toBeInTheDocument();
+    expect(screen.getByTestId('portal-form-answers')).toHaveTextContent('second@example.com');
   });
 });

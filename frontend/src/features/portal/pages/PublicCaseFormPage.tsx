@@ -63,6 +63,12 @@ export default function PublicCaseFormPage() {
   const [detail, setDetail] = useState<CaseFormAssignmentDetail | null>(null);
   const [draftAnswers, setDraftAnswers] = useState<Record<string, unknown>>({});
   const draftSnapshotRef = useRef('');
+  const latestDraftSnapshotRef = useRef('');
+  const autosaveRequestIdRef = useRef(0);
+
+  useEffect(() => {
+    latestDraftSnapshotRef.current = JSON.stringify(draftAnswers);
+  }, [draftAnswers]);
 
   const loadForm = useCallback(async (): Promise<void> => {
     if (!token) {
@@ -170,7 +176,9 @@ export default function PublicCaseFormPage() {
         client_submission_id: crypto.randomUUID(),
       });
       setDetail(nextDetail);
-      draftSnapshotRef.current = JSON.stringify(nextDetail.assignment.current_draft_answers || draftAnswers);
+      draftSnapshotRef.current = JSON.stringify(
+        nextDetail.assignment.current_draft_answers || draftAnswers
+      );
       showSuccess('Form submitted');
     } catch (submitError) {
       showError(submitError instanceof Error ? submitError.message : 'Failed to submit form');
@@ -181,8 +189,12 @@ export default function PublicCaseFormPage() {
 
   const assignment = detail?.assignment ?? null;
   const assignmentStatus = assignment?.status ?? null;
-  const isReceiptState = assignmentStatus ? SUBMISSION_RECEIPT_STATUSES.has(assignmentStatus) : false;
-  const isLockedReceiptState = assignmentStatus ? LOCKED_RECEIPT_STATUSES.has(assignmentStatus) : false;
+  const isReceiptState = assignmentStatus
+    ? SUBMISSION_RECEIPT_STATUSES.has(assignmentStatus)
+    : false;
+  const isLockedReceiptState = assignmentStatus
+    ? LOCKED_RECEIPT_STATUSES.has(assignmentStatus)
+    : false;
   const isUnavailableState = assignmentStatus ? INACTIVE_STATUSES.has(assignmentStatus) : false;
   const isSubmittedAwaitingReview = assignmentStatus === 'submitted';
   const isRevisionRequested = assignmentStatus === 'revision_requested';
@@ -193,24 +205,32 @@ export default function PublicCaseFormPage() {
       ? formatPortalDateTime(assignment.latest_submission.created_at)
       : null;
   const dueAtLabel = assignment?.due_at ? formatPortalDateTime(assignment.due_at) : null;
-  const canDownloadPacket = Boolean(assignment?.latest_submission?.response_packet_download_url && token);
+  const canDownloadPacket = Boolean(
+    assignment?.latest_submission?.response_packet_download_url && token
+  );
   const unavailableCopy =
-    isUnavailableState || (!loading && error)
-      ? getUnavailableCopy(assignmentStatus)
-      : null;
+    isUnavailableState || (!loading && error) ? getUnavailableCopy(assignmentStatus) : null;
 
   useEffect(() => {
     if (!token || !assignment || isLockedReceiptState || isUnavailableState || saving) return;
     const snapshot = JSON.stringify(draftAnswers);
     if (snapshot === draftSnapshotRef.current) return;
+    const assignmentId = assignment.id;
+    const requestId = (autosaveRequestIdRef.current += 1);
 
     const timeout = window.setTimeout(() => {
       void publicCaseFormsApiClient
         .saveDraft(token, { answers: draftAnswers })
         .then((updatedAssignment) => {
+          if (
+            requestId !== autosaveRequestIdRef.current ||
+            latestDraftSnapshotRef.current !== snapshot
+          ) {
+            return;
+          }
           draftSnapshotRef.current = snapshot;
           setDetail((current) =>
-            current
+            current?.assignment.id === assignmentId
               ? {
                   ...current,
                   assignment: {
@@ -226,7 +246,10 @@ export default function PublicCaseFormPage() {
         });
     }, 1200);
 
-    return () => window.clearTimeout(timeout);
+    return () => {
+      window.clearTimeout(timeout);
+      autosaveRequestIdRef.current += 1;
+    };
   }, [assignment, draftAnswers, isLockedReceiptState, isUnavailableState, saving, token]);
 
   const handleDownloadPacket = async (): Promise<void> => {
@@ -245,7 +268,9 @@ export default function PublicCaseFormPage() {
       window.URL.revokeObjectURL(url);
     } catch (downloadError) {
       showError(
-        downloadError instanceof Error ? downloadError.message : 'Failed to download submission packet'
+        downloadError instanceof Error
+          ? downloadError.message
+          : 'Failed to download submission packet'
       );
     } finally {
       setPacketDownloading(false);
@@ -274,9 +299,7 @@ export default function PublicCaseFormPage() {
       }
     >
       <section className="rounded-[var(--ui-radius-lg)] border border-app-border-muted bg-app-surface-elevated/92 p-6 shadow-[var(--ui-elev-2)]">
-        {loading ? (
-          <LoadingState label="Loading secure form..." />
-        ) : null}
+        {loading ? <LoadingState label="Loading secure form..." /> : null}
 
         {!loading && error ? (
           <div className="space-y-4">
@@ -367,11 +390,7 @@ export default function PublicCaseFormPage() {
                 >
                   {saving ? 'Saving...' : 'Save Draft'}
                 </SecondaryButton>
-                <PrimaryButton
-                  type="button"
-                  onClick={() => void handleSubmit()}
-                  disabled={saving}
-                >
+                <PrimaryButton type="button" onClick={() => void handleSubmit()} disabled={saving}>
                   {saving
                     ? 'Submitting...'
                     : isSubmittedAwaitingReview || isRevisionRequested

@@ -11,16 +11,13 @@ import {
 const portalPasswordSchema = passwordSchema;
 const portalResetTokenRegex = /^([a-fA-F0-9]{64}|[0-9a-fA-F-]{36}\.[a-fA-F0-9]{64})$/;
 const optionalTrimmedString = (max: number) =>
-  z.preprocess(
-    (value) => {
-      if (typeof value !== 'string') {
-        return value;
-      }
-      const trimmed = value.trim();
-      return trimmed.length > 0 ? trimmed : undefined;
-    },
-    z.string().max(max).optional()
-  );
+  z.preprocess((value) => {
+    if (typeof value !== 'string') {
+      return value;
+    }
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }, z.string().max(max).optional());
 
 const serviceSiteSnapshotSchema = z
   .object({
@@ -73,7 +70,7 @@ export const portalPasswordResetTokenParamsSchema = z.object({
 });
 
 export const portalInvitationTokenParamsSchema = z.object({
-  token: z.string().min(1),
+  token: z.string().trim().min(1).max(512),
 });
 
 export const acceptPortalInvitationSchema = z.object({
@@ -81,6 +78,18 @@ export const acceptPortalInvitationSchema = z.object({
   lastName: z.string().min(1).max(100),
   password: portalPasswordSchema,
 });
+
+export const validatePortalInvitationBodySchema = z
+  .object({
+    token: z.string().trim().min(1).max(512),
+  })
+  .strict();
+
+export const acceptPortalInvitationBodySchema = acceptPortalInvitationSchema
+  .extend({
+    token: z.string().trim().min(1).max(512),
+  })
+  .strict();
 
 export const portalChangePasswordSchema = z.object({
   currentPassword: z.string().min(1),

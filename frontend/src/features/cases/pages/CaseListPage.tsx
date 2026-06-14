@@ -1,10 +1,13 @@
-import { BrutalButton, BrutalCard, BrutalInput, NeoBrutalistLayout } from '../../../components/neo-brutalist';
+import {
+  BrutalButton,
+  BrutalCard,
+  BrutalInput,
+  NeoBrutalistLayout,
+} from '../../../components/neo-brutalist';
+import { FocusTrapDialog } from '../../../components/ui';
 import CaseListFiltersBar from '../components/CaseListFiltersBar';
 import { CASE_PRIORITY_OPTIONS } from '../utils/casePriority';
-import {
-  DesktopCaseRow,
-  MobileCaseCard,
-} from '../components/CaseListResults';
+import { DesktopCaseRow, MobileCaseCard } from '../components/CaseListResults';
 import type { CasePriority, CaseStatus, CaseType, CaseWithDetails } from '../../../types/case';
 import { useCaseListPage } from '../hooks/useCaseListPage';
 import useMediaQuery from '../../../hooks/useMediaQuery';
@@ -94,7 +97,10 @@ const CaseList = () => {
               >
                 Cases
               </h1>
-              <p className="mt-1 font-bold text-app-brutal-ink" style={{ color: 'var(--app-brutal-ink)' }}>
+              <p
+                className="mt-1 font-bold text-app-brutal-ink"
+                style={{ color: 'var(--app-brutal-ink)' }}
+              >
                 {total} {total === 1 ? 'case' : 'cases'} found
               </p>
             </div>
@@ -106,23 +112,39 @@ const CaseList = () => {
             <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-5">
               <div className="border-2 border-app-border bg-app-surface-elevated px-4 py-3 shadow-[3px_3px_0px_var(--shadow-color)]">
                 <div className="text-xs font-black uppercase text-app-text-subtle">Open</div>
-                <div className="text-2xl font-black text-app-text-heading">{summary.open_cases}</div>
+                <div className="text-2xl font-black text-app-text-heading">
+                  {summary.open_cases}
+                </div>
               </div>
               <div className="border-2 border-app-border bg-app-surface-elevated px-4 py-3 shadow-[3px_3px_0px_var(--shadow-color)]">
                 <div className="text-xs font-black uppercase text-app-text-subtle">Urgent</div>
-                <div className="text-2xl font-black text-app-accent">{summary.by_priority.urgent}</div>
+                <div className="text-2xl font-black text-app-accent">
+                  {summary.by_priority.urgent}
+                </div>
               </div>
-              <div className={`border-2 border-app-border px-4 py-3 shadow-[3px_3px_0px_var(--shadow-color)] ${summary.overdue_cases > 0 ? 'bg-app-accent-soft' : 'bg-app-surface-elevated'}`}>
+              <div
+                className={`border-2 border-app-border px-4 py-3 shadow-[3px_3px_0px_var(--shadow-color)] ${summary.overdue_cases > 0 ? 'bg-app-accent-soft' : 'bg-app-surface-elevated'}`}
+              >
                 <div className="text-xs font-black uppercase text-app-text-subtle">Overdue</div>
-                <div className={`text-2xl font-black ${summary.overdue_cases > 0 ? 'text-app-accent-text' : 'text-app-text-heading'}`}>{summary.overdue_cases}</div>
+                <div
+                  className={`text-2xl font-black ${summary.overdue_cases > 0 ? 'text-app-accent-text' : 'text-app-text-heading'}`}
+                >
+                  {summary.overdue_cases}
+                </div>
               </div>
               <div className="border-2 border-app-border bg-app-surface-elevated px-4 py-3 shadow-[3px_3px_0px_var(--shadow-color)]">
-                <div className="text-xs font-black uppercase text-app-text-subtle">Due This Week</div>
-                <div className="text-2xl font-black text-app-text-heading">{summary.cases_due_this_week}</div>
+                <div className="text-xs font-black uppercase text-app-text-subtle">
+                  Due This Week
+                </div>
+                <div className="text-2xl font-black text-app-text-heading">
+                  {summary.cases_due_this_week}
+                </div>
               </div>
               <div className="border-2 border-app-border bg-app-surface-elevated px-4 py-3 shadow-[3px_3px_0px_var(--shadow-color)]">
                 <div className="text-xs font-black uppercase text-app-text-subtle">Unassigned</div>
-                <div className="text-2xl font-black text-app-text-heading">{summary.unassigned_cases}</div>
+                <div className="text-2xl font-black text-app-text-heading">
+                  {summary.unassigned_cases}
+                </div>
               </div>
             </div>
           )}
@@ -218,8 +240,7 @@ const CaseList = () => {
                 }}
                 className="border-2 border-app-border px-3 py-1 text-xs font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] transition-all"
                 style={{
-                  backgroundColor:
-                    quickFilter === value ? '#ffeb3b' : '#ffffff',
+                  backgroundColor: quickFilter === value ? '#ffeb3b' : '#ffffff',
                   color: '#000000',
                   borderColor: '#000000',
                 }}
@@ -260,9 +281,7 @@ const CaseList = () => {
                 className="app-contrast-checkbox"
                 aria-label="Show urgent cases only"
               />
-              <span className="text-sm font-bold uppercase text-app-text-heading">
-                Urgent only
-              </span>
+              <span className="text-sm font-bold uppercase text-app-text-heading">Urgent only</span>
             </label>
             <label className="flex items-center gap-2">
               <input
@@ -325,7 +344,9 @@ const CaseList = () => {
                 </select>
               </div>
               <div className="flex flex-col gap-2">
-                <span className="text-xs font-black uppercase text-app-text-subtle">Saved views</span>
+                <span className="text-xs font-black uppercase text-app-text-subtle">
+                  Saved views
+                </span>
                 <div className="flex gap-2">
                   <select
                     value={selectedViewId}
@@ -404,7 +425,11 @@ const CaseList = () => {
             </BrutalButton>
           </div>
 
-          <CaseListFiltersBar chips={activeFilterChips} onRemove={handleRemoveFilterChip} onClearAll={handleClearFilters} />
+          <CaseListFiltersBar
+            chips={activeFilterChips}
+            onRemove={handleRemoveFilterChip}
+            onClearAll={handleClearFilters}
+          />
         </BrutalCard>
         {error && (
           <div className="border-2 border-app-border bg-app-accent-soft p-4 font-bold text-app-accent-text shadow-[6px_6px_0px_var(--shadow-color)]">
@@ -436,14 +461,31 @@ const CaseList = () => {
           </BrutalCard>
         )}
         {showBulkModal && (
-          <div className="fixed inset-0 app-popup-backdrop flex items-center justify-center z-50" role="dialog" aria-modal="true">
-            <BrutalCard color="white" className="p-6 max-w-md w-full mx-4">
-              <h3 className="mb-4 text-lg font-black uppercase text-app-text-heading">
+          <FocusTrapDialog
+            isOpen={showBulkModal}
+            labelledBy="bulk-status-modal-title"
+            onClose={() => {
+              setShowBulkModal(false);
+              setBulkStatusId('');
+              setBulkNotes('');
+            }}
+            overlayClassName="fixed inset-0 z-50"
+            backdropClassName="app-popup-backdrop fixed inset-0"
+            containerClassName="flex min-h-full items-center justify-center p-4"
+            panelClassName="w-full max-w-md"
+          >
+            <BrutalCard color="white" className="p-6">
+              <h3
+                id="bulk-status-modal-title"
+                className="mb-4 text-lg font-black uppercase text-app-text-heading"
+              >
                 Bulk Status Update ({selectedCaseIds.length} cases)
               </h3>
               <div className="space-y-4">
                 <div>
-                  <label className="mb-2 block text-sm font-black uppercase text-app-text-subtle">New Status</label>
+                  <label className="mb-2 block text-sm font-black uppercase text-app-text-subtle">
+                    New Status
+                  </label>
                   <select
                     value={bulkStatusId}
                     onChange={(e) => setBulkStatusId(e.target.value)}
@@ -452,12 +494,16 @@ const CaseList = () => {
                   >
                     <option value="">Select status...</option>
                     {caseStatuses.map((status: CaseStatus) => (
-                      <option key={status.id} value={status.id}>{status.name}</option>
+                      <option key={status.id} value={status.id}>
+                        {status.name}
+                      </option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-black uppercase text-app-text-subtle">Notes</label>
+                  <label className="mb-2 block text-sm font-black uppercase text-app-text-subtle">
+                    Notes
+                  </label>
                   <textarea
                     value={bulkNotes}
                     onChange={(e) => setBulkNotes(e.target.value)}
@@ -468,16 +514,27 @@ const CaseList = () => {
                   />
                 </div>
                 <div className="flex justify-end gap-3">
-                  <BrutalButton onClick={() => { setShowBulkModal(false); setBulkStatusId(''); setBulkNotes(''); }} variant="secondary">
+                  <BrutalButton
+                    onClick={() => {
+                      setShowBulkModal(false);
+                      setBulkStatusId('');
+                      setBulkNotes('');
+                    }}
+                    variant="secondary"
+                  >
                     Cancel
                   </BrutalButton>
-                  <BrutalButton onClick={handleBulkStatusUpdate} disabled={!bulkStatusId || loading} variant="primary">
+                  <BrutalButton
+                    onClick={handleBulkStatusUpdate}
+                    disabled={!bulkStatusId || loading}
+                    variant="primary"
+                  >
                     {loading ? 'Updating...' : 'Update All'}
                   </BrutalButton>
                 </div>
               </div>
             </BrutalCard>
-          </div>
+          </FocusTrapDialog>
         )}
 
         {!loading && visibleCases.length > 0 && (
@@ -491,7 +548,10 @@ const CaseList = () => {
                         <th className="px-4 py-4 text-left">
                           <input
                             type="checkbox"
-                            checked={selectedCaseIds.length === visibleCases.length && visibleCases.length > 0}
+                            checked={
+                              selectedCaseIds.length === visibleCases.length &&
+                              visibleCases.length > 0
+                            }
                             onChange={() =>
                               selectedCaseIds.length === visibleCases.length
                                 ? handleClearSelection()
@@ -578,7 +638,9 @@ const CaseList = () => {
         {!loading && visibleCases.length === 0 && (
           <BrutalCard color="white" className="p-12 text-center">
             <div className="text-6xl mb-4">📋</div>
-            <h3 className="mb-2 text-xl font-black uppercase text-app-text-heading">No cases found</h3>
+            <h3 className="mb-2 text-xl font-black uppercase text-app-text-heading">
+              No cases found
+            </h3>
             <p className="mb-6 font-bold text-app-text-subtle">
               {filters.search || filters.priority || filters.status_id
                 ? 'Try adjusting your filters'

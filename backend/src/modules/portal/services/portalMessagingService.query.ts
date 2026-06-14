@@ -1,5 +1,9 @@
 import pool from '@config/database';
-import type { PortalMessageEntry, PortalThreadSummary, ThreadWithMessages } from './portalMessagingService.types';
+import type {
+  PortalMessageEntry,
+  PortalThreadSummary,
+  ThreadWithMessages,
+} from './portalMessagingService.types';
 import type {
   PortalRealtimeMessageSnapshot,
   PortalRealtimeThreadSnapshot,
@@ -355,10 +359,7 @@ export const getPortalMessageByClientMessageId = async (input: {
   senderPortalUserId?: string | null;
   includeInternal?: boolean;
 }): Promise<PortalMessageEntry | null> => {
-  const conditions = [
-    'pm.thread_id = $1',
-    'pm.client_message_id = $2',
-  ];
+  const conditions = ['pm.thread_id = $1', 'pm.client_message_id = $2'];
   const values: Array<string | boolean> = [input.threadId, input.clientMessageId];
 
   if (input.senderUserId) {
@@ -416,7 +417,16 @@ export const getStaffThread = async (
   return { thread, messages };
 };
 
-export const listCaseThreads = async (caseId: string): Promise<PortalThreadSummary[]> => {
+export const listCaseThreads = async (
+  caseId: string,
+  accountId?: string | null
+): Promise<PortalThreadSummary[]> => {
+  const values: string[] = [caseId];
+  const tenantWhere = accountId ? ` AND ${tenantThreadCondition('$2')}` : '';
+  if (accountId) {
+    values.push(accountId);
+  }
+
   const result = await pool.query(
     `${THREAD_BASE_SELECT}
      LEFT JOIN LATERAL (
@@ -426,9 +436,9 @@ export const listCaseThreads = async (caseId: string): Promise<PortalThreadSumma
          AND pm.sender_type = 'portal'
          AND pm.read_by_staff_at IS NULL
      ) unread ON true
-     WHERE t.case_id = $1
+     WHERE t.case_id = $1${tenantWhere}
      ORDER BY t.last_message_at DESC`,
-    [caseId]
+    values
   );
 
   return result.rows.map((row) => ({

@@ -137,3 +137,4 @@
 137	137_code_review_remediation_security_scope.sql
 138	138_task_organization_scope.sql
 139	139_saved_reports_organization_scope.sql
+140	140_portal_invitation_token_hash.sql

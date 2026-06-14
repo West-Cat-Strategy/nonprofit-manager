@@ -496,23 +496,39 @@ test.describe('Cases Module', () => {
         await expect(authenticatedPage.getByRole('tab', { name: /documents/i })).toHaveAttribute('aria-selected', 'true');
     });
 
-    test('should restore intake draft state from session storage after refresh', async ({ authenticatedPage }) => {
+    test('should restore intake draft state from session storage after refresh', async ({
+        authenticatedPage,
+        authToken,
+    }) => {
+        const organizationId =
+            (await resolveOrganizationId(authenticatedPage, authToken)) ||
+            getTokenOrganizationId(authToken);
+        if (!organizationId) {
+            throw new Error('Unable to resolve organization context for intake draft restore test');
+        }
+        const contact = await createTestContact(authenticatedPage, authToken, {
+            firstName: 'Draft',
+            lastName: 'Contact',
+            email: `draft.contact.${uniqueSuffix()}@example.com`,
+            accountId: organizationId,
+        });
+
         await authenticatedPage.goto('/intake/new');
 
-        await authenticatedPage.evaluate(() => {
+        await authenticatedPage.evaluate((contactId) => {
             sessionStorage.setItem(
                 'workflow:intake:new',
                 JSON.stringify({
                     step: 'case',
                     createdContact: {
-                        contact_id: 'draft-contact-1',
+                        contact_id: contactId,
                         first_name: 'Draft',
                         last_name: 'Contact',
                         email: 'draft@example.com',
                     },
                 })
             );
-        });
+        }, contact.id);
 
         await authenticatedPage.reload();
 

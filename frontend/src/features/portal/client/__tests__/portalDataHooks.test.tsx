@@ -3,11 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const portalGetMock = vi.fn();
 let realtimeStatus: 'connected' | 'connecting' | 'disconnected' = 'connected';
-let realtimeOptions:
-  | {
-      onEvent: (eventName: string, payload: Record<string, unknown>) => void;
-    }
-  | null = null;
+let realtimeOptions: {
+  onEvent: (eventName: string, payload: Record<string, unknown>) => void;
+} | null = null;
 
 vi.mock('../../../../services/portalApi', () => ({
   default: {
@@ -89,6 +87,50 @@ describe('portal data hooks', () => {
       expect(result.current.loading).toBe(false);
       expect(result.current.error).toBeNull();
     });
+  });
+
+  it('ignores stale page responses after the query changes', async () => {
+    let resolveOldSearch: (value: unknown) => void = () => undefined;
+    const fetchPage = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveOldSearch = resolve;
+          })
+      )
+      .mockResolvedValueOnce({
+        items: [{ id: 'new-result' }],
+        page: { limit: 20, offset: 0, has_more: false, total: 1 },
+      });
+
+    const { result, rerender } = renderHook(
+      ({ search }) =>
+        usePortalPagedList({
+          search,
+          sort: 'created_at',
+          order: 'desc',
+          fetchPage,
+        }),
+      {
+        initialProps: { search: 'old' },
+      }
+    );
+
+    rerender({ search: 'new' });
+
+    await waitFor(() => expect(result.current.items).toEqual([{ id: 'new-result' }]));
+
+    await act(async () => {
+      resolveOldSearch({
+        items: [{ id: 'old-result' }],
+        page: { limit: 20, offset: 0, has_more: false, total: 1 },
+      });
+      await Promise.resolve();
+    });
+
+    expect(result.current.items).toEqual([{ id: 'new-result' }]);
+    expect(result.current.total).toBe(1);
   });
 
   it('fetches filtered message threads and merges realtime updates for the selected case', async () => {
@@ -187,15 +229,13 @@ describe('portal data hooks', () => {
   it('refetches appointments on realtime events and falls back to polling when the stream disconnects', async () => {
     realtimeStatus = 'disconnected';
     let pollCallback: (() => void) | null = null;
-    const setIntervalSpy = vi
-      .spyOn(window, 'setInterval')
-      .mockImplementation(((callback: TimerHandler) => {
-        pollCallback = callback as () => void;
-        return 1;
-      }) as typeof window.setInterval);
-    const clearIntervalSpy = vi
-      .spyOn(window, 'clearInterval')
-      .mockImplementation(() => undefined);
+    const setIntervalSpy = vi.spyOn(window, 'setInterval').mockImplementation(((
+      callback: TimerHandler
+    ) => {
+      pollCallback = callback as () => void;
+      return 1;
+    }) as typeof window.setInterval);
+    const clearIntervalSpy = vi.spyOn(window, 'clearInterval').mockImplementation(() => undefined);
     portalGetMock.mockResolvedValue({
       data: {
         success: true,

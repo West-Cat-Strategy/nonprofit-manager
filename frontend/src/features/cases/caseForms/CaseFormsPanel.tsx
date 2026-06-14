@@ -52,20 +52,29 @@ export default function CaseFormsPanel({
   const [editorDueAt, setEditorDueAt] = useState('');
   const [editorRecipientEmail, setEditorRecipientEmail] = useState(clientEmail || '');
   const [editorRecipientPhone, setEditorRecipientPhone] = useState('');
-  const [editorSchema, setEditorSchema] = useState<CaseFormSchema>(createBlankSchema('Client Intake Form'));
+  const [editorSchema, setEditorSchema] = useState<CaseFormSchema>(
+    createBlankSchema('Client Intake Form')
+  );
   const [draftAnswers, setDraftAnswers] = useState<Record<string, unknown>>({});
   const [reviewNotes, setReviewNotes] = useState('');
   const [sendExpiryDays, setSendExpiryDays] = useState('7');
   const [deliveryChannels, setDeliveryChannels] = useState<CaseFormDeliveryChannel[]>(
     resolveDeliveryChannels(null, null, clientEmail || null)
   );
-  const [structureAutosaveStatus, setStructureAutosaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>(
-    'idle'
-  );
-  const [draftAutosaveStatus, setDraftAutosaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [structureAutosaveStatus, setStructureAutosaveStatus] = useState<
+    'idle' | 'saving' | 'saved' | 'error'
+  >('idle');
+  const [draftAutosaveStatus, setDraftAutosaveStatus] = useState<
+    'idle' | 'saving' | 'saved' | 'error'
+  >('idle');
   const [logicDrafts, setLogicDrafts] = useState<Record<string, string>>({});
   const structureSnapshotRef = useRef('');
   const draftSnapshotRef = useRef('');
+  const latestStructureDraftSnapshotRef = useRef('');
+  const latestDraftAnswersSnapshotRef = useRef('');
+  const detailRequestIdRef = useRef(0);
+  const structureAutosaveRequestIdRef = useRef(0);
+  const draftAutosaveRequestIdRef = useRef(0);
 
   const syncAssignmentList = useCallback((updatedAssignment: CaseFormAssignment): void => {
     setAssignments((current) => {
@@ -73,7 +82,9 @@ export default function CaseFormsPanel({
       if (!existing) {
         return [updatedAssignment, ...current];
       }
-      return current.map((item) => (item.id === updatedAssignment.id ? { ...item, ...updatedAssignment } : item));
+      return current.map((item) =>
+        item.id === updatedAssignment.id ? { ...item, ...updatedAssignment } : item
+      );
     });
   }, []);
 
@@ -91,74 +102,106 @@ export default function CaseFormsPanel({
           description: editorDescription,
         },
       }),
-    [editorDescription, editorDueAt, editorRecipientEmail, editorRecipientPhone, editorSchema, editorTitle]
+    [
+      editorDescription,
+      editorDueAt,
+      editorRecipientEmail,
+      editorRecipientPhone,
+      editorSchema,
+      editorTitle,
+    ]
   );
 
-  const loadAssignments = useCallback(async (preserveSelection = true): Promise<void> => {
-    setLoading(true);
-    try {
-      const [templates, defaults, assignmentList] = await Promise.all([
-        staffCaseFormsApiClient.listTemplates({ status: 'published' }),
-        staffCaseFormsApiClient.listRecommendedDefaults(caseId),
-        staffCaseFormsApiClient.listAssignments(caseId),
-      ]);
-      setTemplateLibrary(templates);
-      setRecommendedDefaults(defaults);
-      setAssignments(assignmentList);
+  useEffect(() => {
+    latestStructureDraftSnapshotRef.current = buildStructureSnapshot();
+  }, [buildStructureSnapshot]);
 
-      const nextSelectedId =
-        preserveSelection && selectedAssignmentId && assignmentList.some((item) => item.id === selectedAssignmentId)
-          ? selectedAssignmentId
-          : assignmentList[0]?.id || null;
-      setSelectedAssignmentId(nextSelectedId);
-    } catch (error) {
-      showError(error instanceof Error ? error.message : 'Failed to load case forms');
-    } finally {
-      setLoading(false);
-    }
-  }, [caseId, selectedAssignmentId, showError]);
+  useEffect(() => {
+    latestDraftAnswersSnapshotRef.current = JSON.stringify(draftAnswers);
+  }, [draftAnswers]);
 
-  const loadDetail = useCallback(async (assignmentId: string): Promise<void> => {
-    try {
-      const nextDetail = await staffCaseFormsApiClient.getAssignment(caseId, assignmentId);
-      setDetail(nextDetail);
-      setEditorTitle(nextDetail.assignment.title);
-      setEditorDescription(nextDetail.assignment.description || '');
-      setEditorDueAt(
-        typeof nextDetail.assignment.due_at === 'string'
-          ? nextDetail.assignment.due_at.slice(0, 16)
-          : ''
-      );
-      setEditorRecipientEmail(nextDetail.assignment.recipient_email || clientEmail || '');
-      setEditorRecipientPhone(nextDetail.assignment.recipient_phone || '');
-      setEditorSchema(nextDetail.assignment.schema);
-      setDraftAnswers(nextDetail.assignment.current_draft_answers || {});
-      setDeliveryChannels(
-        resolveDeliveryChannels(
-          nextDetail.assignment.delivery_channels,
-          nextDetail.assignment.delivery_target,
-          nextDetail.assignment.recipient_email || clientEmail || null
-        )
-      );
-      structureSnapshotRef.current = JSON.stringify({
-        title: nextDetail.assignment.title,
-        description: nextDetail.assignment.description || '',
-        dueAt:
+  const loadAssignments = useCallback(
+    async (preserveSelection = true): Promise<void> => {
+      setLoading(true);
+      try {
+        const [templates, defaults, assignmentList] = await Promise.all([
+          staffCaseFormsApiClient.listTemplates({ status: 'published' }),
+          staffCaseFormsApiClient.listRecommendedDefaults(caseId),
+          staffCaseFormsApiClient.listAssignments(caseId),
+        ]);
+        setTemplateLibrary(templates);
+        setRecommendedDefaults(defaults);
+        setAssignments(assignmentList);
+
+        const nextSelectedId =
+          preserveSelection &&
+          selectedAssignmentId &&
+          assignmentList.some((item) => item.id === selectedAssignmentId)
+            ? selectedAssignmentId
+            : assignmentList[0]?.id || null;
+        setSelectedAssignmentId(nextSelectedId);
+      } catch (error) {
+        showError(error instanceof Error ? error.message : 'Failed to load case forms');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [caseId, selectedAssignmentId, showError]
+  );
+
+  const loadDetail = useCallback(
+    async (assignmentId: string): Promise<void> => {
+      const requestId = (detailRequestIdRef.current += 1);
+      try {
+        const nextDetail = await staffCaseFormsApiClient.getAssignment(caseId, assignmentId);
+        if (requestId !== detailRequestIdRef.current) {
+          return;
+        }
+        setDetail(nextDetail);
+        setEditorTitle(nextDetail.assignment.title);
+        setEditorDescription(nextDetail.assignment.description || '');
+        setEditorDueAt(
           typeof nextDetail.assignment.due_at === 'string'
             ? nextDetail.assignment.due_at.slice(0, 16)
-            : '',
-        recipientEmail: nextDetail.assignment.recipient_email || clientEmail || '',
-        recipientPhone: nextDetail.assignment.recipient_phone || '',
-        schema: nextDetail.assignment.schema,
-      });
-      draftSnapshotRef.current = JSON.stringify(nextDetail.assignment.current_draft_answers || {});
-      setStructureAutosaveStatus('idle');
-      setDraftAutosaveStatus('idle');
-      setLogicDrafts({});
-    } catch (error) {
-      showError(error instanceof Error ? error.message : 'Failed to load form detail');
-    }
-  }, [caseId, clientEmail, showError]);
+            : ''
+        );
+        setEditorRecipientEmail(nextDetail.assignment.recipient_email || clientEmail || '');
+        setEditorRecipientPhone(nextDetail.assignment.recipient_phone || '');
+        setEditorSchema(nextDetail.assignment.schema);
+        setDraftAnswers(nextDetail.assignment.current_draft_answers || {});
+        setDeliveryChannels(
+          resolveDeliveryChannels(
+            nextDetail.assignment.delivery_channels,
+            nextDetail.assignment.delivery_target,
+            nextDetail.assignment.recipient_email || clientEmail || null
+          )
+        );
+        structureSnapshotRef.current = JSON.stringify({
+          title: nextDetail.assignment.title,
+          description: nextDetail.assignment.description || '',
+          dueAt:
+            typeof nextDetail.assignment.due_at === 'string'
+              ? nextDetail.assignment.due_at.slice(0, 16)
+              : '',
+          recipientEmail: nextDetail.assignment.recipient_email || clientEmail || '',
+          recipientPhone: nextDetail.assignment.recipient_phone || '',
+          schema: nextDetail.assignment.schema,
+        });
+        draftSnapshotRef.current = JSON.stringify(
+          nextDetail.assignment.current_draft_answers || {}
+        );
+        setStructureAutosaveStatus('idle');
+        setDraftAutosaveStatus('idle');
+        setLogicDrafts({});
+      } catch (error) {
+        if (requestId !== detailRequestIdRef.current) {
+          return;
+        }
+        showError(error instanceof Error ? error.message : 'Failed to load form detail');
+      }
+    },
+    [caseId, clientEmail, showError]
+  );
 
   useEffect(() => {
     void loadAssignments(false);
@@ -168,6 +211,7 @@ export default function CaseFormsPanel({
     if (selectedAssignmentId) {
       void loadDetail(selectedAssignmentId);
     } else {
+      detailRequestIdRef.current += 1;
       setDetail(null);
     }
   }, [loadDetail, selectedAssignmentId]);
@@ -176,6 +220,8 @@ export default function CaseFormsPanel({
     if (!detail) return;
     const snapshot = buildStructureSnapshot();
     if (snapshot === structureSnapshotRef.current) return;
+    const assignmentId = detail.assignment.id;
+    const requestId = (structureAutosaveRequestIdRef.current += 1);
 
     setStructureAutosaveStatus('saving');
     const timeout = window.setTimeout(() => {
@@ -194,10 +240,16 @@ export default function CaseFormsPanel({
           autosave: true,
         })
         .then((updated) => {
+          if (
+            requestId !== structureAutosaveRequestIdRef.current ||
+            latestStructureDraftSnapshotRef.current !== snapshot
+          ) {
+            return;
+          }
           structureSnapshotRef.current = snapshot;
           syncAssignmentList(updated);
           setDetail((current) =>
-            current
+            current?.assignment.id === assignmentId
               ? {
                   ...current,
                   assignment: {
@@ -211,11 +263,19 @@ export default function CaseFormsPanel({
           onChanged?.();
         })
         .catch(() => {
-          setStructureAutosaveStatus('error');
+          if (
+            requestId === structureAutosaveRequestIdRef.current &&
+            latestStructureDraftSnapshotRef.current === snapshot
+          ) {
+            setStructureAutosaveStatus('error');
+          }
         });
     }, 1200);
 
-    return () => window.clearTimeout(timeout);
+    return () => {
+      window.clearTimeout(timeout);
+      structureAutosaveRequestIdRef.current += 1;
+    };
   }, [
     buildStructureSnapshot,
     caseId,
@@ -234,6 +294,8 @@ export default function CaseFormsPanel({
     if (!detail) return;
     const snapshot = JSON.stringify(draftAnswers);
     if (snapshot === draftSnapshotRef.current) return;
+    const assignmentId = detail.assignment.id;
+    const requestId = (draftAutosaveRequestIdRef.current += 1);
 
     setDraftAutosaveStatus('saving');
     const timeout = window.setTimeout(() => {
@@ -242,10 +304,16 @@ export default function CaseFormsPanel({
           answers: draftAnswers,
         })
         .then((updated) => {
+          if (
+            requestId !== draftAutosaveRequestIdRef.current ||
+            latestDraftAnswersSnapshotRef.current !== snapshot
+          ) {
+            return;
+          }
           draftSnapshotRef.current = snapshot;
           syncAssignmentList(updated);
           setDetail((current) =>
-            current
+            current?.assignment.id === assignmentId
               ? {
                   ...current,
                   assignment: {
@@ -258,19 +326,27 @@ export default function CaseFormsPanel({
           setDraftAutosaveStatus('saved');
         })
         .catch(() => {
-          setDraftAutosaveStatus('error');
+          if (
+            requestId === draftAutosaveRequestIdRef.current &&
+            latestDraftAnswersSnapshotRef.current === snapshot
+          ) {
+            setDraftAutosaveStatus('error');
+          }
         });
     }, 1200);
 
-    return () => window.clearTimeout(timeout);
+    return () => {
+      window.clearTimeout(timeout);
+      draftAutosaveRequestIdRef.current += 1;
+    };
   }, [caseId, detail, draftAnswers, syncAssignmentList]);
 
   const assignment = detail?.assignment ?? null;
   const assignmentAccessLinkUrl = assignment?.access_link_url ?? null;
   const assignmentHasSecureLinkDelivery = Boolean(
     assignment?.delivery_channels?.some((channel) => channel === 'email' || channel === 'sms') ||
-      assignment?.delivery_target === 'email' ||
-      assignment?.delivery_target === 'portal_and_email'
+    assignment?.delivery_target === 'email' ||
+    assignment?.delivery_target === 'portal_and_email'
   );
   const assets = useMemo(() => collectAssets(detail), [detail]);
   const emailDeliveryEnabled = usesChannel(deliveryChannels, 'email');
@@ -334,18 +410,22 @@ export default function CaseFormsPanel({
     if (!detail) return;
     setSaving(true);
     try {
-      const created = await staffCaseFormsApiClient.saveAssignmentAsTemplate(caseId, detail.assignment.id, {
-        title: `${editorTitle} Template`,
-        description: editorDescription || undefined,
-        schema: {
-          ...editorSchema,
-          title: editorTitle,
-          description: editorDescription,
-        },
-        case_type_id: detail.assignment.case_type_id || null,
-        template_status: 'draft',
-        is_active: true,
-      });
+      const created = await staffCaseFormsApiClient.saveAssignmentAsTemplate(
+        caseId,
+        detail.assignment.id,
+        {
+          title: `${editorTitle} Template`,
+          description: editorDescription || undefined,
+          schema: {
+            ...editorSchema,
+            title: editorTitle,
+            description: editorDescription,
+          },
+          case_type_id: detail.assignment.case_type_id || null,
+          template_status: 'draft',
+          is_active: true,
+        }
+      );
       setTemplateLibrary((current) => [created, ...current]);
       showSuccess('Customized form saved as a draft template');
     } catch (error) {
@@ -438,7 +518,8 @@ export default function CaseFormsPanel({
         delivery_channels: deliveryChannels,
         recipient_email: emailDeliveryEnabled ? editorRecipientEmail || undefined : undefined,
         recipient_phone: smsDeliveryEnabled ? editorRecipientPhone || undefined : undefined,
-        expires_in_days: emailDeliveryEnabled || smsDeliveryEnabled ? Number(sendExpiryDays) || 7 : undefined,
+        expires_in_days:
+          emailDeliveryEnabled || smsDeliveryEnabled ? Number(sendExpiryDays) || 7 : undefined,
       });
       syncAssignmentList(updated);
       setDetail((current) =>
@@ -469,7 +550,9 @@ export default function CaseFormsPanel({
     }
   };
 
-  const handleReviewDecision = async (decision: CaseFormReviewDecision['decision']): Promise<void> => {
+  const handleReviewDecision = async (
+    decision: CaseFormReviewDecision['decision']
+  ): Promise<void> => {
     if (!detail) return;
     setSaving(true);
     try {
@@ -490,7 +573,9 @@ export default function CaseFormsPanel({
           : current
       );
       setReviewNotes('');
-      showSuccess(decision === 'revision_requested' ? 'Form sent back for changes' : `Form marked ${decision}`);
+      showSuccess(
+        decision === 'revision_requested' ? 'Form sent back for changes' : `Form marked ${decision}`
+      );
       onChanged?.();
     } catch (error) {
       showError(error instanceof Error ? error.message : 'Failed to update review status');
@@ -523,7 +608,11 @@ export default function CaseFormsPanel({
                 ...(current.assignment.draft_assets || []).filter((item) => item.id !== asset.id),
                 {
                   ...asset,
-                  download_url: staffCaseFormsApiClient.getAssetDownloadUrl(caseId, detail.assignment.id, asset.id),
+                  download_url: staffCaseFormsApiClient.getAssetDownloadUrl(
+                    caseId,
+                    detail.assignment.id,
+                    asset.id
+                  ),
                 },
               ],
             },
@@ -533,7 +622,11 @@ export default function CaseFormsPanel({
 
     return {
       ...asset,
-      download_url: staffCaseFormsApiClient.getAssetDownloadUrl(caseId, detail.assignment.id, asset.id),
+      download_url: staffCaseFormsApiClient.getAssetDownloadUrl(
+        caseId,
+        detail.assignment.id,
+        asset.id
+      ),
     };
   };
 

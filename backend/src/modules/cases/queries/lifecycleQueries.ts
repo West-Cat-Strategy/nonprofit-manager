@@ -11,7 +11,7 @@ import type {
 } from '@app-types/case';
 import { createCaseWorkflowArtifacts } from '@services/caseWorkflowService';
 import { generateCaseNumber, normalizeCasePriority, requireCaseOwnership } from './shared';
- 
+
 export type PgExecutor = Pool | PoolClient;
 
 const dedupeStrings = (values: Array<string | null | undefined>): string[] => {
@@ -29,7 +29,9 @@ const dedupeStrings = (values: Array<string | null | undefined>): string[] => {
   return result;
 };
 
-const normalizeStringArray = (values: Array<string | null | undefined> | undefined): string[] | undefined => {
+const normalizeStringArray = (
+  values: Array<string | null | undefined> | undefined
+): string[] | undefined => {
   if (!Array.isArray(values)) return values;
   return dedupeStrings(values);
 };
@@ -40,7 +42,10 @@ const normalizeSingleString = (value: string | null | undefined): string | undef
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
-const resolveCaseTypeIds = (data: { case_type_id?: string; case_type_ids?: string[] }): string[] => {
+const resolveCaseTypeIds = (data: {
+  case_type_id?: string;
+  case_type_ids?: string[];
+}): string[] => {
   const normalizedIds = normalizeStringArray(data.case_type_ids);
   if (normalizedIds && normalizedIds.length > 0) {
     return normalizedIds;
@@ -50,7 +55,10 @@ const resolveCaseTypeIds = (data: { case_type_id?: string; case_type_ids?: strin
   return singleTypeId ? [singleTypeId] : [];
 };
 
-const resolveCaseOutcomeValues = (data: { outcome?: string | null; case_outcome_values?: string[] }): string[] => {
+const resolveCaseOutcomeValues = (data: {
+  outcome?: string | null;
+  case_outcome_values?: string[];
+}): string[] => {
   const normalizedValues = normalizeStringArray(data.case_outcome_values);
   if (normalizedValues && normalizedValues.length > 0) {
     return normalizedValues;
@@ -169,19 +177,57 @@ const persistCaseOutcomeAssignments = async (
   );
 };
 
+const createNotFoundError = (message: string): Error =>
+  Object.assign(new Error(message), {
+    statusCode: 404,
+    code: 'not_found',
+  });
+
+const validateCreateCaseTenantReferences = async (
+  db: PgExecutor,
+  data: CreateCaseDTO,
+  activeOrganizationId?: string | null
+): Promise<string | null> => {
+  if (!activeOrganizationId) {
+    return data.account_id || null;
+  }
+
+  if (data.account_id && data.account_id !== activeOrganizationId) {
+    throw createNotFoundError('Account not found');
+  }
+
+  const contactResult = await db.query<{ id: string; account_id: string | null }>(
+    `SELECT id, account_id
+     FROM contacts
+     WHERE id = $1
+     LIMIT 1`,
+    [data.contact_id]
+  );
+  const contact = contactResult.rows[0];
+  if (!contact || (contact.account_id && contact.account_id !== activeOrganizationId)) {
+    throw createNotFoundError('Contact not found');
+  }
+
+  return activeOrganizationId;
+};
+
 export const createCaseQuery = async (
   db: Pool,
   data: CreateCaseDTO,
   userId?: string,
   organizationId?: string
 ): Promise<Case> => {
-  const resolvedAccountId =
-    data.account_id
-    || organizationId
-    || getRequestContext()?.organizationId
-    || getRequestContext()?.accountId
-    || getRequestContext()?.tenantId
-    || null;
+  const activeOrganizationId =
+    organizationId ||
+    getRequestContext()?.organizationId ||
+    getRequestContext()?.accountId ||
+    getRequestContext()?.tenantId ||
+    null;
+  const resolvedAccountId = await validateCreateCaseTenantReferences(
+    db,
+    data,
+    activeOrganizationId
+  );
   const statusResult = await db.query(
     `SELECT id FROM case_statuses WHERE status_type = 'intake' AND is_active = true ORDER BY sort_order LIMIT 1`
   );
@@ -402,7 +448,9 @@ export const updateCaseStatusQuery = async (
       await client.query('BEGIN');
     }
 
-    const currentCase = await client.query(`SELECT status_id FROM cases WHERE id = $1 FOR UPDATE`, [caseId]);
+    const currentCase = await client.query(`SELECT status_id FROM cases WHERE id = $1 FOR UPDATE`, [
+      caseId,
+    ]);
     const previousStatusId = currentCase.rows[0]?.status_id as string | undefined;
     if (!previousStatusId) {
       throw Object.assign(new Error('Case not found'), {
@@ -436,10 +484,13 @@ export const updateCaseStatusQuery = async (
     const requiresOutcome = ['review', 'closed', 'cancelled'].includes(nextStatus.status_type);
     const outcomeDefinitionIds = data.outcome_definition_ids || [];
     if (requiresOutcome && outcomeDefinitionIds.length === 0) {
-      throw Object.assign(new Error('Outcome definitions are required for this status transition'), {
-        statusCode: 400,
-        code: 'validation_error',
-      });
+      throw Object.assign(
+        new Error('Outcome definitions are required for this status transition'),
+        {
+          statusCode: 400,
+          code: 'validation_error',
+        }
+      );
     }
 
     const result = await client.query(
@@ -475,7 +526,7 @@ export const updateCaseStatusQuery = async (
     if ('connect' in db) {
       await client.query('COMMIT');
     }
- 
+
     return result.rows[0];
   } catch (error) {
     if ('connect' in db) {
@@ -601,7 +652,10 @@ export const bulkUpdateStatusQuery = async (
     [data.new_status_id, userId, caseIds]
   );
 
-  logger.info('Bulk status update', { count: updateResult.rowCount, newStatusId: data.new_status_id });
+  logger.info('Bulk status update', {
+    count: updateResult.rowCount,
+    newStatusId: data.new_status_id,
+  });
   return { updated: updateResult.rowCount || 0 };
 };
 

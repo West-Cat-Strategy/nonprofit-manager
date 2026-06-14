@@ -13,6 +13,7 @@ import {
   getPortalAdminQuery,
   type PortalSignupApprovalRow,
 } from './portalAdminController.shared';
+import { hashPortalInvitationToken } from '@services/portalAuthService';
 
 const generatePortalInviteToken = () => crypto.randomBytes(32).toString('hex');
 
@@ -377,14 +378,15 @@ export const createPortalInvitation = async (
     }
 
     const token = generatePortalInviteToken();
+    const tokenHash = hashPortalInvitationToken(token);
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + (expiresInDays || 7));
 
     const inviteResult = await pool.query(
-      `INSERT INTO portal_invitations (account_id, email, contact_id, token, expires_at, created_by)
+      `INSERT INTO portal_invitations (account_id, email, contact_id, token_hash, expires_at, created_by)
        VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, account_id, email, contact_id, token, expires_at`,
-      [tenantId, normalizedEmail, contact_id || null, token, expiresAt, req.user!.id]
+       RETURNING id, account_id, email, contact_id, expires_at`,
+      [tenantId, normalizedEmail, contact_id || null, tokenHash, expiresAt, req.user!.id]
     );
 
     const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';

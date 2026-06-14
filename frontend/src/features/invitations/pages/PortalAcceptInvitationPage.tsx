@@ -37,7 +37,7 @@ export default function PortalAcceptInvitation() {
   useEffect(() => {
     const loadInvite = async () => {
       try {
-        const response = await portalApi.get(`/portal/auth/invitations/validate/${token}`);
+        const response = await portalApi.post('/portal/auth/invitations/validate', { token });
         setInvitation(response.data.invitation);
         setValidationDeferred(false);
         clear();
@@ -81,19 +81,22 @@ export default function PortalAcceptInvitation() {
 
     if (formData.password !== passwordConfirm) {
       setConfirmPasswordError('Passwords do not match.');
-      focusElement(
-        document.getElementById('portal-invite-password-confirm') as HTMLElement | null
-      );
+      focusElement(document.getElementById('portal-invite-password-confirm') as HTMLElement | null);
       return;
     }
 
     try {
-      await portalApi.post(`/portal/auth/invitations/accept/${token}`, formData);
+      await portalApi.post('/portal/auth/invitations/accept', {
+        token,
+        ...formData,
+      });
       if (!invitation?.email) {
         setFromError(new Error('Invitation details are missing'), 'Invitation details are missing');
         return;
       }
-      await dispatch(portalLogin({ email: invitation.email, password: formData.password })).unwrap();
+      await dispatch(
+        portalLogin({ email: invitation.email, password: formData.password })
+      ).unwrap();
       navigate('/portal');
     } catch (err) {
       setFromError(err, 'Failed to accept invitation');
@@ -110,7 +113,9 @@ export default function PortalAcceptInvitation() {
         'Your login maps to staff-approved contact visibility.',
       ]}
     >
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-text-muted">Invitation</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-text-muted">
+        Invitation
+      </p>
       <h2 className="font-display mt-2 text-2xl font-semibold text-app-text-heading">
         Activate your portal account
       </h2>

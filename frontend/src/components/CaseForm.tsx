@@ -1,12 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import {
-  createCase,
-  updateCase,
-  fetchCaseTypes,
-  fetchCaseStatuses,
-} from '../features/cases/state';
+import { createCase, updateCase, fetchCaseTypes, fetchCaseStatuses } from '../features/cases/state';
 import type { Contact } from '../features/contacts/state';
 import { contactsApiClient } from '../features/contacts/api/contactsApiClient';
 import { CASE_PRIORITY_OPTIONS } from '../features/cases/utils/casePriority';
@@ -14,9 +9,18 @@ import api from '../services/api';
 import { useToast } from '../contexts/useToast';
 import { useQuickLookup } from './dashboard';
 import type { SearchResult } from './dashboard';
-import type { CaseOutcome, CaseWithDetails, CreateCaseDTO, UpdateCaseDTO, CaseType } from '../types/case';
+import type {
+  CaseOutcome,
+  CaseWithDetails,
+  CreateCaseDTO,
+  UpdateCaseDTO,
+  CaseType,
+} from '../types/case';
 import { useUnsavedChangesGuard } from '../hooks/useUnsavedChangesGuard';
-import { CASE_OUTCOME_OPTIONS, formatCaseOutcomeLabel } from '../features/cases/utils/caseClassification';
+import {
+  CASE_OUTCOME_OPTIONS,
+  formatCaseOutcomeLabel,
+} from '../features/cases/utils/caseClassification';
 
 interface AssigneeOption {
   id: string;
@@ -89,6 +93,9 @@ const CaseForm = ({
   const [assignees, setAssignees] = useState<AssigneeOption[]>([]);
   const [canLoadAssignees, setCanLoadAssignees] = useState(true);
   const [isDirty, setIsDirty] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const contactLoadRequestIdRef = useRef(0);
+  const submitInFlightRef = useRef(false);
 
   const lookup = useQuickLookup({ debounceMs: 250 });
 
@@ -102,21 +109,46 @@ const CaseForm = ({
   });
 
   useEffect(() => {
-    const loadSelectedContact = async (contactId: string) => {
+    const contactId = formData.contact_id;
+
+    if (!contactId) {
+      contactLoadRequestIdRef.current += 1;
+      if (selectedContact) {
+        setSelectedContact(null);
+      }
+      return;
+    }
+
+    if (selectedContact?.contact_id === contactId) {
+      return;
+    }
+
+    if (selectedContact) {
+      setSelectedContact(null);
+      lookup.selectResult('');
+    }
+
+    const requestId = (contactLoadRequestIdRef.current += 1);
+
+    const loadSelectedContact = async () => {
       try {
         const contact = (await contactsApiClient.getContact(contactId)) as Contact;
+        if (requestId !== contactLoadRequestIdRef.current) {
+          return;
+        }
         setSelectedContact(contact);
         lookup.selectResult(
           `${contact.first_name} ${contact.last_name}${contact.email ? ` • ${contact.email}` : ''}`
         );
       } catch {
-        setSelectedContact(null);
+        if (requestId === contactLoadRequestIdRef.current) {
+          setSelectedContact(null);
+          lookup.selectResult('');
+        }
       }
     };
 
-    if (formData.contact_id && !selectedContact) {
-      loadSelectedContact(formData.contact_id);
-    }
+    void loadSelectedContact();
   }, [formData.contact_id, selectedContact, lookup]);
 
   useEffect(() => {
@@ -183,6 +215,9 @@ const CaseForm = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitInFlightRef.current) {
+      return;
+    }
 
     // Validation
     const selectedCaseTypeIds = formData.case_type_ids || [];
@@ -192,6 +227,9 @@ const CaseForm = ({
       showError('Please fill in all required fields');
       return;
     }
+
+    submitInFlightRef.current = true;
+    setIsSubmitting(true);
 
     try {
       if (isEditMode && caseId) {
@@ -206,7 +244,8 @@ const CaseForm = ({
           is_urgent: formData.is_urgent,
           tags: formData.tags,
           outcome: formData.outcome,
-          case_outcome_values: selectedCaseOutcomeValues.length > 0 ? selectedCaseOutcomeValues : undefined,
+          case_outcome_values:
+            selectedCaseOutcomeValues.length > 0 ? selectedCaseOutcomeValues : undefined,
           outcome_notes: formData.outcome_notes || undefined,
           closure_reason: formData.closure_reason || undefined,
         };
@@ -228,7 +267,8 @@ const CaseForm = ({
           due_date: formData.due_date || undefined,
           tags: formData.tags?.length ? formData.tags : undefined,
           is_urgent: formData.is_urgent,
-          case_outcome_values: selectedCaseOutcomeValues.length > 0 ? selectedCaseOutcomeValues : undefined,
+          case_outcome_values:
+            selectedCaseOutcomeValues.length > 0 ? selectedCaseOutcomeValues : undefined,
         };
         const createdCase = await dispatch(createCase(createData)).unwrap();
         setIsDirty(false);
@@ -245,7 +285,14 @@ const CaseForm = ({
       }
     } catch (err) {
       console.error('Failed to save case:', err);
-      showError(isEditMode ? 'Failed to update case. Please try again.' : 'Failed to create case. Please try again.');
+      showError(
+        isEditMode
+          ? 'Failed to update case. Please try again.'
+          : 'Failed to create case. Please try again.'
+      );
+    } finally {
+      submitInFlightRef.current = false;
+      setIsSubmitting(false);
     }
   };
 
@@ -254,19 +301,26 @@ const CaseForm = ({
   );
   const selectedCaseTypeIds = formData.case_type_ids || [];
   const selectedCaseTypeLabels = selectedCaseTypeIds
-    .map((caseTypeId) => caseTypes.find((type: CaseType) => type.id === caseTypeId)?.name || caseTypeId)
+    .map(
+      (caseTypeId) => caseTypes.find((type: CaseType) => type.id === caseTypeId)?.name || caseTypeId
+    )
     .filter((label): label is string => Boolean(label));
   const selectedCaseOutcomeValues = formData.case_outcome_values || [];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="p-4 bg-app-accent-soft border border-app-border rounded-lg text-app-accent-text">{error}</div>
+        <div className="p-4 bg-app-accent-soft border border-app-border rounded-lg text-app-accent-text">
+          {error}
+        </div>
       )}
 
       {/* Contact Selection */}
       <div>
-        <label htmlFor="case-contact-lookup" className="block text-sm font-medium text-app-text-label mb-2">
+        <label
+          htmlFor="case-contact-lookup"
+          className="block text-sm font-medium text-app-text-label mb-2"
+        >
           Client <span className="text-app-accent">*</span>
         </label>
         <div className="relative">
@@ -312,7 +366,9 @@ const CaseForm = ({
         </div>
         <input type="hidden" name="contact_id" value={formData.contact_id} />
         {isEditMode && (
-          <p className="mt-1 text-sm text-app-text-muted">Client cannot be changed after case creation</p>
+          <p className="mt-1 text-sm text-app-text-muted">
+            Client cannot be changed after case creation
+          </p>
         )}
       </div>
 
@@ -352,7 +408,9 @@ const CaseForm = ({
                 <span className="flex-1">
                   {type.name}
                   {type.description && (
-                    <span className="mt-1 block text-xs text-app-text-muted">{type.description}</span>
+                    <span className="mt-1 block text-xs text-app-text-muted">
+                      {type.description}
+                    </span>
                   )}
                 </span>
               </label>
@@ -397,7 +455,12 @@ const CaseForm = ({
 
       {/* Description */}
       <div>
-        <label htmlFor="case-description" className="block text-sm font-medium text-app-text-label mb-2">Description</label>
+        <label
+          htmlFor="case-description"
+          className="block text-sm font-medium text-app-text-label mb-2"
+        >
+          Description
+        </label>
         <textarea
           id="case-description"
           name="description"
@@ -412,7 +475,12 @@ const CaseForm = ({
       {/* Priority and Source */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label htmlFor="case-priority" className="block text-sm font-medium text-app-text-label mb-2">Priority</label>
+          <label
+            htmlFor="case-priority"
+            className="block text-sm font-medium text-app-text-label mb-2"
+          >
+            Priority
+          </label>
           <select
             id="case-priority"
             name="priority"
@@ -429,7 +497,12 @@ const CaseForm = ({
         </div>
 
         <div>
-          <label htmlFor="case-source" className="block text-sm font-medium text-app-text-label mb-2">Source</label>
+          <label
+            htmlFor="case-source"
+            className="block text-sm font-medium text-app-text-label mb-2"
+          >
+            Source
+          </label>
           <select
             id="case-source"
             name="source"
@@ -452,7 +525,12 @@ const CaseForm = ({
       {/* Referral Source (if source is referral) */}
       {formData.source === 'referral' && (
         <div>
-          <label htmlFor="case-referral-source" className="block text-sm font-medium text-app-text-label mb-2">Referral Source</label>
+          <label
+            htmlFor="case-referral-source"
+            className="block text-sm font-medium text-app-text-label mb-2"
+          >
+            Referral Source
+          </label>
           <input
             id="case-referral-source"
             type="text"
@@ -467,7 +545,12 @@ const CaseForm = ({
 
       {/* Due Date */}
       <div>
-        <label htmlFor="case-due-date" className="block text-sm font-medium text-app-text-label mb-2">Due Date</label>
+        <label
+          htmlFor="case-due-date"
+          className="block text-sm font-medium text-app-text-label mb-2"
+        >
+          Due Date
+        </label>
         <input
           id="case-due-date"
           type="date"
@@ -480,7 +563,12 @@ const CaseForm = ({
 
       {/* Assignment */}
       <div>
-        <label htmlFor="case-assigned-to" className="block text-sm font-medium text-app-text-label mb-2">Assigned To</label>
+        <label
+          htmlFor="case-assigned-to"
+          className="block text-sm font-medium text-app-text-label mb-2"
+        >
+          Assigned To
+        </label>
         <select
           id="case-assigned-to"
           name="assigned_to"
@@ -525,7 +613,12 @@ const CaseForm = ({
 
       {/* Tags */}
       <div>
-        <label htmlFor="case-tag-input" className="block text-sm font-medium text-app-text-label mb-2">Tags</label>
+        <label
+          htmlFor="case-tag-input"
+          className="block text-sm font-medium text-app-text-label mb-2"
+        >
+          Tags
+        </label>
         <div className="flex gap-2 mb-2">
           <input
             id="case-tag-input"
@@ -576,12 +669,12 @@ const CaseForm = ({
         </button>
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || isSubmitting}
           aria-label={isEditMode ? 'Update Case' : 'Save Case'}
           data-testid="case-form-primary-submit"
           className="px-6 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition"
         >
-          {loading ? 'Saving...' : isEditMode ? 'Update Case' : 'Save Case'}
+          {loading || isSubmitting ? 'Saving...' : isEditMode ? 'Update Case' : 'Save Case'}
         </button>
       </div>
 
@@ -593,7 +686,8 @@ const CaseForm = ({
               <div className="mb-2">
                 <label className="block text-sm font-medium text-app-text-label">Outcomes</label>
                 <p className="text-xs text-app-text-muted">
-                  Select every outcome that applies. The first selected value remains the legacy primary outcome.
+                  Select every outcome that applies. The first selected value remains the legacy
+                  primary outcome.
                 </p>
               </div>
               <div className="grid gap-2 md:grid-cols-2">
@@ -647,7 +741,12 @@ const CaseForm = ({
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="case-closure-reason" className="block text-sm font-medium text-app-text-label mb-2">Closure Reason</label>
+                <label
+                  htmlFor="case-closure-reason"
+                  className="block text-sm font-medium text-app-text-label mb-2"
+                >
+                  Closure Reason
+                </label>
                 <input
                   id="case-closure-reason"
                   type="text"
@@ -659,18 +758,23 @@ const CaseForm = ({
                 />
               </div>
             </div>
-          <div className="mt-4">
-            <label htmlFor="case-outcome-notes" className="block text-sm font-medium text-app-text-label mb-2">Outcome Notes</label>
-            <textarea
-              id="case-outcome-notes"
-              name="outcome_notes"
-              value={formData.outcome_notes || ''}
-              onChange={handleChange}
-              rows={3}
-              placeholder="Final notes on the case outcome..."
-              className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
-            />
-          </div>
+            <div className="mt-4">
+              <label
+                htmlFor="case-outcome-notes"
+                className="block text-sm font-medium text-app-text-label mb-2"
+              >
+                Outcome Notes
+              </label>
+              <textarea
+                id="case-outcome-notes"
+                name="outcome_notes"
+                value={formData.outcome_notes || ''}
+                onChange={handleChange}
+                rows={3}
+                placeholder="Final notes on the case outcome..."
+                className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
+              />
+            </div>
           </div>
         </div>
       )}

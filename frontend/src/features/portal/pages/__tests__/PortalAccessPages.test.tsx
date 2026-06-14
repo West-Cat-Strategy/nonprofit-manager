@@ -78,9 +78,7 @@ describe('Portal access pages', () => {
       });
     });
 
-    expect(
-      await screen.findByText(/we've sent a portal password-reset link/i)
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/we've sent a portal password-reset link/i)).toBeInTheDocument();
   });
 
   it('validates a portal reset token and completes the reset flow', async () => {
@@ -129,5 +127,31 @@ describe('Portal access pages', () => {
       'href',
       '/portal/login'
     );
+  });
+
+  it('validates portal invitations through the body-token endpoint', async () => {
+    portalPostMock.mockResolvedValueOnce({
+      data: {
+        invitation: {
+          email: 'portal@example.org',
+          contactId: 'contact-1',
+          expiresAt: '2026-12-31T00:00:00.000Z',
+        },
+      },
+    });
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/portal/accept-invitation/:token" element={<PortalAcceptInvitationPage />} />
+      </Routes>,
+      { route: '/portal/accept-invitation/valid-token-1234567890' }
+    );
+
+    await waitFor(() => {
+      expect(portalPostMock).toHaveBeenCalledWith('/portal/auth/invitations/validate', {
+        token: 'valid-token-1234567890',
+      });
+    });
+    expect(await screen.findByDisplayValue('portal@example.org')).toBeInTheDocument();
   });
 });

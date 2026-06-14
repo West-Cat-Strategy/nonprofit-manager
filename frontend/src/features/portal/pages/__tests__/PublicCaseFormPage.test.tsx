@@ -30,7 +30,23 @@ vi.mock('../../../../contexts/useToast', () => ({
 }));
 
 vi.mock('../../../cases/components/CaseFormRenderer', () => ({
-  default: () => <div data-testid="public-form-renderer">Public Form Renderer</div>,
+  default: ({
+    answers,
+    onAnswerChange,
+  }: {
+    answers: Record<string, unknown>;
+    onAnswerChange: (questionKey: string, value: unknown) => void;
+  }) => (
+    <div data-testid="public-form-renderer">
+      <div data-testid="public-form-answers">{JSON.stringify(answers)}</div>
+      <button type="button" onClick={() => onAnswerChange('email', 'first@example.com')}>
+        Set first answer
+      </button>
+      <button type="button" onClick={() => onAnswerChange('email', 'second@example.com')}>
+        Set second answer
+      </button>
+    </div>
+  ),
 }));
 
 const renderPage = (route = '/public/case-forms/token-1') =>
@@ -106,6 +122,7 @@ const buildSubmittedDetail = () => ({
 describe('PublicCaseFormPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useRealTimers();
     window.history.replaceState(null, '', '/');
     getFormMock.mockImplementation(async () => buildSentDetail());
   });
@@ -192,5 +209,44 @@ describe('PublicCaseFormPage', () => {
 
     expect(await screen.findByText(/this secure form link has expired/i)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /submit form/i })).not.toBeInTheDocument();
+  });
+
+  it('suppresses stale autosave responses after the draft changes again', async () => {
+    let resolveFirstSave: (value: unknown) => void = () => undefined;
+    saveDraftMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveFirstSave = resolve;
+        })
+    );
+
+    renderPage();
+
+    expect(await screen.findByText('Email Intake Form')).toBeInTheDocument();
+    vi.useFakeTimers();
+    fireEvent.click(screen.getByRole('button', { name: /set first answer/i }));
+
+    await act(async () => {
+      vi.advanceTimersByTime(1200);
+    });
+
+    expect(saveDraftMock).toHaveBeenCalledWith('token-1', {
+      answers: expect.objectContaining({ email: 'first@example.com' }),
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /set second answer/i }));
+
+    await act(async () => {
+      resolveFirstSave({
+        ...buildSentDetail({
+          status: 'reviewed',
+        }).assignment,
+        current_draft_answers: { email: 'first@example.com' },
+      });
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByText(/^reviewed$/i)).not.toBeInTheDocument();
+    expect(screen.getByTestId('public-form-answers')).toHaveTextContent('second@example.com');
   });
 });

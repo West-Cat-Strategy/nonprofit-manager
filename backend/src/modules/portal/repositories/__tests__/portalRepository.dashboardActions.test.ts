@@ -1,4 +1,4 @@
-import { buildPortalDashboardActionItems } from '../portalRepository';
+import { buildPortalDashboardActionItems, PortalRepository } from '../portalRepository';
 
 describe('buildPortalDashboardActionItems', () => {
   const nowSpy = jest.spyOn(Date, 'now');
@@ -100,7 +100,31 @@ describe('buildPortalDashboardActionItems', () => {
       kind: 'form',
       priority: 'high',
       title: 'Review submitted Income worksheet',
-      description: 'Staff are reviewing this form. You can still make changes until review is complete.',
+      description:
+        'Staff are reviewing this form. You can still make changes until review is complete.',
     });
+  });
+
+  it('requires client-visible cases for dashboard form action queries', async () => {
+    const query = jest
+      .fn()
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ unread_threads_count: '0' }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] });
+    const repository = new PortalRepository({ query } as never);
+    (repository as any).cases = {
+      getPortalCases: jest.fn().mockResolvedValue([]),
+    };
+    (repository as any).resources = {
+      getPortalEvents: jest.fn().mockResolvedValue({ items: [], total: 0 }),
+      getPortalDocuments: jest.fn().mockResolvedValue({ items: [], total: 0 }),
+      getPortalReminders: jest.fn().mockResolvedValue({ items: [], total: 0 }),
+    };
+
+    await repository.getDashboard('contact-1', 'portal-user-1');
+
+    expect(query.mock.calls[0][0]).toContain('c.client_viewable = true');
   });
 });

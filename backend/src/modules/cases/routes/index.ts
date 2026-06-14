@@ -178,33 +178,36 @@ const caseCatalogQuerySchema = z
   })
   .strict();
 
-const createCaseSchema = z.object({
-  contact_id: uuidSchema,
-  account_id: uuidSchema.optional(),
-  case_type_id: uuidSchema.optional(),
-  case_type_ids: z.array(uuidSchema).optional(),
-  title: z.string().min(1),
-  description: z.string().optional(),
-  priority: casePrioritySchema.optional(),
-  outcome: caseOutcomeSchema.optional(),
-  source: z.string().optional(),
-  referral_source: z.string().optional(),
-  assigned_to: uuidSchema.optional(),
-  assigned_team: z.string().optional(),
-  due_date: dateStringSchema.optional(),
-  intake_data: z.record(z.string(), z.unknown()).optional(),
-  custom_data: z.record(z.string(), z.unknown()).optional(),
-  tags: z.array(z.string()).optional(),
-  is_urgent: optionalStrictBooleanSchema,
-  client_viewable: optionalStrictBooleanSchema,
-  case_outcome_values: z.array(caseOutcomeSchema).optional(),
-}).refine(
-  (payload) => Boolean(payload.case_type_id || (payload.case_type_ids && payload.case_type_ids.length > 0)),
-  {
-    message: 'At least one case type is required',
-    path: ['case_type_ids'],
-  }
-);
+const createCaseSchema = z
+  .object({
+    contact_id: uuidSchema,
+    account_id: uuidSchema.optional(),
+    case_type_id: uuidSchema.optional(),
+    case_type_ids: z.array(uuidSchema).optional(),
+    title: z.string().min(1),
+    description: z.string().optional(),
+    priority: casePrioritySchema.optional(),
+    outcome: caseOutcomeSchema.optional(),
+    source: z.string().optional(),
+    referral_source: z.string().optional(),
+    assigned_to: uuidSchema.optional(),
+    assigned_team: z.string().optional(),
+    due_date: dateStringSchema.optional(),
+    intake_data: z.record(z.string(), z.unknown()).optional(),
+    custom_data: z.record(z.string(), z.unknown()).optional(),
+    tags: z.array(z.string()).optional(),
+    is_urgent: optionalStrictBooleanSchema,
+    client_viewable: optionalStrictBooleanSchema,
+    case_outcome_values: z.array(caseOutcomeSchema).optional(),
+  })
+  .refine(
+    (payload) =>
+      Boolean(payload.case_type_id || (payload.case_type_ids && payload.case_type_ids.length > 0)),
+    {
+      message: 'At least one case type is required',
+      path: ['case_type_ids'],
+    }
+  );
 
 const updateCaseSchema = z.object({
   title: z.string().min(1).optional(),
@@ -413,7 +416,9 @@ export const createCasesRoutes = (): Router => {
   const caseFormsRepository = new CaseFormsRepository();
 
   const catalogController = createCaseCatalogController(new CaseCatalogUseCase(caseRepository));
-  const lifecycleController = createCaseLifecycleController(new CaseLifecycleUseCase(caseRepository));
+  const lifecycleController = createCaseLifecycleController(
+    new CaseLifecycleUseCase(caseRepository)
+  );
   const notesController = createCaseNotesController(new CaseNotesUseCase(notesRepository));
   const milestonesController = createCaseMilestonesController(
     new CaseMilestonesUseCase(milestonesRepository)
@@ -421,7 +426,9 @@ export const createCasesRoutes = (): Router => {
   const relationshipsController = createCaseRelationshipsController(
     new CaseRelationshipsUseCase(relationshipsRepository)
   );
-  const servicesController = createCaseServicesController(new CaseServicesUseCase(servicesRepository));
+  const servicesController = createCaseServicesController(
+    new CaseServicesUseCase(servicesRepository)
+  );
   const outcomesController = createCaseOutcomesController(
     new CaseOutcomesUseCase(outcomesRepository)
   );
@@ -439,7 +446,7 @@ export const createCasesRoutes = (): Router => {
     outcomesController.getCaseOutcomeDefinitions
   );
 
-  router.get('/summary', catalogController.getCaseSummary);
+  router.get('/summary', requirePermission(Permission.CASE_VIEW), catalogController.getCaseSummary);
   router.get('/types', catalogController.getCaseTypes);
   router.get('/statuses', catalogController.getCaseStatuses);
   router.get(
@@ -492,17 +499,24 @@ export const createCasesRoutes = (): Router => {
     requirePermission(Permission.CASE_CREATE),
     lifecycleController.createCase
   );
-  router.get('/', validateQuery(caseCatalogQuerySchema), catalogController.getCases);
+  router.get(
+    '/',
+    validateQuery(caseCatalogQuerySchema),
+    requirePermission(Permission.CASE_VIEW),
+    catalogController.getCases
+  );
   registerCaseQueueViewRoutes(router);
   router.get(
     '/:id/forms/recommended-defaults',
     validateParams(caseFormCaseParamsSchema),
+    requirePermission(Permission.CASE_VIEW),
     formsController.listRecommendedDefaults
   );
   router.get(
     '/:id/forms',
     validateParams(caseFormCaseParamsSchema),
     validateQuery(caseFormListQuerySchema),
+    requirePermission(Permission.CASE_VIEW),
     formsController.listAssignments
   );
   router.post(
@@ -528,6 +542,7 @@ export const createCasesRoutes = (): Router => {
   router.get(
     '/:id/forms/:assignmentId',
     validateParams(caseFormAssignmentParamsSchema),
+    requirePermission(Permission.CASE_VIEW),
     formsController.getAssignmentDetail
   );
   router.put(
@@ -540,10 +555,10 @@ export const createCasesRoutes = (): Router => {
   router.post(
     '/:id/forms/:assignmentId/assets',
     validateParams(caseFormAssignmentParamsSchema),
+    requirePermission(Permission.CASE_EDIT),
     documentUpload.single('file'),
     handleMulterError,
     validateBody(caseFormAssetUploadSchema),
-    requirePermission(Permission.CASE_EDIT),
     formsController.uploadAsset
   );
   router.post(
@@ -577,14 +592,21 @@ export const createCasesRoutes = (): Router => {
   router.get(
     '/:id/forms/:assignmentId/response-packet',
     validateParams(caseFormAssignmentParamsSchema),
+    requirePermission(Permission.CASE_VIEW),
     formsController.downloadResponsePacket
   );
   router.get(
     '/:id/forms/:assignmentId/assets/:assetId/download',
     validateParams(caseFormAssetParamsSchema),
+    requirePermission(Permission.CASE_VIEW),
     formsController.downloadAsset
   );
-  router.get('/:id', validateParams(caseIdParamsSchema), catalogController.getCaseById);
+  router.get(
+    '/:id',
+    validateParams(caseIdParamsSchema),
+    requirePermission(Permission.CASE_VIEW),
+    catalogController.getCaseById
+  );
   router.get(
     '/:id/handoff-packet',
     validateParams(caseIdParamsSchema),
@@ -596,12 +618,14 @@ export const createCasesRoutes = (): Router => {
   router.get(
     '/:id/follow-ups',
     validateParams(caseIdParamsSchema),
+    requirePermission(Permission.CASE_VIEW),
     followUpsController.getCaseFollowUps
   );
   router.get(
     '/:id/timeline',
     validateParams(caseIdParamsSchema),
     validateQuery(caseTimelineQuerySchema),
+    requirePermission(Permission.CASE_VIEW),
     catalogController.getCaseTimeline
   );
   router.put(
@@ -639,7 +663,12 @@ export const createCasesRoutes = (): Router => {
     lifecycleController.reassignCase
   );
 
-  router.get('/:id/notes', validateParams(caseIdParamsSchema), notesController.getCaseNotes);
+  router.get(
+    '/:id/notes',
+    validateParams(caseIdParamsSchema),
+    requirePermission(Permission.CASE_VIEW),
+    notesController.getCaseNotes
+  );
   router.post(
     '/notes',
     validateBody(createCaseNoteSchema),
@@ -663,6 +692,7 @@ export const createCasesRoutes = (): Router => {
   router.get(
     '/:id/outcomes',
     validateParams(caseIdParamsSchema),
+    requirePermission(Permission.CASE_VIEW),
     outcomesController.getCaseOutcomes
   );
   router.post(
@@ -689,6 +719,7 @@ export const createCasesRoutes = (): Router => {
   router.get(
     '/:id/topics/definitions',
     validateParams(caseIdParamsSchema),
+    requirePermission(Permission.CASE_VIEW),
     outcomesController.getCaseTopicDefinitions
   );
   router.post(
@@ -701,6 +732,7 @@ export const createCasesRoutes = (): Router => {
   router.get(
     '/:id/topics',
     validateParams(caseIdParamsSchema),
+    requirePermission(Permission.CASE_VIEW),
     outcomesController.getCaseTopicEvents
   );
   router.post(
@@ -720,20 +752,22 @@ export const createCasesRoutes = (): Router => {
   router.get(
     '/:id/documents',
     validateParams(caseIdParamsSchema),
+    requirePermission(Permission.CASE_VIEW),
     documentsController.getCaseDocuments
   );
   router.post(
     '/:id/documents',
     validateParams(caseIdParamsSchema),
+    requirePermission(Permission.CASE_EDIT),
     documentUpload.single('file'),
     handleMulterError,
-    requirePermission(Permission.CASE_EDIT),
     documentsController.uploadCaseDocument
   );
   router.get(
     '/:id/documents/:documentId/download',
     validateParams(documentIdParamsSchema),
     validateQuery(caseDocumentDownloadQuerySchema),
+    requirePermission(Permission.CASE_VIEW),
     documentsController.downloadCaseDocument
   );
   router.put(
@@ -753,6 +787,7 @@ export const createCasesRoutes = (): Router => {
   router.get(
     '/:id/milestones',
     validateParams(caseIdParamsSchema),
+    requirePermission(Permission.CASE_VIEW),
     milestonesController.getCaseMilestones
   );
   router.post(
@@ -779,6 +814,7 @@ export const createCasesRoutes = (): Router => {
   router.get(
     '/:id/relationships',
     validateParams(caseIdParamsSchema),
+    requirePermission(Permission.CASE_VIEW),
     relationshipsController.getCaseRelationships
   );
   router.post(
@@ -798,6 +834,7 @@ export const createCasesRoutes = (): Router => {
   router.get(
     '/:id/services',
     validateParams(caseIdParamsSchema),
+    requirePermission(Permission.CASE_VIEW),
     servicesController.getCaseServices
   );
   router.post(
@@ -824,6 +861,7 @@ export const createCasesRoutes = (): Router => {
   router.get(
     '/:id/portal/conversations',
     validateParams(casePortalConversationParamsSchema),
+    requirePermission(Permission.CASE_VIEW),
     getCasePortalConversations
   );
 
@@ -846,6 +884,7 @@ export const createCasesRoutes = (): Router => {
   router.get(
     '/:caseId/interactions/:interactionId/outcomes',
     validateParams(interactionOutcomeParamsSchema),
+    requirePermission(Permission.CASE_VIEW),
     outcomesController.getInteractionOutcomes
   );
 

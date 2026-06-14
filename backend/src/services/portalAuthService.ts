@@ -1,5 +1,9 @@
 import pool from '@config/database';
-import { recordPublicIntakeResolutionBestEffort } from '@services/publicIntakeResolutionService';
+import {
+  recordPublicIntakeResolutionBestEffort,
+  type PublicIntakeAmbiguityState,
+} from '@services/publicIntakeResolutionService';
+import crypto from 'crypto';
 
 interface ContactIdRow {
   id: string;
@@ -17,6 +21,7 @@ interface PortalSignupResolutionRow {
   contact_id: string | null;
   account_id: string | null;
   resolution_status: PortalSignupResolutionStatus;
+  ambiguity_state?: PublicIntakeAmbiguityState | null;
 }
 
 export interface PortalLoginUserRow {
@@ -69,6 +74,27 @@ export interface PortalSignupContactResolution {
   resolutionStatus: PortalSignupResolutionStatus;
 }
 
+export const hashPortalInvitationToken = (token: string): string =>
+  crypto.createHash('sha256').update(token.trim()).digest('hex');
+
+const deriveLegacyPortalSignupAmbiguityState = (
+  row: PortalSignupResolutionRow
+): PublicIntakeAmbiguityState => {
+  if (row.ambiguity_state) {
+    return row.ambiguity_state;
+  }
+  if (row.resolution_status === 'needs_contact_resolution') {
+    if (row.contact_id && row.account_id) {
+      return 'single_tenant_no_match_created';
+    }
+    if (!row.contact_id && !row.account_id) {
+      return 'no_match';
+    }
+    return 'multiple_matches';
+  }
+  return row.contact_id ? 'single_match' : 'no_match';
+};
+
 export const findContactIdByEmail = async (email: string): Promise<string | null> => {
   const result = await pool.query<ContactIdRow>('SELECT id FROM contacts WHERE email = $1', [
     email,
@@ -100,7 +126,7 @@ export const resolvePortalSignupContact = async (input: {
   phone?: string;
 }): Promise<PortalSignupContactResolution> => {
   const result = await pool.query<PortalSignupResolutionRow>(
-    `SELECT contact_id, account_id, resolution_status
+    `SELECT *
      FROM public.portal_resolve_signup_request($1, $2, $3, $4)`,
     [input.firstName, input.lastName, input.email, input.phone || null]
   );
@@ -122,6 +148,7 @@ export const resolvePortalSignupContact = async (input: {
       accountId = null;
     }
   }
+  const ambiguityState = deriveLegacyPortalSignupAmbiguityState(row);
 
   await recordPublicIntakeResolutionBestEffort({
     sourceSystem: 'portal_signup',
@@ -134,16 +161,12 @@ export const resolvePortalSignupContact = async (input: {
     accountId,
     organizationId: accountId,
     matchedContactId: row.contact_id,
-    ambiguityState:
-      row.resolution_status === 'needs_contact_resolution'
-        ? 'multiple_matches'
-        : row.contact_id
-          ? 'single_match'
-          : 'no_match',
+    ambiguityState,
     resolutionStatus: row.resolution_status,
     auditTrail: [
       {
         action: 'portal_signup_resolution',
+        ambiguityState,
         resolutionStatus: row.resolution_status,
         at: new Date().toISOString(),
       },
@@ -260,6 +283,7 @@ export const getPortalUserProfileById = async (
 export const getPortalInvitationByToken = async (
   token: string
 ): Promise<PortalInvitationRow | null> => {
+  const tokenHash = hashPortalInvitationToken(token);
   const result = await pool.query<PortalInvitationRow>(
     `SELECT pi.id,
             pi.email,
@@ -270,8 +294,9 @@ export const getPortalInvitationByToken = async (
             pi.accepted_at
      FROM portal_invitations pi
      LEFT JOIN contacts c ON c.id = pi.contact_id
-     WHERE pi.token = $1`,
-    [token]
+     WHERE pi.token_hash = $1
+        OR pi.token = $2`,
+    [tokenHash, token]
   );
 
   return result.rows[0] ?? null;

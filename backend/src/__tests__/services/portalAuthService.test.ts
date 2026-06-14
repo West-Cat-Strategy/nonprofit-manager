@@ -1,4 +1,5 @@
 import pool from '@config/database';
+import crypto from 'crypto';
 import {
   createPortalSignupRequest,
   createPortalUserFromInvitation,
@@ -25,7 +26,14 @@ describe('portalAuthService', () => {
   it('returns a resolved contact when the signup bridge finds a single normalized-email match', async () => {
     mockQuery
       .mockResolvedValueOnce({
-        rows: [{ contact_id: 'contact-1', account_id: 'account-1', resolution_status: 'resolved' }],
+        rows: [
+          {
+            contact_id: 'contact-1',
+            account_id: 'account-1',
+            resolution_status: 'resolved',
+            ambiguity_state: 'single_match',
+          },
+        ],
       })
       .mockResolvedValueOnce({ rows: [{ id: 'resolution-1' }] });
 
@@ -40,21 +48,24 @@ describe('portalAuthService', () => {
       accountId: 'account-1',
       resolutionStatus: 'resolved',
     });
-    expect(mockQuery).toHaveBeenCalledWith(
-      `SELECT contact_id, account_id, resolution_status
+    expect(mockQuery).toHaveBeenNthCalledWith(
+      1,
+      `SELECT *
      FROM public.portal_resolve_signup_request($1, $2, $3, $4)`,
       ['Client', 'One', 'client@example.com', null]
     );
+    expect(mockQuery.mock.calls[1][1][11]).toBe('single_match');
   });
 
-  it('returns a manual-resolution result when the signup bridge finds no matching contact', async () => {
+  it('records a distinct ambiguity state when the signup bridge creates a single-tenant no-match contact', async () => {
     mockQuery
       .mockResolvedValueOnce({
         rows: [
           {
-            contact_id: null,
+            contact_id: 'contact-new',
             account_id: 'account-1',
             resolution_status: 'needs_contact_resolution',
+            ambiguity_state: 'single_tenant_no_match_created',
           },
         ],
       })
@@ -68,15 +79,17 @@ describe('portalAuthService', () => {
     });
 
     expect(result).toEqual({
-      contactId: null,
+      contactId: 'contact-new',
       accountId: 'account-1',
       resolutionStatus: 'needs_contact_resolution',
     });
-    expect(mockQuery).toHaveBeenCalledWith(
-      `SELECT contact_id, account_id, resolution_status
+    expect(mockQuery).toHaveBeenNthCalledWith(
+      1,
+      `SELECT *
      FROM public.portal_resolve_signup_request($1, $2, $3, $4)`,
       ['New', 'Client', 'newclient@example.com', '5551234567']
     );
+    expect(mockQuery.mock.calls[1][1][11]).toBe('single_tenant_no_match_created');
   });
 
   it('returns an unresolved signup result when multiple contacts share the email', async () => {
@@ -87,6 +100,7 @@ describe('portalAuthService', () => {
             contact_id: null,
             account_id: 'account-1',
             resolution_status: 'needs_contact_resolution',
+            ambiguity_state: 'multiple_matches',
           },
         ],
       })
@@ -103,12 +117,48 @@ describe('portalAuthService', () => {
       accountId: 'account-1',
       resolutionStatus: 'needs_contact_resolution',
     });
+    expect(mockQuery.mock.calls[1][1][11]).toBe('multiple_matches');
+  });
+
+  it('records exact no-match ambiguity when the signup bridge cannot infer an account', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            contact_id: null,
+            account_id: null,
+            resolution_status: 'needs_contact_resolution',
+            ambiguity_state: 'no_match',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [{ id: 'resolution-4' }] });
+
+    await expect(
+      resolvePortalSignupContact({
+        email: 'unknown@example.com',
+        firstName: 'Unknown',
+        lastName: 'Client',
+      })
+    ).resolves.toEqual({
+      contactId: null,
+      accountId: null,
+      resolutionStatus: 'needs_contact_resolution',
+    });
+    expect(mockQuery.mock.calls[1][1][11]).toBe('no_match');
   });
 
   it('does not fail signup resolution when intake audit logging fails', async () => {
     mockQuery
       .mockResolvedValueOnce({
-        rows: [{ contact_id: 'contact-1', account_id: 'account-1', resolution_status: 'resolved' }],
+        rows: [
+          {
+            contact_id: 'contact-1',
+            account_id: 'account-1',
+            resolution_status: 'resolved',
+            ambiguity_state: 'single_match',
+          },
+        ],
       })
       .mockRejectedValueOnce(new Error('audit insert failed'));
 
@@ -171,6 +221,11 @@ describe('portalAuthService', () => {
   it('returns null when invitation token does not exist', async () => {
     mockQuery.mockResolvedValueOnce({ rows: [] });
     await expect(getPortalInvitationByToken('missing')).resolves.toBeNull();
+
+    expect(mockQuery).toHaveBeenCalledWith(expect.stringContaining('pi.token_hash = $1'), [
+      crypto.createHash('sha256').update('missing').digest('hex'),
+      'missing',
+    ]);
   });
 
   it('looks up active portal users and pending signup requests case-insensitively', async () => {

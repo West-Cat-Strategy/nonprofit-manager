@@ -61,6 +61,16 @@ const sendInvitationFailure = (
   return sendError(res, error.code, error.message, error.statusCode, undefined, correlationId);
 };
 
+const getPortalInvitationTokenFromRequest = (req: Request): string => {
+  const body = (req.validatedBody ?? req.body ?? {}) as { token?: unknown };
+  const params = (req.validatedParams ?? req.params ?? {}) as { token?: unknown };
+  const bodyToken = typeof body.token === 'string' ? body.token.trim() : '';
+  if (bodyToken) {
+    return bodyToken;
+  }
+  return typeof params.token === 'string' ? params.token.trim() : '';
+};
+
 export const portalSignup = async (
   req: Request,
   res: Response,
@@ -288,7 +298,7 @@ export const validatePortalInvitation = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const { token } = req.params as { token: string };
+    const token = getPortalInvitationTokenFromRequest(req);
     const invitationResult = await getValidPortalInvitation(token);
     if (!invitationResult.ok) {
       return sendInvitationFailure(res, invitationResult.error, req.correlationId);
@@ -314,7 +324,7 @@ export const acceptPortalInvitation = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const { token } = req.params as { token: string };
+    const token = getPortalInvitationTokenFromRequest(req);
     const { firstName, lastName, password } = req.body as {
       firstName: string;
       lastName: string;

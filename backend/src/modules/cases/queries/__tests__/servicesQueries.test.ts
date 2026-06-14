@@ -24,17 +24,29 @@ describe('servicesQueries', () => {
   });
 
   it('lists case services with provider details', async () => {
-    query.mockResolvedValueOnce({ rows: [{ id: 'service-1' }] });
+    query
+      .mockResolvedValueOnce({
+        rows: [{ case_id: 'case-1', contact_id: 'contact-1', account_id: 'account-1' }],
+      })
+      .mockResolvedValueOnce({ rows: [{ id: 'service-1' }] });
 
-    const result = await getCaseServicesQuery(db, 'case-1');
+    const result = await getCaseServicesQuery(db, 'case-1', 'account-1');
 
     expect(result).toEqual([{ id: 'service-1' }]);
-    expect(query).toHaveBeenCalledWith(expect.stringContaining('FROM case_services cs'), ['case-1']);
+    expect(query).toHaveBeenNthCalledWith(1, expect.stringContaining('FROM cases c'), [
+      'case-1',
+      'account-1',
+    ]);
+    expect(query).toHaveBeenNthCalledWith(2, expect.stringContaining('FROM case_services cs'), [
+      'case-1',
+    ]);
   });
 
   it('creates a case service using an existing provider match', async () => {
     query
-      .mockResolvedValueOnce({ rows: [{ account_id: 'account-1' }] })
+      .mockResolvedValueOnce({
+        rows: [{ case_id: 'case-1', contact_id: 'contact-1', account_id: 'account-1' }],
+      })
       .mockResolvedValueOnce({ rows: [{ id: 'provider-1', provider_name: 'Acme Support' }] })
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [{ id: 'service-1' }] })
@@ -52,18 +64,18 @@ describe('servicesQueries', () => {
         service_date: '2026-04-05',
         notes: 'check-in',
       },
-      'user-1'
+      'user-1',
+      'account-1'
     );
 
     expect(result).toEqual({
       id: 'service-1',
       external_service_provider_name: 'Acme Support',
     });
-    expect(query).toHaveBeenNthCalledWith(
-      1,
-      'SELECT account_id FROM cases WHERE id = $1',
-      ['case-1']
-    );
+    expect(query).toHaveBeenNthCalledWith(1, expect.stringContaining('FROM cases c'), [
+      'case-1',
+      'account-1',
+    ]);
     expect(query).toHaveBeenNthCalledWith(
       2,
       expect.stringContaining('FROM external_service_providers'),
@@ -74,33 +86,29 @@ describe('servicesQueries', () => {
       expect.stringContaining('UPDATE external_service_providers'),
       ['housing', 'user-1', 'provider-1', 'account-1']
     );
-    expect(query).toHaveBeenNthCalledWith(
-      4,
-      expect.stringContaining('INSERT INTO case_services'),
-      [
-        'case-1',
-        'Assessment',
-        'housing',
-        'Acme Support',
-        'provider-1',
-        null,
-        '2026-04-05',
-        null,
-        null,
-        null,
-        'scheduled',
-        null,
-        null,
-        'CAD',
-        'check-in',
-        'user-1',
-      ]
-    );
+    expect(query).toHaveBeenNthCalledWith(4, expect.stringContaining('INSERT INTO case_services'), [
+      'case-1',
+      'Assessment',
+      'housing',
+      'Acme Support',
+      'provider-1',
+      null,
+      '2026-04-05',
+      null,
+      null,
+      null,
+      'scheduled',
+      null,
+      null,
+      'CAD',
+      'check-in',
+      'user-1',
+    ]);
   });
 
   it('updates a case service and preserves provider resolution', async () => {
     query
-      .mockResolvedValueOnce({ rows: [{ account_id: 'account-1' }] })
+      .mockResolvedValueOnce({ rows: [{ account_id: 'account-1', case_id: 'case-1' }] })
       .mockResolvedValueOnce({ rows: [{ id: 'provider-2', provider_name: 'Bridge Health' }] })
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [{ id: 'service-1' }] })
@@ -116,18 +124,18 @@ describe('servicesQueries', () => {
         service_type: 'medical',
         status: 'completed',
       },
-      'user-2'
+      'user-2',
+      'account-1'
     );
 
     expect(result).toEqual({
       id: 'service-1',
       external_service_provider_name: 'Bridge Health',
     });
-    expect(query).toHaveBeenNthCalledWith(
-      1,
-      expect.stringContaining('FROM case_services cs'),
-      ['service-1']
-    );
+    expect(query).toHaveBeenNthCalledWith(1, expect.stringContaining('FROM case_services cs'), [
+      'service-1',
+      'account-1',
+    ]);
     expect(query).toHaveBeenNthCalledWith(
       2,
       expect.stringContaining('FROM external_service_providers'),
@@ -138,18 +146,47 @@ describe('servicesQueries', () => {
       expect.stringContaining('UPDATE external_service_providers'),
       ['medical', 'user-2', 'provider-2', 'account-1']
     );
-    expect(query).toHaveBeenNthCalledWith(
-      4,
-      expect.stringContaining('UPDATE case_services SET'),
-      ['Bridge Health', 'medical', 'completed', 'provider-2', 'service-1']
-    );
+    expect(query).toHaveBeenNthCalledWith(4, expect.stringContaining('UPDATE case_services SET'), [
+      'Bridge Health',
+      'medical',
+      'completed',
+      'provider-2',
+      'service-1',
+      'case-1',
+    ]);
   });
 
   it('deletes a case service', async () => {
+    query
+      .mockResolvedValueOnce({ rows: [{ account_id: 'account-1', case_id: 'case-1' }] })
+      .mockResolvedValueOnce({ rows: [] });
+
+    await deleteCaseServiceQuery(db, 'service-1', 'account-1');
+
+    expect(query).toHaveBeenNthCalledWith(1, expect.stringContaining('FROM case_services cs'), [
+      'service-1',
+      'account-1',
+    ]);
+    expect(query).toHaveBeenNthCalledWith(
+      2,
+      'DELETE FROM case_services WHERE id = $1 AND case_id = $2',
+      ['service-1', 'case-1']
+    );
+  });
+
+  it('rejects updates outside the scoped active organization', async () => {
     query.mockResolvedValueOnce({ rows: [] });
 
-    await deleteCaseServiceQuery(db, 'service-1');
+    await expect(
+      updateCaseServiceQuery(db, 'service-1', { status: 'completed' }, 'user-2', 'account-1')
+    ).rejects.toMatchObject({
+      message: 'Service not found',
+      statusCode: 404,
+    });
 
-    expect(query).toHaveBeenCalledWith('DELETE FROM case_services WHERE id = $1', ['service-1']);
+    expect(query).toHaveBeenCalledWith(expect.stringContaining('FROM case_services cs'), [
+      'service-1',
+      'account-1',
+    ]);
   });
 });

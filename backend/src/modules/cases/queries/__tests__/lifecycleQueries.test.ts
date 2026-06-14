@@ -1,5 +1,5 @@
 import type { Pool } from 'pg';
-import { upsertCaseTypeAssignments } from '../lifecycleQueries';
+import { createCaseQuery, upsertCaseTypeAssignments } from '../lifecycleQueries';
 
 describe('upsertCaseTypeAssignments', () => {
   it('upserts case type assignments idempotently in sort order', async () => {
@@ -22,5 +22,89 @@ describe('upsertCaseTypeAssignments', () => {
     await upsertCaseTypeAssignments(db, 'case-1', [], 'user-1');
 
     expect(query).not.toHaveBeenCalled();
+  });
+});
+
+describe('createCaseQuery trust-boundary validation', () => {
+  const query = jest.fn();
+  const db = { query } as unknown as Pool;
+
+  beforeEach(() => {
+    query.mockReset();
+  });
+
+  it('rejects explicit case account ids outside the active organization before data writes', async () => {
+    await expect(
+      createCaseQuery(
+        db,
+        {
+          contact_id: 'contact-1',
+          account_id: 'org-2',
+          case_type_id: 'type-1',
+          title: 'Housing support',
+        },
+        'user-1',
+        'org-1'
+      )
+    ).rejects.toMatchObject({
+      message: 'Account not found',
+      statusCode: 404,
+    });
+
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it('rejects contacts from another organization before creating a case', async () => {
+    query.mockResolvedValueOnce({ rows: [{ id: 'contact-1', account_id: 'org-2' }] });
+
+    await expect(
+      createCaseQuery(
+        db,
+        {
+          contact_id: 'contact-1',
+          case_type_id: 'type-1',
+          title: 'Housing support',
+        },
+        'user-1',
+        'org-1'
+      )
+    ).rejects.toMatchObject({
+      message: 'Contact not found',
+      statusCode: 404,
+    });
+
+    expect(query).toHaveBeenCalledTimes(1);
+    expect(query).toHaveBeenCalledWith(expect.stringContaining('FROM contacts'), ['contact-1']);
+  });
+
+  it('defaults null-account contacts to the active organization when creating a case', async () => {
+    query
+      .mockResolvedValueOnce({ rows: [{ id: 'contact-1', account_id: null }] })
+      .mockResolvedValueOnce({ rows: [{ id: 'status-1' }] })
+      .mockResolvedValueOnce({
+        rows: [{ id: 'case-1', account_id: 'org-1', case_number: 'CASE-1' }],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] });
+
+    await expect(
+      createCaseQuery(
+        db,
+        {
+          contact_id: 'contact-1',
+          case_type_id: 'type-1',
+          title: 'Housing support',
+        },
+        'user-1',
+        'org-1'
+      )
+    ).resolves.toMatchObject({ id: 'case-1', account_id: 'org-1' });
+
+    const insertParams = query.mock.calls[2][1] as unknown[];
+    expect(query.mock.calls[2][0]).toEqual(expect.stringContaining('INSERT INTO cases'));
+    expect(insertParams[1]).toBe('contact-1');
+    expect(insertParams[2]).toBe('org-1');
   });
 });

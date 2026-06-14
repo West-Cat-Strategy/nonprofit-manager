@@ -1,9 +1,10 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import IntakeNew from '../IntakeNewPage';
 import { renderWithProviders } from '../../../../test/testUtils';
 
 const navigateMock = vi.fn();
+const getContactMock = vi.fn();
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
@@ -61,10 +62,22 @@ vi.mock('../../../../components/CaseForm', () => ({
   ),
 }));
 
+vi.mock('../../../contacts/api/contactsApiClient', () => ({
+  contactsApiClient: {
+    getContact: (...args: unknown[]) => getContactMock(...args),
+  },
+}));
+
 describe('IntakeNew workflow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
+    getContactMock.mockResolvedValue({
+      contact_id: 'contact-123',
+      first_name: 'Casey',
+      last_name: 'Client',
+      email: 'casey@example.com',
+    });
   });
 
   it('moves from contact step to case step and allows going back', () => {
@@ -80,7 +93,7 @@ describe('IntakeNew workflow', () => {
     expect(screen.getByRole('button', { name: /mock create contact/i })).toBeInTheDocument();
   });
 
-  it('restores draft step and contact summary from session storage', () => {
+  it('restores draft step and contact summary from session storage', async () => {
     const { unmount } = renderWithProviders(<IntakeNew />, { route: '/intake/new' });
 
     fireEvent.click(screen.getByRole('button', { name: /mock create contact/i }));
@@ -93,9 +106,38 @@ describe('IntakeNew workflow', () => {
 
     renderWithProviders(<IntakeNew />, { route: '/intake/new' });
 
-    expect(screen.getByTestId('case-form')).toHaveTextContent('contact-123');
+    expect(await screen.findByRole('status')).toHaveTextContent(/checking restored contact/i);
+    await waitFor(() => {
+      expect(getContactMock).toHaveBeenCalledWith('contact-123');
+      expect(screen.getByTestId('case-form')).toHaveTextContent('contact-123');
+    });
     expect(screen.getByText(/casey client/i)).toBeInTheDocument();
     expect(screen.getByText(/casey@example.com/i)).toBeInTheDocument();
+  });
+
+  it('clears a restored contact that no longer validates', async () => {
+    getContactMock.mockRejectedValueOnce(new Error('Contact not found'));
+    sessionStorage.setItem(
+      'workflow:intake:new',
+      JSON.stringify({
+        step: 'case',
+        createdContact: {
+          contact_id: 'stale-contact',
+          first_name: 'Stale',
+          last_name: 'Contact',
+          email: 'stale@example.com',
+        },
+      })
+    );
+
+    renderWithProviders(<IntakeNew />, { route: '/intake/new' });
+
+    await waitFor(() => {
+      expect(getContactMock).toHaveBeenCalledWith('stale-contact');
+      expect(screen.getByRole('button', { name: /mock create contact/i })).toBeInTheDocument();
+    });
+    expect(screen.getByText(/restored contact is no longer available/i)).toBeInTheDocument();
+    expect(screen.queryByTestId('case-form')).not.toBeInTheDocument();
   });
 
   it('navigates to the saved case after the intake case save completes', () => {
