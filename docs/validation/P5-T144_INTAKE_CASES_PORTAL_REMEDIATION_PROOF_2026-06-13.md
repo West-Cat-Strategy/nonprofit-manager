@@ -1,7 +1,8 @@
 # P5-T144 Intake Cases Portal Remediation Proof
 
 **Date:** 2026-06-13
-**Status:** Implementation complete; broad host E2E proof blocked by local runtime/load
+**Status:** Implementation complete; broad host E2E proof still blocked by local Docker/test-DB runtime loss
+**Last Refresh:** 2026-06-16
 **Branch:** `p5-t143-intake-cases-portal-remediation`
 **Worktree:** `/Users/bryan/projects/nonprofit-manager-p5-t143`
 
@@ -62,6 +63,40 @@ Remediate the June 13 intake, cases, portal, and public-intake review findings w
 - `cd e2e && npm test -- --project=chromium tests/cases.spec.ts tests/workflows.spec.ts tests/portal-cases-visibility.spec.ts tests/portal-auth.spec.ts tests/portal-workspace.spec.ts tests/public-website.spec.ts`
   - Result: 19/20 passed. Portal auth, portal case visibility, portal workspace/forms, public website, workflows, and the intake restore case passed.
   - The lone failure was `cases.spec.ts` case-detail tab persistence with the app stuck on `Loading page...`; the same test passed in earlier full-matrix attempts and passed in a fresh single-test rerun.
+
+### 2026-06-16 Broad Host Refresh
+
+- Preflight:
+  - `git status --short --branch`
+    - Result before the rerun: `## main...origin/main`; later existing P5-T143 documentation edits were present in `docs/phases/planning-and-progress.md`, `docs/validation/README.md`, and `docs/validation/P5-T143_SERVICE_SITE_ROUTING_READY_PROOF_2026-06-13.md` and were preserved.
+  - `docker info`
+    - Initial result: failed because the Docker daemon was unavailable at `unix:///Users/bryan/.docker/run/docker.sock`.
+  - `open -a Docker`, then repeated `docker info`
+    - Result: Docker became reachable after about 10 seconds.
+  - `ps -axo pid,pcpu,pmem,command | sort -k2 -nr | head -25`
+    - Result: the machine cooled enough to start the broad gate, though later post-failure sampling showed unrelated ProtonVPN, Transmission, WindowServer, and Docker Desktop load.
+- `make test`
+  - Backend portion passed, 289 suites / 2412 tests.
+  - Frontend portion passed, 266 files / 1438 tests.
+  - Host E2E matrix started successfully after port preflight passed for `3001` and `5173`.
+  - Chromium progressed through the full desktop matrix through `tests/workflows.spec.ts` with no observed failures before Firefox started.
+  - The previously suspicious `cases.spec.ts` case-detail tab persistence path passed in Chromium and Firefox.
+  - The startup performance guard passed in Chromium.
+  - P5-T144-adjacent Chromium paths passed, including portal route health, portal forms, fixture-backed portal case detail, portal visibility/link audit, portal auth, portal workspace/forms, public website, publishing, cases, and workflows.
+  - Firefox then hit a runtime failure wave beginning with `tests/cases.spec.ts` (`staff can tag an interaction outcome and see it persisted`) and continuing into `tests/contacts.spec.ts`.
+  - Failure artifacts under `e2e/test-results/**/error-context.md` showed the same root error across the wave: `/api/v2/auth/setup-status` returned `500` with `{"code":"ECONNREFUSED"}`.
+  - The broad gate was interrupted after repeated Firefox failures because the gate was already red and the failures matched runtime/test-DB loss rather than a product assertion.
+- Post-failure checks:
+  - `./scripts/validation-preflight.sh isolated-test-db --context p5-t144-post-failure-check`
+    - Result: failed because Docker daemon was no longer reachable.
+  - `lsof -nP -iTCP:8012 -sTCP:LISTEN`
+    - Result: no isolated test DB listener remained on `127.0.0.1:8012`.
+  - `lsof -nP -iTCP:3001 -sTCP:LISTEN` and `lsof -nP -iTCP:5173 -sTCP:LISTEN`
+    - Result: interrupted Playwright host servers remained; they were stopped with `kill 86813 91895`.
+  - `docker info`
+    - Result after failure: `ERROR: Error reading remote info: EOF`.
+
+Disposition: `P5-T144` remains Blocked. The rerun improved confidence that the merged intake/cases/portal product changes are not the current issue, because backend, frontend, Chromium browser coverage, portal/cases/public-intake paths, and the startup guard all passed before the host runtime lost Docker/test-DB availability again. Do not change product code from this evidence. The next unblock attempt should start only after Docker remains stable and the machine is idle, then rerun the full `make test` gate or, if the backend/frontend sections are still green, a preserved host E2E run with `cd e2e && npm run test:ci:report`.
 
 ## Final Owned Path Set
 
@@ -143,5 +178,5 @@ Remediate the June 13 intake, cases, portal, and public-intake review findings w
 ## Residual Risk
 
 - Implementation and focused gates are complete, but the row is blocked from Review because the full host `make test` / E2E sequence did not complete green in the current environment.
-- Current blocker is runtime/load evidence, not a known product-code failure: one full E2E run lost the host DB listener mid-matrix, and the second failed a startup p75 threshold while another release-check/coverage process was running in `/Users/bryan/projects/nonprofit-manager-deps-2026-06-13`.
+- Current blocker is runtime/load evidence, not a known product-code failure: earlier runs lost the host DB listener mid-matrix or failed a startup p75 threshold under concurrent load, and the June 16 rerun again lost Docker/test-DB availability during Firefox after backend, frontend, Chromium, portal/cases/public-intake paths, and the Chromium startup guard passed.
 - Before moving this row to Review, rerun the full host gate when the machine is idle, preferably `make test` or at least `cd e2e && npm run test:ci` after the already-passing backend/frontend/root gates.

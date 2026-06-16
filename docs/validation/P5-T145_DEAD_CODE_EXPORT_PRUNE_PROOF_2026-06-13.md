@@ -165,6 +165,29 @@ scripts/select-checks.sh
 scripts/tests/tooling-contracts.test.cjs
 ```
 
+## June 16 Disposition
+
+`P5-T145` is Blocked for archive signoff, not implementation review. The completed prune remains accepted as focused-green on current `main`: root service wrappers and the inert module-manifest scaffold remain deleted, route factory exports stay private except intentional active test seams such as dashboard and scheduled reports, mounted `*V2Routes`, `/api/v2` contracts, export permissions, auth-alias telemetry routes, and `/api/payments/*` tombstone behavior remain unchanged, and case notes continue through `CaseNotesPanel` plus `casesApiClient` without the removed Redux `caseNotesSlice`.
+
+Current disposition checks:
+
+- `git status --short --branch`: current `main` checkout inspected before disposition.
+- `./scripts/select-checks.sh --files "<P5-T145 changed paths>" --mode strict`: still emits `make check-links`, `make test-tooling`, `make lint`, `make typecheck`, and `make test-coverage-full`.
+- `npm run knip`: passed.
+- `make check-links`: passed, checking 290 files and 1578 local links.
+- `make test-tooling`: passed, 80 Node tooling tests, including `.github` helper Markdown selector routing.
+- `make lint`: passed, including route integrity, success-envelope, v2 auth-posture, migration manifest, module-boundary, canonical import, and UI audit ratchet checks.
+- `make typecheck`: passed for backend, frontend, and contracts.
+- Static import/path sweeps confirmed the deleted wrappers, module manifest, frontend dead presentation/control surfaces, `CalmOps`, and `caseNotesSlice` remain absent; `.github` docs audit and selector routing remain active; export route permissions and payment tombstone comments remain intact.
+
+Broad gate status:
+
+- `docker info --format '{{.ServerVersion}}'`: blocked because the Docker daemon is not reachable at `unix:///Users/bryan/.docker/run/docker.sock`.
+- `./scripts/validation-preflight.sh isolated-test-db --context "P5-T145 disposition planning"`: blocked before the broad gate because Docker is installed but the daemon/socket is unavailable.
+- `make test-coverage-full`: not current-runnable while Docker preflight is blocked. This selector-required gate must pass before moving `P5-T145` to archive.
+
+To unblock archive signoff, start Docker Desktop or restore the active Docker socket, confirm `docker info` passes, rerun `./scripts/validation-preflight.sh isolated-test-db --context "P5-T145 archive signoff"`, then run `make test-coverage-full`. If that broad gate is green, update this proof with the result, remove `P5-T145` from the live workboard, and move/index the proof using the validation archive pattern.
+
 ## Disposition
 
-Implementation is ready for review with focused behavior, type, lint, docs, selector, and Knip gates green. The remaining caveat is the broad full-runner environment instability documented above; the suites that printed failures under the unstable broad backend run passed when rerun directly against a fresh isolated database.
+Implementation is focused-green and currently blocked only on the selector-required Docker-backed `make test-coverage-full` broad gate. The row remains active instead of archived until that gate is runnable and green.

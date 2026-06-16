@@ -1,8 +1,12 @@
 # P5-T143 Service-Site Routing Proof
 
 **Date:** 2026-06-13
-**Status:** Row-local implementation proof
+**Status:** Review-ready row-local implementation proof
 **Workboard Row:** `P5-T143 Service-site routing from existing snapshots`
+
+## Disposition
+
+`P5-T143` should be reviewed as an implemented row-local runtime slice, not treated as a future Ready row. Focused P5-T143 backend, frontend, type-check, docs, and diff hygiene checks passed; the remaining broad selector caveats are documented below and did not implicate the P5-T143 handoff query or packet UI.
 
 ## Scope
 
