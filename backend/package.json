@@ -49,7 +49,7 @@
     "jsonwebtoken": "^9.0.3",
     "logform": "^2.7.0",
     "morgan": "^1.10.1",
-    "multer": "^2.1.1",
+    "multer": "^2.2.0",
     "nodemailer": "^8.0.10",
     "pdf-lib": "^1.17.1",
     "pg": "^8.21.0",
