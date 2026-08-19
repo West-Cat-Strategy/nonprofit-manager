@@ -3,6 +3,8 @@ import { AuthRequest } from '@middleware/auth';
 import type { CreateContactRelationshipDTO, UpdateContactRelationshipDTO } from '@app-types/contact';
 import { ContactRelationshipsUseCase } from '../usecases/contactRelationships.usecase';
 import { sendData, sendFailure } from '../mappers/responseMode';
+import { ContactDirectoryUseCase } from '../usecases/contactDirectory.usecase';
+import { ensureContactAccess } from './contactAccess';
 
 const mapRelationshipError = (error: unknown): { status: number; code: string; message: string } | null => {
   const message = error instanceof Error ? error.message : String(error);
@@ -16,13 +18,17 @@ const mapRelationshipError = (error: unknown): { status: number; code: string; m
   return null;
 };
 
-export const createContactRelationshipsController = (useCase: ContactRelationshipsUseCase) => {
+export const createContactRelationshipsController = (
+  useCase: ContactRelationshipsUseCase,
+  directoryUseCase: ContactDirectoryUseCase
+) => {
   const getContactRelationships = async (
     req: AuthRequest,
     res: Response,
     next: NextFunction
   ): Promise<void> => {
     try {
+      if (!(await ensureContactAccess(req, res, directoryUseCase, req.params.contactId))) return;
       const relationships = await useCase.list(req.params.contactId);
       sendData(res, relationships);
     } catch (error) {
@@ -41,6 +47,7 @@ export const createContactRelationshipsController = (useCase: ContactRelationshi
         sendFailure(res, 'NOT_FOUND', 'Relationship not found', 404);
         return;
       }
+      if (!(await ensureContactAccess(req, res, directoryUseCase, relationship.contact_id))) return;
 
       sendData(res, relationship);
     } catch (error) {
@@ -60,9 +67,13 @@ export const createContactRelationshipsController = (useCase: ContactRelationshi
         return;
       }
 
+      const payload = req.body as CreateContactRelationshipDTO;
+      if (!(await ensureContactAccess(req, res, directoryUseCase, req.params.contactId))) return;
+      if (!(await ensureContactAccess(req, res, directoryUseCase, payload.related_contact_id))) return;
+
       const relationship = await useCase.create(
         req.params.contactId,
-        req.body as CreateContactRelationshipDTO,
+        payload,
         userId
       );
       sendData(res, relationship, 201);
@@ -88,9 +99,16 @@ export const createContactRelationshipsController = (useCase: ContactRelationshi
         return;
       }
 
+      const existing = await useCase.getById(req.params.relationshipId);
+      if (!existing) {
+        sendFailure(res, 'NOT_FOUND', 'Relationship not found', 404);
+        return;
+      }
+      if (!(await ensureContactAccess(req, res, directoryUseCase, existing.contact_id))) return;
+      const payload = req.body as UpdateContactRelationshipDTO;
       const relationship = await useCase.update(
         req.params.relationshipId,
-        req.body as UpdateContactRelationshipDTO,
+        payload,
         userId
       );
       if (!relationship) {
@@ -115,6 +133,12 @@ export const createContactRelationshipsController = (useCase: ContactRelationshi
     next: NextFunction
   ): Promise<void> => {
     try {
+      const existing = await useCase.getById(req.params.relationshipId);
+      if (!existing) {
+        sendFailure(res, 'NOT_FOUND', 'Relationship not found', 404);
+        return;
+      }
+      if (!(await ensureContactAccess(req, res, directoryUseCase, existing.contact_id))) return;
       const deleted = await useCase.delete(req.params.relationshipId);
       if (!deleted) {
         sendFailure(res, 'NOT_FOUND', 'Relationship not found', 404);

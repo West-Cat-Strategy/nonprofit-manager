@@ -39,7 +39,10 @@ describe('contact notes controller', () => {
     delete: jest.fn(),
   };
 
-  const controller = createContactNotesController(useCase as any);
+  const directoryUseCase = {
+    getById: jest.fn().mockResolvedValue({ contact_id: 'contact-1' }),
+  };
+  const controller = createContactNotesController(useCase as any, directoryUseCase as any);
 
   beforeEach(() => {
     jest.clearAllMocks();

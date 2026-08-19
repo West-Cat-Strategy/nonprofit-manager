@@ -40,6 +40,7 @@ const STAFF_BOOTSTRAP_TTL_MS = 60_000;
 
 let cachedSnapshot: StaffBootstrapSnapshot | null = null;
 let inFlightSnapshot: Promise<StaffBootstrapSnapshot> | null = null;
+let snapshotGeneration = 0;
 
 const NAVIGATION_STORAGE_KEY = 'navigation_preferences';
 const DASHBOARD_SETTINGS_STORAGE_KEY = 'dashboardSettings';
@@ -213,11 +214,14 @@ export const getStaffBootstrapSnapshot = async (options?: {
   }
 
   const request = fetchStaffBootstrapSnapshot();
+  const requestGeneration = snapshotGeneration;
   inFlightSnapshot = request;
 
   try {
     const snapshot = await request;
-    cachedSnapshot = snapshot;
+    if (requestGeneration === snapshotGeneration) {
+      cachedSnapshot = snapshot;
+    }
     return snapshot;
   } finally {
     if (inFlightSnapshot === request) {
@@ -233,6 +237,7 @@ export const setStaffBootstrapSnapshot = (input: {
   preferences?: UserPreferences | null;
   workspaceModules?: WorkspaceModuleSettings | null;
 }): StaffBootstrapSnapshot => {
+  snapshotGeneration += 1;
   cachedSnapshot = input.user
     ? buildAuthenticatedSnapshot(input as {
         user: User;
@@ -254,6 +259,7 @@ export const setStaffBootstrapSnapshot = (input: {
 };
 
 export const clearStaffBootstrapSnapshot = (): void => {
+  snapshotGeneration += 1;
   cachedSnapshot = null;
   inFlightSnapshot = null;
 };

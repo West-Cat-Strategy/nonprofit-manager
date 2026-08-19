@@ -5,6 +5,7 @@
 
 import dns from 'dns/promises';
 import net from 'net';
+import { Address6 } from 'ip-address';
 import { Agent, interceptors } from 'undici';
 import type { Dispatcher } from 'undici';
 import pool from '@config/database';
@@ -102,16 +103,33 @@ const isPrivateIpv4 = (ip: string): boolean => {
 };
 
 const isPrivateIpv6 = (ip: string): boolean => {
-  const normalized = ip.toLowerCase();
+  let address: Address6;
+  try {
+    address = new Address6(ip);
+  } catch {
+    return true;
+  }
+
+  const normalized = address.correctForm().toLowerCase();
 
   if (normalized === '::' || normalized === '::1') return true;
   if (normalized.startsWith('fc') || normalized.startsWith('fd')) return true;
-  if (normalized.startsWith('fe80')) return true;
+  if (/^fe[89ab]/.test(normalized)) return true;
+  if (normalized.startsWith('ff')) return true;
   if (normalized.startsWith('2001:db8')) return true;
 
-  if (normalized.startsWith('::ffff:')) {
-    return isPrivateIpv4(normalized.replace('::ffff:', ''));
+  if (address.is4() || normalized.startsWith('::ffff:')) {
+    return isPrivateIpv4(address.to4().address.replace('/32', ''));
   }
+
+  // IPv6 transition mechanisms embed an IPv4 destination. Block the
+  // well-known NAT64/local-use, 6to4, and Teredo ranges rather than allowing
+  // an encoded private address to bypass the IPv4 policy.
+  if (
+    normalized.startsWith('64:ff9b:') ||
+    normalized.startsWith('2002:') ||
+    normalized.startsWith('2001:0:')
+  ) return true;
 
   return false;
 };

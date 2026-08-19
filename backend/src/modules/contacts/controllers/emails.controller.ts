@@ -3,6 +3,8 @@ import { AuthRequest } from '@middleware/auth';
 import type { CreateContactEmailDTO, UpdateContactEmailDTO } from '@app-types/contact';
 import { ContactEmailsUseCase } from '../usecases/contactEmails.usecase';
 import { sendData, sendFailure } from '../mappers/responseMode';
+import { ContactDirectoryUseCase } from '../usecases/contactDirectory.usecase';
+import { ensureContactAccess } from './contactAccess';
 
 const mapEmailError = (error: unknown): { status: number; code: string; message: string } | null => {
   const message = error instanceof Error ? error.message : String(error);
@@ -16,9 +18,13 @@ const mapEmailError = (error: unknown): { status: number; code: string; message:
   return null;
 };
 
-export const createContactEmailsController = (useCase: ContactEmailsUseCase) => {
+export const createContactEmailsController = (
+  useCase: ContactEmailsUseCase,
+  directoryUseCase: ContactDirectoryUseCase
+) => {
   const getContactEmails = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
+      if (!(await ensureContactAccess(req, res, directoryUseCase, req.params.contactId))) return;
       const emails = await useCase.list(req.params.contactId);
       sendData(res, emails);
     } catch (error) {
@@ -37,6 +43,7 @@ export const createContactEmailsController = (useCase: ContactEmailsUseCase) => 
         sendFailure(res, 'NOT_FOUND', 'Email address not found', 404);
         return;
       }
+      if (!(await ensureContactAccess(req, res, directoryUseCase, email.contact_id))) return;
 
       sendData(res, email);
     } catch (error) {
@@ -55,6 +62,7 @@ export const createContactEmailsController = (useCase: ContactEmailsUseCase) => 
         sendFailure(res, 'AUTH_ERROR', 'Authentication required', 401);
         return;
       }
+      if (!(await ensureContactAccess(req, res, directoryUseCase, req.params.contactId))) return;
 
       const email = await useCase.create(req.params.contactId, req.body as CreateContactEmailDTO, userId);
       sendData(res, email, 201);
@@ -80,6 +88,12 @@ export const createContactEmailsController = (useCase: ContactEmailsUseCase) => 
         return;
       }
 
+      const existing = await useCase.getById(req.params.emailId);
+      if (!existing) {
+        sendFailure(res, 'NOT_FOUND', 'Email address not found', 404);
+        return;
+      }
+      if (!(await ensureContactAccess(req, res, directoryUseCase, existing.contact_id))) return;
       const email = await useCase.update(req.params.emailId, req.body as UpdateContactEmailDTO, userId);
       if (!email) {
         sendFailure(res, 'NOT_FOUND', 'Email address not found', 404);
@@ -103,6 +117,12 @@ export const createContactEmailsController = (useCase: ContactEmailsUseCase) => 
     next: NextFunction
   ): Promise<void> => {
     try {
+      const existing = await useCase.getById(req.params.emailId);
+      if (!existing) {
+        sendFailure(res, 'NOT_FOUND', 'Email address not found', 404);
+        return;
+      }
+      if (!(await ensureContactAccess(req, res, directoryUseCase, existing.contact_id))) return;
       const deleted = await useCase.delete(req.params.emailId);
       if (!deleted) {
         sendFailure(res, 'NOT_FOUND', 'Email address not found', 404);

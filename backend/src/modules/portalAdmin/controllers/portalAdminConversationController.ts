@@ -184,12 +184,17 @@ export const streamPortalAdminRealtime = async (
 
     const query = getPortalAdminQuery<{ channels?: string }>(req);
     const channelsRaw = typeof query.channels === 'string' ? query.channels : undefined;
+    if (!req.organizationId) {
+      badRequest(res, 'Active organization context is required');
+      return;
+    }
 
     openPortalRealtimeStream({
       req,
       res,
       audience: 'admin',
       userId: req.user!.id,
+      organizationId: req.organizationId,
       channelsRaw,
     });
   } catch (error) {

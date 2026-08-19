@@ -1,4 +1,5 @@
 import ErrorBanner from '../../../components/ErrorBanner';
+import { FocusTrapDialog } from '../../../components/ui';
 import type { RoleSelectorItem } from '../../adminOps/contracts';
 import type { InvitationEmailDelivery } from '../types';
 import { getInvitationRoleDisplayLabel } from '../utils';
@@ -44,19 +45,17 @@ export default function InviteUserModal({
   onReset,
   onCopyLink,
 }: InviteUserModalProps) {
-  if (!open) {
-    return null;
-  }
-
   const canSendEmail = inviteEmailConfigured && !inviteCapabilitiesLoading;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex items-center justify-center min-h-screen px-4">
-        <div className="fixed inset-0 app-popup-backdrop" onClick={onReset} />
-        <div className="relative bg-app-surface rounded-lg shadow-xl max-w-md w-full p-6">
+    <FocusTrapDialog
+      isOpen={open}
+      labelledBy="invite-user-title"
+      onClose={onReset}
+      panelClassName="relative w-full max-w-md rounded-lg bg-app-surface p-6 shadow-xl"
+    >
           <div className="flex items-center justify-between gap-4 mb-4">
-            <h3 className="text-lg font-semibold text-app-text-heading">Invite New User</h3>
+            <h3 id="invite-user-title" className="text-lg font-semibold text-app-text-heading">Invite New User</h3>
             <button
               type="button"
               onClick={onClose}
@@ -227,8 +226,6 @@ export default function InviteUserModal({
               </div>
             </div>
           )}
-        </div>
-      </div>
-    </div>
+    </FocusTrapDialog>
   );
 }

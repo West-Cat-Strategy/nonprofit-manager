@@ -218,6 +218,36 @@ describe('mauticService scoped configuration', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it.each([
+    'http://[::ffff:7f00:1]:8080',
+    'http://[::ffff:127.0.0.1]:8080',
+    'http://[64:ff9b::7f00:1]:8080',
+    'http://[fe80::1]:8080',
+    'http://[ff02::1]:8080',
+  ])('blocks private or transition IPv6 literals before fetching: %s', async (baseUrl) => {
+    await expect(
+      mauticService.getSegments({
+        baseUrl,
+        username: 'site-api',
+        password: 'site-secret',
+      })
+    ).resolves.toEqual([]);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('blocks private IPv4-mapped IPv6 DNS answers before fetching', async () => {
+    mockLookup.mockResolvedValueOnce([{ address: '::ffff:7f00:1', family: 6 }]);
+
+    await expect(
+      mauticService.getSegments({
+        baseUrl: 'https://mapped-mautic.example.org',
+        username: 'site-api',
+        password: 'site-secret',
+      })
+    ).rejects.toThrow('Mautic base URL is not allowed');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('blocks redirect responses instead of following them to a new host', async () => {
     fetchMock.mockResolvedValueOnce({
       ok: false,

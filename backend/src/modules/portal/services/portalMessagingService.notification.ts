@@ -34,6 +34,7 @@ export const publishPortalThreadUpdate = async (args: {
   source: string;
   status: PortalRealtimeThreadSnapshot['status'];
   contactId: string;
+  organizationId: string | null;
   clientMessageId?: string | null;
   message?: PortalRealtimeMessageSnapshot | null;
 }): Promise<void> => {
@@ -44,6 +45,7 @@ export const publishPortalThreadUpdate = async (args: {
     actorType: args.actorType,
     source: args.source,
     contactId: args.contactId,
+    organizationId: args.organizationId,
     action: args.action,
     thread: args.thread,
     ...(args.message ? { message: args.message } : {}),

@@ -1,5 +1,6 @@
 import dns from 'dns/promises';
 import net from 'net';
+import { Address6 } from 'ip-address';
 import { Agent, interceptors } from 'undici';
 import type { Dispatcher } from 'undici';
 
@@ -7,6 +8,7 @@ const WEBHOOK_TIMEOUT = 30000;
 const WEBHOOK_FETCH_OPTIONS = { redirect: 'manual' as const };
 const PRIVATE_HOSTNAME_SUFFIXES = ['.localhost', '.local'];
 const BLOCKED_HOSTNAMES = new Set(['localhost']);
+const MAX_WEBHOOK_RESPONSE_BYTES = 1024;
 
 export const truncateWebhookResponseBody = (value?: string): string | undefined =>
   value ? value.substring(0, 1000) : undefined;
@@ -29,19 +31,71 @@ const isPrivateIpv4 = (ip: string): boolean => {
 };
 
 const isPrivateIpv6 = (ip: string): boolean => {
-  const normalized = ip.toLowerCase();
+  let address: Address6;
+  try {
+    address = new Address6(ip);
+  } catch {
+    return true;
+  }
+  const normalized = address.correctForm().toLowerCase();
 
   if (normalized === '::' || normalized === '::1') return true;
   if (normalized.startsWith('fc') || normalized.startsWith('fd')) return true;
-  if (normalized.startsWith('fe80')) return true;
+  if (/^fe[89ab]/.test(normalized)) return true;
+  if (normalized.startsWith('ff')) return true;
   if (normalized.startsWith('2001:db8')) return true;
 
-  if (normalized.startsWith('::ffff:')) {
-    const ipv4 = normalized.replace('::ffff:', '');
-    return isPrivateIpv4(ipv4);
+  if (address.is4() || normalized.startsWith('::ffff:')) {
+    return isPrivateIpv4(address.to4().address.replace('/32', ''));
   }
 
+  if (
+    normalized.startsWith('64:ff9b:') ||
+    normalized.startsWith('2002:') ||
+    normalized.startsWith('2001:0:')
+  ) return true;
+
   return false;
+};
+
+export const readWebhookResponseBody = async (response: Response): Promise<string> => {
+  if (!response.body) {
+    return response.text().catch(() => '');
+  }
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let byteCount = 0;
+
+  try {
+    while (byteCount < MAX_WEBHOOK_RESPONSE_BYTES) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+
+      const remaining = MAX_WEBHOOK_RESPONSE_BYTES - byteCount;
+      const chunk = value.byteLength > remaining ? value.subarray(0, remaining) : value;
+      chunks.push(chunk);
+      byteCount += chunk.byteLength;
+
+      if (chunk.byteLength < value.byteLength || byteCount >= MAX_WEBHOOK_RESPONSE_BYTES) {
+        await reader.cancel('Webhook response body limit reached').catch(() => undefined);
+        break;
+      }
+    }
+  } catch {
+    return '';
+  } finally {
+    reader.releaseLock();
+  }
+
+  const merged = new Uint8Array(byteCount);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(merged);
 };
 
 const isPrivateHost = (hostname: string): boolean => {
@@ -50,6 +104,9 @@ const isPrivateHost = (hostname: string): boolean => {
   if (PRIVATE_HOSTNAME_SUFFIXES.some((suffix) => lower.endsWith(suffix))) return true;
   return false;
 };
+
+const normalizeHostname = (hostname: string): string =>
+  hostname.startsWith('[') && hostname.endsWith(']') ? hostname.slice(1, -1) : hostname;
 
 const isPrivateIp = (ip: string): boolean => {
   const ipVersion = net.isIP(ip);
@@ -144,7 +201,7 @@ export async function validateWebhookUrl(url: string): Promise<WebhookUrlValidat
     return { ok: false, reason: 'URL must not include credentials' };
   }
 
-  const hostname = parsed.hostname;
+  const hostname = normalizeHostname(parsed.hostname);
   if (!hostname) {
     return { ok: false, reason: 'URL must include a hostname' };
   }
@@ -200,7 +257,7 @@ export async function sendWebhookRequest(
 
     const response = await fetch(options.url, requestInit);
 
-    const responseBody = await response.text().catch(() => '');
+    const responseBody = await readWebhookResponseBody(response);
     const responseTime = Date.now() - startTime;
 
     if (response.status >= 300 && response.status < 400) {

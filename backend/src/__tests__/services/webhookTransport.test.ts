@@ -1,6 +1,7 @@
 import * as dns from 'dns/promises';
 import {
   createPinnedWebhookLookup,
+  readWebhookResponseBody,
   validateWebhookUrl,
 } from '@modules/webhooks/services/webhookTransport';
 
@@ -46,5 +47,32 @@ describe('webhookTransport DNS pinning', () => {
     });
 
     expect(mockLookup).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['http://[::ffff:7f00:1]/hook', 'http://[64:ff9b::7f00:1]/hook'])(
+    'blocks IPv6 forms that encode a private IPv4 destination: %s',
+    async (url) => {
+      await expect(validateWebhookUrl(url)).resolves.toEqual(
+        expect.objectContaining({ ok: false })
+      );
+      expect(mockLookup).not.toHaveBeenCalled();
+    }
+  );
+
+  it('reads and cancels webhook response bodies at the capture limit', async () => {
+    let cancelled = false;
+    const response = new Response(
+      new ReadableStream<Uint8Array>({
+        pull(controller) {
+          controller.enqueue(new TextEncoder().encode('x'.repeat(2048)));
+        },
+        cancel() {
+          cancelled = true;
+        },
+      })
+    );
+
+    await expect(readWebhookResponseBody(response)).resolves.toHaveLength(1024);
+    expect(cancelled).toBe(true);
   });
 });

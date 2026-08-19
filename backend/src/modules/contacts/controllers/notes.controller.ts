@@ -9,8 +9,13 @@ import { Permission } from '@utils/permissions';
 import type { CreateContactNoteDTO, UpdateContactNoteDTO } from '@app-types/contact';
 import { ContactNotesUseCase } from '../usecases/contactNotes.usecase';
 import { sendData, sendFailure } from '../mappers/responseMode';
+import { ContactDirectoryUseCase } from '../usecases/contactDirectory.usecase';
+import { ensureContactAccess } from './contactAccess';
 
-export const createContactNotesController = (useCase: ContactNotesUseCase) => {
+export const createContactNotesController = (
+  useCase: ContactNotesUseCase,
+  directoryUseCase: ContactDirectoryUseCase
+) => {
   const guardOutcomeTagPermission = (req: AuthRequest, res: Response): boolean => {
     const guardResult = requirePermissionSafe(req, Permission.OUTCOMES_TAG_INTERACTION);
     if (!guardResult.ok) {
@@ -31,6 +36,7 @@ export const createContactNotesController = (useCase: ContactNotesUseCase) => {
 
   const getContactNotes = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
+      if (!(await ensureContactAccess(req, res, directoryUseCase, req.params.contactId))) return;
       const notes = await useCase.list(req.params.contactId);
       sendData(res, notes);
     } catch (error) {
@@ -44,6 +50,7 @@ export const createContactNotesController = (useCase: ContactNotesUseCase) => {
     next: NextFunction
   ): Promise<void> => {
     try {
+      if (!(await ensureContactAccess(req, res, directoryUseCase, req.params.contactId))) return;
       const timeline = await useCase.listTimeline(req.params.contactId);
       sendData(res, timeline);
     } catch (error) {
@@ -62,6 +69,7 @@ export const createContactNotesController = (useCase: ContactNotesUseCase) => {
         sendFailure(res, 'NOT_FOUND', 'Note not found', 404);
         return;
       }
+      if (!(await ensureContactAccess(req, res, directoryUseCase, note.contact_id))) return;
 
       sendData(res, note);
     } catch (error) {
@@ -80,6 +88,7 @@ export const createContactNotesController = (useCase: ContactNotesUseCase) => {
         sendFailure(res, 'AUTH_ERROR', 'Authentication required', 401);
         return;
       }
+      if (!(await ensureContactAccess(req, res, directoryUseCase, req.params.contactId))) return;
 
       const payload = req.body as CreateContactNoteDTO;
       if (hasOutcomePayload(payload) && !guardOutcomeTagPermission(req, res)) {
@@ -103,6 +112,12 @@ export const createContactNotesController = (useCase: ContactNotesUseCase) => {
       if (hasOutcomePayload(payload) && !guardOutcomeTagPermission(req, res)) {
         return;
       }
+      const existing = await useCase.getById(req.params.noteId);
+      if (!existing) {
+        sendFailure(res, 'NOT_FOUND', 'Note not found', 404);
+        return;
+      }
+      if (!(await ensureContactAccess(req, res, directoryUseCase, existing.contact_id))) return;
 
       const note = await useCase.update(req.params.noteId, payload, req.user?.id);
       if (!note) {
@@ -122,6 +137,12 @@ export const createContactNotesController = (useCase: ContactNotesUseCase) => {
     next: NextFunction
   ): Promise<void> => {
     try {
+      const existing = await useCase.getById(req.params.noteId);
+      if (!existing) {
+        sendFailure(res, 'NOT_FOUND', 'Note not found', 404);
+        return;
+      }
+      if (!(await ensureContactAccess(req, res, directoryUseCase, existing.contact_id))) return;
       const deleted = await useCase.delete(req.params.noteId);
       if (!deleted) {
         sendFailure(res, 'NOT_FOUND', 'Note not found', 404);

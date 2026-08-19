@@ -136,6 +136,7 @@ export const bookPortalAppointmentSlot = async (input: {
       actorType: 'portal',
       source: 'portal.appointment.slot_booked',
       contactId: appointment.contact_id,
+      organizationId: appointment.account_id,
     });
 
     if (updatedSlot) {
@@ -146,6 +147,7 @@ export const bookPortalAppointmentSlot = async (input: {
         actorType: 'portal',
         source: 'portal.slot.booked',
         contactId: appointment.contact_id,
+        organizationId: updatedSlot.account_id,
       });
     }
 
@@ -218,6 +220,7 @@ export const cancelPortalAppointment = async (input: {
       actorType: 'portal',
       source: 'portal.appointment.cancelled',
       contactId: cancelledAppointment.contact_id,
+      organizationId: cancelledAppointment.account_id,
     });
 
     if (current.slot_id) {
@@ -230,6 +233,7 @@ export const cancelPortalAppointment = async (input: {
           actorType: 'portal',
           source: 'portal.slot.released',
           contactId: cancelledAppointment.contact_id,
+          organizationId: updatedSlot.account_id,
         });
       }
     }
@@ -346,6 +350,7 @@ export const updateAppointmentStatusByStaff = async (input: {
       actorType: 'staff',
       source: 'admin.appointment.status_update',
       contactId: updatedAppointment.contact_id,
+      organizationId: updatedAppointment.account_id,
     });
 
     if (current.slot_id && current.status !== input.status) {
@@ -358,6 +363,7 @@ export const updateAppointmentStatusByStaff = async (input: {
           actorType: 'staff',
           source: 'admin.slot.release',
           contactId: updatedAppointment.contact_id,
+          organizationId: updatedSlot.account_id,
         });
       }
     }

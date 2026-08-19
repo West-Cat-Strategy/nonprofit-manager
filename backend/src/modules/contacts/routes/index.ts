@@ -112,11 +112,21 @@ const createContactsRoutes = (): Router => {
     directoryUseCase,
     new ContactImportExportUseCase(pool)
   );
-  const notesController = createContactNotesController(new ContactNotesUseCase(notesRepository));
-  const phonesController = createContactPhonesController(new ContactPhonesUseCase(phonesRepository));
-  const emailsController = createContactEmailsController(new ContactEmailsUseCase(emailsRepository));
+  const notesController = createContactNotesController(
+    new ContactNotesUseCase(notesRepository),
+    directoryUseCase
+  );
+  const phonesController = createContactPhonesController(
+    new ContactPhonesUseCase(phonesRepository),
+    directoryUseCase
+  );
+  const emailsController = createContactEmailsController(
+    new ContactEmailsUseCase(emailsRepository),
+    directoryUseCase
+  );
   const relationshipsController = createContactRelationshipsController(
-    new ContactRelationshipsUseCase(relationshipsRepository)
+    new ContactRelationshipsUseCase(relationshipsRepository),
+    directoryUseCase
   );
   const documentsController = createContactDocumentsController(
     new ContactDocumentsUseCase(documentsRepository),

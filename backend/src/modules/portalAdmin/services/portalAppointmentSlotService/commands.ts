@@ -62,6 +62,7 @@ export const createAppointmentSlot = async (input: {
     actorType: 'staff',
     source: 'admin.slot.create',
     contactId,
+    organizationId: input.accountId,
   });
 
   return slot;
@@ -136,6 +137,7 @@ export const updateAppointmentSlot = async (input: {
     actorType: 'staff',
     source: 'admin.slot.update',
     contactId,
+    organizationId: input.accountId,
   });
 
   return updatedSlot;
@@ -177,6 +179,7 @@ export const deleteAppointmentSlot = async (
       actorType: 'staff',
       source: 'admin.slot.cancel',
       contactId,
+      organizationId: cancelledSlot?.account_id ?? existingSlot.account_id,
     });
     return true;
   }
@@ -198,6 +201,7 @@ export const deleteAppointmentSlot = async (
       actorType: 'staff',
       source: 'admin.slot.delete',
       contactId,
+      organizationId: existingSlot.account_id,
     });
   }
 
@@ -266,6 +270,7 @@ export const createPortalManualAppointmentRequest = async (input: {
     actorType: 'portal',
     source: 'portal.appointment.requested',
     contactId: appointment.contact_id,
+    organizationId: appointment.account_id,
   });
 
   return appointment;

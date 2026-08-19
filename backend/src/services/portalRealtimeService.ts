@@ -23,6 +23,7 @@ interface PortalRealtimeClient {
   audience: PortalRealtimeAudience;
   userId: string;
   contactId: string | null;
+  organizationId: string | null;
   channels: Set<PortalRealtimeChannel>;
   res: Response;
   heartbeat: NodeJS.Timeout;
@@ -138,6 +139,7 @@ export const openPortalRealtimeStream = (input: {
   audience: PortalRealtimeAudience;
   userId: string;
   contactId?: string | null;
+  organizationId?: string | null;
   channelsRaw?: string;
 }): void => {
   const channels = parseRequestedChannels(input.channelsRaw, input.audience);
@@ -164,6 +166,7 @@ export const openPortalRealtimeStream = (input: {
     audience: input.audience,
     userId: input.userId,
     contactId: input.contactId ?? null,
+    organizationId: input.organizationId ?? null,
     channels,
     res: input.res,
     heartbeat,
@@ -189,6 +192,7 @@ const broadcast = (input: {
   payload: PortalRealtimePayload;
   channels: PortalRealtimeChannel[];
   contactId?: string | null;
+  organizationId?: string | null;
 }): void => {
   const requiredChannels = new Set(input.channels);
   for (const [clientId, client] of clients.entries()) {
@@ -203,6 +207,8 @@ const broadcast = (input: {
       if (!input.contactId || client.contactId !== input.contactId) {
         continue;
       }
+    } else if (!input.organizationId || client.organizationId !== input.organizationId) {
+      continue;
     }
 
     const ok = writeSseEvent(client.res, input.eventName, input.payload);
@@ -219,6 +225,7 @@ const buildPayload = (input: {
   actorType: PortalRealtimeActorType;
   source: string;
   contactId?: string | null;
+  organizationId?: string | null;
 }): PortalRealtimePayload => ({
   event_id: randomUUID(),
   occurred_at: new Date().toISOString(),
@@ -237,6 +244,7 @@ export const publishPortalThreadUpdated = (input: {
   actorType: PortalRealtimeActorType;
   source: string;
   contactId?: string | null;
+  organizationId?: string | null;
   action?: 'message.created' | 'thread.read' | 'thread.status.updated' | 'thread.updated';
   thread?: PortalRealtimeThreadSnapshot | null;
   message?: PortalRealtimeMessageSnapshot | null;
@@ -252,8 +260,9 @@ export const publishPortalThreadUpdated = (input: {
   broadcast({
     eventName: 'portal.thread.updated',
     payload,
-    channels: ['messages', 'conversations'],
+    channels: input.message?.is_internal ? ['conversations'] : ['messages', 'conversations'],
     contactId: input.contactId ?? null,
+    organizationId: input.organizationId ?? null,
   });
 };
 
@@ -264,6 +273,7 @@ export const publishPortalAppointmentUpdated = (input: {
   actorType: PortalRealtimeActorType;
   source: string;
   contactId?: string | null;
+  organizationId?: string | null;
 }): void => {
   const payload = buildPayload(input);
   broadcast({
@@ -271,6 +281,7 @@ export const publishPortalAppointmentUpdated = (input: {
     payload,
     channels: ['appointments'],
     contactId: input.contactId ?? null,
+    organizationId: input.organizationId ?? null,
   });
 };
 
@@ -281,6 +292,7 @@ export const publishPortalSlotUpdated = (input: {
   actorType: PortalRealtimeActorType;
   source: string;
   contactId?: string | null;
+  organizationId?: string | null;
 }): void => {
   const payload = buildPayload(input);
   broadcast({
@@ -288,5 +300,6 @@ export const publishPortalSlotUpdated = (input: {
     payload,
     channels: ['appointments', 'slots'],
     contactId: input.contactId ?? null,
+    organizationId: input.organizationId ?? null,
   });
 };

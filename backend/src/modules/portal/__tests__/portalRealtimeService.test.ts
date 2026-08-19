@@ -19,6 +19,7 @@ const createRealtimeClient = (input: {
   audience: 'portal' | 'admin';
   userId: string;
   contactId?: string | null;
+  organizationId?: string | null;
   channels?: string;
 }): MockRealtimeClient => {
   const events: CapturedEvent[] = [];
@@ -63,6 +64,7 @@ const createRealtimeClient = (input: {
     audience: input.audience,
     userId: input.userId,
     contactId: input.contactId ?? null,
+    organizationId: input.organizationId ?? null,
     channelsRaw: input.channels,
   });
 
@@ -98,18 +100,21 @@ describe('portalRealtimeService', () => {
     const adminClient = createRealtimeClient({
       audience: 'admin',
       userId: 'staff-1',
+      organizationId: 'org-1',
       channels: 'conversations',
     });
     const portalClient = createRealtimeClient({
       audience: 'portal',
       userId: 'portal-user-1',
       contactId: 'contact-1',
+      organizationId: 'org-1',
       channels: 'messages',
     });
     const otherPortalClient = createRealtimeClient({
       audience: 'portal',
       userId: 'portal-user-2',
       contactId: 'contact-2',
+      organizationId: 'org-2',
       channels: 'messages',
     });
     activeClients.push(adminClient, portalClient, otherPortalClient);
@@ -121,6 +126,7 @@ describe('portalRealtimeService', () => {
       actorType: 'staff',
       source: 'admin.thread.reply',
       contactId: 'contact-1',
+      organizationId: 'org-1',
       action: 'message.created',
       clientMessageId: '12121212-1212-4212-8212-121212121212',
       thread: {
@@ -170,5 +176,53 @@ describe('portalRealtimeService', () => {
     expect((adminEvent?.payload.thread as { staff_unread_count?: number })?.staff_unread_count).toBe(0);
     expect((portalEvent?.payload.thread as { portal_unread_count?: number })?.portal_unread_count).toBe(1);
     expect(otherPortalEvent).toBeUndefined();
+  });
+
+  it('keeps admin events within one organization and internal notes away from portal clients', () => {
+    const orgAdmin = createRealtimeClient({
+      audience: 'admin',
+      userId: 'staff-1',
+      organizationId: 'org-1',
+      channels: 'conversations',
+    });
+    const otherOrgAdmin = createRealtimeClient({
+      audience: 'admin',
+      userId: 'staff-2',
+      organizationId: 'org-2',
+      channels: 'conversations',
+    });
+    const portalClient = createRealtimeClient({
+      audience: 'portal',
+      userId: 'portal-user-1',
+      contactId: 'contact-1',
+      channels: 'messages',
+    });
+    activeClients.push(orgAdmin, otherOrgAdmin, portalClient);
+
+    publishPortalThreadUpdated({
+      entityId: 'thread-1',
+      actorType: 'staff',
+      source: 'admin.thread.internal_note',
+      contactId: 'contact-1',
+      organizationId: 'org-1',
+      message: {
+        id: 'message-1',
+        thread_id: 'thread-1',
+        sender_type: 'staff',
+        sender_portal_user_id: null,
+        sender_user_id: 'staff-1',
+        sender_display_name: 'Alex Staff',
+        message_text: 'Internal only',
+        is_internal: true,
+        client_message_id: null,
+        created_at: '2026-03-15T20:00:00.000Z',
+        read_by_portal_at: null,
+        read_by_staff_at: '2026-03-15T20:00:00.000Z',
+      },
+    });
+
+    expect(orgAdmin.events.some((event) => event.name === 'portal.thread.updated')).toBe(true);
+    expect(otherOrgAdmin.events.some((event) => event.name === 'portal.thread.updated')).toBe(false);
+    expect(portalClient.events.some((event) => event.name === 'portal.thread.updated')).toBe(false);
   });
 });

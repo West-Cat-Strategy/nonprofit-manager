@@ -40,6 +40,7 @@ describe('contact documents controller', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    directoryUseCase.getById.mockResolvedValue({ contact_id: 'contact-1' });
   });
 
   it('returns 404 when a scoped contact is missing', async () => {
@@ -54,9 +55,11 @@ describe('contact documents controller', () => {
 
     await controller.getContactDocuments(req, res, next);
 
-    expect(directoryUseCase.getById).toHaveBeenCalledWith('contact-1', {
-      accountIds: ['account-1'],
-    });
+    expect(directoryUseCase.getById).toHaveBeenCalledWith(
+      'contact-1',
+      { accountIds: ['account-1'] },
+      undefined
+    );
     expect(mockSendFailure).toHaveBeenCalledWith(res, 'NOT_FOUND', 'Contact not found', 404);
     expect(useCase.list).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
@@ -107,6 +110,7 @@ describe('contact documents controller', () => {
   it('returns 404 when a download target is missing on disk', async () => {
     useCase.getById.mockResolvedValueOnce({
       id: 'doc-1',
+      contact_id: 'contact-1',
       is_active: true,
       mime_type: 'application/pdf',
       original_name: 'visible.pdf',

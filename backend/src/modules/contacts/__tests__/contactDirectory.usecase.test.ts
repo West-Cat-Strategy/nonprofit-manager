@@ -173,6 +173,12 @@ describe('ContactDirectoryUseCase transaction context', () => {
     const client = createMockClient({ accessRows: [] });
     mockConnect.mockResolvedValue(client);
     const repository = createRepository();
+    repository.getContactById.mockResolvedValue({
+      contact_id: 'contact-1',
+      account_id: 'org-1',
+      first_name: 'Casey',
+      last_name: 'Existing',
+    });
     repository.updateContact.mockResolvedValue({
       contact_id: 'contact-1',
       account_id: 'org-1',

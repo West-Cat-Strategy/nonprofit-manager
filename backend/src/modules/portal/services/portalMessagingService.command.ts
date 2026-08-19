@@ -95,6 +95,7 @@ export const createPortalThreadWithMessage = async (input: {
       actorType: 'portal',
       source: 'portal.thread.create',
       contactId: thread.contact_id,
+      organizationId: thread.account_id,
       action: 'message.created',
       message: messages[0] ? toRealtimeMessageSnapshot(messages[0]) : null,
       ...(messages[0]?.client_message_id ? { clientMessageId: messages[0].client_message_id } : {}),
@@ -171,6 +172,7 @@ export const addPortalMessage = async (input: {
       actorType: 'portal',
       source: 'portal.thread.reply',
       contactId: thread.contact_id,
+      organizationId: thread.account_id,
       action: 'message.created',
       message: toRealtimeMessageSnapshot(created),
       clientMessageId: created.client_message_id,
@@ -299,6 +301,7 @@ export const addStaffMessage = async (input: {
       actorType: 'staff',
       source: internal ? 'admin.thread.internal_note' : 'admin.thread.reply',
       contactId: thread.contact_id,
+      organizationId: thread.account_id,
       action: 'message.created',
       message: toRealtimeMessageSnapshot(message),
       clientMessageId: message.client_message_id,
@@ -336,6 +339,7 @@ export const markPortalThreadRead = async (
       actorType: 'portal',
       source: 'portal.thread.read',
       contactId: thread.contact_id,
+      organizationId: thread.account_id,
       action: 'thread.read',
     });
   }
@@ -369,6 +373,7 @@ export const markStaffThreadRead = async (
       actorType: 'staff',
       source: 'admin.thread.read',
       contactId: thread.contact_id,
+      organizationId: thread.account_id,
       action: 'thread.read',
     });
   }
@@ -462,6 +467,7 @@ export const updateThread = async (input: {
     actorType: input.actorType || 'staff',
     source: input.status ? 'thread.status.update' : 'thread.update',
     contactId: updatedThread.contact_id,
+    organizationId: updatedThread.account_id,
     action: input.status ? 'thread.status.updated' : 'thread.updated',
   });
 

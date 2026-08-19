@@ -665,6 +665,6 @@ export const deleteCaseQuery = async (
   organizationId?: string
 ): Promise<void> => {
   await requireCaseOwnership(db, caseId, organizationId);
-  await db.query('UPDATE cases SET is_active = false, deleted_at = NOW() WHERE id = $1', [caseId]);
+  await db.query('DELETE FROM cases WHERE id = $1', [caseId]);
   logger.info(`Case deleted`, { caseId });
 };

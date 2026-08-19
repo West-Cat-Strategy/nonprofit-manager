@@ -10,6 +10,7 @@ import { useBulkSelect } from '../../../hooks';
 import { useDebounce } from '../../../hooks/useVirtualList';
 import { BrutalBadge } from '../../../components/neo-brutalist';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
+import { useToast } from '../../../contexts/useToast';
 import { useStableSearchParamsWriter } from '../../../hooks/useStableSearchParams';
 import {
   parseAllowedValue,
@@ -98,6 +99,7 @@ export const useContactListPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { writeSearchParams, shouldApplySearchParams } =
     useStableSearchParamsWriter(setSearchParams);
+  const { showError, showSuccess } = useToast();
   const { contacts, loading, error, pagination } = useAppSelector(resolveContactListState);
   const initialRoleFilter = normalizeRoleFilter(searchParams.get('type'));
 
@@ -231,11 +233,24 @@ export const useContactListPage = () => {
     }
 
     const ids = Array.from(selectedIds);
-    for (const id of ids) {
-      await dispatch(deleteContact(id)).unwrap();
+    const results = await Promise.allSettled(
+      ids.map((id) => dispatch(deleteContact(id)).unwrap())
+    );
+    const deletedIds = ids.filter((_, index) => results[index]?.status === 'fulfilled');
+    const failureCount = ids.length - deletedIds.length;
+
+    if (deletedIds.length > 0) {
+      setHiddenDeletedContactIds((current) =>
+        Array.from(new Set([...current, ...deletedIds]))
+      );
+      showSuccess(`${deletedIds.length} contact${deletedIds.length === 1 ? '' : 's'} deleted`);
+    }
+    if (failureCount > 0) {
+      showError(
+        `${failureCount} contact${failureCount === 1 ? '' : 's'} could not be deleted. The list has been refreshed.`
+      );
     }
 
-    setHiddenDeletedContactIds((current) => Array.from(new Set([...current, ...ids])));
     deselectAll();
     loadContacts();
   };

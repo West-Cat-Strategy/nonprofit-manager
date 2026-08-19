@@ -367,16 +367,12 @@ export class ContactDirectoryUseCase {
       await client.query('BEGIN');
       await this.bindTransactionUserContext(client, userId);
 
-      if (scope) {
-        const scopedContact = await this.repository.getContactByIdWithScope(
-          contactId,
-          scope,
-          viewerRole
-        );
-        if (!scopedContact) {
-          await client.query('ROLLBACK');
-          return null;
-        }
+      const scopedContact = scope
+        ? await this.repository.getContactByIdWithScope(contactId, scope, viewerRole)
+        : await this.repository.getContactById(contactId, viewerRole);
+      if (!scopedContact) {
+        await client.query('ROLLBACK');
+        return null;
       }
 
       const rolesInput = Array.isArray(payload.roles) ? payload.roles : undefined;
@@ -424,11 +420,11 @@ export class ContactDirectoryUseCase {
   }
 
   async delete(contactId: string, userId: string, scope?: DataScopeFilter): Promise<boolean> {
-    if (scope) {
-      const scopedContact = await this.repository.getContactByIdWithScope(contactId, scope);
-      if (!scopedContact) {
-        return false;
-      }
+    const scopedContact = scope
+      ? await this.repository.getContactByIdWithScope(contactId, scope)
+      : await this.repository.getContactById(contactId);
+    if (!scopedContact) {
+      return false;
     }
 
     return this.repository.deleteContact(contactId, userId);
@@ -492,16 +488,16 @@ export class ContactDirectoryUseCase {
     scope?: DataScopeFilter,
     viewerRole?: string
   ): Promise<ContactMergeResult | null> {
-    if (scope) {
-      const scopedSource = await this.repository.getContactByIdWithScope(sourceContactId, scope, viewerRole);
-      const scopedTarget = await this.repository.getContactByIdWithScope(
-        payload.target_contact_id,
-        scope,
-        viewerRole
-      );
-      if (!scopedSource || !scopedTarget) {
-        return null;
-      }
+    const [scopedSource, scopedTarget] = await Promise.all([
+      scope
+        ? this.repository.getContactByIdWithScope(sourceContactId, scope, viewerRole)
+        : this.repository.getContactById(sourceContactId, viewerRole),
+      scope
+        ? this.repository.getContactByIdWithScope(payload.target_contact_id, scope, viewerRole)
+        : this.repository.getContactById(payload.target_contact_id, viewerRole),
+    ]);
+    if (!scopedSource || !scopedTarget) {
+      return null;
     }
 
     return this.repository.mergeContacts(sourceContactId, payload, userId, scope, viewerRole);

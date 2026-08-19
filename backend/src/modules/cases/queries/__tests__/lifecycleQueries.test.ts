@@ -1,5 +1,5 @@
 import type { Pool } from 'pg';
-import { createCaseQuery, upsertCaseTypeAssignments } from '../lifecycleQueries';
+import { createCaseQuery, deleteCaseQuery, upsertCaseTypeAssignments } from '../lifecycleQueries';
 
 describe('upsertCaseTypeAssignments', () => {
   it('upserts case type assignments idempotently in sort order', async () => {
@@ -106,5 +106,23 @@ describe('createCaseQuery trust-boundary validation', () => {
     expect(query.mock.calls[2][0]).toEqual(expect.stringContaining('INSERT INTO cases'));
     expect(insertParams[1]).toBe('contact-1');
     expect(insertParams[2]).toBe('org-1');
+  });
+});
+
+describe('deleteCaseQuery', () => {
+  it('deletes the owned case without relying on nonexistent soft-delete columns', async () => {
+    const query = jest
+      .fn()
+      .mockResolvedValueOnce({ rows: [{ id: 'case-1' }] })
+      .mockResolvedValueOnce({ rows: [] });
+    const db = { query } as unknown as Pool;
+
+    await deleteCaseQuery(db, 'case-1', 'org-1');
+
+    expect(query).toHaveBeenNthCalledWith(
+      2,
+      'DELETE FROM cases WHERE id = $1',
+      ['case-1']
+    );
   });
 });

@@ -353,6 +353,7 @@ export const resolveCaseConversation = async (
         actorType: 'staff',
         source: 'case.portal.conversation.resolve',
         contactId: updatedThread.thread.contact_id,
+        organizationId: input.accountId,
       });
     }
 

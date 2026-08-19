@@ -166,6 +166,22 @@ export async function performPasswordReset(
   try {
     await client.query('BEGIN');
 
+    const claimResult = await client.query(
+      `UPDATE ${config.tokenTable}
+       SET used_at = NOW()
+       WHERE id = $1
+         AND ${config.ownerColumn} = $2
+         AND expires_at > NOW()
+         AND used_at IS NULL
+       RETURNING id`,
+      [matchedToken.id, matchedToken.owner_id]
+    );
+    if (!claimResult.rows[0]) {
+      await client.query('ROLLBACK');
+      logger.warn(messages.invalidToken);
+      return false;
+    }
+
     const authRevisionUpdate = config.bumpAuthRevisionOnReset
       ? ', auth_revision = COALESCE(auth_revision, 0) + 1'
       : '';
@@ -176,10 +192,6 @@ export async function performPasswordReset(
        WHERE id = $2`,
       [passwordHash, matchedToken.owner_id]
     );
-
-    await client.query(`UPDATE ${config.tokenTable} SET used_at = NOW() WHERE id = $1`, [
-      matchedToken.id,
-    ]);
 
     await client.query(
       `DELETE FROM ${config.tokenTable} WHERE ${config.ownerColumn} = $1 AND id != $2`,

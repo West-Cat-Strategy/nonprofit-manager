@@ -540,6 +540,50 @@ describe('createApiClient', () => {
     );
   });
 
+  it.each(['post', 'put', 'patch', 'delete'])(
+    'does not automatically replay a failed %s mutation',
+    async (method) => {
+      let capturedResponseErrorInterceptor: ((error: object) => Promise<unknown>) | null = null;
+      const request = vi.fn();
+
+      vi.mocked(axios.create).mockReturnValueOnce({
+        interceptors: {
+          request: { use: vi.fn() },
+          response: {
+            use: vi.fn((_, rejected) => {
+              capturedResponseErrorInterceptor = rejected as (error: object) => Promise<unknown>;
+            }),
+          },
+        },
+        defaults: { headers: {} },
+        request,
+      } as ReturnType<typeof axios.create>);
+
+      createApiClient({
+        onUnauthorized: vi.fn(),
+        retryConfig: {
+          maxRetries: 3,
+          baseDelayMs: 0,
+          maxDelayMs: 0,
+          retryableStatuses: [500],
+        },
+      });
+
+      if (!capturedResponseErrorInterceptor) {
+        throw new Error('Response interceptor was not captured');
+      }
+
+      const error = {
+        message: 'Request failed with status code 500',
+        response: { status: 500, data: {} },
+        config: { method, headers: {} },
+      };
+
+      await expect(capturedResponseErrorInterceptor(error)).rejects.toBe(error);
+      expect(request).not.toHaveBeenCalled();
+    }
+  );
+
   it('creates abortable request controllers for cancellable flows', () => {
     const controller = createRequestController();
     expect(controller.signal.aborted).toBe(false);

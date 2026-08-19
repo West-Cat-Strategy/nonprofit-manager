@@ -17,6 +17,7 @@ import {
 } from '../../workspaceModuleAccessService';
 import {
   clearStaffBootstrapSnapshot,
+  getCachedStaffBootstrapSnapshot,
   getStaffBootstrapSnapshot,
   setStaffBootstrapSnapshot,
 } from '../staffBootstrap';
@@ -205,6 +206,48 @@ describe('staffBootstrap', () => {
       preferences: {},
     });
     expect(getUserPreferencesCachedSync()).toEqual({});
+  });
+
+  it('does not let an older bootstrap response overwrite a newer login snapshot', async () => {
+    let resolveBootstrap!: (value: unknown) => void;
+    vi.mocked(api.get).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveBootstrap = resolve;
+      }) as never
+    );
+
+    const pending = getStaffBootstrapSnapshot({ forceRefresh: true });
+    setStaffBootstrapSnapshot({
+      user: {
+        id: 'login-user',
+        email: 'login@example.com',
+        firstName: 'Login',
+        lastName: 'User',
+        role: 'admin',
+      },
+      organizationId: 'login-org',
+    });
+    resolveBootstrap({
+      data: {
+        success: true,
+        data: {
+          user: {
+            id: 'older-user',
+            email: 'older@example.com',
+            firstName: 'Older',
+            lastName: 'Session',
+            role: 'admin',
+          },
+          organizationId: 'older-org',
+        },
+      },
+    });
+    await pending;
+
+    expect(getCachedStaffBootstrapSnapshot()).toMatchObject({
+      user: { id: 'login-user' },
+      organizationId: 'login-org',
+    });
   });
 
   it('skips the staff bootstrap probe on demo routes', async () => {

@@ -116,14 +116,23 @@ async function clearCases(page: Page, token: string): Promise<void> {
     const listResponse = await page.request.get(`${apiURL}/api/v2/cases?limit=100`, {
         headers,
     });
-    if (!listResponse.ok()) return;
+    if (!listResponse.ok()) {
+        throw new Error(
+            `Failed to list cases during cleanup (${listResponse.status()}): ${await listResponse.text()}`
+        );
+    }
 
     const listData = unwrapSuccess<{ cases?: Array<{ id?: string }> }>(await listResponse.json());
     const cases = listData?.cases || [];
     for (const item of cases) {
         if (!item?.id) continue;
         const headers = await getWriteHeaders(page, token);
-        await page.request.delete(`${apiURL}/api/v2/cases/${item.id}`, { headers });
+        const deleteResponse = await page.request.delete(`${apiURL}/api/v2/cases/${item.id}`, { headers });
+        if (!deleteResponse.ok()) {
+            throw new Error(
+                `Failed to delete case ${item.id} during cleanup (${deleteResponse.status()}): ${await deleteResponse.text()}`
+            );
+        }
     }
 }
 

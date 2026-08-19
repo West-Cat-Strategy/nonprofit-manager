@@ -98,6 +98,9 @@ const isRetryableError = (error: AxiosError, config: RetryConfig): boolean => {
   return config.retryableStatuses.includes(error.response.status);
 };
 
+const isRetryableMethod = (method: string | undefined): boolean =>
+  ['GET', 'HEAD', 'OPTIONS'].includes((method || 'GET').toUpperCase());
+
 const isApiSuccessEnvelope = (payload: unknown): payload is ApiEnvelope<unknown> => {
   if (!payload || typeof payload !== 'object') return false;
   const candidate = payload as { success?: unknown; data?: unknown };
@@ -258,7 +261,7 @@ export const createApiClient = (options: ApiClientOptions): AxiosInstance => {
       }
 
       // Handle retries
-      if (config && isRetryableError(error, retryConfig)) {
+      if (config && isRetryableMethod(config.method) && isRetryableError(error, retryConfig)) {
         config._retryCount = config._retryCount || 0;
 
         if (config._retryCount < retryConfig.maxRetries) {

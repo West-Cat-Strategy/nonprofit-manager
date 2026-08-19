@@ -138,6 +138,28 @@ describe('authCore', () => {
     window.removeEventListener(workspaceModuleEvent, workspaceUpdateListener);
   });
 
+  it('ignores an older anonymous initialization result after a successful login', async () => {
+    let rejectInitialization!: (reason: Error) => void;
+    vi.mocked(getStaffBootstrapSnapshot).mockReturnValueOnce(
+      new Promise((_, reject) => {
+        rejectInitialization = reject;
+      }) as never
+    );
+
+    const store = createStore();
+    const initialization = store.dispatch(initializeAuth());
+    store.dispatch(setCredentials({ user: authenticatedUser, organizationId: 'org-login' }));
+    rejectInitialization(new Error('Older anonymous response'));
+    await initialization;
+
+    expect(store.getState().auth).toMatchObject({
+      user: authenticatedUser,
+      isAuthenticated: true,
+      authLoading: false,
+    });
+    expect(window.localStorage.getItem('organizationId')).toBe('org-login');
+  });
+
   it('logs out client state and clears workspace-module access even when the server call fails', async () => {
     const store = createStore();
 

@@ -30,6 +30,7 @@ interface AuthState {
   isAuthenticated: boolean;
   authLoading: boolean;
   loading: boolean;
+  initializationRequestId: string | null;
 }
 
 interface AuthCredentialsPayload {
@@ -87,6 +88,7 @@ const initialState: AuthState = {
   isAuthenticated: false, // Always false until bootstrap verifies the session cookie
   authLoading: true,      // True until initializeAuth completes
   loading: false,
+  initializationRequestId: null,
 };
 
 // Async thunk: verify auth via httpOnly cookie
@@ -121,6 +123,7 @@ const authSlice = createSlice({
       state.isAuthenticated = true;
       state.loading = false;
       state.authLoading = false;
+      state.initializationRequestId = null;
       setStaffBootstrapSnapshot({ user: action.payload.user, organizationId });
       localStorage.setItem('user', JSON.stringify(action.payload.user));
     },
@@ -129,6 +132,7 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.loading = false;
       state.authLoading = false;
+      state.initializationRequestId = null;
       clearStaffBootstrapSnapshot();
       invalidateBrandingCache();
       invalidateNavigationPreferencesCache();
@@ -153,7 +157,13 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      .addCase(initializeAuth.pending, (state, action) => {
+        state.initializationRequestId = action.meta.requestId;
+        state.authLoading = true;
+      })
       .addCase(initializeAuth.fulfilled, (state, action) => {
+        if (state.initializationRequestId !== action.meta.requestId) return;
+        state.initializationRequestId = null;
         const organizationId = syncOrganizationIdStorage(action.payload.organizationId);
         state.user = action.payload.user;
         state.isAuthenticated = true;
@@ -161,7 +171,9 @@ const authSlice = createSlice({
         setStaffBootstrapSnapshot({ user: action.payload.user, organizationId });
         localStorage.setItem('user', JSON.stringify(action.payload.user));
       })
-      .addCase(initializeAuth.rejected, (state) => {
+      .addCase(initializeAuth.rejected, (state, action) => {
+        if (state.initializationRequestId !== action.meta.requestId) return;
+        state.initializationRequestId = null;
         state.user = null;
         state.isAuthenticated = false;
         state.authLoading = false;

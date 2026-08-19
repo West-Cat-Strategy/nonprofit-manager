@@ -98,7 +98,9 @@ describe('passwordResetService', () => {
     const secret = 'b'.repeat(64);
     const tokenHash = await bcrypt.hash(secret, 4);
     const client = {
-      query: jest.fn().mockResolvedValue({ rows: [] }),
+      query: jest.fn().mockImplementation((sql: string) =>
+        Promise.resolve({ rows: sql.includes('RETURNING id') ? [{ id: tokenId }] : [] })
+      ),
       release: jest.fn(),
     };
 
@@ -125,6 +127,27 @@ describe('passwordResetService', () => {
       expect.any(String),
       'user-123',
     ]);
+    expect(client.release).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not update the password when another request already claimed the token', async () => {
+    const tokenId = '00000000-0000-0000-0000-000000000001';
+    const secret = 'c'.repeat(64);
+    const tokenHash = await bcrypt.hash(secret, 4);
+    const client = {
+      query: jest.fn().mockResolvedValue({ rows: [] }),
+      release: jest.fn(),
+    };
+
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ id: tokenId, owner_id: 'user-123', token_hash: tokenHash }],
+    });
+    mockConnect.mockResolvedValueOnce(client);
+
+    await expect(resetPassword(`${tokenId}.${secret}`, 'NewPass123!')).resolves.toBe(false);
+
+    expect(client.query.mock.calls.some(([sql]) => String(sql).includes('UPDATE users'))).toBe(false);
+    expect(client.query).toHaveBeenCalledWith('ROLLBACK');
     expect(client.release).toHaveBeenCalledTimes(1);
   });
 });

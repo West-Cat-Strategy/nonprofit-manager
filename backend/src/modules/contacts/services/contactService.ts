@@ -819,15 +819,17 @@ export class ContactService {
     scope?: DataScopeFilter,
     viewerRole?: ViewerRole
   ): Promise<ContactMergeResult | null> {
-    if (scope) {
-      const [scopedSource, scopedTarget] = await Promise.all([
-        this.getContactByIdWithScope(contactId, scope, viewerRole),
-        this.getContactByIdWithScope(payload.target_contact_id, scope, viewerRole),
-      ]);
+    const [scopedSource, scopedTarget] = await Promise.all([
+      scope
+        ? this.getContactByIdWithScope(contactId, scope, viewerRole)
+        : this.getContactById(contactId, viewerRole),
+      scope
+        ? this.getContactByIdWithScope(payload.target_contact_id, scope, viewerRole)
+        : this.getContactById(payload.target_contact_id, viewerRole),
+    ]);
 
-      if (!scopedSource || !scopedTarget) {
-        return null;
-      }
+    if (!scopedSource || !scopedTarget) {
+      return null;
     }
 
     return this.contactMergeService.mergeContacts(contactId, payload, userId, viewerRole);

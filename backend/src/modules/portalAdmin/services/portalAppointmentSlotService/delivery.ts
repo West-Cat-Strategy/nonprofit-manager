@@ -9,6 +9,7 @@ type SlotDeliveryInput = {
   actorType: PortalActorType;
   source: string;
   contactId: string | null;
+  organizationId: string | null;
 };
 
 type AppointmentDeliveryInput = {
@@ -18,6 +19,7 @@ type AppointmentDeliveryInput = {
   actorType: PortalActorType;
   source: string;
   contactId: string;
+  organizationId: string | null;
 };
 
 export const publishSlotUpdated = (args: SlotDeliveryInput): void => {
