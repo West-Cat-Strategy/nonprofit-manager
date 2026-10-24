@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, type ReactNode } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowDownTrayIcon,
   ArrowPathIcon,
@@ -191,6 +191,10 @@ function SectionFormField({
 
 export default function GrantsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isOverview = location.pathname === '/grants' || location.pathname === '/grants/';
+  const [overviewTab, setOverviewTab] = useState<'pipeline' | 'deadlines' | 'disbursements' | 'compliance'>('pipeline');
+
   const {
     activeSection,
     dueAfterFilter,
@@ -289,6 +293,292 @@ export default function GrantsPage() {
 
   const visibleRows = rows as GrantsTableRow[];
 
+  if (isOverview) {
+    return (
+      <div className="space-y-6 p-4 sm:p-6" data-testid="grants-command-center">
+        <PageHeader
+          title="Grants Command Center"
+          description="Consolidated grant lifecycle workspace: pipeline status, upcoming deadlines, award disbursements, and compliance calendars."
+          actions={
+            <>
+              <SecondaryButton onClick={() => void handleExport('csv')} disabled={exporting}>
+                <ArrowDownTrayIcon className="h-4 w-4" aria-hidden="true" />
+                {exporting ? 'Exporting...' : 'Export CSV'}
+              </SecondaryButton>
+              <SecondaryButton onClick={() => refreshData()} disabled={loading || exporting}>
+                <ArrowPathIcon className="h-4 w-4" aria-hidden="true" />
+                Refresh
+              </SecondaryButton>
+              <PrimaryButton onClick={() => navigate('/grants/applications')}>
+                <PlusCircleIcon className="h-4 w-4" aria-hidden="true" />
+                New Application
+              </PrimaryButton>
+            </>
+          }
+        />
+
+        {notice && (
+          <div className="rounded-[var(--ui-radius-sm)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 transition duration-200">
+            <ClipboardDocumentCheckIcon className="mr-2 inline h-4 w-4" aria-hidden="true" />
+            {notice}
+          </div>
+        )}
+
+        {error && (
+          <ErrorState message={error} onRetry={() => refreshData()} retryLabel="Reload grants" />
+        )}
+        {loading && <LoadingState label="Loading grants..." />}
+
+        {/* Executive KPI Summary Cards */}
+        {summary && (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <StatCard
+              label="In-Flight Pipeline"
+              value={(summary.draft_applications ?? 0) + (summary.submitted_applications ?? 0)}
+            />
+            <StatCard
+              label="Active Awards"
+              value={summary.active_awards ?? 0}
+            />
+            <StatCard
+              label="Disbursed Funds"
+              value={formatCurrency(summary.total_disbursed_amount ?? 0)}
+            />
+            <StatCard
+              label="Outstanding Committed"
+              value={formatCurrency(summary.outstanding_amount ?? 0)}
+            />
+          </div>
+        )}
+
+        {/* Section Navigation Tabs */}
+        <SectionCard
+          title="Sections & Sub-Routes"
+          subtitle="Navigate directly to specialized grant registers or stay in the command center."
+        >
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => navigate('/grants')}
+              className="rounded-[var(--ui-radius-sm)] border px-3 py-2 text-sm font-semibold border-app-accent bg-app-accent-soft text-app-accent-text"
+            >
+              Command Center
+            </button>
+            {SECTION_DEFINITIONS.map((definition) => (
+              <button
+                key={definition.id}
+                type="button"
+                onClick={() => navigate(definition.path)}
+                className="rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface px-3 py-2 text-sm font-semibold text-app-text hover:bg-app-hover transition duration-150"
+              >
+                {definition.label}
+              </button>
+            ))}
+          </div>
+        </SectionCard>
+
+        {/* Unified Command Center Tabbed Canvas */}
+        <SectionCard
+          title="Lifecycle Workspaces"
+          subtitle="Manage active application pipelines, upcoming milestones, funding disbursements, and compliance reporting."
+        >
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-2 border-b border-app-border pb-3">
+              {[
+                { id: 'pipeline', label: 'Pipeline Status' },
+                { id: 'deadlines', label: 'Upcoming Deadlines' },
+                { id: 'disbursements', label: 'Award Disbursements' },
+                { id: 'compliance', label: 'Compliance & Reports' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setOverviewTab(tab.id as typeof overviewTab)}
+                  className={`rounded-[var(--ui-radius-sm)] border px-4 py-2 text-sm font-semibold transition ${
+                    overviewTab === tab.id
+                      ? 'border-app-accent bg-app-accent text-white shadow-sm'
+                      : 'border-app-border bg-app-surface text-app-text hover:bg-app-hover'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* TAB: Pipeline Status */}
+            {overviewTab === 'pipeline' && (
+              <div className="space-y-4">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                  <div className="rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface-muted p-4">
+                    <p className="text-xs font-semibold uppercase text-app-text-muted">Draft</p>
+                    <p className="text-2xl font-black text-app-text mt-1">{summary?.draft_applications ?? 0}</p>
+                    <p className="text-xs text-app-text-muted mt-1">Applications in prep</p>
+                  </div>
+                  <div className="rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface-muted p-4">
+                    <p className="text-xs font-semibold uppercase text-app-text-muted">Submitted</p>
+                    <p className="text-2xl font-black text-app-text mt-1">{summary?.submitted_applications ?? 0}</p>
+                    <p className="text-xs text-app-text-muted mt-1">Pending funder review</p>
+                  </div>
+                  <div className="rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface-muted p-4">
+                    <p className="text-xs font-semibold uppercase text-app-text-muted">Approved</p>
+                    <p className="text-2xl font-black text-emerald-600 mt-1">{summary?.approved_applications ?? 0}</p>
+                    <p className="text-xs text-app-text-muted mt-1">Ready for award</p>
+                  </div>
+                  <div className="rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface-muted p-4">
+                    <p className="text-xs font-semibold uppercase text-app-text-muted">Declined</p>
+                    <p className="text-2xl font-black text-red-600 mt-1">{summary?.declined_applications ?? 0}</p>
+                    <p className="text-xs text-app-text-muted mt-1">Archived decisions</p>
+                  </div>
+                  <div className="rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface-muted p-4">
+                    <p className="text-xs font-semibold uppercase text-app-text-muted">Total Awards</p>
+                    <p className="text-2xl font-black text-app-text mt-1">{summary?.total_awards ?? 0}</p>
+                    <p className="text-xs text-app-text-muted mt-1">Funded commitments</p>
+                  </div>
+                </div>
+
+                {summary && (
+                  <div className="grid gap-4 xl:grid-cols-2 mt-4">
+                    <div className="rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface p-4">
+                      <h4 className="text-sm font-bold uppercase text-app-text mb-3">Status Mix</h4>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {summary.by_status.map((item) => (
+                          <div key={item.status} className="border border-app-border-muted bg-app-surface-muted p-3 rounded">
+                            <p className="text-xs font-semibold uppercase text-app-text-muted">{item.status}</p>
+                            <p className="text-base font-bold text-app-text mt-1">{item.count}</p>
+                            <p className="text-xs text-app-text-muted">{formatCurrency(item.amount)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface p-4">
+                      <h4 className="text-sm font-bold uppercase text-app-text mb-3">Jurisdiction Distribution</h4>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {summary.by_jurisdiction.map((item) => (
+                          <div key={item.status} className="border border-app-border-muted bg-app-surface-muted p-3 rounded">
+                            <p className="text-xs font-semibold uppercase text-app-text-muted">{item.status}</p>
+                            <p className="text-base font-bold text-app-text mt-1">{item.count}</p>
+                            <p className="text-xs text-app-text-muted">{formatCurrency(item.amount)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end pt-2">
+                  <SecondaryButton onClick={() => navigate('/grants/applications')}>
+                    Open Applications Workspace →
+                  </SecondaryButton>
+                </div>
+              </div>
+            )}
+
+            {/* TAB: Deadlines & Calendar */}
+            {overviewTab === 'deadlines' && (
+              <div className="space-y-4">
+                {summary?.upcoming_items && summary.upcoming_items.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-app-border-muted text-sm">
+                      <thead className="bg-app-surface-muted">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-app-text-muted">Item / Description</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-app-text-muted">Type</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-app-text-muted">Due Date</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-app-text-muted">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-app-border-muted bg-app-surface">
+                        {summary.upcoming_items.map((item, idx) => (
+                          <tr key={item.id || idx} className="hover:bg-app-hover/30">
+                            <td className="px-4 py-3 font-medium text-app-text">{item.grant_title || item.grant_number || 'Milestone'}</td>
+                            <td className="px-4 py-3 capitalize text-app-text-muted">{item.item_type || 'Deadline'}</td>
+                            <td className="px-4 py-3 text-app-text">{formatMaybeDate(item.due_at)}</td>
+                            <td className="px-4 py-3">
+                              <span className="rounded px-2 py-0.5 text-xs font-bold uppercase bg-blue-100 text-blue-800">
+                                {item.status || 'Upcoming'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-center py-8 text-sm text-app-text-muted">
+                    No upcoming application or reporting deadlines scheduled.
+                  </p>
+                )}
+                <div className="flex justify-end pt-2">
+                  <SecondaryButton onClick={() => navigate('/grants/calendar')}>
+                    Open Full Calendar Workspace →
+                  </SecondaryButton>
+                </div>
+              </div>
+            )}
+
+            {/* TAB: Award Disbursements */}
+            {overviewTab === 'disbursements' && (
+              <div className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="rounded border border-app-border bg-app-surface-muted p-4">
+                    <p className="text-xs font-semibold uppercase text-app-text-muted">Total Committed</p>
+                    <p className="text-xl font-black text-app-text mt-1">{formatCurrency(summary?.committed_amount ?? 0)}</p>
+                  </div>
+                  <div className="rounded border border-app-border bg-app-surface-muted p-4">
+                    <p className="text-xs font-semibold uppercase text-app-text-muted">Disbursed to Date</p>
+                    <p className="text-xl font-black text-emerald-600 mt-1">{formatCurrency(summary?.total_disbursed_amount ?? 0)}</p>
+                  </div>
+                  <div className="rounded border border-app-border bg-app-surface-muted p-4">
+                    <p className="text-xs font-semibold uppercase text-app-text-muted">Outstanding Balance</p>
+                    <p className="text-xl font-black text-amber-600 mt-1">{formatCurrency(summary?.outstanding_amount ?? 0)}</p>
+                  </div>
+                </div>
+                <div className="rounded border border-app-border bg-app-surface p-4">
+                  <h4 className="text-sm font-bold uppercase text-app-text mb-2">Upcoming Disbursements</h4>
+                  <p className="text-sm text-app-text-muted">
+                    {summary?.upcoming_disbursements ?? 0} scheduled disbursement payments pending release.
+                  </p>
+                </div>
+                <div className="flex justify-end pt-2">
+                  <SecondaryButton onClick={() => navigate('/grants/disbursements')}>
+                    Open Disbursements Workspace →
+                  </SecondaryButton>
+                </div>
+              </div>
+            )}
+
+            {/* TAB: Compliance & Reports */}
+            {overviewTab === 'compliance' && (
+              <div className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className={`rounded border p-4 ${
+                    (summary?.overdue_reports ?? 0) > 0 ? 'border-red-300 bg-red-50 text-red-900' : 'border-app-border bg-app-surface-muted'
+                  }`}>
+                    <p className="text-xs font-semibold uppercase tracking-wide">Overdue Reports</p>
+                    <p className="text-2xl font-black mt-1">{summary?.overdue_reports ?? 0}</p>
+                    <p className="text-xs mt-1">Requires immediate attention</p>
+                  </div>
+                  <div className="rounded border border-app-border bg-app-surface-muted p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-app-text-muted">Upcoming Reports</p>
+                    <p className="text-2xl font-black text-app-text mt-1">{summary?.upcoming_reports ?? 0}</p>
+                    <p className="text-xs text-app-text-muted mt-1">Scheduled in current reporting period</p>
+                  </div>
+                </div>
+                <div className="flex justify-end pt-2">
+                  <SecondaryButton onClick={() => navigate('/grants/reports')}>
+                    Open Reports Workspace →
+                  </SecondaryButton>
+                </div>
+              </div>
+            )}
+          </div>
+        </SectionCard>
+      </div>
+    );
+  }
+
+
   return (
     <div className="space-y-6 p-4 sm:p-6">
       <PageHeader
@@ -363,6 +653,13 @@ export default function GrantsPage() {
         subtitle="Switch between grant lists, deadlines, activity, and portfolio views."
       >
         <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => navigate('/grants')}
+            className="rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface px-3 py-2 text-sm font-semibold text-app-text hover:bg-app-hover transition duration-150 hover:-translate-y-0.5"
+          >
+            Command Center
+          </button>
           {SECTION_DEFINITIONS.map((definition) => {
             const isActive = definition.id === activeSection;
             return (
@@ -381,6 +678,7 @@ export default function GrantsPage() {
             );
           })}
         </div>
+
       </SectionCard>
 
       <SectionCard

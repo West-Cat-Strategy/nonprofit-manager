@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import type { Request, Response } from 'express';
 import { logger } from '@config/logger';
+import { getRedisPublisher, getRedisSubscriber } from '@config/redis';
 
 export type PortalRealtimeAudience = 'portal' | 'admin';
 export type PortalRealtimeEventName =
@@ -179,6 +180,8 @@ export const openPortalRealtimeStream = (input: {
     channels: Array.from(channels),
   });
 
+  void ensurePortalRedisSubscription();
+
   input.req.on('close', () => {
     cleanupClient(clientId);
   });
@@ -187,7 +190,20 @@ export const openPortalRealtimeStream = (input: {
   });
 };
 
-const broadcast = (input: {
+export const PORTAL_REALTIME_REDIS_CHANNEL = 'portal:realtime:events';
+
+const processInstanceId = randomUUID();
+
+export interface PortalBroadcastMessage {
+  originId: string;
+  eventName: PortalRealtimeEventName;
+  payload: PortalRealtimePayload;
+  channels: PortalRealtimeChannel[];
+  contactId?: string | null;
+  organizationId?: string | null;
+}
+
+const deliverLocally = (input: {
   eventName: PortalRealtimeEventName;
   payload: PortalRealtimePayload;
   channels: PortalRealtimeChannel[];
@@ -216,6 +232,64 @@ const broadcast = (input: {
       cleanupClient(clientId);
     }
   }
+};
+
+let isSubscribedToRedis = false;
+
+export const ensurePortalRedisSubscription = async (): Promise<boolean> => {
+  if (isSubscribedToRedis) return true;
+  try {
+    const subscriber = await getRedisSubscriber();
+    if (!subscriber) return false;
+
+    await subscriber.subscribe(PORTAL_REALTIME_REDIS_CHANNEL, (rawMessage) => {
+      processIncomingPortalRealtimeMessage(rawMessage);
+    });
+    isSubscribedToRedis = true;
+    return true;
+  } catch (error) {
+    logger.warn('Unable to subscribe to portal realtime Redis channel, continuing in local mode', { error });
+    return false;
+  }
+};
+
+export const processIncomingPortalRealtimeMessage = (rawMessage: string): boolean => {
+  try {
+    const msg = JSON.parse(rawMessage) as PortalBroadcastMessage;
+    if (msg.originId === processInstanceId) {
+      return false;
+    }
+    deliverLocally(msg);
+    return true;
+  } catch (err) {
+    logger.warn('Failed to parse incoming portal realtime Redis message', { err });
+    return false;
+  }
+};
+
+const broadcast = (input: {
+  eventName: PortalRealtimeEventName;
+  payload: PortalRealtimePayload;
+  channels: PortalRealtimeChannel[];
+  contactId?: string | null;
+  organizationId?: string | null;
+}): void => {
+  deliverLocally(input);
+
+  void (async () => {
+    try {
+      const publisher = await getRedisPublisher();
+      if (!publisher) return;
+
+      const message: PortalBroadcastMessage = {
+        originId: processInstanceId,
+        ...input,
+      };
+      await publisher.publish(PORTAL_REALTIME_REDIS_CHANNEL, JSON.stringify(message));
+    } catch (error) {
+      logger.warn('Failed to publish portal realtime event to Redis', { error, eventName: input.eventName });
+    }
+  })();
 };
 
 const buildPayload = (input: {

@@ -3,6 +3,7 @@ import type { Request, Response } from 'express';
 import {
   openPortalRealtimeStream,
   publishPortalThreadUpdated,
+  processIncomingPortalRealtimeMessage,
 } from '@services/portalRealtimeService';
 
 type CapturedEvent = {
@@ -224,5 +225,41 @@ describe('portalRealtimeService', () => {
     expect(orgAdmin.events.some((event) => event.name === 'portal.thread.updated')).toBe(true);
     expect(otherOrgAdmin.events.some((event) => event.name === 'portal.thread.updated')).toBe(false);
     expect(portalClient.events.some((event) => event.name === 'portal.thread.updated')).toBe(false);
+  });
+
+  it('processes incoming Redis messages and ignores self messages or invalid JSON', () => {
+    const portalClient = createRealtimeClient({
+      audience: 'portal',
+      userId: 'portal-user-redis',
+      contactId: 'contact-redis',
+      channels: 'messages',
+    });
+    activeClients.push(portalClient);
+
+    const handledForeign = processIncomingPortalRealtimeMessage(
+      JSON.stringify({
+        originId: 'foreign-pod-999',
+        eventName: 'portal.thread.updated',
+        payload: {
+          event_id: 'ev-1',
+          occurred_at: new Date().toISOString(),
+          entity_id: 'thread-redis',
+          case_id: null,
+          status: 'open',
+          actor_type: 'staff',
+          source: 'redis_test',
+          contact_id: 'contact-redis',
+        },
+        channels: ['messages'],
+        contactId: 'contact-redis',
+        organizationId: null,
+      })
+    );
+
+    expect(handledForeign).toBe(true);
+    expect(portalClient.events.some((e) => e.name === 'portal.thread.updated')).toBe(true);
+
+    const handledMalformed = processIncomingPortalRealtimeMessage('{ invalid json');
+    expect(handledMalformed).toBe(false);
   });
 });

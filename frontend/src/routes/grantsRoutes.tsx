@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
-import { Navigate, Route } from 'react-router-dom';
+import { Route } from 'react-router-dom';
 import { GrantsPage } from '../features/grants/routeComponents';
+
 
 interface RouteWrapperProps {
   children: ReactNode;
@@ -13,10 +14,11 @@ export function createGrantsRoutes(ProtectedRoute: React.ComponentType<RouteWrap
         path="/grants"
         element={
           <ProtectedRoute>
-            <Navigate to="/grants/funders" replace />
+            <GrantsPage />
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/grants/funders"
         element={

@@ -232,12 +232,14 @@ export class PublicReportSnapshotService {
        WHERE id = $1`,
       [snapshot.id, retentionUntil]
     );
+    const tokenHash = crypto.createHash('sha256').update(snapshot.token).digest('hex');
     await this.db.query(
       `UPDATE saved_reports
        SET public_token = CASE WHEN public_token = $2 THEN NULL ELSE public_token END,
+           public_token_hash = CASE WHEN public_token_hash = $3 THEN NULL ELSE public_token_hash END,
            updated_at = NOW()
        WHERE id = $1`,
-      [snapshot.saved_report_id, snapshot.token]
+      [snapshot.saved_report_id, snapshot.token, tokenHash]
     );
   }
 
@@ -336,20 +338,22 @@ export class PublicReportSnapshotService {
         ]
       );
 
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
       await client.query(
         `UPDATE saved_reports
          SET public_token = $2,
+             public_token_hash = $3,
              share_settings = CASE
-               WHEN $3::timestamptz IS NULL THEN COALESCE(share_settings, '{}'::jsonb) - 'expires_at'
+               WHEN $4::timestamptz IS NULL THEN COALESCE(share_settings, '{}'::jsonb) - 'expires_at'
                ELSE jsonb_set(
                  COALESCE(share_settings, '{}'::jsonb),
                  '{expires_at}',
-                 to_jsonb($3::timestamptz)
+                 to_jsonb($4::timestamptz)
                )
              END,
              updated_at = NOW()
          WHERE id = $1`,
-        [args.savedReportId, token, expiresIso]
+        [args.savedReportId, token, tokenHash, expiresIso]
       );
 
       await client.query('COMMIT');
@@ -511,12 +515,16 @@ export class PublicReportSnapshotService {
     );
 
     if (expiredTokens.length > 0) {
+      const expiredHashes = expiredTokens.map((t) =>
+        crypto.createHash('sha256').update(t).digest('hex')
+      );
       await this.db.query(
         `UPDATE saved_reports
          SET public_token = NULL,
+             public_token_hash = NULL,
              updated_at = NOW()
-         WHERE public_token = ANY($1::text[])`,
-        [expiredTokens]
+         WHERE public_token = ANY($1::text[]) OR public_token_hash = ANY($2::text[])`,
+        [expiredTokens, expiredHashes]
       );
     }
 

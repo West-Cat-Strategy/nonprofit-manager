@@ -63,6 +63,11 @@ FROM nginx:1.30-alpine-slim@sha256:2fb5d772cea6ef1a8dab525df1b9485289eee167d26af
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 
+RUN touch /var/run/nginx.pid && \
+    chown -R nginx:nginx /var/run/nginx.pid /var/cache/nginx /var/log/nginx /usr/share/nginx/html /etc/nginx/conf.d
+
+USER nginx
+
 EXPOSE 8001
 
 CMD ["nginx", "-g", "daemon off;"]

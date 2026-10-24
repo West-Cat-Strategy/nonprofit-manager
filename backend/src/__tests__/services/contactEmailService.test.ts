@@ -133,7 +133,7 @@ describe('createContactEmail', () => {
     );
 
     expect(result.email_address).toBe('work@example.com');
-    expect(syncContactMethodSummaries).toHaveBeenCalledWith('contact-1');
+    expect(syncContactMethodSummaries).toHaveBeenCalledWith('contact-1', expect.anything());
   });
 
   it('passes contactId as first param and userId as fifth param', async () => {
@@ -199,7 +199,7 @@ describe('updateContactEmail', () => {
 
     expect(result).not.toBeNull();
     expect(result!.email_address).toBe('new@example.com');
-    expect(syncContactMethodSummaries).toHaveBeenCalledWith('contact-1');
+    expect(syncContactMethodSummaries).toHaveBeenCalledWith('contact-1', expect.anything());
   });
 
   it('returns null when no row matches', async () => {
@@ -257,7 +257,7 @@ describe('deleteContactEmail', () => {
 
     const result = await deleteContactEmail('email-uuid');
     expect(result).toBe(true);
-    expect(syncContactMethodSummaries).toHaveBeenCalledWith('contact-1');
+    expect(syncContactMethodSummaries).toHaveBeenCalledWith('contact-1', expect.anything());
   });
 
   it('returns false when no email matched', async () => {

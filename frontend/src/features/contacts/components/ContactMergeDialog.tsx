@@ -61,6 +61,7 @@ export default function ContactMergeDialog({
   const [selectedTargetId, setSelectedTargetId] = useState('');
   const [preview, setPreview] = useState<ContactMergePreview | null>(null);
   const [resolutions, setResolutions] = useState<Record<string, ContactMergeResolution>>({});
+  const [fieldViewFilter, setFieldViewFilter] = useState<'all' | 'conflicts'>('all');
   const [searching, setSearching] = useState(false);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -78,6 +79,7 @@ export default function ContactMergeDialog({
     setSelectedTargetId('');
     setPreview(null);
     setResolutions({});
+    setFieldViewFilter('all');
     setSearching(false);
     setLoadingPreview(false);
     setSubmitting(false);
@@ -345,44 +347,117 @@ export default function ContactMergeDialog({
                 </div>
 
                 <div className="border-2 border-black bg-white p-4">
-                  <h3 className="text-sm font-black uppercase text-black/80">Conflicting fields</h3>
-                  {conflictFields.length === 0 ? (
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-black pb-3 mb-4">
+                    <div>
+                      <h3 className="text-sm font-black uppercase text-black/80">Conflicting fields & field comparison</h3>
+                      <p className="text-xs font-bold text-black/60">
+                        Compare source and target fields side-by-side. Choose which value to retain in the surviving contact.
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setFieldViewFilter('all')}
+                        className={`px-3 py-1 text-xs font-black uppercase border-2 border-black ${
+                          fieldViewFilter === 'all' ? 'bg-yellow-200' : 'bg-white hover:bg-yellow-50'
+                        }`}
+                      >
+                        All Fields ({preview.fields.length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFieldViewFilter('conflicts')}
+                        className={`px-3 py-1 text-xs font-black uppercase border-2 border-black ${
+                          fieldViewFilter === 'conflicts' ? 'bg-yellow-200' : 'bg-white hover:bg-yellow-50'
+                        }`}
+                      >
+                        Conflicts ({conflictFields.length})
+                      </button>
+                    </div>
+                  </div>
+
+                  {conflictFields.length === 0 && fieldViewFilter === 'conflicts' ? (
                     <p className="mt-2 text-sm font-bold text-black/70">
                       No conflicting scalar fields were found. The merge can proceed with the defaults.
                     </p>
                   ) : (
-                    <div className="mt-3 space-y-3">
-                      {conflictFields.map((field) => (
-                        <fieldset key={field.field} className="border-2 border-black p-3">
-                          <legend className="px-1 text-sm font-black uppercase text-black">{field.label}</legend>
-                          <div className="mt-2 grid gap-3 md:grid-cols-2">
-                            <button
-                              type="button"
-                              onClick={() => handleResolutionChange(field.field, 'source')}
-                              className={`border-2 border-black px-3 py-3 text-left ${
-                                resolutions[field.field] === 'source' ? 'bg-yellow-200' : 'bg-white'
-                              }`}
-                            >
-                              <div className="text-xs font-black uppercase text-black/60">Source</div>
-                              <div className="mt-1 text-sm font-bold text-black">{formatMergeValue(field.source_value)}</div>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleResolutionChange(field.field, 'target')}
-                              className={`border-2 border-black px-3 py-3 text-left ${
-                                resolutions[field.field] === 'target' ? 'bg-yellow-200' : 'bg-white'
-                              }`}
-                            >
-                              <div className="text-xs font-black uppercase text-black/60">Target</div>
-                              <div className="mt-1 text-sm font-bold text-black">{formatMergeValue(field.target_value)}</div>
-                            </button>
+                    <div className="space-y-3">
+                      {(fieldViewFilter === 'conflicts' ? conflictFields : preview.fields).map((field) => (
+                        field.conflict ? (
+                          <fieldset key={field.field} className="border-2 border-black p-3 bg-amber-50/40">
+                            <div className="flex items-center justify-between gap-2 mb-2">
+                              <legend className="px-1 text-sm font-black uppercase text-black">{field.label}</legend>
+                              <span className="px-2 py-0.5 text-xs font-black uppercase bg-amber-300 border border-black text-black">
+                                Conflict
+                              </span>
+                            </div>
+                            <div className="mt-2 grid gap-3 md:grid-cols-2">
+                              <button
+                                type="button"
+                                onClick={() => handleResolutionChange(field.field, 'source')}
+                                className={`border-2 border-black px-3 py-3 text-left transition ${
+                                  resolutions[field.field] === 'source' ? 'bg-yellow-200' : 'bg-white hover:bg-yellow-50'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="text-xs font-black uppercase text-black/60">Source</div>
+                                  <input
+                                    type="radio"
+                                    name={`resolution-${field.field}`}
+                                    checked={resolutions[field.field] === 'source'}
+                                    onChange={() => handleResolutionChange(field.field, 'source')}
+                                    className="h-4 w-4 accent-black cursor-pointer"
+                                    aria-label={`Source value for ${field.label}`}
+                                  />
+                                </div>
+                                <div className="mt-1 text-sm font-bold text-black">{formatMergeValue(field.source_value)}</div>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleResolutionChange(field.field, 'target')}
+                                className={`border-2 border-black px-3 py-3 text-left transition ${
+                                  resolutions[field.field] === 'target' ? 'bg-yellow-200' : 'bg-white hover:bg-yellow-50'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="text-xs font-black uppercase text-black/60">Target (Default)</div>
+                                  <input
+                                    type="radio"
+                                    name={`resolution-${field.field}`}
+                                    checked={resolutions[field.field] === 'target'}
+                                    onChange={() => handleResolutionChange(field.field, 'target')}
+                                    className="h-4 w-4 accent-black cursor-pointer"
+                                    aria-label={`Target value for ${field.label}`}
+                                  />
+                                </div>
+                                <div className="mt-1 text-sm font-bold text-black">{formatMergeValue(field.target_value)}</div>
+                              </button>
+                            </div>
+                          </fieldset>
+                        ) : (
+                          <div key={field.field} className="border-2 border-black/30 p-3 bg-white">
+                            <div className="flex items-center justify-between gap-2 mb-2">
+                              <span className="text-sm font-bold uppercase text-black/80">{field.label}</span>
+                              <span className="px-2 py-0.5 text-xs font-bold uppercase bg-emerald-100 border border-emerald-300 text-emerald-800">
+                                {field.auto_merged ? 'Auto-merged' : 'Identical'}
+                              </span>
+                            </div>
+                            <div className="grid gap-3 md:grid-cols-2 text-xs font-medium text-black/70">
+                              <div>
+                                <span className="font-bold text-black">Source:</span> {formatMergeValue(field.source_value)}
+                              </div>
+                              <div>
+                                <span className="font-bold text-black">Target:</span> {formatMergeValue(field.target_value)}
+                              </div>
+                            </div>
                           </div>
-                        </fieldset>
+                        )
                       ))}
                     </div>
                   )}
                 </div>
               </div>
+
             )}
 
             {submitError && (

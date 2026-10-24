@@ -236,6 +236,73 @@ describe('GrantsPage', () => {
       expect(screen.queryByText('Stale Funder')).not.toBeInTheDocument();
     });
     expect(screen.getAllByText('Fresh Funder').length).toBeGreaterThan(0);
+
+  });
+
+  it('renders consolidated command center on /grants with tabbed workspace views', async () => {
+    apiMocks.listFunders.mockResolvedValue(paginated([buildFunder()]));
+    apiMocks.getSummary.mockResolvedValue({
+      ...summary,
+      draft_applications: 3,
+      submitted_applications: 5,
+      approved_applications: 2,
+      active_awards: 4,
+      total_disbursed_amount: 150000,
+      outstanding_amount: 50000,
+      overdue_reports: 1,
+      upcoming_reports: 2,
+      upcoming_items: [
+        {
+          id: 'item-1',
+          grant_id: 'grant-1',
+          grant_number: 'GR-2026-001',
+          grant_title: 'Federal Grant Q3 Report',
+          due_at: '2026-06-30',
+          item_type: 'report',
+          status: 'Upcoming',
+          amount: 50000,
+          recipient_name: 'Recipient Org',
+          program_name: 'Program A',
+        },
+      ],
+
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/grants']}>
+        <Routes>
+          <Route path="/grants" element={<GrantsPage />} />
+          <Route path="/grants/:section" element={<GrantsPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('grants-command-center')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Grants Command Center')).toBeInTheDocument();
+    expect(screen.getByText('In-Flight Pipeline')).toBeInTheDocument();
+    expect(screen.getByText('Active Awards')).toBeInTheDocument();
+
+    // Verify tabs
+    expect(screen.getByRole('button', { name: /pipeline status/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /upcoming deadlines/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /award disbursements/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /compliance & reports/i })).toBeInTheDocument();
+
+    // Switch to Upcoming Deadlines tab
+    fireEvent.click(screen.getByRole('button', { name: /upcoming deadlines/i }));
+    expect(screen.getByText('Federal Grant Q3 Report')).toBeInTheDocument();
+
+    // Switch to Award Disbursements tab
+    fireEvent.click(screen.getByRole('button', { name: /award disbursements/i }));
+    expect(screen.getByText(/scheduled disbursement payments pending release/i)).toBeInTheDocument();
+
+    // Switch to Compliance & Reports tab
+    fireEvent.click(screen.getByRole('button', { name: /compliance & reports/i }));
+    expect(screen.getByText('Overdue Reports')).toBeInTheDocument();
+    expect(screen.getByText('Upcoming Reports')).toBeInTheDocument();
   });
 });
 
@@ -243,8 +310,10 @@ function renderPage() {
   return render(
     <MemoryRouter initialEntries={['/grants/funders']}>
       <Routes>
+        <Route path="/grants" element={<GrantsPage />} />
         <Route path="/grants/:section" element={<GrantsPage />} />
       </Routes>
     </MemoryRouter>
   );
 }
+

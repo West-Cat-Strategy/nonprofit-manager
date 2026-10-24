@@ -71,3 +71,18 @@ export const getTasks = async (): Promise<Task[]> => {
   const tasks = response.data.tasks || [];
   return tasks.map(adaptTask);
 };
+
+const REVERSE_STATUS_MAP: Record<Task['status'], string> = {
+  todo: 'not_started',
+  'in-progress': 'in_progress',
+  done: 'completed',
+};
+
+export const updateTaskStatus = async (
+  taskId: string,
+  status: Task['status']
+): Promise<void> => {
+  const backendStatus = REVERSE_STATUS_MAP[status] || 'not_started';
+  await api.put(`/tasks/${taskId}`, { status: backendStatus });
+};
+

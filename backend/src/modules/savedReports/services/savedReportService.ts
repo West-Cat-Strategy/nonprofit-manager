@@ -562,27 +562,30 @@ export class SavedReportService {
   async generatePublicLink(reportId: string, expiresAt?: string): Promise<string> {
     try {
       const token = crypto.randomBytes(24).toString('base64url');
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
       const query = `
         UPDATE saved_reports
         SET
           public_token = $2,
+          public_token_hash = $3,
           share_settings = CASE
-            WHEN $3::jsonb IS NULL THEN COALESCE(share_settings, '{}'::jsonb) - 'expires_at'
+            WHEN $4::jsonb IS NULL THEN COALESCE(share_settings, '{}'::jsonb) - 'expires_at'
             ELSE jsonb_set(
               COALESCE(share_settings, '{}'::jsonb),
               '{expires_at}',
-              $3::jsonb
+              $4::jsonb
             )
           END,
           updated_at = NOW()
         WHERE id = $1
-        RETURNING public_token
+        RETURNING id
       `;
 
       const result = await this.pool.query(query, [
         reportId,
         token,
+        tokenHash,
         expiresAt ? JSON.stringify(expiresAt) : null,
       ]);
 
@@ -590,7 +593,7 @@ export class SavedReportService {
         throw new Error('Report not found');
       }
 
-      return result.rows[0].public_token;
+      return token;
     } catch (error) {
       logger.error('Error generating public link', { error, reportId });
       throw Object.assign(new Error('Failed to generate public link'), { cause: error });
@@ -603,7 +606,7 @@ export class SavedReportService {
   async revokePublicLink(reportId: string): Promise<void> {
     try {
       await this.pool.query(
-        'UPDATE saved_reports SET public_token = NULL, updated_at = NOW() WHERE id = $1',
+        'UPDATE saved_reports SET public_token = NULL, public_token_hash = NULL, updated_at = NOW() WHERE id = $1',
         [reportId]
       );
     } catch (error) {
@@ -617,9 +620,10 @@ export class SavedReportService {
    */
   async getReportByPublicToken(token: string): Promise<SavedReport | null> {
     try {
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
       const result = await this.pool.query(
-        'SELECT * FROM saved_reports WHERE public_token = $1',
-        [token]
+        'SELECT * FROM saved_reports WHERE public_token_hash = $1 OR public_token = $2',
+        [tokenHash, token]
       );
 
       if (result.rows.length === 0) {

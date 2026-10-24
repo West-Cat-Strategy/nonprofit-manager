@@ -11,6 +11,7 @@ export interface AccountsListState {
   accounts: Account[];
   loading: boolean;
   error: string | null;
+  currentRequestId: string | null;
   pagination: {
     total: number;
     page: number;
@@ -29,6 +30,7 @@ const initialState: AccountsListState = {
   accounts: [],
   loading: false,
   error: null,
+  currentRequestId: null,
   pagination: {
     total: 0,
     page: 1,
@@ -63,17 +65,26 @@ const accountsListSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchAccounts.pending, (state) => {
+      .addCase(fetchAccounts.pending, (state, action) => {
         state.loading = true;
         state.error = null;
+        state.currentRequestId = action.meta.requestId;
       })
       .addCase(fetchAccounts.fulfilled, (state, action) => {
+        if (state.currentRequestId !== action.meta.requestId) {
+          return;
+        }
         state.loading = false;
+        state.currentRequestId = null;
         state.accounts = action.payload.data;
         state.pagination = action.payload.pagination;
       })
       .addCase(fetchAccounts.rejected, (state, action) => {
+        if (state.currentRequestId !== action.meta.requestId) {
+          return;
+        }
         state.loading = false;
+        state.currentRequestId = null;
         state.error = action.error.message || 'Failed to fetch accounts';
       });
   },

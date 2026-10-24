@@ -5,6 +5,7 @@ import {
   openTeamChatRealtimeStream,
   publishTeamChatRoomEvent,
   publishTeamChatTypingState,
+  processIncomingTeamChatRealtimeMessage,
 } from '@services/teamChatRealtimeService';
 
 type CapturedEvent = {
@@ -161,5 +162,31 @@ describe('teamChatRealtimeService', () => {
       user_id: 'alice',
       is_typing: false,
     });
+  });
+
+  it('delivers Redis broadcast messages to local clients and ignores self messages', () => {
+    const alice = createRealtimeClient('org-redis', 'alice', 'messages');
+    activeClients.push(alice);
+
+    const handledForeign = processIncomingTeamChatRealtimeMessage(
+      JSON.stringify({
+        originId: 'foreign-pod-123',
+        kind: 'room_event',
+        organizationId: 'org-redis',
+        participantUserIds: ['alice'],
+        roomId: 'room-redis',
+        roomType: 'direct',
+        eventName: 'team_chat.message.created',
+        payload: { message_text: 'Hello from foreign pod' },
+        eventId: 'event-redis-1',
+        occurredAt: new Date().toISOString(),
+      })
+    );
+
+    expect(handledForeign).toBe(true);
+    expect(alice.events.some((e) => e.name === 'team_chat.message.created')).toBe(true);
+
+    const handledMalformed = processIncomingTeamChatRealtimeMessage('not-valid-json');
+    expect(handledMalformed).toBe(false);
   });
 });

@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { triggerFileDownload } from '../../../services/fileDownload';
 import { formatApiErrorMessageWith } from '../../../utils/apiError';
+
+export type ReportGenerationStage = 'idle' | 'compiling' | 'aggregating' | 'formatting';
 import { reportsApiClient } from '../api/reportsApiClient';
 import { savedReportsApiClient } from '../../savedReports/api/savedReportsApiClient';
 import type {
@@ -80,6 +82,22 @@ export function useReportBuilderController() {
   const [exportJobsLoading, setExportJobsLoading] = useState(false);
   const [activeExportJobId, setActiveExportJobId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [generationStage, setGenerationStage] = useState<ReportGenerationStage>('idle');
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const stageTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const clearStageTimers = () => {
+    stageTimersRef.current.forEach((timer) => clearTimeout(timer));
+    stageTimersRef.current = [];
+  };
+
+  useEffect(() => {
+    return () => {
+      clearStageTimers();
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+
   const [fieldsLoading, setFieldsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exportJobError, setExportJobError] = useState<string | null>(null);
@@ -365,18 +383,70 @@ export function useReportBuilderController() {
       return;
     }
 
+    clearStageTimers();
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       setLoading(true);
       setError(null);
-      const report = await reportsApiClient.generateReport(buildDefinition());
+      setGenerationStage('compiling');
+
+      const timer1 = setTimeout(() => {
+        if (!controller.signal.aborted) {
+          setGenerationStage('aggregating');
+        }
+      }, 500);
+
+      const timer2 = setTimeout(() => {
+        if (!controller.signal.aborted) {
+          setGenerationStage('formatting');
+        }
+      }, 1200);
+
+      stageTimersRef.current = [timer1, timer2];
+
+      const report = await reportsApiClient.generateReport(buildDefinition(), {
+        signal: controller.signal,
+      });
+
+      if (controller.signal.aborted) {
+        return;
+      }
       setCurrentReport(report);
-    } catch (generateError) {
+    } catch (generateError: unknown) {
+      const errorObj = generateError as { name?: string; code?: string } | null;
+      if (
+        controller.signal.aborted ||
+        errorObj?.name === 'CanceledError' ||
+        errorObj?.code === 'ERR_CANCELED'
+      ) {
+        return;
+      }
       const message = formatGenerateError(generateError);
       setError(message);
       window.alert(message);
     } finally {
-      setLoading(false);
+      clearStageTimers();
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+        setLoading(false);
+        setGenerationStage('idle');
+      }
     }
+  };
+
+  const handleCancelGenerateReport = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    clearStageTimers();
+    setLoading(false);
+    setGenerationStage('idle');
   };
 
   const createExportJob = async (payload: {
@@ -521,6 +591,7 @@ export function useReportBuilderController() {
     exportJobsLoading,
     fieldsLoading,
     filters,
+    generationStage,
     groupBy,
     loading,
     manualExportJobs,
@@ -547,6 +618,7 @@ export function useReportBuilderController() {
     setSorts,
     setXAxisField,
     setYAxisField,
+    handleCancelGenerateReport,
     handleDownloadExportJob,
     handleEntityChange,
     handleGenerateReport,

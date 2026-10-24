@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import type { Request, Response } from 'express';
 import { logger } from '@config/logger';
+import { getRedisPublisher, getRedisSubscriber } from '@config/redis';
 import type {
   TeamChatEventName,
 } from '@modules/teamChat/types/events';
@@ -97,7 +98,44 @@ const getActiveConnectionCount = (organizationId: string, userId: string): numbe
     (client) => client.organizationId === organizationId && client.userId === userId
   ).length;
 
-const broadcastPresence = (
+export const TEAM_CHAT_REALTIME_REDIS_CHANNEL = 'team_chat:realtime:events';
+
+const processInstanceId = randomUUID();
+
+export interface TeamChatRoomEventMessage {
+  originId: string;
+  kind: 'room_event';
+  organizationId: string;
+  participantUserIds: string[];
+  roomId: string;
+  roomType: TeamChatRoomType;
+  eventName: TeamChatEventName;
+  payload: Record<string, unknown>;
+  eventId: string;
+  occurredAt: string;
+}
+
+export interface TeamChatPresenceMessage {
+  originId: string;
+  kind: 'presence';
+  organizationId: string;
+  payload: TeamMessengerPresenceState;
+}
+
+export interface TeamChatTypingMessage {
+  originId: string;
+  kind: 'typing';
+  organizationId: string;
+  participantUserIds: string[];
+  payload: TeamMessengerTypingEvent;
+}
+
+export type TeamChatRealtimeRedisMessage =
+  | TeamChatRoomEventMessage
+  | TeamChatPresenceMessage
+  | TeamChatTypingMessage;
+
+const deliverPresenceLocally = (
   organizationId: string,
   payload: TeamMessengerPresenceState
 ): void => {
@@ -115,6 +153,31 @@ const broadcastPresence = (
   }
 };
 
+const publishTeamChatRedisMessage = (message: TeamChatRealtimeRedisMessage): void => {
+  void (async () => {
+    try {
+      const publisher = await getRedisPublisher();
+      if (!publisher) return;
+      await publisher.publish(TEAM_CHAT_REALTIME_REDIS_CHANNEL, JSON.stringify(message));
+    } catch (error) {
+      logger.warn('Failed to publish team chat realtime event to Redis', { error, kind: message.kind });
+    }
+  })();
+};
+
+const broadcastPresence = (
+  organizationId: string,
+  payload: TeamMessengerPresenceState
+): void => {
+  deliverPresenceLocally(organizationId, payload);
+  publishTeamChatRedisMessage({
+    originId: processInstanceId,
+    kind: 'presence',
+    organizationId,
+    payload,
+  });
+};
+
 const clearTypingEntry = (typingKey: string): void => {
   const entry = typingState.get(typingKey);
   if (!entry) {
@@ -125,7 +188,7 @@ const clearTypingEntry = (typingKey: string): void => {
   typingState.delete(typingKey);
 };
 
-const broadcastTyping = (
+const deliverTypingLocally = (
   organizationId: string,
   participantUserIds: string[],
   payload: TeamMessengerTypingEvent
@@ -145,6 +208,21 @@ const broadcastTyping = (
       cleanupClient(clientId);
     }
   }
+};
+
+const broadcastTyping = (
+  organizationId: string,
+  participantUserIds: string[],
+  payload: TeamMessengerTypingEvent
+): void => {
+  deliverTypingLocally(organizationId, participantUserIds, payload);
+  publishTeamChatRedisMessage({
+    originId: processInstanceId,
+    kind: 'typing',
+    organizationId,
+    participantUserIds,
+    payload,
+  });
 };
 
 const cleanupClient = (clientId: string): void => {
@@ -227,20 +305,30 @@ export const openTeamChatRealtimeStream = (input: {
     occurred_at: new Date().toISOString(),
   });
 
+  void ensureTeamChatRedisSubscription();
+
   input.req.on('close', () => cleanupClient(clientId));
   input.req.on('error', () => cleanupClient(clientId));
 };
 
-export const publishTeamChatRoomEvent = (input: {
+const deliverRoomEventLocally = (input: {
   organizationId: string;
   participantUserIds: string[];
   roomId: string;
   roomType: TeamChatRoomType;
   eventName: TeamChatEventName;
   payload: Record<string, unknown>;
+  eventId?: string;
+  occurredAt?: string;
 }): void => {
   const channel = EVENT_CHANNELS[input.eventName];
   const allowedUsers = new Set(input.participantUserIds);
+  const eventPayload = {
+    event_id: input.eventId || randomUUID(),
+    occurred_at: input.occurredAt || new Date().toISOString(),
+    ...input.payload,
+  };
+
   for (const [clientId, client] of clients.entries()) {
     if (
       client.organizationId !== input.organizationId ||
@@ -252,16 +340,75 @@ export const publishTeamChatRoomEvent = (input: {
       continue;
     }
 
-    if (
-      !writeSseEvent(client.res, input.eventName, {
-        event_id: randomUUID(),
-        occurred_at: new Date().toISOString(),
-        ...input.payload,
-      })
-    ) {
+    if (!writeSseEvent(client.res, input.eventName, eventPayload)) {
       cleanupClient(clientId);
     }
   }
+};
+
+let isSubscribedToRedis = false;
+
+export const ensureTeamChatRedisSubscription = async (): Promise<boolean> => {
+  if (isSubscribedToRedis) return true;
+  try {
+    const subscriber = await getRedisSubscriber();
+    if (!subscriber) return false;
+
+    await subscriber.subscribe(TEAM_CHAT_REALTIME_REDIS_CHANNEL, (rawMessage) => {
+      processIncomingTeamChatRealtimeMessage(rawMessage);
+    });
+    isSubscribedToRedis = true;
+    return true;
+  } catch (error) {
+    logger.warn('Unable to subscribe to team chat realtime Redis channel, continuing in local mode', { error });
+    return false;
+  }
+};
+
+export const processIncomingTeamChatRealtimeMessage = (rawMessage: string): boolean => {
+  try {
+    const msg = JSON.parse(rawMessage) as TeamChatRealtimeRedisMessage;
+    if (msg.originId === processInstanceId) {
+      return false;
+    }
+    if (msg.kind === 'room_event') {
+      deliverRoomEventLocally(msg);
+    } else if (msg.kind === 'presence') {
+      deliverPresenceLocally(msg.organizationId, msg.payload);
+    } else if (msg.kind === 'typing') {
+      deliverTypingLocally(msg.organizationId, msg.participantUserIds, msg.payload);
+    }
+    return true;
+  } catch (err) {
+    logger.warn('Failed to parse incoming team chat realtime Redis message', { err });
+    return false;
+  }
+};
+
+export const publishTeamChatRoomEvent = (input: {
+  organizationId: string;
+  participantUserIds: string[];
+  roomId: string;
+  roomType: TeamChatRoomType;
+  eventName: TeamChatEventName;
+  payload: Record<string, unknown>;
+}): void => {
+  const eventId = randomUUID();
+  const occurredAt = new Date().toISOString();
+
+  deliverRoomEventLocally({
+    ...input,
+    eventId,
+    occurredAt,
+  });
+
+  publishTeamChatRedisMessage({
+    originId: processInstanceId,
+    kind: 'room_event',
+    ...input,
+    eventId,
+    occurredAt,
+  });
 };
 
 export const publishTeamChatTypingState = (input: {

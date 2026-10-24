@@ -6,6 +6,7 @@ import {
   ClipboardDocumentListIcon,
   DocumentChartBarIcon,
   TableCellsIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import FieldSelector from '../../../components/FieldSelector';
 import FilterBuilder from '../../../components/FilterBuilder';
@@ -26,7 +27,9 @@ import {
 } from '../../../components/ui';
 import { useAppSelector } from '../../../store/hooks';
 import { getReportAccess } from '../../auth/state/reportAccess';
-import useReportBuilderController from '../hooks/useReportBuilderController';
+import useReportBuilderController, {
+  type ReportGenerationStage,
+} from '../hooks/useReportBuilderController';
 import type { AggregateFunction, ReportEntity, ReportExportJob } from '../../../types/report';
 
 const ENTITIES: { value: ReportEntity; label: string }[] = [
@@ -51,6 +54,12 @@ const statusStyles: Record<ReportExportJob['status'], string> = {
   completed: 'bg-emerald-100 text-emerald-800',
   failed: 'bg-rose-100 text-rose-800',
 };
+const GENERATION_STAGE_LABELS: Record<ReportGenerationStage, string> = {
+  idle: 'Generating report preview...',
+  compiling: 'Compiling query...',
+  aggregating: 'Aggregating records...',
+  formatting: 'Formatting data table...',
+};
 const builderCardClass =
   'transition duration-200 hover:-translate-y-0.5 hover:border-app-border hover:shadow-md';
 
@@ -70,6 +79,7 @@ function ReportBuilder() {
     exportJobsLoading,
     fieldsLoading,
     filters,
+    generationStage,
     groupBy,
     loading,
     manualExportJobs,
@@ -96,6 +106,7 @@ function ReportBuilder() {
     setSorts,
     setXAxisField,
     setYAxisField,
+    handleCancelGenerateReport,
     handleDownloadExportJob,
     handleEntityChange,
     handleGenerateReport,
@@ -283,12 +294,26 @@ function ReportBuilder() {
             {canManageReports && (
               <>
                 <PrimaryButton
-                  leadingIcon={<ArrowPathIcon className="h-4 w-4" aria-hidden="true" />}
+                  leadingIcon={
+                    <ArrowPathIcon
+                      className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`}
+                      aria-hidden="true"
+                    />
+                  }
                   onClick={() => void handleGenerateReport()}
                   disabled={loading || (selectedFields.length === 0 && aggregations.length === 0)}
                 >
                   {loading ? 'Generating...' : 'Generate Report'}
                 </PrimaryButton>
+
+                {loading && (
+                  <SecondaryButton
+                    leadingIcon={<XMarkIcon className="h-4 w-4" aria-hidden="true" />}
+                    onClick={handleCancelGenerateReport}
+                  >
+                    Cancel
+                  </SecondaryButton>
+                )}
 
                 <SecondaryButton
                   leadingIcon={<ClipboardDocumentListIcon className="h-4 w-4" aria-hidden="true" />}
@@ -324,7 +349,81 @@ function ReportBuilder() {
               </>
             )}
           </div>
-          {loading && <LoadingState className="mt-4" label="Generating report preview..." />}
+          {loading && (
+            <div
+              className="mt-4 rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface p-4 shadow-sm"
+              role="status"
+              aria-live="polite"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="h-5 w-5 animate-spin rounded-full border-2 border-app-accent border-t-transparent"
+                    aria-hidden="true"
+                  />
+                  <div>
+                    <p className="text-sm font-semibold text-app-text">
+                      {GENERATION_STAGE_LABELS[generationStage] || 'Generating report preview...'}
+                    </p>
+                    <p className="text-xs text-app-text-muted">
+                      Large datasets with multiple aggregations may take a few moments.
+                    </p>
+                  </div>
+                </div>
+                <SecondaryButton
+                  onClick={handleCancelGenerateReport}
+                  className="text-xs"
+                >
+                  Cancel Run
+                </SecondaryButton>
+              </div>
+
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {(['compiling', 'aggregating', 'formatting'] as const).map((stage, idx) => {
+                  const stageOrder: Record<ReportGenerationStage, number> = {
+                    idle: -1,
+                    compiling: 0,
+                    aggregating: 1,
+                    formatting: 2,
+                  };
+                  const currentIdx = stageOrder[generationStage] ?? -1;
+                  const isDone = currentIdx > idx;
+                  const isCurrent = currentIdx === idx;
+
+                  return (
+                    <div key={stage} className="space-y-1">
+                      <div className="h-1.5 w-full rounded-full bg-app-border-muted overflow-hidden">
+                        <div
+                          className={`h-full transition-all duration-300 ${
+                            isDone
+                              ? 'w-full bg-emerald-600'
+                              : isCurrent
+                                ? 'w-3/4 bg-app-accent animate-pulse'
+                                : 'w-0 bg-transparent'
+                          }`}
+                        />
+                      </div>
+                      <span
+                        className={`block text-[11px] font-semibold uppercase tracking-wider ${
+                          isDone
+                            ? 'text-emerald-700'
+                            : isCurrent
+                              ? 'text-app-accent-text font-bold'
+                              : 'text-app-text-muted'
+                        }`}
+                      >
+                        {stage === 'compiling'
+                          ? '1. Compiling'
+                          : stage === 'aggregating'
+                            ? '2. Aggregating'
+                            : '3. Formatting'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </SectionCard>
 
         <SectionCard

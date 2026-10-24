@@ -51,6 +51,7 @@ export interface SavedReport {
   shared_with_users?: string[];
   shared_with_roles?: string[];
   public_token?: string;
+  public_token_hash?: string;
   share_settings?: ShareSettings;
 }
 

@@ -90,10 +90,10 @@
       "routeCatalogDriftPassed": true,
       "brokenTargets": [],
       "styleAudit": {
-        "hardcodedColorUtilities": 1568,
-        "semanticTokenUtilities": 10047,
-        "inlineStyleUsages": 59,
-        "ratioSemanticToHardcoded": 6.4075
+        "hardcodedColorUtilities": 1630,
+        "semanticTokenUtilities": 10220,
+        "inlineStyleUsages": 60,
+        "ratioSemanticToHardcoded": 6.2699
       },
       "disallowedInlineStylePaths": []
     },

@@ -122,11 +122,15 @@ export function useGrantsPageData() {
   }, [searchInput]);
 
   useEffect(() => {
+    if (location.pathname === '/grants' || location.pathname === '/grants/') {
+      return;
+    }
     const sectionAdapter = getGrantsSectionAdapter(activeSection);
     if (location.pathname !== sectionAdapter.path) {
       navigate(sectionAdapter.path, { replace: true });
     }
   }, [activeSection, location.pathname, navigate]);
+
 
   const refreshData = () => {
     setRefreshCount((value) => value + 1);

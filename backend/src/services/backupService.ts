@@ -39,7 +39,7 @@ export const DEFAULT_SECRET_FIELDS: Record<string, string[]> = {
   event_registrations: ['check_in_token'],
   newsletter_signup_confirmations: ['token_hash'],
   recurring_donation_plans: ['public_management_token_hash'],
-  saved_reports: ['public_token'],
+  saved_reports: ['public_token', 'public_token_hash'],
   saved_report_public_snapshots: ['token'],
 };
 

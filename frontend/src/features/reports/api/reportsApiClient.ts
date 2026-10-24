@@ -12,8 +12,13 @@ import type {
 } from '../types/contracts';
 
 export class ReportsApiClient {
-  async generateReport(definition: ReportDefinition): Promise<ReportResult> {
-    const response = await api.post<ReportResult>('/reports/generate', definition);
+  async generateReport(
+    definition: ReportDefinition,
+    options?: { signal?: AbortSignal }
+  ): Promise<ReportResult> {
+    const response = await api.post<ReportResult>('/reports/generate', definition, {
+      signal: options?.signal,
+    });
     return response.data;
   }
 

@@ -24,6 +24,7 @@ const buildAuthState = (permissions: string[]) => ({
 });
 
 const {
+  handleCancelGenerateReportMock,
   handleDownloadExportJobMock,
   handleEntityChangeMock,
   handleGenerateReportMock,
@@ -37,6 +38,7 @@ const {
   setShowChartMock,
   setShowSaveDialogMock,
 } = vi.hoisted(() => ({
+  handleCancelGenerateReportMock: vi.fn(),
   handleDownloadExportJobMock: vi.fn(),
   handleEntityChangeMock: vi.fn(),
   handleGenerateReportMock: vi.fn(),
@@ -103,6 +105,7 @@ const controllerState = {
   exportJobsLoading: false,
   fieldsLoading: false,
   filters: [],
+  generationStage: 'idle' as const,
   groupBy: [],
   loading: false,
   manualExportJobs: [exportJob],
@@ -129,6 +132,7 @@ const controllerState = {
   setSorts: vi.fn(),
   setXAxisField: vi.fn(),
   setYAxisField: vi.fn(),
+  handleCancelGenerateReport: handleCancelGenerateReportMock,
   handleDownloadExportJob: handleDownloadExportJobMock,
   handleEntityChange: handleEntityChangeMock,
   handleGenerateReport: handleGenerateReportMock,
@@ -301,5 +305,38 @@ describe('ReportBuilderPage', () => {
     expect(screen.getAllByRole('status')[0]).toHaveTextContent(/generating report preview/i);
     expect(screen.getByText(/loading recent exports/i)).toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent(/export service unavailable/i);
+  });
+
+  it('renders progressive query execution feedback across stages and supports cancellation', async () => {
+    const user = userEvent.setup();
+    controllerState.loading = true;
+    controllerState.generationStage = 'compiling';
+
+    const { unmount } = renderWithProviders(<ReportBuilderPage />, {
+      preloadedState: buildAuthState(['report:view', 'report:create', 'report:export']),
+    });
+
+    expect(screen.getAllByRole('status')[0]).toHaveTextContent(/compiling query/i);
+    expect(screen.getByText(/1\. compiling/i)).toBeInTheDocument();
+    unmount();
+
+    controllerState.generationStage = 'aggregating';
+    const { unmount: unmount2 } = renderWithProviders(<ReportBuilderPage />, {
+      preloadedState: buildAuthState(['report:view', 'report:create', 'report:export']),
+    });
+    expect(screen.getAllByRole('status')[0]).toHaveTextContent(/aggregating records/i);
+    expect(screen.getByText(/2\. aggregating/i)).toBeInTheDocument();
+    unmount2();
+
+    controllerState.generationStage = 'formatting';
+    renderWithProviders(<ReportBuilderPage />, {
+      preloadedState: buildAuthState(['report:view', 'report:create', 'report:export']),
+    });
+    expect(screen.getAllByRole('status')[0]).toHaveTextContent(/formatting data table/i);
+    expect(screen.getByText(/3\. formatting/i)).toBeInTheDocument();
+
+    const cancelRunButton = screen.getByRole('button', { name: /cancel run/i });
+    await user.click(cancelRunButton);
+    expect(handleCancelGenerateReportMock).toHaveBeenCalled();
   });
 });

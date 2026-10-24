@@ -190,4 +190,51 @@ describe('AuditLogsSection', () => {
     expect(screen.getAllByText('Updated contact record').length).toBeGreaterThan(0);
     expect(mockedApi.get).toHaveBeenCalledTimes(2);
   });
+
+  it('opens inspection modal and renders formatted color-coded diffs and raw JSON', async () => {
+    const user = userEvent.setup();
+    mockedApi.get.mockResolvedValueOnce({
+      data: {
+        logs: [
+          {
+            ...auditLog,
+            oldValues: { email: 'old@example.org', name: 'John' },
+            newValues: { email: 'new@example.org', name: 'John' },
+          },
+        ],
+        total: 1,
+      },
+    });
+
+    renderWithProviders(<AuditLogsSection />);
+    await flushAuditLogLoad();
+
+    expect(screen.queryByTestId('audit-log-inspect-modal')).not.toBeInTheDocument();
+
+    // Click "Inspect changes →"
+    const inspectBtn = screen.getByRole('button', { name: /inspect changes/i });
+    await user.click(inspectBtn);
+
+    expect(screen.getByTestId('audit-log-inspect-modal')).toBeInTheDocument();
+    expect(screen.getByText('Audit Log Inspection')).toBeInTheDocument();
+    expect(screen.getByTestId('diff-field-email')).toBeInTheDocument();
+    expect(screen.getByText('old@example.org')).toBeInTheDocument();
+    expect(screen.getByText('new@example.org')).toBeInTheDocument();
+    expect(screen.getByText('Modified')).toBeInTheDocument();
+
+    // Toggle "Show All Fields" to see unchanged 'name' field
+    await user.click(screen.getByRole('button', { name: /show all fields/i }));
+    expect(screen.getByTestId('diff-field-name')).toBeInTheDocument();
+    expect(screen.getByText('Unchanged')).toBeInTheDocument();
+
+    // Switch to Raw JSON view
+    await user.click(screen.getByRole('button', { name: /raw json/i }));
+    expect(screen.getByText('Old Values')).toBeInTheDocument();
+    expect(screen.getByText('New Values')).toBeInTheDocument();
+
+    // Close the modal
+    await user.click(screen.getByRole('button', { name: /^close$/i }));
+    expect(screen.queryByTestId('audit-log-inspect-modal')).not.toBeInTheDocument();
+  });
 });
+

@@ -9,6 +9,7 @@ export interface ContactsListState {
   contacts: Contact[];
   loading: boolean;
   error: string | null;
+  currentRequestId: string | null;
   pagination: {
     total: number;
     page: number;
@@ -31,6 +32,7 @@ const initialState: ContactsListState = {
   contacts: [],
   loading: false,
   error: null,
+  currentRequestId: null,
   pagination: {
     total: 0,
     page: 1,
@@ -93,17 +95,26 @@ const contactsListSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchContacts.pending, (state) => {
+      .addCase(fetchContacts.pending, (state, action) => {
         state.loading = true;
         state.error = null;
+        state.currentRequestId = action.meta.requestId;
       })
       .addCase(fetchContacts.fulfilled, (state, action) => {
+        if (state.currentRequestId !== action.meta.requestId) {
+          return;
+        }
         state.loading = false;
+        state.currentRequestId = null;
         state.contacts = action.payload.data;
         state.pagination = action.payload.pagination;
       })
       .addCase(fetchContacts.rejected, (state, action) => {
+        if (state.currentRequestId !== action.meta.requestId) {
+          return;
+        }
         state.loading = false;
+        state.currentRequestId = null;
         state.error = action.error.message || 'Failed to fetch contacts';
       })
       .addCase(fetchContactTags.fulfilled, (state, action) => {

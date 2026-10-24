@@ -10,6 +10,8 @@ import { logger } from './logger';
 type AppRedisClient = RedisClientType<RedisModules, RedisFunctions, RedisScripts, 2>;
 
 let redisClient: AppRedisClient | null = null;
+let publisherClient: AppRedisClient | null = null;
+let subscriberClient: AppRedisClient | null = null;
 const DEFAULT_SCAN_COUNT = 200;
 const DEFAULT_DELETE_BATCH_SIZE = 200;
 
@@ -128,18 +130,67 @@ export function getRedisClient(): AppRedisClient | null {
 }
 
 /**
+ * Get dedicated Redis publisher client (for Pub/Sub)
+ */
+export async function getRedisPublisher(): Promise<AppRedisClient | null> {
+  if (!redisClient?.isReady) {
+    return null;
+  }
+  if (!publisherClient) {
+    try {
+      const dup = redisClient.duplicate();
+      await dup.connect();
+      publisherClient = dup;
+    } catch (error) {
+      logger.error('Failed to initialize Redis publisher client:', error);
+      publisherClient = null;
+      return null;
+    }
+  }
+  return publisherClient.isReady ? publisherClient : null;
+}
+
+/**
+ * Get dedicated Redis subscriber client (for Pub/Sub)
+ */
+export async function getRedisSubscriber(): Promise<AppRedisClient | null> {
+  if (!redisClient?.isReady) {
+    return null;
+  }
+  if (!subscriberClient) {
+    try {
+      const dup = redisClient.duplicate();
+      await dup.connect();
+      subscriberClient = dup;
+    } catch (error) {
+      logger.error('Failed to initialize Redis subscriber client:', error);
+      subscriberClient = null;
+      return null;
+    }
+  }
+  return subscriberClient.isReady ? subscriberClient : null;
+}
+
+/**
  * Close Redis connection
  */
 export async function closeRedis(): Promise<void> {
-  if (redisClient) {
+  const clientsToClose = [subscriberClient, publisherClient, redisClient].filter(Boolean) as AppRedisClient[];
+  subscriberClient = null;
+  publisherClient = null;
+  redisClient = null;
+
+  for (const client of clientsToClose) {
     try {
-      await redisClient.quit();
-      logger.info('Redis connection closed');
+      if (typeof client.quit === 'function') {
+        await client.quit();
+      }
     } catch (error) {
       logger.error('Error closing Redis connection:', error);
-    } finally {
-      redisClient = null;
     }
+  }
+  if (clientsToClose.length > 0) {
+    logger.info('Redis connection closed');
   }
 }
 

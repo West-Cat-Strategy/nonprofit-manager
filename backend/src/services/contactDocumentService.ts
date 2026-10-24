@@ -138,10 +138,34 @@ export async function createDocument(
   data: CreateContactDocumentDTO,
   userId: string
 ): Promise<ContactDocument> {
-  try {
-    // Upload file to storage
-    const uploadResult = await uploadFile(file, `documents/${contactId}`);
+  // Validate multipart file presence
+  if (!file || (!file.buffer && !file.path)) {
+    throw Object.assign(new Error('Valid file payload is required'), { statusCode: 400 });
+  }
 
+  // Verify contact existence
+  const contactCheck = await pool.query('SELECT id FROM contacts WHERE id = $1', [contactId]);
+  if (contactCheck.rows.length === 0) {
+    throw Object.assign(new Error('Contact not found'), { statusCode: 404 });
+  }
+
+  // Verify case belongs to contact if case_id specified
+  if (data.case_id) {
+    const caseCheck = await pool.query(
+      'SELECT id FROM cases WHERE id = $1 AND contact_id = $2',
+      [data.case_id, contactId]
+    );
+    if (caseCheck.rows.length === 0) {
+      throw Object.assign(new Error('Case not found or does not belong to this contact'), {
+        statusCode: 400,
+      });
+    }
+  }
+
+  // Upload file to storage
+  const uploadResult = await uploadFile(file, `documents/${contactId}`);
+
+  try {
     // Create database record
     const result = await pool.query(
       `
@@ -173,6 +197,14 @@ export async function createDocument(
     logger.info(`Document uploaded for contact ${contactId}: ${file.originalname}`);
     return result.rows[0];
   } catch (error) {
+    try {
+      await deleteFile(uploadResult.filePath);
+      logger.info(
+        `Rolled back uploaded file ${uploadResult.filePath} after database insert failure`
+      );
+    } catch (cleanupError) {
+      logger.warn(`Failed to clean up uploaded file ${uploadResult.filePath}:`, cleanupError);
+    }
     logger.error('Error creating document:', error);
     throw Object.assign(new Error('Failed to upload document'), { cause: error });
   }

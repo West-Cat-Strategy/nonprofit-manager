@@ -5,6 +5,25 @@
 
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import {
+    DndContext,
+    type DragEndEvent,
+    DragOverlay,
+    type DragStartEvent,
+    KeyboardSensor,
+    PointerSensor,
+    closestCorners,
+    useDroppable,
+    useSensor,
+    useSensors,
+} from '@dnd-kit/core';
+import {
+    SortableContext,
+    sortableKeyboardCoordinates,
+    useSortable,
+    verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 import LoopApiService from '../../../services/LoopApiService';
 import { getDemoTasks, isDemoPath } from '../../../services/loop/demo';
@@ -25,8 +44,12 @@ const getCategoryColor = (category: string) => {
     }
 };
 
-const TaskCard = ({ task }: { task: Task }) => (
-    <div className="bg-[var(--loop-blue)] border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] p-4 mb-3">
+const TaskCard = ({ task, isDragging }: { task: Task; isDragging?: boolean }) => (
+    <div
+        className={`bg-[var(--loop-blue)] border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] p-4 mb-3 transition-opacity ${
+            isDragging ? 'opacity-40' : 'opacity-100'
+        }`}
+    >
         <div className="mb-2">
             <span className={`text-xs font-bold uppercase px-2 py-1 border-2 ${getCategoryColor(task.category)}`}>
                 {task.category}
@@ -48,29 +71,87 @@ const TaskCard = ({ task }: { task: Task }) => (
     </div>
 );
 
-const Column = ({ title, count, tasks, loading }: { title: string; count: number; tasks: Task[]; loading: boolean }) => (
-    <div className="flex flex-col">
-        <div className="bg-app-surface dark:bg-[#121212] border-2 border-black dark:border-white shadow-[2px_2px_0px_0px_var(--shadow-color)] p-4 mb-4">
-            <div className="flex justify-between items-center">
-                <h2 className="font-black text-lg uppercase text-black dark:text-white">{title}</h2>
-                <div className="bg-black text-white dark:bg-app-surface dark:text-black w-8 h-8 border-2 border-black dark:border-white rounded-full flex items-center justify-center font-bold text-sm">
-                    {count}
+const SortableTaskCard = ({ task }: { task: Task }) => {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({
+        id: task.id,
+        data: { task },
+    });
+
+    const style = {
+        transform: CSS.Translate.toString(transform),
+        transition,
+    };
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing focus:outline-none"
+            data-testid={`task-card-${task.id}`}
+        >
+            <TaskCard task={task} isDragging={isDragging} />
+        </div>
+    );
+};
+
+const Column = ({
+    id,
+    title,
+    count,
+    tasks,
+    loading,
+}: {
+    id: Task['status'];
+    title: string;
+    count: number;
+    tasks: Task[];
+    loading: boolean;
+}) => {
+    const { setNodeRef, isOver } = useDroppable({
+        id,
+        data: { status: id },
+    });
+
+    return (
+        <div className="flex flex-col" data-testid={`column-${id}`}>
+            <div className="bg-app-surface dark:bg-[#121212] border-2 border-black dark:border-white shadow-[2px_2px_0px_0px_var(--shadow-color)] p-4 mb-4">
+                <div className="flex justify-between items-center">
+                    <h2 className="font-black text-lg uppercase text-black dark:text-white">{title}</h2>
+                    <div className="bg-black text-white dark:bg-app-surface dark:text-black w-8 h-8 border-2 border-black dark:border-white rounded-full flex items-center justify-center font-bold text-sm">
+                        {count}
+                    </div>
                 </div>
             </div>
+            <div
+                ref={setNodeRef}
+                className={`flex-1 bg-app-surface dark:bg-[#121212] border-2 border-black dark:border-white shadow-[4px_4px_0px_0px_var(--shadow-color)] p-4 min-h-[400px] transition-colors ${
+                    isOver ? 'ring-2 ring-[var(--loop-blue)] bg-app-hover/30' : ''
+                }`}
+            >
+                {loading ? (
+                    <div className="flex justify-center py-10">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black dark:border-white"></div>
+                    </div>
+                ) : (
+                    <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+                        {tasks.map(task => (
+                            <SortableTaskCard key={task.id} task={task} />
+                        ))}
+                    </SortableContext>
+                )}
+            </div>
         </div>
-        <div className="flex-1 bg-app-surface dark:bg-[#121212] border-2 border-black dark:border-white shadow-[4px_4px_0px_0px_var(--shadow-color)] p-4 min-h-[400px]">
-            {loading ? (
-                <div className="flex justify-center py-10">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black dark:border-white"></div>
-                </div>
-            ) : (
-                tasks.map(task => (
-                    <TaskCard key={task.id} task={task} />
-                ))
-            )}
-        </div>
-    </div>
-);
+    );
+};
 
 export default function OperationsBoard() {
     const { pathname } = useLocation();
@@ -81,6 +162,18 @@ export default function OperationsBoard() {
     const [sortBy, setSortBy] = useState<'dueDate' | 'title' | 'category'>('dueDate');
     const [showFilterMenu, setShowFilterMenu] = useState(false);
     const [showSortMenu, setShowSortMenu] = useState(false);
+    const [activeTask, setActiveTask] = useState<Task | null>(null);
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 5,
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
 
     useEffect(() => {
         if (isDemoRoute) {
@@ -114,6 +207,55 @@ export default function OperationsBoard() {
     const applySort = (field: 'dueDate' | 'title' | 'category') => {
         setSortBy(field);
         setShowSortMenu(false);
+    };
+
+    const handleDragStart = (event: DragStartEvent) => {
+        const found = tasks.find(t => t.id === event.active.id);
+        setActiveTask(found || null);
+    };
+
+    const handleDragCancel = () => {
+        setActiveTask(null);
+    };
+
+    const handleDragEnd = async (event: DragEndEvent) => {
+        setActiveTask(null);
+        const { active, over } = event;
+        if (!over) return;
+
+        const activeId = String(active.id);
+        const overId = String(over.id);
+
+        const currentTask = tasks.find(t => t.id === activeId);
+        if (!currentTask) return;
+
+        let targetStatus: Task['status'] | undefined;
+        if (overId === 'todo' || overId === 'in-progress' || overId === 'done') {
+            targetStatus = overId;
+        } else {
+            const targetTask = tasks.find(t => t.id === overId);
+            if (targetTask) {
+                targetStatus = targetTask.status;
+            }
+        }
+
+        if (!targetStatus || targetStatus === currentTask.status) {
+            return;
+        }
+
+        const previousTasks = [...tasks];
+        setTasks(prev =>
+            prev.map(t => (t.id === activeId ? { ...t, status: targetStatus } : t))
+        );
+
+        if (!isDemoRoute) {
+            try {
+                await LoopApiService.updateTaskStatus(activeId, targetStatus);
+            } catch (error) {
+                console.error('Failed to persist task status update:', error);
+                setTasks(previousTasks);
+            }
+        }
     };
 
     const filteredTasks = filterCategory === 'all'
@@ -187,13 +329,30 @@ export default function OperationsBoard() {
                     </div>
                 </div>
 
-                {/* Kanban Columns */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <Column title="TO DO" count={todoTasks.length} tasks={todoTasks} loading={loading} />
-                    <Column title="IN PROGRESS" count={inProgressTasks.length} tasks={inProgressTasks} loading={loading} />
-                    <Column title="DONE" count={doneTasks.length} tasks={doneTasks} loading={loading} />
-                </div>
+                {/* Kanban Columns with DndContext */}
+                <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCorners}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                    onDragCancel={handleDragCancel}
+                >
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <Column id="todo" title="TO DO" count={todoTasks.length} tasks={todoTasks} loading={loading} />
+                        <Column id="in-progress" title="IN PROGRESS" count={inProgressTasks.length} tasks={inProgressTasks} loading={loading} />
+                        <Column id="done" title="DONE" count={doneTasks.length} tasks={doneTasks} loading={loading} />
+                    </div>
+
+                    <DragOverlay>
+                        {activeTask ? (
+                            <div className="rotate-2 scale-105 pointer-events-none">
+                                <TaskCard task={activeTask} />
+                            </div>
+                        ) : null}
+                    </DragOverlay>
+                </DndContext>
             </div>
         </NeoBrutalistLayout>
     );
 }
+

@@ -13,6 +13,7 @@ export interface CasesListState {
   total: number;
   loading: boolean;
   error: string | null;
+  currentRequestId: string | null;
   filters: CaseFilter;
   selectedCaseIds: string[];
   summary: CaseSummary | null;
@@ -23,6 +24,7 @@ const initialState: CasesListState = {
   total: 0,
   loading: false,
   error: null,
+  currentRequestId: null,
   filters: {
     page: 1,
     limit: 20,
@@ -86,17 +88,26 @@ const casesListSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchCases.pending, (state) => {
+      .addCase(fetchCases.pending, (state, action) => {
         state.loading = true;
         state.error = null;
+        state.currentRequestId = action.meta.requestId;
       })
       .addCase(fetchCases.fulfilled, (state, action) => {
+        if (state.currentRequestId !== action.meta.requestId) {
+          return;
+        }
         state.loading = false;
+        state.currentRequestId = null;
         state.cases = action.payload.cases;
         state.total = action.payload.total;
       })
       .addCase(fetchCases.rejected, (state, action) => {
+        if (state.currentRequestId !== action.meta.requestId) {
+          return;
+        }
         state.loading = false;
+        state.currentRequestId = null;
         state.error = action.error.message || 'Failed to fetch cases';
       })
       .addCase(fetchCaseSummary.fulfilled, (state, action) => {

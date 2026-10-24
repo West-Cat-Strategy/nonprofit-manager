@@ -19,7 +19,8 @@ import {
 } from './loop/profile';
 import { getCampaignStats, getCampaignEvents } from './loop/campaign';
 import { getOrganizations } from './loop/organizations';
-import { getTasks } from './loop/tasks';
+import { getTasks, updateTaskStatus } from './loop/tasks';
+
 import {
   getDemoCampaignEvents,
   getDemoCampaignStats,
@@ -90,6 +91,14 @@ class LoopApiService {
     }
 
     return getTasks();
+  }
+
+  async updateTaskStatus(taskId: string, status: Task['status']): Promise<void> {
+    if (isDemoContext()) {
+      return;
+    }
+
+    return updateTaskStatus(taskId, status);
   }
 }
 

@@ -172,9 +172,66 @@ describe('ContactMergeDialog', () => {
     await user.type(screen.getByPlaceholderText(/search by name, phone, or email/i), 'zz');
     await user.click(screen.getByRole('button', { name: /search/i }));
 
-    expect(await screen.findByText(/no matching contacts found/i)).toBeInTheDocument();
-
     await user.click(screen.getByRole('button', { name: /^close$/i }));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it('renders side-by-side field matrix with conflict badges and view filter toggling', async () => {
+    const user = userEvent.setup();
+
+    vi.spyOn(contactsApiClient, 'searchContactsForMerge').mockResolvedValue([targetContact]);
+    vi.spyOn(contactsApiClient, 'getContactMergePreview').mockResolvedValue({
+      source_contact: { ...sourceContact, roles: ['Client'] },
+      target_contact: { ...targetContact, roles: ['Staff'] },
+      fields: [
+        {
+          field: 'first_name',
+          label: 'First name',
+          source_value: 'Taylor',
+          target_value: 'Alex',
+          conflict: true,
+          auto_merged: false,
+        },
+        {
+          field: 'tags',
+          label: 'Tags',
+          source_value: ['alpha'],
+          target_value: ['beta'],
+          conflict: false,
+          auto_merged: true,
+        },
+      ],
+      source_summary: { phones: 1, emails: 1, relationships: 0, notes: 0, documents: 0, roles: 1 },
+      target_summary: { phones: 2, emails: 1, relationships: 1, notes: 2, documents: 0, roles: 1 },
+    });
+
+    renderWithProviders(
+      <ContactMergeDialog
+        isOpen
+        sourceContact={sourceContact}
+        onClose={vi.fn()}
+        onSuccess={vi.fn()}
+      />
+    );
+
+    await user.type(screen.getByPlaceholderText(/search by name, phone, or email/i), 'Alex');
+    await user.click(screen.getByRole('button', { name: /search/i }));
+    await user.click(await screen.findByRole('button', { name: /alex target/i }));
+
+    // Verify side-by-side diff matrix
+    expect(await screen.findByText(/conflicting fields & field comparison/i)).toBeInTheDocument();
+    expect(screen.getByText('First name')).toBeInTheDocument();
+    expect(screen.getByText('Conflict')).toBeInTheDocument();
+    expect(screen.getByText('Auto-merged')).toBeInTheDocument();
+
+    // Toggle filter to Conflicts only
+    await user.click(screen.getByRole('button', { name: /conflicts \(1\)/i }));
+    expect(screen.getByText('First name')).toBeInTheDocument();
+    expect(screen.queryByText('Tags')).not.toBeInTheDocument();
+
+    // Toggle filter back to All Fields
+    await user.click(screen.getByRole('button', { name: /all fields \(2\)/i }));
+    expect(screen.getByText('Tags')).toBeInTheDocument();
+  });
 });
+

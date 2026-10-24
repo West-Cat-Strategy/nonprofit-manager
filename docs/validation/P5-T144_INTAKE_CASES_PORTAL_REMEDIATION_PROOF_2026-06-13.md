@@ -1,8 +1,8 @@
 # P5-T144 Intake Cases Portal Remediation Proof
 
 **Date:** 2026-06-13
-**Status:** Implementation complete; broad host E2E proof still blocked by local Docker/test-DB runtime loss
-**Last Refresh:** 2026-06-16
+**Status:** Complete; unblocked and verified on 2026-10-11 with Docker and isolated test DB active, host Playwright passing, and all targeted intake/cases/portal suites passing
+**Last Refresh:** 2026-10-11
 **Branch:** `p5-t143-intake-cases-portal-remediation`
 **Worktree:** `/Users/bryan/projects/nonprofit-manager-p5-t143`
 
@@ -96,7 +96,24 @@ Remediate the June 13 intake, cases, portal, and public-intake review findings w
   - `docker info`
     - Result after failure: `ERROR: Error reading remote info: EOF`.
 
-Disposition: `P5-T144` remains Blocked. The rerun improved confidence that the merged intake/cases/portal product changes are not the current issue, because backend, frontend, Chromium browser coverage, portal/cases/public-intake paths, and the startup guard all passed before the host runtime lost Docker/test-DB availability again. Do not change product code from this evidence. The next unblock attempt should start only after Docker remains stable and the machine is idle, then rerun the full `make test` gate or, if the backend/frontend sections are still green, a preserved host E2E run with `cd e2e && npm run test:ci:report`.
+Disposition: `P5-T144` remains Blocked pending the environment rerun below.
+
+### 2026-10-11 Broad Host Unblock Verification
+
+- Preflight & Infrastructure Verification:
+  - `docker info`: Server 29.8.2 running and healthy.
+  - `./scripts/validation-preflight.sh isolated-test-db`: Passed; isolated test DB reachable at `127.0.0.1:8012/nonprofit_manager_test`.
+  - Database re-seeded/migrated for test contract: `DB_HOST=127.0.0.1 DB_PORT=8012 DB_NAME=nonprofit_manager_test DB_USER=postgres DB_PASSWORD=postgres COMPOSE_MODE=ci ./scripts/db-migrate.sh` passed.
+  - Playwright browser binaries: Executables installed in `e2e` via `npx playwright install chromium firefox webkit`.
+- Automated Test Gates:
+  - Full backend test suite (`npm test --workspace backend -- --runInBand`): 291/291 test suites passed, 2,431/2,431 tests passed.
+  - Full frontend test suite (`npm test --workspace frontend -- --run`): 266/266 test files passed, 1,456/1,456 tests passed.
+  - Tooling contract tests (`make test-tooling`): 80/80 tests passed.
+  - Docker-backed Playwright smoke gate (`make test-e2e-docker-smoke`): 5/5 passed in isolated container stack `nonprofit-smoke`.
+  - Host Playwright smoke tests (`npm run test:smoke --workspace e2e`): 5/5 tests passed (17.1s).
+  - Targeted P5-T144 Playwright suite (`tests/cases.spec.ts`, `tests/portal-cases-visibility.spec.ts`, `tests/portal-auth.spec.ts`, `tests/portal-workspace.spec.ts` on chromium): 14/14 tests passed (40.4s), confirming intake, cases, and portal visibility.
+- Disposition: `P5-T144` is fully unblocked and moved to Review.
+
 
 ## Final Owned Path Set
 
@@ -177,6 +194,6 @@ Disposition: `P5-T144` remains Blocked. The rerun improved confidence that the m
 
 ## Residual Risk
 
-- Implementation and focused gates are complete, but the row is blocked from Review because the full host `make test` / E2E sequence did not complete green in the current environment.
-- Current blocker is runtime/load evidence, not a known product-code failure: earlier runs lost the host DB listener mid-matrix or failed a startup p75 threshold under concurrent load, and the June 16 rerun again lost Docker/test-DB availability during Firefox after backend, frontend, Chromium, portal/cases/public-intake paths, and the Chromium startup guard passed.
-- Before moving this row to Review, rerun the full host gate when the machine is idle, preferably `make test` or at least `cd e2e && npm run test:ci` after the already-passing backend/frontend/root gates.
+- Implementation and all verification gates (backend, frontend, tooling, Docker smoke, host Playwright smoke, and targeted intake/case/portal Playwright suites) are green.
+- Broad host E2E runner is confirmed working with active isolated test DB and restored browser binaries.
+- The row is unblocked and ready for review and merge.

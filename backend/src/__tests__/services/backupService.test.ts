@@ -73,7 +73,9 @@ describe('BackupService redaction', () => {
     );
     expect(DEFAULT_SECRET_FIELDS.case_form_access_tokens).toContain('token_hash');
     expect(DEFAULT_SECRET_FIELDS.newsletter_signup_confirmations).toContain('token_hash');
-    expect(DEFAULT_SECRET_FIELDS.saved_reports).toContain('public_token');
+    expect(DEFAULT_SECRET_FIELDS.saved_reports).toEqual(
+      expect.arrayContaining(['public_token', 'public_token_hash'])
+    );
     expect(DEFAULT_SECRET_FIELDS.saved_report_public_snapshots).toContain('token');
 
     expect(

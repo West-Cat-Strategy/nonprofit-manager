@@ -126,7 +126,7 @@ describe('createContactPhone', () => {
     );
 
     expect(result.phone_number).toBe('555-111-2222');
-    expect(syncContactMethodSummaries).toHaveBeenCalledWith('contact-1');
+    expect(syncContactMethodSummaries).toHaveBeenCalledWith('contact-1', expect.anything());
   });
 
   it('defaults label to "other" when not provided', async () => {
@@ -183,7 +183,7 @@ describe('updateContactPhone', () => {
 
     expect(result).not.toBeNull();
     expect(result!.phone_number).toBe('555-999-0000');
-    expect(syncContactMethodSummaries).toHaveBeenCalledWith('contact-1');
+    expect(syncContactMethodSummaries).toHaveBeenCalledWith('contact-1', expect.anything());
   });
 
   it('returns null when no row matches', async () => {
@@ -250,7 +250,7 @@ describe('deleteContactPhone', () => {
 
     const result = await deleteContactPhone('phone-uuid');
     expect(result).toBe(true);
-    expect(syncContactMethodSummaries).toHaveBeenCalledWith('contact-1');
+    expect(syncContactMethodSummaries).toHaveBeenCalledWith('contact-1', expect.anything());
   });
 
   it('returns false when no phone matched', async () => {
